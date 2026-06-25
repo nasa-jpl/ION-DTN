@@ -1,0 +1,6 @@
+1 1 amroc.ionconfig
+s
+m horizon +0
+a range	+0 +3600 1 2 0
+a contact +0 +3600 1 2 10000
+a contact +0 +3600 2 1 10000

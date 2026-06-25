@@ -1,0 +1,4 @@
+a exit 1 1 ipn:2.0
+a plan 2 ltp/2
+a rtovrd 0 5 0 4 udp/127.0.0.1:8888
+a exit 6 7 ipn:4.0

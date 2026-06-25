@@ -1397,6 +1397,7 @@ static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
 		{
 			continue;	/*	For different protocol.	*/
 		}
+
 		if (raiseOutduct(elt, bpvdb) < 0)
 		{
 			putErrmsg("Can't raise outduct.", NULL);
@@ -2016,6 +2017,7 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
 		stopScheme(vscheme);
 	}
+
 	writeMemo("[i] bpStop: Schemes stopped.");
 
 	/*	Brief delay to allow any active CL threads to complete
@@ -2029,6 +2031,7 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	/*	Signal inducts to stop first, so that any bpclm daemons
 	 *	that are blocked waiting for induct activity can be
 	 *	unblocked when the inducts begin shutdown.		*/
+
 	writeMemo("[i] bpStop: Signaling inducts to stop...");
 	writeMemo("[i] bpStop: About to call sm_list_first on inducts");
 	elt = sm_list_first(bpwm, bpvdb->inducts);
@@ -2036,11 +2039,12 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	for (; elt; elt = sm_list_next(bpwm, elt))
 	{
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		writeMemoNote("[i] bpStop: Signaling induct", vinduct->ductName);
+		writeMemoNote("[i] bpStop: Signaling induct",
+				vinduct->ductName);
 		stopInduct(vinduct);
 	}
-	writeMemo("[i] bpStop: Inducts signaled.");
 
+	writeMemo("[i] bpStop: Inducts signaled.");
 	writeMemo("[i] bpStop: Stopping plans...");
 	elt = sm_list_first(bpwm, bpvdb->plans);
 	for (; elt; elt = sm_list_next(bpwm, elt))
@@ -2048,8 +2052,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
 		stopPlan(vplan);
 	}
-	writeMemo("[i] bpStop: Plans stopped.");
 
+	writeMemo("[i] bpStop: Plans stopped.");
 	writeMemo("[i] bpStop: Stopping outducts...");
 	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
 			sm_list_next(bpwm, elt))
@@ -2060,8 +2064,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 			stopOutduct(voutduct);
 		}
 	}
-	writeMemo("[i] bpStop: Outducts stopped.");
 
+	writeMemo("[i] bpStop: Outducts stopped.");
 	writeMemo("[i] bpStop: Stopping BP daemons...");
 	if (bpvdb->clockPid != ERROR)
 	{
@@ -2078,8 +2082,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
 	}
-	writeMemo("[i] bpStop: BP daemons signaled.");
 
+	writeMemo("[i] bpStop: BP daemons signaled.");
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all BP processes have stopped.		*/
@@ -2091,8 +2095,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForScheme(vscheme);
 	}
-	writeMemo("[i] bpStop: All schemes terminated.");
 
+	writeMemo("[i] bpStop: All schemes terminated.");
 	writeMemo("[i] bpStop: Waiting for plans to terminate...");
 	for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -2100,8 +2104,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForPlan(vplan);
 	}
-	writeMemo("[i] bpStop: All plans terminated.");
 
+	writeMemo("[i] bpStop: All plans terminated.");
 	writeMemo("[i] bpStop: Waiting for inducts to terminate...");
 	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
 			sm_list_next(bpwm, elt))
@@ -2109,8 +2113,8 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForInduct(vinduct);
 	}
-	writeMemo("[i] bpStop: All inducts terminated.");
 
+	writeMemo("[i] bpStop: All inducts terminated.");
 	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
@@ -3038,8 +3042,7 @@ incomplete bundle.", NULL);
 
 			}
 
-			if ((bundle.bundleProcFlags & BDL_IS_BIBE
-				|| (bundle.bundleProcFlags & BDL_IS_ADMIN) == 0)
+			if ((bundle.bundleProcFlags & BDL_IS_ADMIN) == 0
 			&& (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
 			{
 				bundle.statusRpt.flags |= BP_DELETED_RPT;
@@ -6525,9 +6528,9 @@ for status reports.");
 		}
 
 		/*	Also can't get status reports for
-		 *	administrative records except BIBE.		*/
+		 *	administrative records.				*/
 
-		if (adminRecordType != 0 && adminRecordType != BP_BIBE_PDU)
+		if (adminRecordType != 0)
 		{
 			clearMetaEid(&destMetaEid);
 			writeMemo("[?] Can't ask for status reports for admin \
@@ -6580,10 +6583,6 @@ when asking for status reports.");
 	if (adminRecordType != 0)
 	{
 		bundleProcFlags |= BDL_IS_ADMIN;
-		if (adminRecordType == BP_BIBE_PDU)
-		{
-			bundleProcFlags |= BDL_IS_BIBE;
-		}
 
 		/*	Administrative bundles must not be anonymous.
 		 *	Recipient needs to know source of the status
@@ -7744,7 +7743,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			ionShred(ticket);	/*	Cancel reservation.	*/
+			ionShred(ticket);	/*	Drop reservation.*/
 			return 0;
 		}
 
@@ -8556,8 +8555,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Check for processing flags conflicts.			*/
 
-	if (bundle->bundleProcFlags & BDL_IS_ADMIN
-	&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0)
+	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
 	{
 		if (SRR_FLAGS(bundle->bundleProcFlags) != 0)
 		{
@@ -8950,15 +8948,14 @@ static int	acquireBlock(AcqWorkArea *work)
 	/*	Check for processing flags conflicts.			*/
 
 	if (bundle->anonymous
-	|| ((bundle->bundleProcFlags & BDL_IS_ADMIN) > 0
-		&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0))
+	|| (bundle->bundleProcFlags & BDL_IS_ADMIN) > 0)
 	{
 			/*	RFC BPbis 5.6 Step 4	*/
 
 		if (blkProcFlags & BLK_REPORT_IF_NG)
 		{
-			writeMemo("[?] Status report request prohibited for \
-undefined block.");
+			writeMemo("[?] Status report request for undefined \
+block is prohibited.");
 			work->mustAbort = 1;
 		}
 	}
@@ -13388,25 +13385,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			continue;
 		}
 
-		/*	Now handle the administrative record.		*/
-
-		if (adminRecType == BP_BIBE_PDU)
-		{
-			if (bibeHandleBpdu(&dlv) < 0)
-			{
-				putErrmsg("BIBE PDU handler failed.", NULL);
-				running = 0;
-			}
-
-			bp_release_delivery(&dlv, 0);
-
-			/*	Make sure other tasks have a chance
-			 *	to run.					*/
-
-			sm_TaskYield();
-			continue;
-		}
-
 		/*	For the smaller administrative records, read
 		 *	the entire admin record into memory buffer.	*/
 
@@ -13463,16 +13441,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			if (saga_receive(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Discovery history handler failed.",
-						NULL);
-				running = 0;
-			}
-
-			break;
-
-		case BP_BIBE_SIGNAL:
-			if (bibeHandleSignal(&dlv, cursor, unparsedBytes) < 0)
-			{
-				putErrmsg("BIBE custody signal handler failed.",
 						NULL);
 				running = 0;
 			}

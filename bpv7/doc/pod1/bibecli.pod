@@ -1,0 +1,128 @@
+=head1 NAME
+
+bibecli - BP convergence layer input task for bundle-in-bundle encapsulation
+
+=head1 SYNOPSIS
+
+B<bibecli> I<BIBE_EID>
+
+=head1 DESCRIPTION
+
+B<bibecli> is a background "daemon" task that handles BIBE convergence
+layer protocol input.
+
+The daemon acts as a BP application, receiving the ADUs that were the
+payloads of received BIBE bundles (see B<bibeclo(1)> for a discussion);
+these ADUs are BPDUs (a.k.a. "BIBE messages), which encapsulate serialized
+bundles.  Upon delivery of a BPDU the B<bibecli> - now acting as a CLI -
+delivers the encapsulated serialized bundle to the bundle protocol agent,
+which dispatches it as if it had been received from a neighboring node
+in the normal course of operations.
+
+B<bibecli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol, and it is
+terminated by B<bpadmin> in response to an 'x' (STOP) command.  B<bibecli>
+can also be spawned and terminated in response to START and STOP commands
+that pertain specifically to the BIBE convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bibecli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<bibecli>.
+
+=item "1"
+
+B<bibecli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<bibecli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bibecli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item CLI task is already started.
+
+Redundant initiation of B<bibecli>.
+
+=item Can't open bibecli endpoint.
+
+Processing error, bibecli terminates.
+
+=item BIBE bundle reception failed.
+
+Processing error, bibecli terminates.
+
+=item [?] bibecli can't receive BPDU header.
+
+Error in BPDU structure, input ignored.
+
+=item Failed stripping header of BPDU.
+
+Processing error, bibecli terminates.
+
+=item [?] bibecli can't process BPDU.
+
+Error in BPDU structure, input ignored.
+
+=item Can't handle BPDU.
+
+Processing error, bibecli terminates.
+
+=item Can't get bibe induct.
+
+Processing error, bibecli terminates.
+
+=item Can't get acquisition work area.
+
+Processing error, bibecli terminates.
+
+=item Can't begin bundle acquisition.
+
+Processing error, bibecli terminates.
+
+=item Can't continue bundle acquisition.
+
+Processing error, bibecli terminates.
+
+=item Can't complete bundle acquisition.
+
+Processing error, bibecli terminates.
+
+=item BIBE PDU handler failed.
+
+Processing error, bibecli terminates.
+
+=item [i] bibecli has ended.
+
+Nominal shutdown message.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bibecli(1), bibeadmin(1), biberc(5)

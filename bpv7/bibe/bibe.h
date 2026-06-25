@@ -15,10 +15,6 @@
 
 #include "bpP.h"
 
-/*	Administrative record types	*/
-#define BP_BIBE_PDU	(7)
-#define BP_BIBE_SIGNAL	(8)	     /*      Aggregate.			*/
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,15 +36,6 @@ extern void	bibeChange(char *peerEid, unsigned int fwdLatency,
 extern void	bibeDelete(char *peerEid);
 
 extern void	bibeFind(char *peerEid, Object *addr, Object *elt);
-
-extern int	bibeHandleBpdu(BpDelivery *dlv);
-
-extern int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
-			unsigned int unparsedBytes);
-
-extern int	bibeCtRetry(Bundle *bundle, Object bundleAddr);
-
-extern void	bibeCtCancel(Bundle *bundle);
 
 #ifdef __cplusplus
 }
