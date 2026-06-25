@@ -1,0 +1,122 @@
+name: "Build and Push Runner Image"
+description: "Builds, pushes, generates SBOM, and attaches signatures for ARC runner images"
+
+inputs:
+  runner:
+    description: "Target runner identifier (u22, u24, ol8, ol9, rhel8, rhel9)"
+    required: true
+  build_type:
+    description: "Build variant: 'runner' (for standard ARC) or 'base'"
+    required: false
+    default: "runner"
+  registry_address:
+    description: "Container registry address"
+    required: true
+  registry_namespace:
+    description: "Container registry namespace"
+    required: true
+  registry_robot:
+    description: "Registry robot / username"
+    required: true
+  registry_password:
+    description: "Registry password"
+    required: true
+  cosign_version:
+    description: "Version of Cosign to install"
+    required: false
+    # renovate: datasource=github-releases depName=sigstore/cosign
+    default: "v3.1.1"
+  syft_version:
+    description: "Version of Syft for anchore/sbom-action"
+    required: false
+    # renovate: datasource=github-releases depName=anchore/syft
+    default: "v1.45.1"
+  sbom_tag_prefix:
+    description: "Optional prefix for the image tag in SBOM attach (e.g. 'base-'). Defaults based on build_type."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      with:
+        cosign-release: ${{ inputs.cosign_version }}
+
+    - name: Login to container registry
+      shell: bash
+      run: |
+        echo "${{ inputs.registry_password }}" | sudo buildah login ${{ inputs.registry_address }} \
+          --username "${{ inputs.registry_robot }}" --password-stdin
+
+    - name: Set Image Variables
+      id: vars
+      shell: bash
+      run: |
+        case "${{ inputs.runner }}" in
+          u22)   OS_IMAGE="ubuntu-22";     IS_RHEL=false ;;
+          u24)   OS_IMAGE="ubuntu-24";     IS_RHEL=false ;;
+          ol8)   OS_IMAGE="oraclelinux-8"; IS_RHEL=false ;;
+          ol9)   OS_IMAGE="oraclelinux-9"; IS_RHEL=false ;;
+          rhel8) OS_IMAGE="rhel-8";         IS_RHEL=true ;;
+          rhel9) OS_IMAGE="rhel-9";         IS_RHEL=true ;;
+          *)
+            echo "::error::Unsupported runner target: '${{ inputs.runner }}'"
+            exit 1
+            ;;
+        esac
+
+        if [ "${{ inputs.build_type }}" = "base" ]; then
+          TARGET=$([ "$IS_RHEL" = "true" ] && echo "buildah-build-base-rhel" || echo "buildah-build-base")
+          DEFAULT_PREFIX="base-"
+        else
+          TARGET=$([ "$IS_RHEL" = "true" ] && echo "buildah-build-rhel" || echo "buildah-build")
+          DEFAULT_PREFIX=""
+        fi
+
+        # Allow explicit override; otherwise fall back to type-based prefix
+        SBOM_PREFIX="${{ inputs.sbom_tag_prefix }}"
+        if [ -z "$SBOM_PREFIX" ] && [ "${{ inputs.build_type }}" = "base" ]; then
+          SBOM_PREFIX="$DEFAULT_PREFIX"
+        fi
+
+        echo "os_image=$OS_IMAGE" >> $GITHUB_OUTPUT
+        echo "target=$TARGET" >> $GITHUB_OUTPUT
+        echo "sbom_prefix=$SBOM_PREFIX" >> $GITHUB_OUTPUT
+
+    - name: Build and Push container image
+      shell: bash
+      run: |
+        cd images && \
+        sudo make ${{ steps.vars.outputs.target }} \
+          OS_IMAGE=${{ steps.vars.outputs.os_image }} \
+          DEFAULT_RUNNER_NAME=${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images && \
+        sudo make ${{ inputs.build_type == 'base' && 'buildah-push-base' || 'buildah-push' }} \
+          OS_IMAGE=${{ steps.vars.outputs.os_image }} \
+          DEFAULT_RUNNER_NAME=${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images
+
+    - name: Export image for SBOM scan
+      shell: bash
+      run: |
+        sudo buildah push ${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images:${{ steps.vars.outputs.sbom_prefix }}${{ steps.vars.outputs.os_image }} \
+          docker-archive:runner-image.tar
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      with:
+        image: docker-archive:runner-image.tar
+        output-file: ${{ steps.vars.outputs.os_image }}-sbom.spdx.json
+        upload-artifact: false
+        syft-version: ${{ inputs.syft_version }}
+
+    - name: Attach SBOM
+      shell: bash
+      run: |
+        cosign attach sbom --sbom ${{ steps.vars.outputs.os_image }}-sbom.spdx.json \
+          ${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images:${{ steps.vars.outputs.sbom_prefix }}${{ steps.vars.outputs.os_image }}
+
+    - name: Buildah Logout
+      if: ${{ always() }}
+      shell: bash
+      run: sudo buildah logout ${{ inputs.registry_address }}

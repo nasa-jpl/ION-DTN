@@ -1,0 +1,61 @@
+name: "Build Runner Matrix"
+description: "Generates runner matrix JSON arrays for short OS identifiers and ARC runner sets"
+
+inputs:
+  runner_u22:
+    description: "Enable Ubuntu 22.04"
+    required: false
+    default: "false"
+  runner_u24:
+    description: "Enable Ubuntu 24.04"
+    required: false
+    default: "false"
+  runner_ol8:
+    description: "Enable Oracle Linux 8"
+    required: false
+    default: "false"
+  runner_ol9:
+    description: "Enable Oracle Linux 9"
+    required: false
+    default: "false"
+  runner_rhel8:
+    description: "Enable RHEL 8"
+    required: false
+    default: "false"
+  runner_rhel9:
+    description: "Enable RHEL 9"
+    required: false
+    default: "false"
+  runner_prefix:
+    description: "Prefix prepended to each runner for the 'runners' output"
+    required: false
+    default: "arc-runner-set-"
+
+outputs:
+  matrix:
+    description: "Raw short runner names (e.g., ['u22', 'ol8'])"
+    value: ${{ steps.generate.outputs.matrix }}
+  runners:
+    description: "Prefixed runner set names (e.g., ['arc-runner-set-u22', 'arc-runner-set-ol8'])"
+    value: ${{ steps.generate.outputs.runners }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate Matrix
+      id: generate
+      shell: bash
+      run: |
+        SHORT_RUNNERS=$(bash .github/scripts/build-runner-matrix.sh \
+          --ubuntu_22=${{ inputs.runner_u22 }} \
+          --ubuntu_24=${{ inputs.runner_u24 }} \
+          --oracle_linux_8=${{ inputs.runner_ol8 }} \
+          --oracle_linux_9=${{ inputs.runner_ol9 }} \
+          --rhel_8=${{ inputs.runner_rhel8 }} \
+          --rhel_9=${{ inputs.runner_rhel9 }})
+
+        PREFIX="${{ inputs.runner_prefix }}"
+        FULL_RUNNERS=$(echo "$SHORT_RUNNERS" | jq -c --arg prefix "$PREFIX" 'map($prefix + .)')
+
+        echo "matrix=$SHORT_RUNNERS" >> $GITHUB_OUTPUT
+        echo "runners=$FULL_RUNNERS" >> $GITHUB_OUTPUT

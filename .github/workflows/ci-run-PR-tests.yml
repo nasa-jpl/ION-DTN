@@ -56,7 +56,8 @@ jobs:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           sync-labels: true
 
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      - name: Filter on paths that need tests
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |

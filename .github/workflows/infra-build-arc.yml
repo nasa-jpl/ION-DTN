@@ -1,0 +1,98 @@
+name: Build and Push Runner Images to Registry
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["integration"]
+    paths:
+      - "images/actions-runner.universal.dockerfile"
+      - "images/pyproject.toml"
+      - "images/uv.lock"
+      - "charts/arc/Chart.yaml"
+  workflow_run:
+    workflows: ["Build ARC OS Base Images"]
+    types:
+      - completed
+
+  workflow_dispatch:
+    inputs:
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Build Ubuntu 24.04 (arc-runner-set-u24)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Build Ubuntu 24.04 (arc-runner-set-u24)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/reusable-runner-build.yml
+    with:
+      build_type: "runner"
+      consolidate_runners: true
+      full_build: ${{ github.event_name == 'push' || github.event_name == 'workflow_run' }}
+      runner_u22: ${{ inputs.runner_u22 }}
+      runner_u24: ${{ inputs.runner_u24 }}
+      runner_ol8: ${{ inputs.runner_ol8 }}
+      runner_ol9: ${{ inputs.runner_ol9 }}
+      runner_rhel8: ${{ inputs.runner_rhel8 }}
+      runner_rhel9: ${{ inputs.runner_rhel9 }}
+    secrets: inherit

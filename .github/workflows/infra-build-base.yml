@@ -1,0 +1,64 @@
+name: Build ARC OS Base Images
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["integration"]
+    paths:
+      - "images/base.*"
+      - "images/Makefile"
+      # Doubt the below files will ever change but gives coverage
+      - "images/*.conf"
+      - "images/buildah-policy.json"
+  schedule:
+    - cron: "0 2 * * 1"
+
+  workflow_dispatch:
+    inputs:
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Build Ubuntu 24.04 (arc-runner-set-u24)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-runner-build.yml
+    with:
+      build_type: "base"
+      consolidate_runners: false
+      full_build: ${{ github.event_name == 'schedule' || github.event_name == 'push' }}
+      runner_u22: ${{ inputs.runner_u22 }}
+      runner_u24: ${{ inputs.runner_u24 }}
+      runner_ol8: ${{ inputs.runner_ol8 }}
+      runner_ol9: ${{ inputs.runner_ol9 }}
+      runner_rhel8: ${{ inputs.runner_rhel8 }}
+      runner_rhel9: ${{ inputs.runner_rhel9 }}
+    secrets: inherit

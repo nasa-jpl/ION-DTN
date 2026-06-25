@@ -1,0 +1,106 @@
+name: Reusable Runner Image Build Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      build_type:
+        description: "Build variant: 'runner' (for standard ARC) or 'base'"
+        required: true
+        type: string
+      consolidate_runners:
+        description: "Route u22, u24, ol8, and ol9 to arc-runner-set-ol8 instead of individual pools"
+        required: false
+        type: boolean
+        default: false
+      sbom_tag_prefix:
+        description: "Prefix for SBOM tag attachment (e.g. 'base-')"
+        required: false
+        type: string
+        default: ""
+      full_build:
+        description: "Override all runner selections to true"
+        required: false
+        type: boolean
+        default: false
+      runner_u22:
+        description: "Build Ubuntu 22.04"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Build Ubuntu 24.04"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9"
+        required: false
+        type: boolean
+        default: true
+
+env:
+  REGISTRY_ADDRESS: ${{ secrets.REGISTRY_ADDRESS }}
+  REGISTRY_NAMESPACE: ${{ secrets.NEW_REGISTRY_NAMESPACE }}
+  REGISTRY_ROBOT: ${{ secrets.ROBOT_USER }}
+  REGISTRY_PASSWORD: ${{ secrets.NEW_REGISTRY_PASSWORD }}
+
+jobs:
+  setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build OS Matrix
+        id: build-matrix
+        uses: ./.github/actions/build-runner-matrix
+        with:
+          runner_u22: ${{ inputs.full_build || inputs.runner_u22 }}
+          runner_u24: ${{ inputs.full_build || inputs.runner_u24 }}
+          runner_ol8: ${{ inputs.full_build || inputs.runner_ol8 }}
+          runner_ol9: ${{ inputs.full_build || inputs.runner_ol9 }}
+          runner_rhel8: ${{ inputs.full_build || inputs.runner_rhel8 }}
+          runner_rhel9: ${{ inputs.full_build || inputs.runner_rhel9 }}
+
+  build-and-push:
+    name: Build and Push ${{ matrix.runner }}
+    needs: setup
+    # Uses arc-runner-set-ol8 for u22/u24/ol8/ol9 when consolidate_runners is true; otherwise arc-runner-set-<runner>
+    runs-on: ${{ (inputs.consolidate_runners && contains(fromJson('["u22", "u24", "ol8", "ol9"]'), matrix.runner)) && 'arc-runner-set-ol8' || format('arc-runner-set-{0}', matrix.runner) }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build and Push Image
+        uses: ./.github/actions/build-runner-image
+        with:
+          runner: ${{ matrix.runner }}
+          build_type: ${{ inputs.build_type }}
+          sbom_tag_prefix: ${{ inputs.sbom_tag_prefix }}
+          registry_address: ${{ env.REGISTRY_ADDRESS }}
+          registry_namespace: ${{ env.REGISTRY_NAMESPACE }}
+          registry_robot: ${{ env.REGISTRY_ROBOT }}
+          registry_password: ${{ env.REGISTRY_PASSWORD }}
