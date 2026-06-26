@@ -6916,17 +6916,25 @@ when asking for status reports.");
 
 			if (cteb_getCustodyInfo(&ctebBlk, &seqId, &seqNum) == 0)
 			{
-				char	*srcEid = NULL;
+				/*	Key custody tracking on the local
+				 *	admin EID -- the AEID this node wrote
+				 *	into the CTEB as the BSN provider.  Per
+				 *	Orange Book 4.2.4 the returning CCS omits
+				 *	that AEID (it is implied by the CCS
+				 *	destination), so cbr_handleCcs rebuilds it
+				 *	as our admin EID; the tracking key must
+				 *	match that, not bundle.id.source.	*/
 
-				readEid(&bundle.id.source, &srcEid);
-				if (srcEid != NULL)
+				findScheme("ipn", &vscheme, &vschemeElt);
+				if (vschemeElt != 0 && vscheme->adminEid[0] != '\0')
 				{
 #ifdef DEBUG_CUSTODY_SRC
 					writeMemoNote("[DEBUG-CUSTODY-SRC] bpSend: tracking custody for",
-							srcEid);
+							vscheme->adminEid);
 #endif
 					if (cbr_trackCustodyBundle(sdr, bundleAddr,
-							destEidString, srcEid,
+							destEidString,
+							vscheme->adminEid,
 							seqId, seqNum) != 0)
 					{
 						/*	Custody tracked - detain
@@ -6936,8 +6944,11 @@ when asking for status reports.");
 						/*	Increment originated counter. */
 						cbr_noteCustodyOriginated(sdr);
 					}
-
-					MRELEASE(srcEid);
+				}
+				else
+				{
+					writeMemo("[?] CBR: No local admin EID; \
+can't track source-originated custody bundle.");
 				}
 			}
 		}

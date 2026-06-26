@@ -1014,9 +1014,20 @@ int	cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
 
 	/*	Determine if source-eid should be included		*/
 	/*	Per Orange Book Section 3.3.1, omit if:			*/
-	/*	  1. Source matches signal destination			*/
-	/*	  2. Source matches local admin endpoint		*/
-	if (sourceEid && signalDestEid)
+	/*	  1. No sourceEid supplied (nothing to emit)		*/
+	/*	  2. Source matches signal destination			*/
+	/*	  3. Source matches local admin endpoint		*/
+	/*	Callers that build a CCS are additionally subject to	*/
+	/*	rule 4.2.4 ("shall never contain a block source AEID")	*/
+	/*	and must arrange for one of the above to fire; the	*/
+	/*	CCS encoder does this by passing the CCS destination as	*/
+	/*	the sourceEid argument.					*/
+	if (sourceEid == NULL)
+	{
+		includeSourceEid = 0;
+	}
+
+	if (includeSourceEid && signalDestEid)
 	{
 		if (strcmp(sourceEid, signalDestEid) == 0)
 		{
@@ -1024,7 +1035,7 @@ int	cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
 		}
 	}
 
-	if (includeSourceEid && sourceEid && localAdminEid)
+	if (includeSourceEid && localAdminEid)
 	{
 		if (strcmp(sourceEid, localAdminEid) == 0)
 		{
@@ -1805,7 +1816,6 @@ int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
 	Object			seqElt;
 	Object			entryObj;
 	BundleSequenceEntry	entry;
-	char			srcEidBuf[MAX_EID_LEN];
 	char			destEidBuf[MAX_EID_LEN];
 	int			seqBytes;
 	uvast			*rangeData = NULL;
@@ -1852,14 +1862,19 @@ int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
 	uvtemp = sdr_list_length(sdr, signal.sequences);
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	/*	Encode each Bundle-Sequence entry			*/
+	/*	Encode each Bundle-Sequence entry.
+	 *
+	 *	Orange Book 4.2.4: the bundle sequences carried in a CCS
+	 *	shall never contain a block source AEID.  We therefore
+	 *	skip reading entry.sourceEid and pass NULL for sourceEid
+	 *	below, so the encoder unconditionally emits a 3-element
+	 *	BSC regardless of what is stored on the sequence entry.	*/
 	for (seqElt = sdr_list_first(sdr, signal.sequences);
 			seqElt; seqElt = sdr_list_next(sdr, seqElt))
 	{
 		entryObj = sdr_list_data(sdr, seqElt);
 		sdr_read(sdr, (char *) &entry, entryObj,
 				sizeof(BundleSequenceEntry));
-		sdr_string_read(sdr, srcEidBuf, entry.sourceEid);
 
 		/*	Build range array if non-contiguous		*/
 		if (entry.rangeArray != 0)
@@ -1892,7 +1907,7 @@ int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
 		seqBytes = cbr_encodeBundleSequence(entry.seqId,
 				entry.seqNumStart, entry.length,
 				rangeData, rangeCount,
-				srcEidBuf, destEidBuf, NULL,
+				NULL, destEidBuf, NULL,
 				cursor, buflen - (cursor - buffer));
 
 		if (rangeData)
@@ -2268,6 +2283,16 @@ Object	cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
 	Object		cbObj;
 	CustodyBundle	cb;
 	char		eidBuf[MAX_EID_LEN];
+
+	if (sourceEid == NULL)
+	{
+		/*	The (sourceEid, seqId, seqNum) tuple is the
+		 *	custody-tracking key; NULL is not a valid value.
+		 *	Defensive guard: a future caller that omits the
+		 *	BSC source EID after Orange Book 4.2.4 must first
+		 *	substitute the local admin EID.			*/
+		return 0;
+	}
 
 	cbrConstants = getCbrConstants();
 	if (cbrConstants == NULL)
@@ -2848,17 +2873,25 @@ int	cbr_removeCustodyReq(Sdr sdr, const char *eid)
 int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 		CtebBlk *cteb)
 {
-	char		*sourceEid = NULL;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	int		result;
 
 	CHKERR(cteb);
 	CHKERR(cteb->custodianEid);
 
-	/*	Get source EID from bundle.				*/
-	readEid(&bundle->id.source, &sourceEid);
-	if (sourceEid == NULL)
+	/*	The block source AEID for any future CTEB this node mints
+	 *	on behalf of the bundle is the local admin EID, and per
+	 *	Orange Book 4.2.4 the next-hop CCS coming back to us will
+	 *	omit that AEID from its BSC.  We therefore key custody
+	 *	tracking on the local admin EID, so cbr_handleCcs can look
+	 *	the bundle up after substituting that same EID for the
+	 *	missing wire field.					*/
+	findScheme("ipn", &vscheme, &vschemeElt);
+	if (vschemeElt == 0 || vscheme->adminEid[0] == '\0')
 	{
-		putErrmsg("CBR: Can't read bundle source EID.", NULL);
+		putErrmsg("CBR: Can't find local admin EID for ipn scheme.",
+				NULL);
 		return -1;
 	}
 
@@ -2869,20 +2902,28 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 	{
 		if (cbr_trackCustodyBundle(sdr, bundleAddr,
 				bundle->proxNodeEid ? "" : cteb->custodianEid,
-				sourceEid, cteb->seqId, cteb->seqNum) == 0)
+				vscheme->adminEid, cteb->seqId, cteb->seqNum)
+				== 0)
 		{
 			/*	May already be tracked or allocation failed. */
 			writeMemoNote("[?] CBR: Failed to track custody bundle",
-					sourceEid);
+					vscheme->adminEid);
 			/*	Continue anyway to send CCS.		*/
 		}
 	}
 
-	/*	Queue CCS acceptance to previous custodian.		*/
-	result = queueCcs(sdr, cteb->custodianEid, sourceEid,
+	/*	Queue CCS acceptance to previous custodian.
+	 *
+	 *	Per Orange Book 4.2.4, the bundle sequences carried in
+	 *	a CCS shall never contain a block source AEID, because
+	 *	the CCS is addressed back to the node that minted the
+	 *	BSN (the previous custodian named in the CTEB).  We
+	 *	therefore pass cteb->custodianEid -- not the bundle's
+	 *	primary-block source -- as the BSC source EID, so that
+	 *	cbr_encodeBundleSequence()'s "source == dest" omission
+	 *	rule fires at every hop, not just at the originator.	*/
+	result = queueCcs(sdr, cteb->custodianEid, cteb->custodianEid,
 			cteb->seqId, cteb->seqNum, CBR_CUSTODY_ACCEPTED);
-
-	MRELEASE(sourceEid);
 
 	if (result < 0)
 	{
@@ -2922,7 +2963,6 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 int	cbr_refuseCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb,
 		CbrRefuseReason reason)
 {
-	char		*sourceEid = NULL;
 	int		result;
 
 	(void) bundle;		/*	May use for logging later.	*/
@@ -2930,23 +2970,15 @@ int	cbr_refuseCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb,
 	CHKERR(cteb);
 	CHKERR(cteb->custodianEid);
 
-	/*	Get source EID from bundle.				*/
-	readEid(&bundle->id.source, &sourceEid);
-	if (sourceEid == NULL)
-	{
-		putErrmsg("CBR: Can't read bundle source EID.", NULL);
-		return -1;
-	}
-
 	/*	Log refusal reason locally (not transmitted per spec).	*/
 	writeMemoNote("[i] CBR: Custody refused, reason", itoa(reason));
 
 	/*	Queue CCS refusal to previous custodian.
-	 *	Per Orange Book, refusal is just -1 with no reason.	*/
-	result = queueCcs(sdr, cteb->custodianEid, sourceEid,
+	 *	Per Orange Book, refusal is just -1 with no reason.
+	 *	See cbr_acceptCustody() for why cteb->custodianEid is
+	 *	used as the BSC source EID (Orange Book 4.2.4).		*/
+	result = queueCcs(sdr, cteb->custodianEid, cteb->custodianEid,
 			cteb->seqId, cteb->seqNum, CBR_CUSTODY_REFUSED);
-
-	MRELEASE(sourceEid);
 
 	if (result < 0)
 	{
@@ -3334,6 +3366,58 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 				writeMemo("[?] CCS: Can't decode Bundle-Sequence.");
 				sdr_cancel_xn(sdr);
 				return -1;
+			}
+
+			/*	Orange Book 4.2.4: a CCS BSC omits the
+			 *	block source AEID because the CCS receiver
+			 *	is by definition the BSN provider.  When
+			 *	the decoder reports a missing sourceEid,
+			 *	substitute our own admin EID so the custody
+			 *	lookup keys match what cbr_trackCustodyBundle
+			 *	stored.						*/
+			if (sourceEid == NULL)
+			{
+				VScheme		*vscheme;
+				PsmAddress	vschemeElt;
+				size_t		eidLen;
+
+				findScheme("ipn", &vscheme, &vschemeElt);
+				if (vschemeElt == 0
+						|| vscheme->adminEid[0] == '\0')
+				{
+					writeMemo("[?] CCS: No local admin EID;"
+						" can't resolve omitted"
+						" block source AEID.");
+					if (rangeArray)
+					{
+						MRELEASE(rangeArray);
+					}
+					if (seqDestEid)
+					{
+						MRELEASE(seqDestEid);
+					}
+					sdr_cancel_xn(sdr);
+					return -1;
+				}
+
+				eidLen = strlen(vscheme->adminEid) + 1;
+				sourceEid = MTAKE(eidLen);
+				if (sourceEid == NULL)
+				{
+					writeMemo("[?] CCS: Out of memory"
+						" substituting source EID.");
+					if (rangeArray)
+					{
+						MRELEASE(rangeArray);
+					}
+					if (seqDestEid)
+					{
+						MRELEASE(seqDestEid);
+					}
+					sdr_cancel_xn(sdr);
+					return -1;
+				}
+				istrcpy(sourceEid, vscheme->adminEid, eidLen);
 			}
 
 			/*	Process based on disposition.		*/
