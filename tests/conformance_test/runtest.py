@@ -21,6 +21,13 @@ NODE2DIR = MAINDIR.joinpath("2.ipn.udp")
 NODE3DIR = MAINDIR.joinpath("3.ipn.udp")
 NODE3LOG = NODE3DIR.joinpath("ion.log")
 
+# Upper bound on how long to wait for node 3 to finish acquiring the injected
+# bundle and the relayed bptrace bundle, and to flush ion.log/bpstats, before
+# declaring a bundle's verification failed.  ION processes and logs these
+# asynchronously from separate daemons, so we poll rather than sampling once
+# after a fixed delay (the single-sample approach raced on slower CI runners).
+VERIFY_TIMEOUT = 20
+
 
 def bptrace() -> None:
     """Run bptrace as if it were in node 2 directory."""
@@ -50,22 +57,33 @@ def main(bundles: list[str], mapping: dict[int, dict]) -> None:
         print(f"Running test of bundle {num}...")
         bundle_send(bundle)
         time.sleep(1)
+        # bptrace is sent exactly once per bundle; re-sending it would skew the
+        # delivered-bundle counts that bpstats_check verifies.
         bptrace()
         time.sleep(1)
-        bpstats()
-        time.sleep(1)
-
-        if mapping[num]:
-            log_result = ion_parse.ion_log_parse(mapping[num]["msg"], str(NODE3LOG))
-        else:
-            log_result = 1
         total_bundles += mapping[num]["bundle_thru"]
-        stats_result = bpstats_check(total_bundles)
-        if log_result != 0 and stats_result == 0:
-            print(f"Bundle {num} success")
-        else:
-            print(f"Bundle {num} failure")
-            sys.exit(1)
+
+        # Poll for the expected outcome instead of sampling once after a fixed
+        # delay.  bpstats() freezes a snapshot when it runs, so we must re-run
+        # it each iteration to observe a newer count; the log message likewise
+        # may not be flushed yet on a busy runner.
+        deadline = time.monotonic() + VERIFY_TIMEOUT
+        while True:
+            bpstats()
+            time.sleep(1)
+            if mapping[num]["msg"]:
+                log_result = ion_parse.ion_log_parse(
+                    mapping[num]["msg"], str(NODE3LOG)
+                )
+            else:
+                log_result = 1
+            stats_result = bpstats_check(total_bundles)
+            if log_result != 0 and stats_result == 0:
+                print(f"Bundle {num} success")
+                break
+            if time.monotonic() >= deadline:
+                print(f"Bundle {num} failure")
+                sys.exit(1)
     sys.exit(0)
 
 
