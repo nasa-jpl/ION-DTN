@@ -5,7 +5,11 @@ trap 'killm f' EXIT
 #
 # Verifies (G7):
 #   cbr_listCustodyBundles and cbr_getCustodyStatus are surfaced via bpadmin
-#   as 'l custodybundle' and 'i custodybundle <sourceEid> <seqId> <seqNum>'.
+#   as 'l custodybundle' and 'i custodybundle <custodianEid> <seqId> <seqNum>'.
+#   The lookup key is the BSN-provider (custodian) admin EID -- the AEID this
+#   node wrote into the CTEB -- not the bundle's primary-block source EID.
+#   Per Orange Book 4.2.4 the returning CCS omits that AEID, so custody is
+#   tracked and queried under the local admin EID (ipn:1.0 here), not ipn:1.2.
 #
 # This test exercises both commands by putting bundles into Node 1's custody
 # tracking, then querying them while they are pending:
@@ -14,8 +18,8 @@ trap 'killm f' EXIT
 #   - Node 2 refuses custody via a whitelist that excludes ipn:1.0.
 #   - Node 1 uses cbrretx=none so refused bundles remain in custody tracking.
 #   - 'l custodybundle' at Node 1 must show both bundles.
-#   - 'i custodybundle ipn:1.2 1 0' must report "pending".
-#   - 'i custodybundle ipn:1.2 1 99' (not tracked) must report "not-found".
+#   - 'i custodybundle ipn:1.0 1 0' must report "pending".
+#   - 'i custodybundle ipn:1.0 1 99' (not tracked) must report "not-found".
 #
 # Topology: Node 1 (source, RETX_NONE) -> Node 2 (refuses via whitelist)
 #
@@ -104,14 +108,14 @@ echo ""
 echo "--- Test 3: i custodybundle reports 'pending' for tracked bundle ---"
 
 cd "$TESTDIR/1.node"
-INFO_OUT=$(echo 'i custodybundle ipn:1.2 1 0' | bpadmin 2>/dev/null)
-echo "  i custodybundle ipn:1.2 1 0 output:"
+INFO_OUT=$(echo 'i custodybundle ipn:1.0 1 0' | bpadmin 2>/dev/null)
+echo "  i custodybundle ipn:1.0 1 0 output:"
 echo "$INFO_OUT" | sed 's/^/    /'
 
 if echo "$INFO_OUT" | grep -Fq 'pending'; then
-    test_result 0 "i custodybundle ipn:1.2 1 0 reports pending"
+    test_result 0 "i custodybundle ipn:1.0 1 0 reports pending"
 else
-    test_result 1 "i custodybundle ipn:1.2 1 0 did not report pending"
+    test_result 1 "i custodybundle ipn:1.0 1 0 did not report pending"
 fi
 
 # ---------------------------------------------------------------
@@ -119,14 +123,14 @@ echo ""
 echo "--- Test 4: i custodybundle reports 'not-found' for untracked seqNum ---"
 
 cd "$TESTDIR/1.node"
-INFO_OUT=$(echo 'i custodybundle ipn:1.2 1 99' | bpadmin 2>/dev/null)
-echo "  i custodybundle ipn:1.2 1 99 output:"
+INFO_OUT=$(echo 'i custodybundle ipn:1.0 1 99' | bpadmin 2>/dev/null)
+echo "  i custodybundle ipn:1.0 1 99 output:"
 echo "$INFO_OUT" | sed 's/^/    /'
 
 if echo "$INFO_OUT" | grep -Fq 'not-found'; then
-    test_result 0 "i custodybundle ipn:1.2 1 99 reports not-found"
+    test_result 0 "i custodybundle ipn:1.0 1 99 reports not-found"
 else
-    test_result 1 "i custodybundle ipn:1.2 1 99 did not report not-found"
+    test_result 1 "i custodybundle ipn:1.0 1 99 did not report not-found"
 fi
 
 # ---------------------------------------------------------------
