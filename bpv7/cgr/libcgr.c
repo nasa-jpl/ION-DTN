@@ -39,10 +39,40 @@ typedef struct
 
 /*		Functions for managing the CGR database.		*/
 
+/*	#1054: delete every element of 'routes' whose content is the
+ *	address of the route being removed.  Used to unlink a route from
+ *	a route list authoritatively, by content, rather than trusting a
+ *	cached element handle.						*/
+
+static void	purgeRouteReferences(PsmPartition ionwm, PsmAddress routes,
+			PsmAddress routeAddr)
+{
+	PsmAddress	elt;
+	PsmAddress	nextElt;
+
+	if (routes == 0)
+	{
+		return;
+	}
+
+	for (elt = sm_list_first(ionwm, routes); elt; elt = nextElt)
+	{
+		nextElt = sm_list_next(ionwm, elt);
+		if (sm_list_data(ionwm, elt) == routeAddr)
+		{
+			sm_list_delete(ionwm, elt, NULL, NULL);
+		}
+	}
+}
+
 static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
+	PsmAddress	listAddr;
+	PsmAddress	nodeAddr = 0;
+	IonNode		*node;
+	CgrRtgObject	*routingObj = NULL;
 	PsmAddress	citation;
 	PsmAddress	nextCitation;
 	PsmAddress	contactAddr;
@@ -51,14 +81,56 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 
 	routeAddr = sm_list_data(ionwm, routeElt);
 	route = (CgrRoute *) psp(ionwm, routeAddr);
-	if (route->referenceElt)
+
+	/*	#1054: authoritatively unlink this route from BOTH the
+	 *	selectedRoutes and knownRoutes lists, by content, rather
+	 *	than trusting that referenceElt + routeElt enumerate every
+	 *	element that cites it.  A bookkeeping slip (e.g. a
+	 *	referenceElt rewrite in the Yen migration that orphaned the
+	 *	prior element) can leave a third element pointing at this
+	 *	route; freeing the route while that element survives lets a
+	 *	later list walk dereference freed memory and fault in
+	 *	lockSmlist (the disabledRoute use-after-free).  Recover the
+	 *	routing object from the list's user data (the destination
+	 *	IonNode address) and delete every element whose content is
+	 *	this route's address.  If the routing object can't be
+	 *	resolved -- e.g. mid-teardown, when detachRoutingObject has
+	 *	already zeroed node->routingObject -- fall back to the legacy
+	 *	referenceElt + routeElt deletion.				*/
+
+	listAddr = sm_list_list(ionwm, routeElt);
+	if (listAddr)
 	{
-		sm_list_delete(ionwm, route->referenceElt, NULL, NULL);
+		nodeAddr = sm_list_user_data(ionwm, listAddr);
 	}
 
-	if (routeElt != route->referenceElt)
+	if (nodeAddr)
 	{
-		sm_list_delete(ionwm, routeElt, NULL, NULL);
+		node = (IonNode *) psp(ionwm, nodeAddr);
+		if (node->routingObject)
+		{
+			routingObj = (CgrRtgObject *)
+					psp(ionwm, node->routingObject);
+		}
+	}
+
+	if (routingObj)
+	{
+		purgeRouteReferences(ionwm, routingObj->selectedRoutes,
+				routeAddr);
+		purgeRouteReferences(ionwm, routingObj->knownRoutes, routeAddr);
+	}
+	else
+	{
+		if (route->referenceElt)
+		{
+			sm_list_delete(ionwm, route->referenceElt, NULL, NULL);
+		}
+
+		if (routeElt != route->referenceElt)
+		{
+			sm_list_delete(ionwm, routeElt, NULL, NULL);
+		}
 	}
 
 	/*	Each member of the "hops" list of this route is one
@@ -1438,6 +1510,28 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 			return -1;
 		}
 
+		/*	#1054 tripwire: a known route's only reference should
+		 *	be the knownRoutes element we are migrating from.  If
+		 *	referenceElt points at some other element, overwriting
+		 *	it below would orphan that element (still citing this
+		 *	route) -- the suspected source of the disabledRoute
+		 *	use-after-free.  Log it and delete the stale reference
+		 *	so the route cannot be left dangling.			*/
+
+		if (bestKnownRoute->referenceElt
+		&& bestKnownRoute->referenceElt != bestKnownRouteElt)
+		{
+			char	memo[160];
+
+			isprintf(memo, sizeof memo, "[?] CGR: migrating route \
+with referenceElt " UVAST_FIELDSPEC " != listElt " UVAST_FIELDSPEC " (#1054).",
+					(uvast) bestKnownRoute->referenceElt,
+					(uvast) bestKnownRouteElt);
+			writeMemo(memo);
+			sm_list_delete(ionwm, bestKnownRoute->referenceElt,
+					NULL, NULL);
+		}
+
 		sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
 		bestKnownRoute->referenceElt = *elt;
 	}
@@ -2594,6 +2688,16 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 			putErrmsg("Can't initialize CGR routing.", NULL);
 			return -1;
 		}
+
+		/*	#1054: tag both route lists with the destination
+		 *	IonNode address so removeRoute can recover the routing
+		 *	object and authoritatively unlink a route from both
+		 *	lists by content.				*/
+
+		oK(sm_list_user_data_set(ionwm, routingObj->selectedRoutes,
+				routingObj->nodeAddr));
+		oK(sm_list_user_data_set(ionwm, routingObj->knownRoutes,
+				routingObj->nodeAddr));
 
 		if (sm_list_insert_last(ionwm, cgrvdb->routingObjects,
 				terminusNode->routingObject) == 0)
