@@ -3,6 +3,8 @@
 # filtering out non-functional changes (whitespace, typos, formatting).
 # This file is sorted in git log order (newest commits first).
 
+# rtems/wscript: Format with Ruff
+dd918d3cbbf39158dd86f42945b077811806b3f7
 # udplso: Realign local variable declarations
 67c3c76b808fa7941804022d505da5030e8e3414
 # Remove trailing whitespace from some files
