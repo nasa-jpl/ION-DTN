@@ -3,6 +3,8 @@
 # filtering out non-functional changes (whitespace, typos, formatting).
 # This file is sorted in git log order (newest commits first).
 
+# udplso: Realign local variable declarations
+67c3c76b808fa7941804022d505da5030e8e3414
 # Remove trailing whitespace from some files
 4ecb5a2b61fec031927fa81edf0602be7c86630c
 # Fix whitespace and indentation issues
