@@ -108,6 +108,29 @@ static void	severSpurReferences(PsmPartition ionwm, PsmAddress routes,
 	}
 }
 
+/*	#1048 follow-up: validate a handle taken from a route's hops or
+ *	contact-citation cross-references before walking the SmList it
+ *	should point at.  removeRoute is compiled unconditionally and runs
+ *	above where the disabledRoute guard's helpers (cgrHandleValid /
+ *	cgrSmListValid, both inside #if !UNIBO_CGR) are defined, so it
+ *	carries its own check: confirm the address round-trips through the
+ *	partition -- a freed/recycled block keeps a valid-looking handle but
+ *	garbage contents.  Callers pair this with sm_list_header_sane() when
+ *	the address is supposed to be an SmList.			*/
+
+static int	cgrHandleSane(PsmPartition ionwm, PsmAddress addr)
+{
+	void	*ptr;
+
+	if (addr == 0)
+	{
+		return 0;
+	}
+
+	ptr = psp(ionwm, addr);
+	return (ptr != NULL && psa(ionwm, ptr) == addr);
+}
+
 static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
@@ -221,8 +244,35 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 				continue;
 			}
 
+			/*	#1048 follow-up: the contact handle from this
+			 *	hop can be stale -- the cited contact may have
+			 *	been deleted and its block recycled, leaving
+			 *	contact->citations a dangling SmList handle.
+			 *	disabledRoute validates the route's hops list
+			 *	but not these per-contact citation lists, so a
+			 *	bad handle still reaches sm_list_next below and
+			 *	aborts ipnfw (smlist.c "list at address zero" ->
+			 *	_iEnd -> sm_Abort), orphaning the SDR lock and
+			 *	degrading the node.  Drop our citation and move
+			 *	on when the contact or its citations list is
+			 *	unsound -- the cross-reference is already broken.*/
+
+			if (!cgrHandleSane(ionwm, contactAddr))
+			{
+				char	dbg[128];
+
+				isprintf(dbg, sizeof dbg, "[?] CGR: dropping \
+stale contact citation (#1048): contactAddr=" UVAST_FIELDSPEC ".",
+						(uvast) contactAddr);
+				writeMemo(dbg);
+				sm_list_delete(ionwm, citation, NULL, NULL);
+				continue;
+			}
+
 			contact = (IonCXref *) psp(ionwm, contactAddr);
-			if (contact->citations)
+			if (contact->citations
+			&& cgrHandleSane(ionwm, contact->citations)
+			&& sm_list_header_sane(ionwm, contact->citations))
 			{
 				for (citationElt = sm_list_first(ionwm,
 					contact->citations); citationElt;
