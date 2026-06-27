@@ -1473,9 +1473,23 @@ int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 	Object		addr;
 			OBJ_POINTER(RegionMember, member);
 
-	CHKERR(fqnnA > 0);
 	CHKERR(regionNbr);
 	*regionNbr = 0;		/*	Default.			*/
+
+	/*	#1133: a zero fqnnA reaching this lookup means a caller
+	 *	handed us a freed/recycled contact or node record (a stale
+	 *	handle).  Rather than abort the calling daemon and drop its
+	 *	SDR transaction on CHKERR(fqnnA > 0) -- degrading the node --
+	 *	fail this lookup gracefully and let the caller (which either
+	 *	oK()s it or checks the return) proceed with regionNbr 0.	*/
+
+	if (fqnnA == 0)
+	{
+		putErrmsg("ionRegionOf: fqnnA is zero (likely a stale handle \
+on a freed contact/node record).", NULL);
+		return -1;
+	}
+
 	memset((char *) &nodeA, 0, sizeof(RegionMember));
 	memset((char *) &nodeB, 0, sizeof(RegionMember));
 	iondbObj = getIonDbObject();

@@ -65,6 +65,49 @@ static void	purgeRouteReferences(PsmPartition ionwm, PsmAddress routes,
 	}
 }
 
+/*	#1133: a CgrRoute's rootOfSpur is an SmListElt that lives in some
+ *	OTHER route's hops list (the route this one was spurred from).
+ *	When that other route is removed its hops list is destroyed, which
+ *	frees the SmListElt -- but nothing nulls the rootOfSpur fields that
+ *	still point into it.  A later computeAnotherRoute then feeds the
+ *	dangling waypoint to computeRoute, which dereferences a recycled
+ *	SmListElt and hands computeDistanceToTerminus a bogus rootContact
+ *	(toFqnn == 0), aborting in ionRegionOf.  Before a route's hops are
+ *	destroyed, null every rootOfSpur in the route lists that belongs to
+ *	that hops list, so no spur waypoint can outlive the hops it points
+ *	into.  Resetting rootOfSpur to 0 just makes the affected route be
+ *	treated as branching from the root of the contact graph.	*/
+
+static void	severSpurReferences(PsmPartition ionwm, PsmAddress routes,
+			PsmAddress hopsAddr)
+{
+	PsmAddress	elt;
+	PsmAddress	routeAddr;
+	CgrRoute	*route;
+
+	if (routes == 0 || hopsAddr == 0)
+	{
+		return;
+	}
+
+	for (elt = sm_list_first(ionwm, routes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		routeAddr = sm_list_data(ionwm, elt);
+		route = (CgrRoute *) psp(ionwm, routeAddr);
+		if (route == NULL)
+		{
+			continue;
+		}
+
+		if (route->rootOfSpur != 0
+		&& sm_list_list(ionwm, route->rootOfSpur) == hopsAddr)
+		{
+			route->rootOfSpur = 0;
+		}
+	}
+}
+
 static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
@@ -119,6 +162,14 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 		purgeRouteReferences(ionwm, routingObj->selectedRoutes,
 				routeAddr);
 		purgeRouteReferences(ionwm, routingObj->knownRoutes, routeAddr);
+
+		/*	#1133: null any spur waypoints that point into this
+		 *	route's hops list before it is destroyed below.	*/
+
+		severSpurReferences(ionwm, routingObj->selectedRoutes,
+				route->hops);
+		severSpurReferences(ionwm, routingObj->knownRoutes,
+				route->hops);
 	}
 	else
 	{
@@ -995,9 +1046,44 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	*routeAddr = 0;		/*	Default.			*/
 	if (rootContactElt)	/*	Computing route from waypoint.	*/
 	{
+		PsmAddress	rootContactAddr;
+
 //puts("*** Starting at a waypoint of the last selected route. ***");
-		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
-				rootContactElt));
+		rootContactAddr = sm_list_data(ionwm, rootContactElt);
+		rootContact = (IonCXref *) psp(ionwm, rootContactAddr);
+
+		/*	Defensive + self-diagnosing (#1133).  rootContactElt
+		 *	is a spur waypoint -- an SmListElt in some other route's
+		 *	hops list.  If the cited contact was purged (its citation
+		 *	data zeroed) or the hops list was freed and recycled
+		 *	(severSpurReferences should now prevent the latter), the
+		 *	waypoint resolves to a NULL or recycled rootContact whose
+		 *	toFqnn is 0.  Passing that to ionRegionOf via
+		 *	computeDistanceToTerminus aborts ipnfw on
+		 *	CHKERR(fqnnA > 0).  Detect it here -- before any deref of
+		 *	rootContact -- log enough to pin the lifecycle bug, and
+		 *	treat the waypoint as unroutable.			*/
+
+		if (rootContactAddr == 0 || rootContact == NULL
+		|| rootContact->fromFqnn == 0 || rootContact->toFqnn == 0)
+		{
+			char		dbg[256];
+			PsmAddress	listAddr = sm_list_list(ionwm,
+						rootContactElt);
+
+			isprintf(dbg, sizeof dbg, "[?] CGR: skipping stale spur \
+waypoint (#1133): rootContactElt=" UVAST_FIELDSPEC " rootContactAddr=" \
+UVAST_FIELDSPEC " fromFqnn=" UVAST_FIELDSPEC " toFqnn=" UVAST_FIELDSPEC " list=" \
+UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
+					(uvast) (rootContact ?
+						rootContact->fromFqnn : 0),
+					(uvast) (rootContact ?
+						rootContact->toFqnn : 0),
+					(uvast) listAddr);
+			writeMemo(dbg);
+			return 0;	/*	No route from this waypoint.	*/
+		}
+
 		if (rootContact->toFqnn == terminusNode->fqnn)
 		{
 			/*	No forwarding from destination.		*/
