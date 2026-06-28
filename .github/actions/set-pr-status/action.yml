@@ -78,7 +78,15 @@ runs:
             console.log(`Using direct context/state inputs: ${process.env.STATUS_CONTEXT} = ${process.env.STATUS_STATE}`);
           } else if (process.env.STATUS_PAYLOAD) {
             // JSON payload input (backward compatibility)
-            statuses = JSON.parse(process.env.STATUS_PAYLOAD);
+            const parsed = JSON.parse(process.env.STATUS_PAYLOAD);
+            // Guard against an empty result set: jq's `add` on an empty array
+            // yields the literal `null`, which JSON.parse turns into JS null and
+            // Object.entries() would throw on. Treat null/non-object as "nothing to do".
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+              console.log(`status_payload did not parse to an object (got ${JSON.stringify(parsed)}). Skipping status update.`);
+              return;
+            }
+            statuses = parsed;
             console.log(`Using status_payload input with ${Object.keys(statuses).length} context(s)`);
           } else {
             console.log('No status information provided (neither context/state nor status_payload). Skipping status update.');
