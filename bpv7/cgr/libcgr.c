@@ -65,6 +65,29 @@ static void	purgeRouteReferences(PsmPartition ionwm, PsmAddress routes,
 	}
 }
 
+/*	#1048 follow-up: validate a handle taken from a route's hops,
+ *	contact-citation, or rootOfSpur cross-references before walking the
+ *	SmList it points at.  A freed/recycled block keeps a valid-looking
+ *	handle but garbage contents -- and a wild offset makes sm_list_list /
+ *	sm_list_next SEGV outright.  Confirm the address round-trips through
+ *	the partition; callers pair this with sm_list_header_sane() when the
+ *	address is supposed to be an SmList header.  Defined above
+ *	severSpurReferences and removeRoute (both compiled unconditionally,
+ *	above the #if !UNIBO_CGR guard helpers) so both can use it.	*/
+
+static int	cgrHandleSane(PsmPartition ionwm, PsmAddress addr)
+{
+	void	*ptr;
+
+	if (addr == 0)
+	{
+		return 0;
+	}
+
+	ptr = psp(ionwm, addr);
+	return (ptr != NULL && psa(ionwm, ptr) == addr);
+}
+
 /*	#1133: a CgrRoute's rootOfSpur is an SmListElt that lives in some
  *	OTHER route's hops list (the route this one was spurred from).
  *	When that other route is removed its hops list is destroyed, which
@@ -100,35 +123,22 @@ static void	severSpurReferences(PsmPartition ionwm, PsmAddress routes,
 			continue;
 		}
 
+		/*	#1133 follow-up: rootOfSpur points into ANOTHER route's
+		 *	hops list and can be left dangling -- or wild -- when that
+		 *	list is freed and recycled.  Passing a wild handle to
+		 *	sm_list_list SEGVs ipnfw mid-SDR-transaction, orphaning the
+		 *	lock and taking the node's whole ION instance down (exactly
+		 *	the crash this function exists to prevent, one level up).
+		 *	Validate the handle first; if it is unsound the spur is
+		 *	already broken, so just null it.			*/
+
 		if (route->rootOfSpur != 0
-		&& sm_list_list(ionwm, route->rootOfSpur) == hopsAddr)
+		&& (!cgrHandleSane(ionwm, route->rootOfSpur)
+			|| sm_list_list(ionwm, route->rootOfSpur) == hopsAddr))
 		{
 			route->rootOfSpur = 0;
 		}
 	}
-}
-
-/*	#1048 follow-up: validate a handle taken from a route's hops or
- *	contact-citation cross-references before walking the SmList it
- *	should point at.  removeRoute is compiled unconditionally and runs
- *	above where the disabledRoute guard's helpers (cgrHandleValid /
- *	cgrSmListValid, both inside #if !UNIBO_CGR) are defined, so it
- *	carries its own check: confirm the address round-trips through the
- *	partition -- a freed/recycled block keeps a valid-looking handle but
- *	garbage contents.  Callers pair this with sm_list_header_sane() when
- *	the address is supposed to be an SmList.			*/
-
-static int	cgrHandleSane(PsmPartition ionwm, PsmAddress addr)
-{
-	void	*ptr;
-
-	if (addr == 0)
-	{
-		return 0;
-	}
-
-	ptr = psp(ionwm, addr);
-	return (ptr != NULL && psa(ionwm, ptr) == addr);
 }
 
 static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
