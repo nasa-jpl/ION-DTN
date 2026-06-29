@@ -385,7 +385,22 @@ cp ranges.ionrc ../24.ipn.tcp
 sleep 2
 
 cd ../24.ipn.tcp
+echo "m bridge 1" | ionadmin
 irfadmin join1.irfrc
+
+sleep 2
+
+#	Node 24 just became a passageway between regions 12 and 1.
+#	In a flat (non-hierarchical) region mesh this membership change
+#	is announced only within region 1, so region-12 members (e.g.
+#	node 26) would not otherwise learn that node 24 is now a usable
+#	passageway.  Re-brief region 12 from node 24 (which knows its
+#	own full membership) so node 26 can route outbound through it.
+ionadmin brief12.ionrc
+cp contacts.12.ionrc ../26.ipn.tcp
+cd ../26.ipn.tcp
+ionadmin contacts.12.ionrc
+cd ../24.ipn.tcp
 
 sleep 2
 
