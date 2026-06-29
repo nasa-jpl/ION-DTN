@@ -208,6 +208,8 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 	uvast		pwyNodeNbr;
 	Bundle		newBundle;
 	Object		newBundleObj;
+	int		firstNominee;
+	Object		lastPwyElt;
 
 	/*	Determine whether or not there are one or more
 	 *	passageways to other regions by which the bundle
@@ -227,14 +229,6 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 
 	CHKERR(bundle->passageways);
 	iptblkElt = findExtensionBlock(bundle, IrfPassagewaysBlk, 0);
-	{
-		char	dbgbuf[128];
-
-		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] tryIRF terminus="
-			UVAST_FIELDSPEC " iptBlk=%s", terminusNode->fqnn,
-			iptblkElt == 0 ? "ABSENT" : "present");
-		writeMemo(dbgbuf);
-	}
 	if (iptblkElt == 0)
 	{
 		/*	Absence of IRF extension block makes
@@ -284,6 +278,37 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 		}
 	}
 
+	/*	A nextPassageway of zero means the bundle was sourced
+	 *	at the local node; otherwise the local node has been
+	 *	charged with relaying the bundle onward as a passageway.
+	 *	A node that has not opted in to bridging may originate
+	 *	inter-regional bundles but must not relay them, so it
+	 *	declines here and lets ordinary forwarding take over.	*/
+
+	if (nextPassageway != 0 && !ionBridgeAllowed())
+	{
+		/*	The local node has been charged with relaying this
+		 *	bundle onward as a passageway, but it has not opted
+		 *	in to bridging.  Decline and let ordinary forwarding
+		 *	take over; a non-bridge node may still originate
+		 *	inter-regional bundles, just not relay them.
+		 *
+		 *	KNOWN LIMITATION: we deliberately do NOT emit a
+		 *	blacklist (irf_source_msg(bundle, 0)) here.  Doing so
+		 *	would let upstream prune this dead end, but in
+		 *	practice the blacklist also poisons still-good
+		 *	passageways on the shared path back to the source and
+		 *	destabilizes the probe/confirm machinery (it broke
+		 *	confirmed-path delivery in tests/irf).  As a result an
+		 *	upstream node may re-probe an opted-out passageway on
+		 *	subsequent sends.  This only matters for the (rare)
+		 *	case of a multi-region node that declines to bridge;
+		 *	fully resolving it needs the IRF feedback protocol to
+		 *	blacklist a single hop rather than the whole path.	*/
+
+		return 0;
+	}
+
 	/*	Need to identify next passageway(s) to forward to.	*/
 
 	nominees = lyst_create_using(getIonMemoryMgr());
@@ -304,14 +329,6 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 	}
 
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	{
-		char	dbgbuf[96];
-
-		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] tryIRF terminus="
-			UVAST_FIELDSPEC " nominees=%d", terminusNode->fqnn,
-			(int) lyst_length(nominees));
-		writeMemo(dbgbuf);
-	}
 	if (lyst_length(nominees) == 0)
 	{
 		lyst_destroy(nominees);
@@ -334,6 +351,7 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 	 *	region.							*/
 
 	oK(bpAccept(bundleObj, bundle));
+	firstNominee = 1;
 	while (lyst_length(nominees) > 0)
 	{
 		elt = lyst_first(nominees);
@@ -341,10 +359,11 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 		lyst_delete(elt);
 		isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
 				pwyNodeNbr);
-		if (bundle->fwdQueueElt)
+		if (!firstNominee)
 		{
-			/*	This copy of bundle has already
-			 *	been enqueued.				*/
+			/*	The original bundle has already been
+			 *	forwarded to the first nominee, so this
+			 *	additional nominee needs its own copy.	*/
 
 			if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0)
 					< 0)
@@ -357,12 +376,18 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 			bundle = &newBundle;
 			bundleObj = newBundleObj;
 
-			/*	Must remove the "next passageway node
-			 *	number" that was previously appended
-			 *	to the bundle's list of passageways.	*/
+			/*	Remove the previous nominee's node number
+			 *	(appended on the prior iteration) from the
+			 *	cloned trace, restoring the arrival trace
+			 *	before appending this nominee.  Guard against
+			 *	an empty list (e.g. a locally sourced bundle
+			 *	with no prior passageways).		*/
 
-			sdr_list_delete(sdr, sdr_list_last(sdr,
-					bundle->passageways), NULL, NULL);
+			lastPwyElt = sdr_list_last(sdr, bundle->passageways);
+			if (lastPwyElt)
+			{
+				sdr_list_delete(sdr, lastPwyElt, NULL, NULL);
+			}
 		}
 
 		/*	Append next passageway node number to the
@@ -375,6 +400,8 @@ static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
 			lyst_destroy(nominees);
 			return -1;
 		}
+
+		firstNominee = 0;
 	}
 
 	lyst_destroy(nominees);

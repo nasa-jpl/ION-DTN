@@ -53,8 +53,6 @@ int	irf_initialize(IonNode *terminusNode)
 	IonDB		iondb;
 	Object		elt;
 	Object		addr;
-	int		nCandidates = 0;
-	char		dbgbuf[128];
 			OBJ_POINTER(RegionMember, member);
 
 	terminusNode->viaPassageways = sm_list_create(ionwm);
@@ -66,37 +64,31 @@ int	irf_initialize(IonNode *terminusNode)
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 
-	/*	Add to the viaPassageways list for this remote node
-	 *	one entry for every passageway residing in either of
-	 *	the local node's regions.  The viaPassageways list
-	 *	is in ascending node number sequence, because the
-	 *	rolodex list is in ascending node number sequence.	*/
+	/*	Add to the viaPassageways list for this remote node one
+	 *	entry for every node that is an opted-in passageway, i.e.
+	 *	an opted-in bridge that is a member of two or more
+	 *	regions.  Regions have no hierarchy; whether the local
+	 *	node can actually reach a given passageway is decided
+	 *	per-bundle in irf_identify_passageways.  The viaPassageways
+	 *	list is in ascending node number sequence, because the
+	 *	rolodex is in ascending node number sequence.		*/
 
 	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-		if (member->outerRegionNbr != 0)
+		if (member->regionCount >= 2)
 		{
-			/*	Node is a potentially usable passageway
-			 *	for transmission to this destination.	*/
-
 			if (irf_add_candidate(member->fqnn, terminusNode, 0)
 					< 0)
 			{
 				putErrmsg("Can't note IRF candidate.", NULL);
 				return -1;
 			}
-
-			nCandidates++;
 		}
 	}
 
-	isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] init terminus=" UVAST_FIELDSPEC
-			" rolodex=%d candidates=%d", terminusNode->fqnn,
-			(int) sdr_list_length(sdr, iondb.rolodex), nCandidates);
-	writeMemo(dbgbuf);
 	return 0;
 }
 
@@ -669,202 +661,141 @@ int	irf_load_passageways(Bundle *bundle, Object bundleAddr)
 	return 0;
 }
 
-int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
-		Lyst nominees)
+static int	traceHasNode(Sdr sdr, Object passageways, uvast nodeNbr)
 {
-	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
+	Object	elt;
+
+	for (elt = sdr_list_first(sdr, passageways); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		if ((uvast) sdr_list_data(sdr, elt) == nodeNbr)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int	localSharesRegion(IonDB *iondb, RegionMember *member)
+{
+	int	i;
+
+	for (i = 0; i < ION_MAX_REGIONS; i++)
+	{
+		if (iondb->regions[i].regionNbr != 0
+		&& ionMemberInRegion(member, iondb->regions[i].regionNbr))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+/*	The rolodex is maintained in ascending node-number order, so a
+ *	one-pass snapshot of it can be binary-searched.  This avoids
+ *	calling findLocalNode() (a full rolodex scan inside its own SDR
+ *	transaction) once per candidate, which made route selection
+ *	O(candidates x rolodex) with a lock acquisition per candidate.	*/
+
+static RegionMember	*findMemberInSnapshot(RegionMember *snapshot, int len,
+				uvast fqnn)
+{
+	int	lo = 0;
+	int	hi = len - 1;
+	int	mid;
+
+	while (lo <= hi)
+	{
+		mid = (lo + hi) / 2;
+		if (snapshot[mid].fqnn == fqnn)
+		{
+			return &snapshot[mid];
+		}
+
+		if (snapshot[mid].fqnn < fqnn)
+		{
+			lo = mid + 1;
+		}
+		else
+		{
+			hi = mid - 1;
+		}
+	}
+
+	return NULL;
+}
+
+static int	candidateIsEligible(Sdr sdr, IonDB *iondb, Bundle *bundle,
+			RegionMember *snapshot, int snapLen, uvast nodeNbr)
+{
+	RegionMember	*member;
+
+	if (nodeNbr == getOwnFqnn())
+	{
+		return 0;	/*	Never forward to self.		*/
+	}
+
+	if (traceHasNode(sdr, bundle->passageways, nodeNbr))
+	{
+		return 0;	/*	Already in the trace; would loop.*/
+	}
+
+	member = findMemberInSnapshot(snapshot, snapLen, nodeNbr);
+	if (member == NULL)
+	{
+		return 0;	/*	Unknown node.			*/
+	}
+
+	if (member->regionCount < 2)
+	{
+		return 0;	/*	Not a passageway (single region).*/
+	}
+
+	/*	Note: we do NOT require the candidate's advertised
+	 *	bridgeAllowed flag here.  Whether a node will actually
+	 *	relay inter-regional traffic is enforced locally at that
+	 *	node (tryIRF consults its own ionBridgeAllowed); a node
+	 *	that has opted out declines and is blacklisted via the
+	 *	normal feedback mechanism.  This avoids depending on the
+	 *	racy propagation of a remote node's opt-in flag.	*/
+
+	if (!localSharesRegion(iondb, member))
+	{
+		return 0;	/*	Not reachable from local node.	*/
+	}
+
+	return 1;
+}
+
+static int	selectPassageways(IonNode *terminusNode, Bundle *bundle,
+			Lyst nominees, Sdr sdr, PsmPartition ionwm,
+			IonDB *iondb, RegionMember *snapshot, int snapLen)
+{
 	IrfCandidate	*bestCandidate = NULL;
-	uvast		sourceNodeNbr;
-	IonDB		iondb;
-	Object		pwyElt;
-	uint32_t	okayHomeRegion;
-	uint32_t	okayOuterRegion;
-	uint32_t	excludedHome;
-	uvast		senderNodeNbr;
-	RegionMember	senderMember;
-	Object		senderMemberElt;
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IrfCandidate	*candidate;
-	RegionMember	candidateMember;
-	Object		candidateMemberElt;
 
-	sourceNodeNbr = bundle->id.source.ssp.ipn.fqnn;
-	if (terminusNode->viaPassageways == 0)
-	{
-		if (irf_initialize(terminusNode) < 0)
-		{
-			return -1;
-		}
-	}
-
-	/*	Must now establish criteria for selecting among
-	 *	possible next-hop passageways.  Selection depends
-	 *	on the direction of forward progress of the bundle;
-	 *	we must propagate throughout the network but never
-	 *	backward through regions that have already been
-	 *	traversed.
-	 *
-	 *	There are two general cases:
-	 *
-	 *	(a)	Propagation is inward, through the sub-
-	 *		regions of the sending node's home region.
-	 *
-	 *	(b)	Propagation is outward, through the super-
-	 *		regions of the sending node's outer region
-	 *		(or of the sending node's home region, if
-	 *		the sending node is not a passageway) and
-	 *		the sub-regions of those super-regions
-	 *		(peer regions).
-	 *
-	 *	In case (a) we will select only passageways for
-	 *	which outer region number is the sending node's
-	 *	home region number.
-	 *
-	 *	In case (b) we will select only passageways for
-	 *	which either home region number is the sending
-	 *	node's outer region number (these are passageways
-	 *	to the super-region; for this purpose only, if
-	 *	the sender has no outer region then its home region
-	 *	number is used as its outer region number) OR outer
-	 *	region number is the sending node's outer region
-	 *	number (these are peer passageways) but home region
-	 *	number is not the home region number of the node
-	 *	from which the bundle was received (if any).
-	 *
-	 *	At the source of the bundle, upon initial xmit,
-	 *	both cases apply: we initiate propagation in both
-	 *	directions through the region tree.
-	 *
-	 *	The sending node never selects itself as a passageway.
-	 *
-	 *	Propagation of a bundle received from a node whose
-	 *	home region or outer region is the receiving node's
-	 *	outer region is inward.	 All other IRF propagation
-	 *	is outward.						*/
-
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	if (sourceNodeNbr == getOwnFqnn())
-	{
-		/*	Initial transmission of bundle at source.	*/
-
-		senderNodeNbr = getOwnFqnn();
-		if (iondb.regions[1].regionNbr != 0)
-		{
-			/*	Source node is itself a passageway,
-			 *	so only outward passageways from
-			 *	the source node's outer region are
-			 *	helpful.				*/
-
-			okayHomeRegion = iondb.regions[1].regionNbr;
-			okayOuterRegion = iondb.regions[1].regionNbr;
-			excludedHome = iondb.regions[0].regionNbr;
-		}
-		else
-		{
-			/*	Source node is a terminal node, so
-			 *	outward passageways from the same
-			 *	home region are fine.			*/
-
-			okayHomeRegion = iondb.regions[0].regionNbr;
-			okayOuterRegion = iondb.regions[0].regionNbr;
-			excludedHome = 0;
-		}
-	}
-	else
-	{
-		/*	Forwarding the bundle at a passageway node.
-		 *	The last node in the bundle's passageways
-		 *	list is the local node.				*/
-
-		if (sdr_list_length(sdr, bundle->passageways) < 2)
-		{
-			/*	Bundle was received directly from
-			 *	the source node.			*/
-
-			senderNodeNbr = sourceNodeNbr;
-		}
-		else
-		{
-			/*	Bundle was received from the last
-			 *	prior passageway; that's the sender.
-			 *	So first get the last passageway in
-			 *	the list (the current node)....		*/
-
-			pwyElt = sdr_list_last(sdr, bundle->passageways);
-
-			/*	...and then get the passageway that
-			 *	preceded this one.			*/
-
-			pwyElt = sdr_list_prev(sdr, pwyElt);
-			senderNodeNbr = (uvast) sdr_list_data(sdr, pwyElt);
-		}
-
-		oK(findLocalNode(senderNodeNbr, &senderMember,
-				&senderMemberElt));
-		if (senderMember.homeRegionNbr
-				== iondb.regions[1].regionNbr
-		|| senderMember.outerRegionNbr
-				== iondb.regions[1].regionNbr)
-		{
-			/*	Propagation is inward.		*/
-
-			okayOuterRegion = iondb.regions[0].regionNbr;
-			okayHomeRegion = 0;
-			excludedHome = 0;
-		}
-		else	/*	Propagation is outward.		*/
-		{
-			okayHomeRegion = iondb.regions[1].regionNbr;
-			okayOuterRegion = iondb.regions[1].regionNbr;
-			excludedHome = senderMember.homeRegionNbr;
-		}
-	}
-
-	/*	Populate the nominees list with candidate passageways.	*/
-
-	{
-		char	dbgbuf[160];
-
-		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] identify terminus="
-			UVAST_FIELDSPEC " src=" UVAST_FIELDSPEC " sender="
-			UVAST_FIELDSPEC " okHome=%u okOuter=%u exclHome=%u "
-			"viaPwys=%d", terminusNode->fqnn, sourceNodeNbr,
-			senderNodeNbr, okayHomeRegion, okayOuterRegion,
-			excludedHome, (int) sm_list_length(ionwm,
-			terminusNode->viaPassageways));
-		writeMemo(dbgbuf);
-	}
+	/*	Regions form a flat mesh with no hierarchy, so there is
+	 *	no inward/outward direction to compute.  Loop-freedom is
+	 *	instead enforced explicitly: a bundle is never forwarded
+	 *	to a passageway that already appears in its IPT trace.
+	 *	Among the eligible passageways (bridges, not in the trace,
+	 *	that share one of the local node's regions and so are
+	 *	reachable by intra-region CGR), a confirmed passageway is
+	 *	preferred; if none is confirmed yet, every eligible
+	 *	unconfirmed passageway is probed.			*/
 
 	for (elt = sm_list_first(ionwm, terminusNode->viaPassageways); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
 		candidate = (IrfCandidate *) psp(ionwm, addr);
-		if (candidate->nodeNbr == getOwnFqnn())
+		if (!candidateIsEligible(sdr, iondb, bundle, snapshot, snapLen,
+				candidate->nodeNbr))
 		{
-			continue;
-		}
-
-		oK(findLocalNode(candidate->nodeNbr, &candidateMember,
-					&candidateMemberElt));
-		{
-			char	dbgbuf[160];
-
-			isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg]  cand="
-				UVAST_FIELDSPEC " home=%u outer=%u confirm=%ld",
-				candidate->nodeNbr, candidateMember.homeRegionNbr,
-				candidateMember.outerRegionNbr,
-				(long) candidate->confirmTime);
-			writeMemo(dbgbuf);
-		}
-		if (!(candidateMember.homeRegionNbr == okayHomeRegion
-		|| (candidateMember.outerRegionNbr == okayOuterRegion
-		&& candidateMember.homeRegionNbr != excludedHome)))
-		{
-			/*	Don't propagate to this passageway.	*/
-
 			continue;
 		}
 
@@ -912,8 +843,9 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	if (lyst_length(nominees) == 0
 	&& sm_list_length(ionwm, terminusNode->viaPassageways) > 0)
 	{
-		/*	Re-locating this destination node.  Retry
-		 *	all candidate passageways.			*/
+		/*	Re-locating this destination node.  Reset and
+		 *	retry all eligible candidate passageways, including
+		 *	any that had been blacklisted.			*/
 
 		lyst_clear(nominees);
 		for (elt = sm_list_first(ionwm, terminusNode->viaPassageways);
@@ -921,19 +853,9 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 		{
 			addr = sm_list_data(ionwm, elt);
 			candidate = (IrfCandidate *) psp(ionwm, addr);
-			if (candidate->nodeNbr == getOwnFqnn())
+			if (!candidateIsEligible(sdr, iondb, bundle, snapshot,
+					snapLen, candidate->nodeNbr))
 			{
-				continue;
-			}
-
-			oK(findLocalNode(candidate->nodeNbr, &candidateMember,
-					&candidateMemberElt));
-			if (!(candidateMember.homeRegionNbr == okayHomeRegion
-			|| (candidateMember.outerRegionNbr == okayOuterRegion
-			&& candidateMember.homeRegionNbr != excludedHome)))
-			{
-				/*	Skip this passageway.		*/
-
 				continue;
 			}
 
@@ -948,7 +870,63 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 		}
 	}
 
-	/*	This nominees list is the best we can do.		*/
-
 	return 0;
+}
+
+int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
+		Lyst nominees)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonDB		iondb;
+	RegionMember	*snapshot = NULL;
+	int		snapLen = 0;
+	Object		elt;
+	Object		obj;
+	int		result;
+
+	if (terminusNode->viaPassageways == 0)
+	{
+		if (irf_initialize(terminusNode) < 0)
+		{
+			return -1;
+		}
+	}
+
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+
+	/*	Take a single in-memory snapshot of the (sorted) rolodex
+	 *	so candidate eligibility can be checked by binary search,
+	 *	rather than scanning the rolodex (and locking the SDR)
+	 *	once per candidate.					*/
+
+	snapLen = sdr_list_length(sdr, iondb.rolodex);
+	if (snapLen > 0)
+	{
+		snapshot = MTAKE(snapLen * sizeof(RegionMember));
+		if (snapshot == NULL)
+		{
+			putErrmsg("Can't snapshot rolodex for IRF.", NULL);
+			return -1;
+		}
+
+		snapLen = 0;
+		for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &snapshot[snapLen], obj,
+					sizeof(RegionMember));
+			snapLen++;
+		}
+	}
+
+	result = selectPassageways(terminusNode, bundle, nominees, sdr, ionwm,
+			&iondb, snapshot, snapLen);
+	if (snapshot)
+	{
+		MRELEASE(snapshot);
+	}
+
+	return result;
 }

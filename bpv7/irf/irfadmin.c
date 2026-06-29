@@ -312,21 +312,21 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 static void	printNode(RegionMember *member)
 {
 	char	buffer[1024];
+	char	regions[768];
+	char	numbuf[32];
+	int	i;
 
-	if (member->outerRegionNbr == 0)
+	regions[0] = '\0';
+	for (i = 0; i < member->regionCount; i++)
 	{
-		isprintf(buffer, sizeof buffer,
-			"Node " UVAST_FIELDSPEC "\thome=%lu",
-			member->fqnn, member->homeRegionNbr);
-	}
-	else
-	{
-		isprintf(buffer, sizeof buffer,
-			"Node " UVAST_FIELDSPEC "\thome=%lu  outer=%lu",
-			member->fqnn, member->homeRegionNbr,
-			member->outerRegionNbr);
+		isprintf(numbuf, sizeof numbuf, "%s%lu", (i == 0 ? "" : ","),
+				(unsigned long) member->regionNbrs[i]);
+		istrcat(regions, numbuf, sizeof regions);
 	}
 
+	isprintf(buffer, sizeof buffer,
+		"Node " UVAST_FIELDSPEC "\tregions=%s  bridge=%d",
+		member->fqnn, regions, member->bridgeAllowed);
 	printText(buffer);
 }
 
@@ -366,8 +366,7 @@ static void	listPassageways(uvast destinationNodeNbr)
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-		if (member->homeRegionNbr == destinationNodeNbr
-		|| member->outerRegionNbr == destinationNodeNbr)
+		if (ionMemberInRegion(member, (uint32_t) destinationNodeNbr))
 		{
 			printNode(member);
 		}

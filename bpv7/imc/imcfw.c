@@ -753,8 +753,7 @@ static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 		memberAddr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, memberAddr,
 				sizeof(RegionMember));
-		if (member.homeRegionNbr == regionNbr
-		|| member.outerRegionNbr == regionNbr)
+		if (ionMemberInRegion(&member, regionNbr))
 		{
 			if (loadDestination(bundle, member.fqnn) < 0)
 			{
@@ -795,18 +794,26 @@ puts("Bundle is a dispatch to region members");
 		regionNbr = bundle->ancillaryData.imcRegionNbr;
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		if (regionNbr == 0)	/*	Fwd in both regions.	*/
+		if (regionNbr == 0)	/*	Fwd in all regions.	*/
 		{
-			/*	Send to all members of both home
-			 *	region and (if any) outer region.	*/
+			/*	Send to all members of every region the
+			 *	local node belongs to.			*/
 
-			if (loadRegionMembers(bundle,
-					iondb.regions[0].regionNbr, &iondb) < 0
-			|| loadRegionMembers(bundle,
-					iondb.regions[1].regionNbr, &iondb) < 0)
+			for (regionIdx = 0; regionIdx < ION_MAX_REGIONS;
+					regionIdx++)
 			{
-				putErrmsg("Can't add IMC region member.", NULL);
-				return -1;
+				if (iondb.regions[regionIdx].regionNbr == 0)
+				{
+					continue;
+				}
+
+				if (loadRegionMembers(bundle, iondb.regions
+						[regionIdx].regionNbr, &iondb) < 0)
+				{
+					putErrmsg("Can't add IMC region member.",
+							NULL);
+					return -1;
+				}
 			}
 		}
 		else			/*	Fwd within this region.	*/

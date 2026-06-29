@@ -1427,6 +1427,7 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 	PsmAddress	cxelt;
 	PsmAddress	cxaddr;
 	RegionMember	member;
+	int		wasBridge;
 
 	/* Parameter intentionally unused. */
 	(void)iondbObj;
@@ -1458,167 +1459,85 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 	sdr_list_destroy(sdr, iondb->regions[regionIdx].contacts, NULL, NULL);
 	iondb->regions[regionIdx].contacts = 0;
 
-	/*	Forget membership of this region.			*/
+	/*	Compact the regions array so that the active regions
+	 *	always occupy the lowest slots with no holes; code that
+	 *	scans regions[0..n-1] (e.g. dnacp's choice of region for
+	 *	a new node) depends on this.				*/
 
-	if (regionIdx == 1)	/*	Vacating outer region.		*/
 	{
-		/*	At this point, the local node's outer region
-		 *	number has been set to zero.			*/
+		int	j;
 
-		for (elt = sdr_list_first(sdr, iondb->rolodex); elt;
-				elt = nextElt)
+		for (j = regionIdx; j < ION_MAX_REGIONS - 1; j++)
 		{
-			nextElt = sdr_list_next(sdr, elt);
-			obj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &member, obj,
-					sizeof(RegionMember));
-			if (member.outerRegionNbr == regionNbr)
-			{
-				/*	Member's outer region is the
-				 *	same as the local node's
-				 *	previous outer region, so
-				 *	the member must be in the
-				 *	local node's home region;
-				 *	retain this member as a
-				 *	passageway up to that outer
-				 *	region.				*/
-
-				continue;
-			}
-
-			if (member.homeRegionNbr == regionNbr)
-			{
-				/*	Member is a passageway up to
-				 *	the super-region of the local
-				 *	node's previous outer region.
-				 *	That passageway will no longer
-				 *	be usable, so discard member.	*/
-
-				sdr_free(sdr, obj);
-				sdr_list_delete(sdr, elt, NULL, NULL);
-			}
+			iondb->regions[j] = iondb->regions[j + 1];
 		}
+
+		iondb->regions[ION_MAX_REGIONS - 1].regionNbr = 0;
+		iondb->regions[ION_MAX_REGIONS - 1].contacts = 0;
 	}
-	else			/*	Vacating home region.		*/
+
+	/*	The local node no longer participates in this region, so
+	 *	update its own membership record.  Knowledge of OTHER
+	 *	nodes' region memberships is deliberately retained: in a
+	 *	flat mesh those nodes remain reachable as passageways, and
+	 *	any stale entries are pruned by the probe/blacklist
+	 *	mechanism.  (There is no hierarchy, hence no cascade.)	*/
+
+	for (elt = sdr_list_first(sdr, iondb->rolodex); elt; elt = nextElt)
 	{
-		/*	The local node's outer region (if any) is
-		 *	about to become the local node's new home
-		 *	region.  The local node's home region number
-		 *	has been set to zero.				*/
-
-		for (elt = sdr_list_first(sdr, iondb->rolodex); elt;
-				elt = nextElt)
+		nextElt = sdr_list_next(sdr, elt);
+		obj = sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &member, obj, sizeof(RegionMember));
+		if (member.fqnn != getOwnFqnn())
 		{
-			nextElt = sdr_list_next(sdr, elt);
-			obj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &member, obj,
-					sizeof(RegionMember));
-			if (member.outerRegionNbr == regionNbr)
-			{
-				/*	Member is a passageway down
-				 *	to a sub-region of the local
-				 *	node's previous home region.
-				 *	That passageway will no longer
-				 *	be usable, so discard member.	*/
-
-				sdr_free(sdr, obj);
-				sdr_list_delete(sdr, elt, NULL, NULL);
-				continue;
-			}
-
-			if (member.homeRegionNbr == regionNbr)
-			{
-				if (member.outerRegionNbr
-						== iondb->regions[1].regionNbr)
-				{
-					/*	Member will still be
-					 *	in the same region as
-					 *	the local node (the
-					 *	local node's current
-					 *	outer region, which
-					 *	will soon become its
-					 *	home region).  So
-					 *	retain this member as
-					 *	a passageway down to
-					 *	the local node's
-					 *	previous home region.	*/
-
-					continue;
-				}
-
-				/*	Since the local node's home
-				 *	region can only be a sub-region
-				 *	of one other region, and this
-				 *	member's outer region is not
-				 *	that region, the member can't
-				 *	be a passageway.  It must be
-				 *	a terminal node residing in
-				 *	the local node's current home
-				 *	region, soon to be unreachable
-				 *	by CGR.  So discard it.		*/
-
-				sdr_free(sdr, obj);
-				sdr_list_delete(sdr, elt, NULL, NULL);
-			}
+			continue;
 		}
+
+		wasBridge = (member.bridgeAllowed && member.regionCount >= 2);
+		oK(ionRemoveMemberRegion(&member, regionNbr));
+		if (member.regionCount == 0)
+		{
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+		}
+		else
+		{
+			sdr_write(sdr, obj, (char *) &member,
+					sizeof(RegionMember));
+		}
+
+		if (wasBridge && !(member.bridgeAllowed
+				&& member.regionCount >= 2))
+		{
+			postPwcNotice(member.fqnn, NotPassageway);
+		}
+
+		break;
 	}
 
 	/*	Post node unregistration notice if necessary.		*/
 
 	if (announce)
 	{
-		postCpsNotice(regionNbr, MAX_POSIX_TIME, 0, contact.fromFqnn,
+		postCpsNotice(regionNbr, MAX_POSIX_TIME, 0, getOwnFqnn(),
 				0, 0, 0.0);
 	}
 }
 
-static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
-			Object iondbObj, int announce)
-{
-	Sdr		sdr = getIonsdr();
-	uint32_t	homeRegionNbr;
-	Object		elt;
-	Object		memberObj;
-	RegionMember	member;
-
-	homeRegionNbr = iondb->regions[0].regionNbr;
-	for (elt = sdr_list_first(sdr, iondb->rolodex); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		memberObj = sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &member, memberObj,
-				sizeof(RegionMember));
-		if (member.homeRegionNbr != homeRegionNbr
-		|| member.outerRegionNbr == 0
-		|| member.outerRegionNbr == regionNbr)
-		{
-			continue;
-		}
-
-		/*	This node is a passageway to the region which
-		 *	was formerly - but is no longer - the local
-		 *	node's outer region.  Must note that it is no
-		 *	longer registered in that former outer region.	*/
-
-		if (member.fqnn == getOwnFqnn())
-		{
-			vacateRegion(iondb, iondbObj, 1, announce);
-		}
-
-		member.outerRegionNbr = 0;
-		sdr_write(sdr, memberObj, (char *) &member,
-				sizeof(RegionMember));
-		postPwcNotice(member.fqnn, NotPassageway);
-	}
-}
-
 static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
-			IonDB *iondb, Object iondbObj, int announce)
+			int bridgeAllowed, IonDB *iondb, Object iondbObj,
+			int announce)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		memberObj;
 	RegionMember	member;
+	int		wasBridge;
+	int		isBridge;
+
+	/* Parameters intentionally unused. */
+	(void)iondbObj;
+	(void)announce;
 
 	for (elt = sdr_list_first(sdr, iondb->rolodex); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1638,61 +1557,42 @@ static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
 			break;
 		}
 
-		/*	Node is a known member of at least one of
-		 *	the local node's (up to 2) regions.  Adjust
-		 *	membership if necessary.			*/
+		/*	Node is already known.  Add this region to its
+		 *	membership set (no precedence among regions).  A
+		 *	bridgeAllowed of less than zero means "leave the
+		 *	node's opt-in bridge flag unchanged" (used when a
+		 *	scheduled contact implicitly registers a node).	*/
 
-		if (regionNbr < member.homeRegionNbr)
+		wasBridge = (member.bridgeAllowed && member.regionCount >= 2);
+		oK(ionAddMemberRegion(&member, regionNbr));
+		if (bridgeAllowed >= 0)
 		{
-			/*	Registering in new outer region.	*/
-
-			if (regionNbr == member.outerRegionNbr)
-			{
-				/*	Redundant registration; ignore.	*/
-
-				return;
-			}
-
-			/*	Node is now a passageway to this region.*/
-
-			member.outerRegionNbr = regionNbr;
-			sdr_write(sdr, memberObj, (char *) &member,
-					sizeof(RegionMember));
-			postPwcNotice(fqnn, Passageway);
-
-			/*	Any existing passageways to the former
-			 *	outer region must now be erased.	*/
-
-			purgePassageways(regionNbr, iondb, iondbObj, announce);
-			return;
+			member.bridgeAllowed = bridgeAllowed;
 		}
 
-		if (regionNbr == member.homeRegionNbr)
-		{
-			/*	Redundant registration; ignore.		*/
-
-			return;
-		}
-
-		/*	Registering in new home region.  Current
-		 *	home region becomes new outer region.		*/
-
-		member.outerRegionNbr = member.homeRegionNbr;
-		member.homeRegionNbr = regionNbr;
+		isBridge = (member.bridgeAllowed && member.regionCount >= 2);
 		sdr_write(sdr, memberObj, (char *) &member,
 				sizeof(RegionMember));
-		postPwcNotice(fqnn, Passageway);
+		if (isBridge && !wasBridge)
+		{
+			postPwcNotice(fqnn, Passageway);
+		}
+		else if (wasBridge && !isBridge)
+		{
+			postPwcNotice(fqnn, NotPassageway);
+		}
+
 		return;
 	}
 
-	/*	Not in membership list.	 Assume regionNbr identifies
-	 *	the node's home region; if it's not, a supplementary
-	 *	registration in another region will force the
-	 *	adjustment.						*/
+	/*	Node is not yet known; create a membership record.  A
+	 *	node in a single region cannot yet be a passageway, so
+	 *	no Passageway notice is posted here.			*/
 
+	memset((char *) &member, 0, sizeof(RegionMember));
 	member.fqnn = fqnn;
-	member.homeRegionNbr = regionNbr;
-	member.outerRegionNbr = 0;
+	member.bridgeAllowed = (bridgeAllowed > 0);
+	oK(ionAddMemberRegion(&member, regionNbr));
 	memberObj = sdr_malloc(sdr, sizeof(RegionMember));
 	if (memberObj)
 	{
@@ -1713,55 +1613,49 @@ static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
 			int announce)
 {
 	Sdr	sdr = getIonsdr();
+	int	i;
+	int	freeIdx = -1;
 
-	/*	Must unregister from current outer region, if any.	*/
+	/*	Regions have no precedence, so joining one is purely
+	 *	additive: ensure the local node has a region slot (and
+	 *	contact plan) for this region.				*/
 
-	if (iondb->regions[1].regionNbr != 0)
+	for (i = 0; i < ION_MAX_REGIONS; i++)
 	{
-		vacateRegion(iondb, iondbObj, 1, announce);
+		if (iondb->regions[i].regionNbr == regionNbr)
+		{
+			break;		/*	Already a member.	*/
+		}
+
+		if (freeIdx < 0 && iondb->regions[i].regionNbr == 0)
+		{
+			freeIdx = i;
+		}
 	}
 
-	/*	Select registration mode.  The region number of a
-	 *	sub-region is always greater than the region number
-	 *	of its super-region.					*/
-
-	if (regionNbr > iondb->regions[0].regionNbr)
+	if (i == ION_MAX_REGIONS)	/*	Not yet a member.	*/
 	{
-		/*	Node is migrating to a (possibly new) sub-
-		 *	region.  Node's current home region becomes
-		 *	its outer region...				*/
+		if (freeIdx < 0)
+		{
+			writeMemoNote("[?] Local node is in the maximum number \
+of regions; can't join", itoa(regionNbr));
+			return;
+		}
 
-		iondb->regions[1].regionNbr = iondb->regions[0].regionNbr;
-		iondb->regions[1].contacts = iondb->regions[0].contacts;
-
-		/*	...and the cited region becomes the node's
-		 *	new home region.				*/
-
-		iondb->regions[0].regionNbr = regionNbr;
-		iondb->regions[0].contacts = sdr_list_create(sdr);
-		CHKVOID(iondb->regions[0].contacts);
-		sdr_list_user_data_set(sdr, iondb->regions[0].contacts,
-				(Address) regionNbr);
-	}
-	else
-	{
-		/*	Node is being recruited as passageway into a
-		 *	super-region.  The cited region becomes the
-		 *	node's outer region.				*/
-
-		iondb->regions[1].regionNbr = regionNbr;
-		iondb->regions[1].contacts = sdr_list_create(sdr);
-		CHKVOID(iondb->regions[1].contacts);
-		sdr_list_user_data_set(sdr, iondb->regions[1].contacts,
+		iondb->regions[freeIdx].regionNbr = regionNbr;
+		iondb->regions[freeIdx].contacts = sdr_list_create(sdr);
+		CHKVOID(iondb->regions[freeIdx].contacts);
+		sdr_list_user_data_set(sdr, iondb->regions[freeIdx].contacts,
 				(Address) regionNbr);
 	}
 
-	registerInRegion(regionNbr, getOwnFqnn(), iondb, iondbObj, announce);
+	registerInRegion(regionNbr, getOwnFqnn(), iondb->bridgeAllowed,
+			iondb, iondbObj, announce);
 }
 
 static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
-			IonDB *iondb, Object iondbObj, PsmAddress *cxaddr,
-			int announce)
+			int bridgeAllowed, IonDB *iondb, Object iondbObj,
+			PsmAddress *cxaddr, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1770,6 +1664,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
 	int		regionIdx;
+	int		effectiveBridge;
 
 	arg.regionNbr = regionNbr;
 	arg.fromFqnn = fqnn;
@@ -1777,28 +1672,67 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 	arg.fromTime = MAX_POSIX_TIME;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
-	if (cxelt)	/*	Node already registered in region.	*/
+	if (cxelt)	/*	Registration contact already exists.	*/
 	{
+		/*	A registration contact for this node in this region
+		 *	already exists, but state may still be stale: a
+		 *	node's opt-in bridge flag may have changed, or (for
+		 *	self) the local membership array may be out of sync
+		 *	with a leftover contact after a leave/rejoin cycle.
+		 *	Reconcile via registerSelf/registerInRegion (both are
+		 *	idempotent) without inserting a duplicate contact.	*/
+
+		if (fqnn == getOwnFqnn())
+		{
+			registerSelf(regionNbr, iondb, iondbObj, announce);
+		}
+		else
+		{
+			registerInRegion(regionNbr, fqnn, bridgeAllowed, iondb,
+					iondbObj, announce);
+		}
+
 		return;
 	}
 
 	if (fqnn == getOwnFqnn())
 	{
-		/*	Registering self in a region.			*/
+		/*	Registering self in a region.  The local node's
+		 *	own opt-in bridge flag is authoritative.	*/
 
 		registerSelf(regionNbr, iondb, iondbObj, announce);
+		effectiveBridge = iondb->bridgeAllowed;
 	}
 	else	/*	Registering some other node.			*/
 	{
-		registerInRegion(regionNbr, fqnn, iondb, iondbObj, announce);
+		registerInRegion(regionNbr, fqnn, bridgeAllowed, iondb,
+				iondbObj, announce);
+		effectiveBridge = bridgeAllowed;
 	}
 
-	/*	Post node registration announcement.			*/
+	/*	Post node registration announcement, carrying the node's
+	 *	opt-in bridge flag in the notice's magnitude field so that
+	 *	other nodes in the region learn its passageway status.
+	 *
+	 *	KNOWN LIMITATION (flat-mesh membership propagation): this
+	 *	announcement reaches only the members of regionNbr.  A CPS
+	 *	notice is inherently per-region (it registers fqnn in the
+	 *	region it is multicast to), so there is no channel by which
+	 *	members of a node's OTHER regions can be told that the node
+	 *	has just joined regionNbr.  Consequently, when a node
+	 *	BECOMES a passageway (joins a 2nd region), peers in its
+	 *	pre-existing regions do not automatically learn that it is
+	 *	now a usable passageway; they must be re-briefed out of band
+	 *	(e.g. rfx_brief_contacts on a node that knows the full
+	 *	membership, replayed to them).  Initial passageway discovery
+	 *	via DNAC briefings and the contact briefs is unaffected; only
+	 *	mid-life membership CHANGES are not auto-propagated across
+	 *	region boundaries.					*/
 
 	if (announce)
 	{
 		postCpsNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
-				fqnn, fqnn, 0, 1.0);
+				fqnn, fqnn, effectiveBridge, 1.0);
 	}
 
 	/*	Add the registration contact.				*/
@@ -1809,13 +1743,13 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 	/*	The registration may concern a remote passageway in a
 	 *	region in which the local node does not itself reside
 	 *	(e.g. learning, via a passageway briefing, that a node is
-	 *	a passageway to a super-region we are not a member of).
-	 *	In that case registerInRegion has already recorded the
-	 *	passageway in the rolodex; there is no local contact plan
-	 *	for that region, so simply skip the registration contact
-	 *	rather than failing.					*/
+	 *	a member of some region we are not a member of).  In that
+	 *	case registerInRegion has already recorded the membership
+	 *	in the rolodex; there is no local contact plan for that
+	 *	region, so simply skip the registration contact rather
+	 *	than failing.						*/
 
-	if (regionIdx == 0 || regionIdx == 1)
+	if (regionIdx >= 0)
 	{
 		insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
 				MAX_POSIX_TIME, fqnn, fqnn, 0, 1.0,
@@ -1835,6 +1769,7 @@ int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
 	Object		iondbObj;
 	IonDB		iondb;
 	int		regionIdx;
+	int		bridgeAllowed = 0;
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
@@ -1881,6 +1816,13 @@ between 0.0 and 1.0.");
 	if (fromTime == MAX_POSIX_TIME)	/*	Registration.		*/
 	{
 		CHKZERO(fromFqnn == toFqnn);
+
+		/*	For a registration contact the xmitRate field
+		 *	is overloaded to convey the node's opt-in bridge
+		 *	flag (0 or 1); the stored contact's xmit rate is
+		 *	then forced to zero as usual.			*/
+
+		bridgeAllowed = (xmitRate != 0);
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
 		confidence = 1.0;
@@ -1934,8 +1876,8 @@ must be later than From time.");
 
 	if (contactType == CtRegistration)
 	{
-		handleRegistrationContact(regionNbr, fromFqnn, &iondb, iondbObj,
-				cxaddr, announce);
+		handleRegistrationContact(regionNbr, fromFqnn, bridgeAllowed,
+				&iondb, iondbObj, cxaddr, announce);
 		return sdr_end_xn(sdr);
 	}
 
@@ -1952,8 +1894,15 @@ must be later than From time.");
 		announce = 0;
 	}
 
-	if (regionNbr != iondb.regions[0].regionNbr
-	&& regionNbr != iondb.regions[1].regionNbr)
+	for (regionIdx = 0; regionIdx < ION_MAX_REGIONS; regionIdx++)
+	{
+		if (iondb.regions[regionIdx].regionNbr == regionNbr)
+		{
+			break;
+		}
+	}
+
+	if (regionIdx == ION_MAX_REGIONS)
 	{
 		writeMemoNote("[?] Contact is for a foreign region",
 				itoa(regionNbr));
@@ -2146,8 +2095,8 @@ hypothetical contact, as that contact is now discovered.");
 	 *	automatically members of the indicated region even
 	 *	if no registration contacts were previously posted.	*/
 
-	registerInRegion(regionNbr, fromFqnn, &iondb, iondbObj, announce);
-	registerInRegion(regionNbr, toFqnn, &iondb, iondbObj, announce);
+	registerInRegion(regionNbr, fromFqnn, -1, &iondb, iondbObj, announce);
+	registerInRegion(regionNbr, toFqnn, -1, &iondb, iondbObj, announce);
 	regionIdx = ionPickRegion(regionNbr);
 	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromFqnn,
 			toFqnn, xmitRate, confidence, contactType, cxaddr);
@@ -2372,6 +2321,7 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 	PsmAddress	cxelt;
 	PsmAddress	cxaddr;
 	RegionMember	member;
+	int		wasBridge;
 
 	/* Parameter intentionally unused. */
 	(void)cxref;
@@ -2381,25 +2331,18 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (fromFqnn == getOwnFqnn())
 	{
-		/*	Local node is being removed from region.	*/
+		/*	Local node is leaving this region.  Regions have
+		 *	no precedence, so just vacate the matching slot;
+		 *	there is no cascade.				*/
 
-		if (regionNbr == iondb.regions[0].regionNbr)
+		for (regionIdx = 0; regionIdx < ION_MAX_REGIONS; regionIdx++)
 		{
-			/*	Node is leaving its home region.
-			 *	Its outer region, if any, becomes
-			 *	its new home region.			*/
-
-			vacateRegion(&iondb, iondbObj, 0, announce);
-			iondb.regions[0].regionNbr = iondb.regions[1].regionNbr;
-			iondb.regions[0].contacts = iondb.regions[1].contacts;
-			iondb.regions[1].regionNbr = 0;
-			iondb.regions[1].contacts = 0;
-		}
-		else
-		{
-			/*	Node is leaving its outer region.	*/
-
-			vacateRegion(&iondb, iondbObj, 1, announce);
+			if (iondb.regions[regionIdx].regionNbr == regionNbr)
+			{
+				vacateRegion(&iondb, iondbObj, regionIdx,
+						announce);
+				break;
+			}
 		}
 
 		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
@@ -2412,7 +2355,7 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 	 *	for this node.						*/
 
 	regionIdx = ionPickRegion(regionNbr);
-	if (regionIdx < 0 || regionIdx > 1)
+	if (regionIdx < 0)
 	{
 		return;
 	}
@@ -2456,45 +2399,32 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 			break;		/*	Node not found.		*/
 		}
 
-		/*	This is the unregistering node.			*/
+		/*	This is the unregistering node.  Drop this
+		 *	region from its membership set; if it ends up in
+		 *	no region the local node shares, forget it.	*/
 
-		if (member.outerRegionNbr == regionNbr)
+		wasBridge = (member.bridgeAllowed && member.regionCount >= 2);
+		if (ionRemoveMemberRegion(&member, regionNbr) == 0)
 		{
-			/*	Node is being unregistered from its
-			 *	outer region.				*/
+			break;		/*	Not registered there.	*/
+		}
 
-			member.outerRegionNbr = 0;
+		if (member.regionCount == 0)
+		{
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+		}
+		else
+		{
 			sdr_write(sdr, obj, (char *) &member,
 					sizeof(RegionMember));
-			break;
 		}
 
-		if (member.homeRegionNbr == regionNbr)
+		if (wasBridge && !(member.bridgeAllowed
+				&& member.regionCount >= 2))
 		{
-			/*	Node is being unregistered from its
-			 *	home region; its outer region, if
-			 *	any, becomes its home region.		*/
-
-			if (member.outerRegionNbr == 0)
-			{
-				/*	Complete removal of node.	*/
-
-				sdr_free(sdr, obj);
-				sdr_list_delete(sdr, elt, NULL, NULL);
-			}
-			else
-			{
-				member.homeRegionNbr = member.outerRegionNbr;
-				member.outerRegionNbr = 0;
-				sdr_write(sdr, obj, (char *) &member,
-						sizeof(RegionMember));
-			}
-
-			break;
+			postPwcNotice(member.fqnn, NotPassageway);
 		}
-
-		/*	A glitch: the node is not registered in this
-		 *	region.  Nothing to do.				*/
 
 		break;
 	}
@@ -2579,11 +2509,36 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
 	return 0;
 }
 
+static int	briefLookupMember(Sdr sdr, Object rolodex, uvast fqnn,
+			RegionMember *member)
+{
+	Object	elt;
+	Object	obj;
+
+	for (elt = sdr_list_first(sdr, rolodex); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) member, obj, sizeof(RegionMember));
+		if (member->fqnn == fqnn)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void	rfx_brief_contacts(uint32_t regionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
+	IonDB		iondb;
+	RegionMember	member;
+	int		haveMember;
+	int		bridge;
+	int		k;
 	char		fileName[64];
 	int		briefingFile;
 	PsmAddress	elt;
@@ -2593,6 +2548,8 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 	char		toTimeBuffer[TIMESTAMPBUFSZ];
 	char		buffer[256];
 	int		textLen;
+
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 
 	isprintf(fileName, sizeof fileName, "contacts.%lu.ionrc", regionNbr);
 	briefingFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
@@ -2641,12 +2598,59 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 			break;
 		}
 
+		/*	A registration contact's stored xmit rate is zero;
+		 *	the node's opt-in bridge flag lives in its rolodex
+		 *	entry, so look it up and convey it (and the node's
+		 *	full region membership, if it is a passageway) so
+		 *	that the briefed node can use it as a passageway.*/
+
+		haveMember = briefLookupMember(sdr, iondb.rolodex,
+				contact->fromFqnn, &member);
+		bridge = (haveMember ? member.bridgeAllowed : 0);
 		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 		writeTimestampUTC(contact->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
-UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %d %f\n", fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
-				contact->xmitRate, contact->confidence);
+				bridge, contact->confidence);
+		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			putSysErrmsg("Can't write briefing command", fileName);
+			break;
+		}
+
+		if (!(haveMember && member.regionCount >= 2))
+		{
+			continue;	/*	Not a passageway.	*/
+		}
+
+		/*	Replay this passageway's memberships in its other
+		 *	regions, then restore the briefing region context.*/
+
+		for (k = 0; k < member.regionCount; k++)
+		{
+			if (member.regionNbrs[k] == regionNbr)
+			{
+				continue;
+			}
+
+			isprintf(buffer, sizeof buffer, "^ %lu\na contact -1 -1 "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %d 1.0\n",
+					(unsigned long) member.regionNbrs[k],
+					contact->fromFqnn, contact->fromFqnn,
+					bridge);
+			textLen = strlen(buffer);
+			if (write(briefingFile, buffer, textLen) < 0)
+			{
+				putSysErrmsg("Can't write briefing command",
+						fileName);
+				break;
+			}
+		}
+
+		isprintf(buffer, sizeof buffer, "^ %lu\n",
+				(unsigned long) regionNbr);
 		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
@@ -3425,7 +3429,7 @@ void	rfx_brief_passageways(uint32_t regionNbr)
 	Object		elt;
 	Object		obj;
 	RegionMember	member;
-	uint32_t	otherRegionNbr;
+	int		i;
 	char		buffer[256];
 	int		textLen;
 
@@ -3451,48 +3455,50 @@ void	rfx_brief_passageways(uint32_t regionNbr)
 	{
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, obj, sizeof(RegionMember));
-		if (member.outerRegionNbr == 0)
+		if (!(member.bridgeAllowed && member.regionCount >= 2))
 		{
 			continue;	/*	Not a passageway.	*/
 		}
 
-		/*	This node is a passageway to some other region.	*/
-
-		if (member.outerRegionNbr == regionNbr)
+		if (!ionMemberInRegion(&member, regionNbr))
 		{
-			/*	Passageway to a sub-region.		*/
+			/*	Not reachable from the briefed node,
+			 *	which is joining regionNbr.		*/
 
-			otherRegionNbr = member.homeRegionNbr;
-		}
-		else
-		{
-			/*	Passageway to the super-region.		*/
-
-			otherRegionNbr = member.outerRegionNbr;
+			continue;
 		}
 
-		isprintf(buffer, sizeof buffer, "^ %lu\n", otherRegionNbr);
-		textLen = strlen(buffer);
-		if (write(briefingFile, buffer, textLen) < 0)
-		{
-			close(briefingFile);
-			putSysErrmsg("Can't write '^' command to briefing file",
-					fileName);
-			return;
-		}
+		/*	Replay this passageway's full region membership
+		 *	(and opt-in bridge flag) to the briefed node so
+		 *	it can use the node as a passageway into any of
+		 *	those regions.  ionadmin treats a contact as a
+		 *	registration only when its fromTime is
+		 *	MAX_POSIX_TIME, for which "-1" is the shorthand;
+		 *	the xmit-rate field carries the bridge flag.	*/
 
-		/*	Emit a registration contact: ionadmin only treats a
-		 *	contact as a registration (which records the node's
-		 *	passageway status) when its fromTime is MAX_POSIX_TIME,
-		 *	for which "-1" is the ionadmin shorthand.		*/
-
-		isprintf(buffer, sizeof buffer, "a contact -1 -1 "
-UVAST_FIELDSPEC " " UVAST_FIELDSPEC " 0 1.0\n", member.fqnn, member.fqnn);
-		textLen = strlen(buffer);
-		if (write(briefingFile, buffer, textLen) < 0)
+		for (i = 0; i < member.regionCount; i++)
 		{
-			putSysErrmsg("Can't write briefing command", fileName);
-			break;
+			isprintf(buffer, sizeof buffer, "^ %lu\n",
+					(unsigned long) member.regionNbrs[i]);
+			textLen = strlen(buffer);
+			if (write(briefingFile, buffer, textLen) < 0)
+			{
+				close(briefingFile);
+				putSysErrmsg("Can't write '^' command to \
+briefing file", fileName);
+				return;
+			}
+
+			isprintf(buffer, sizeof buffer, "a contact -1 -1 "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %d 1.0\n", member.fqnn, member.fqnn,
+					member.bridgeAllowed);
+			textLen = strlen(buffer);
+			if (write(briefingFile, buffer, textLen) < 0)
+			{
+				putSysErrmsg("Can't write briefing command",
+						fileName);
+				break;
+			}
 		}
 	}
 
@@ -3781,7 +3787,7 @@ int	rfx_start(void)
 
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < ION_MAX_REGIONS; i++)
 	{
 		if (iondb.regions[i].contacts == 0)
 		{

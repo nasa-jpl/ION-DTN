@@ -245,11 +245,20 @@ typedef struct
 	Object		contacts;	/*	SDR list: IonContact	*/
 } IonRegion;
 
+/*	A node may be a member of any number of regions up to
+ *	ION_MAX_REGIONS, with no hierarchy or precedence among them.
+ *	A node that is a member of two or more regions and has opted
+ *	in (bridgeAllowed) may serve as a passageway for inter-regional
+ *	forwarding.							*/
+
+#define ION_MAX_REGIONS	(16)
+
 typedef struct
 {
 	uvast		fqnn;
-	uint32_t	homeRegionNbr;
-	uint32_t	outerRegionNbr;
+	uint32_t	regionNbrs[ION_MAX_REGIONS];
+	int		regionCount;	/*	Slots used in regionNbrs.*/
+	int		bridgeAllowed;	/*	Boolean; opt-in bridge.	*/
 } RegionMember;
 
 /*	CpsNotice objects are consumed by cpsd, which uses their
@@ -302,7 +311,8 @@ typedef struct
 typedef struct
 {
 	uvast		ownFqnn;
-	IonRegion	regions[2];	/*	Home, outer.		*/
+	IonRegion	regions[ION_MAX_REGIONS];
+	int		bridgeAllowed;	/*	Boolean; opt-in bridge.	*/
 	Object		rolodex;	/*	SDR list: RegionMember	*/
 	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
 	Object		pwcNotices;	/*	SDR list: PwcNotice	*/
@@ -600,6 +610,14 @@ extern int		ionPickRegion(uint32_t regionNbr);
 extern int		ionRegionOf(uvast fqnnA,
 					uvast fqnnB,
 					uint32_t *regionNbr);
+extern int		ionMemberInRegion(RegionMember *member,
+					uint32_t regionNbr);
+extern int		ionAddMemberRegion(RegionMember *member,
+					uint32_t regionNbr);
+extern int		ionRemoveMemberRegion(RegionMember *member,
+					uint32_t regionNbr);
+extern void		ionSetBridgeAllowed(int flag);
+extern int		ionBridgeAllowed(void);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

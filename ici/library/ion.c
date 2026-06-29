@@ -1446,7 +1446,7 @@ int	ionPickRegion(uint32_t regionNbr)
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < ION_MAX_REGIONS; i++)
 	{
 		if (iondb.regions[i].regionNbr == regionNbr)
 		{
@@ -1457,23 +1457,114 @@ int	ionPickRegion(uint32_t regionNbr)
 	return -1;
 }
 
+int	ionMemberInRegion(RegionMember *member, uint32_t regionNbr)
+{
+	int	i;
+
+	CHKZERO(member);
+	for (i = 0; i < member->regionCount; i++)
+	{
+		if (member->regionNbrs[i] == regionNbr)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int	ionAddMemberRegion(RegionMember *member, uint32_t regionNbr)
+{
+	CHKERR(member);
+	if (regionNbr == 0 || ionMemberInRegion(member, regionNbr))
+	{
+		return 0;	/*	Nothing added.			*/
+	}
+
+	if (member->regionCount >= ION_MAX_REGIONS)
+	{
+		return -1;	/*	No room for another region.	*/
+	}
+
+	member->regionNbrs[member->regionCount] = regionNbr;
+	member->regionCount += 1;
+	return 1;
+}
+
+int	ionRemoveMemberRegion(RegionMember *member, uint32_t regionNbr)
+{
+	int	i;
+
+	CHKERR(member);
+	for (i = 0; i < member->regionCount; i++)
+	{
+		if (member->regionNbrs[i] != regionNbr)
+		{
+			continue;
+		}
+
+		/*	Found it; compact the array down over it.	*/
+
+		for (; i < member->regionCount - 1; i++)
+		{
+			member->regionNbrs[i] = member->regionNbrs[i + 1];
+		}
+
+		member->regionCount -= 1;
+		member->regionNbrs[member->regionCount] = 0;
+		return 1;
+	}
+
+	return 0;	/*	Not a member.				*/
+}
+
+void	ionSetBridgeAllowed(int flag)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj;
+	IonDB	iondb;
+
+	iondbObj = getIonDbObject();
+	CHKVOID(iondbObj);
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.bridgeAllowed = (flag != 0);
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set bridgeAllowed flag.", NULL);
+	}
+}
+
+int	ionBridgeAllowed(void)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj;
+	IonDB	iondb;
+
+	iondbObj = getIonDbObject();
+	CHKZERO(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	return iondb.bridgeAllowed;
+}
+
 int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 {
-	/*	This function determines the region in which nodeA
-	 *	and nodeB both reside; if nodeB is zero, it just
-	 *	determines the region in which nodeA resides.  If
-	 *	we find the node(s) in both regions, the home region
-	 *	is preferred.						*/
+	/*	This function determines a region in which nodeA and
+	 *	nodeB both reside; if nodeB is zero, it just determines
+	 *	a region in which nodeA resides.  Regions have no
+	 *	hierarchy, so the local node's first matching region
+	 *	(by membership-array order) is returned.		*/
 
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	uint32_t	localHomeRegion;
-	uint32_t	localOuterRegion;
 	RegionMember	nodeA;
 	RegionMember	nodeB;
 	Object		elt;
 	Object		addr;
+	int		i;
+	uint32_t	R;
 			OBJ_POINTER(RegionMember, member);
 
 	CHKERR(regionNbr);
@@ -1498,8 +1589,6 @@ on a freed contact/node record).", NULL);
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	localHomeRegion = iondb.regions[0].regionNbr;
-	localOuterRegion = iondb.regions[1].regionNbr;
 	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1518,46 +1607,32 @@ on a freed contact/node record).", NULL);
 		}
 	}
 
-	/*	Identify the common region.				*/
-
-	if (nodeA.homeRegionNbr == 0)	/*	Unknown node.		*/
+	if (nodeA.regionCount == 0)	/*	Unknown node.		*/
 	{
 		return -1;	/*	No common region.		*/
 	}
 
-	/*	Do A and B both reside in the local node's home
-	 *	region?  Either one, or both, could be either native
-	 *	to that region or passageway(s) to sub-region(s).	*/
+	/*	Find a region that the local node belongs to and in
+	 *	which node A (and, if specified, node B) also reside.	*/
 
-	if (nodeA.homeRegionNbr == localHomeRegion
-	|| nodeA.outerRegionNbr == localHomeRegion)
+	for (i = 0; i < ION_MAX_REGIONS; i++)
 	{
-		if (fqnnB == 0
-		|| nodeB.homeRegionNbr == localHomeRegion
-		|| nodeB.outerRegionNbr == localHomeRegion)
+		R = iondb.regions[i].regionNbr;
+		if (R == 0)
 		{
-			*regionNbr = localHomeRegion;
-			return 0;	/*	Found in home region.	*/
+			continue;
+		}
+
+		if (ionMemberInRegion(&nodeA, R)
+		&& (fqnnB == 0 || ionMemberInRegion(&nodeB, R)))
+		{
+			*regionNbr = R;
+			return i;
 		}
 	}
 
-	/*	Maybe A and B both reside only in the local node's
-	 *	outer region (i.e., are passageways to some region
-	 *	that is even more encompassing).			*/
-
-	if (nodeA.homeRegionNbr == localOuterRegion
-	|| nodeA.outerRegionNbr == localOuterRegion)
-	{
-		if (fqnnB == 0
-		|| nodeB.homeRegionNbr == localOuterRegion)
-		{
-			*regionNbr = localOuterRegion;
-			return 1;	/*	Found in outer region.	*/
-		}
-	}
-
-	/*	Neither node A nor (if non-zero) node B reside in
-	 *	either of the local node's regions.			*/
+	/*	Neither node A nor (if non-zero) node B reside in any
+	 *	of the local node's regions.				*/
 
 	return -1;
 }

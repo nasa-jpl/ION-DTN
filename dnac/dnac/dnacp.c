@@ -1294,10 +1294,25 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr_read(getIonsdr(), (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	regionNbr = iondb.regions[0].regionNbr;
+
+	/*	Regions have no hierarchy, so place the new node in the
+	 *	sponsor's most recently joined region (its highest-index
+	 *	active region): when an operator seeds a new region on a
+	 *	node and then sponsors children, the children join that
+	 *	new region.						*/
+
+	regionNbr = 0;
+	for (i = 0; i < ION_MAX_REGIONS; i++)
+	{
+		if (iondb.regions[i].regionNbr != 0)
+		{
+			regionNbr = iondb.regions[i].regionNbr;
+		}
+	}
+
 	if (regionNbr == 0)
 	{
-		putErrmsg("dnacp fails: home region number unknown.", NULL);
+		putErrmsg("dnacp fails: sponsor is not in any region.", NULL);
 		return 1;
 	}
 
