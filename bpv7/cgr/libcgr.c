@@ -239,9 +239,28 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 
 	if (route->hops)
 	{
+		int	hopsCorrupt = 0;
+
 		for (citation = sm_list_first(ionwm, route->hops); citation;
 				citation = nextCitation)
 		{
+			/*	#1048 follow-up: route->hops can be a stale or
+			 *	recycled list whose header passes disabledRoute's
+			 *	validation but whose elements are wild offsets, so
+			 *	sm_list_next / sm_list_data abort in CHKERR(psp(elt))
+			 *	and kill ipnfw mid-transaction.  Validate each
+			 *	element before touching it; if one is unsound the
+			 *	hops list is corrupt -- stop and abandon it, since it
+			 *	can be neither safely walked nor destroyed.	*/
+
+			if (!cgrHandleSane(ionwm, citation))
+			{
+				writeMemo("[?] CGR: abandoning corrupt route hops "
+						"list (#1048)");
+				hopsCorrupt = 1;
+				break;
+			}
+
 			nextCitation = sm_list_next(ionwm, citation);
 			contactAddr = sm_list_data(ionwm, citation);
 			if (contactAddr == 0)
@@ -308,7 +327,15 @@ stale contact citation (#1048): contactAddr=" UVAST_FIELDSPEC ".",
 			sm_list_delete(ionwm, citation, NULL, NULL);
 		}
 
-		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		if (hopsCorrupt)
+		{
+			route->hops = 0;	/*	leak the corrupt list; it
+						 *	cannot be safely destroyed	*/
+		}
+		else
+		{
+			sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		}
 	}
 
 	psm_free(ionwm, routeAddr);
