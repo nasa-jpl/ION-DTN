@@ -40,6 +40,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -54,7 +57,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -75,7 +78,7 @@ static void	printUsage()
 
 static void	executeJoin(int tokenCount, char **tokens)
 {
-	uvast		nodeNbr = getOwnNodeNbr();
+	uvast		nodeNbr = getOwnFqnn();
 	uint32_t	regionNbr;
 	char		contactPlanFileName[64];
 	FILE		*rcfile;
@@ -199,7 +202,7 @@ node.ionrc", NULL);
 
 static void	executeLeave(int tokenCount, char **tokens)
 {
-	uvast		nodeNbr = getOwnNodeNbr();
+	uvast		nodeNbr = getOwnFqnn();
 	uint32_t	regionNbr;
 	FILE		*rcfile;
 	char		cmd[1024];
@@ -314,20 +317,20 @@ static void	printNode(RegionMember *member)
 	{
 		isprintf(buffer, sizeof buffer,
 			"Node " UVAST_FIELDSPEC "\thome=%lu",
-			member->nodeNbr, member->homeRegionNbr);
+			member->fqnn, member->homeRegionNbr);
 	}
 	else
 	{
 		isprintf(buffer, sizeof buffer,
 			"Node " UVAST_FIELDSPEC "\thome=%lu  outer=%lu",
-			member->nodeNbr, member->homeRegionNbr,
+			member->fqnn, member->homeRegionNbr,
 			member->outerRegionNbr);
 	}
 
 	printText(buffer);
 }
 
-static void	listNodes()
+static void	listNodes(void)
 {
 	Sdr	sdr = getIonsdr();
 	IonDB	iondb;
@@ -438,6 +441,10 @@ static int	processLine(char *line, int lineLength)
 	char	*cursor;
 	int	i;
 	char	*tokens[9];
+
+	/*	The lineLength parameter is currently unused.		*/
+
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

@@ -20,6 +20,7 @@
 #ifdef ENABLE_IMC
 #include "imc.h"
 #endif
+#include "ipt.h"
 #include "creb.h"
 #include "cteb.h"
 #if RGREB
@@ -207,6 +208,24 @@ static ExtensionDef	extensionDefs[] =
 				imc_clear
 		},
 #endif
+		{ "ipt", IrfPassagewaysBlk,
+				ipt_offer,
+				ipt_serialize,
+				{0,
+				0,
+				0,
+				ipt_processOnDequeue,
+				0},
+				ipt_release,
+				ipt_copy,
+				0,
+				0,
+				0,
+				ipt_parse,
+				ipt_check,
+				ipt_record,
+				ipt_clear
+		},
 #if RGREB
 		{ "rgr", RGRBlk,
 				rgr_offer,
@@ -324,5 +343,9 @@ static ExtensionSpec		extensionSpecs[] =
 	 *	block type 14 (CREB).				*/
 					{ CompressedReportingBlk, 0, NoCRC },
 					{ CustodyTransferBlk, 0, NoCRC },
+	/*	IRF passageways block (type 191), offered on every
+	 *	bundle so inter-regional forwarding can record the
+	 *	passageway trace.				*/
+					{ IrfPassagewaysBlk, 0, NoCRC },
 					{ UnknownBlk, 0, NoCRC }
 				};

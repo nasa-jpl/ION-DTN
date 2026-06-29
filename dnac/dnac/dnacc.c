@@ -110,10 +110,12 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	Store public and private keys locally.			*/
+	/*	Store public and private keys locally.  (ION's
+	 *	sec_addPrivateKey does not encrypt the stored key, so
+	 *	the password path name is not used here.)		*/
 
-	if (sec_addPrivateKey(effectiveTime, privateKeyLen, privateKey,
-			passwdPathName) < 0)
+	(void)passwdPathName;
+	if (sec_addPrivateKey(effectiveTime, privateKeyLen, privateKey) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't add own private key.", NULL);
@@ -129,7 +131,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (sec_addPublicKey(getOwnNodeNbr(), effectiveTime, currentTime,
+	if (sec_addPublicKey(getOwnFqnn(), effectiveTime, currentTime,
 			publicKeyLen, publicKey) < 0)
 	{
 		sdr_cancel_xn(sdr);

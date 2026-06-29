@@ -1346,6 +1346,72 @@ static void	deleteContact(PsmAddress cxaddr)
 			rfx_erase_data, NULL);
 }
 
+static void	postPwcNotice(uvast nodeNbr, PwState state)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj;
+	IonDB		iondb;
+	PwcNotice	notice;
+	Object		noticeObj;
+
+	iondbObj = getIonDbObject();
+	CHKVOID(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	notice.nodeNbr = nodeNbr;
+	notice.state = state;
+	noticeObj = sdr_malloc(sdr, sizeof(PwcNotice));
+	if (noticeObj)
+	{
+		sdr_write(sdr, noticeObj, (char *) &notice, sizeof(PwcNotice));
+		oK(sdr_list_insert_last(sdr, iondb.pwcNotices, noticeObj));
+	}
+}
+
+Object	findLocalNode(uvast nodeNbr, RegionMember *member, Object *memberElt)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+	Object	elt;
+	Object	memberObj = 0;
+
+	CHKZERO(nodeNbr > 0);
+	CHKZERO(member);
+	CHKZERO(memberElt);
+	*memberElt = 0;
+	CHKZERO(iondbObj);
+	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock database.	*/
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		memberObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) member, memberObj, sizeof(RegionMember));
+		if (member->fqnn < nodeNbr)
+		{
+			continue;
+		}
+
+		if (member->fqnn > nodeNbr)
+		{
+			/*	Node is not in the membership list.	*/
+
+			memberObj = 0;
+		}
+
+		break;
+	}
+
+	sdr_exit_xn(sdr);		/*	Unlock database.	*/
+	if (elt == 0)
+	{
+		memberObj = 0;
+	}
+
+	*memberElt = elt;
+	return memberObj;
+}
+
 static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 			int announce)
 {
@@ -1542,6 +1608,7 @@ static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
 		member.outerRegionNbr = 0;
 		sdr_write(sdr, memberObj, (char *) &member,
 				sizeof(RegionMember));
+		postPwcNotice(member.fqnn, NotPassageway);
 	}
 }
 
@@ -1591,6 +1658,7 @@ static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
 			member.outerRegionNbr = regionNbr;
 			sdr_write(sdr, memberObj, (char *) &member,
 					sizeof(RegionMember));
+			postPwcNotice(fqnn, Passageway);
 
 			/*	Any existing passageways to the former
 			 *	outer region must now be erased.	*/
@@ -1613,6 +1681,7 @@ static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
 		member.homeRegionNbr = regionNbr;
 		sdr_write(sdr, memberObj, (char *) &member,
 				sizeof(RegionMember));
+		postPwcNotice(fqnn, Passageway);
 		return;
 	}
 
@@ -1736,10 +1805,22 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 
 	sdr_write(sdr, iondbObj, (char *) iondb, sizeof(IonDB));
 	regionIdx = ionPickRegion(regionNbr);
-	CHKVOID(regionIdx == 0 || regionIdx == 1);
-	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
-			MAX_POSIX_TIME, fqnn, fqnn, 0, 1.0,
-			CtRegistration, cxaddr);
+
+	/*	The registration may concern a remote passageway in a
+	 *	region in which the local node does not itself reside
+	 *	(e.g. learning, via a passageway briefing, that a node is
+	 *	a passageway to a super-region we are not a member of).
+	 *	In that case registerInRegion has already recorded the
+	 *	passageway in the rolodex; there is no local contact plan
+	 *	for that region, so simply skip the registration contact
+	 *	rather than failing.					*/
+
+	if (regionIdx == 0 || regionIdx == 1)
+	{
+		insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
+				MAX_POSIX_TIME, fqnn, fqnn, 0, 1.0,
+				CtRegistration, cxaddr);
+	}
 }
 
 int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
@@ -3332,6 +3413,94 @@ int	rfx_remove_range(time_t *fromTime, uvast fromFqnn, uvast toFqnn,
 	}
 
 	return 0;
+}
+
+void	rfx_brief_passageways(uint32_t regionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
+	char		fileName[64];
+	int		briefingFile;
+	Object		elt;
+	Object		obj;
+	RegionMember	member;
+	uint32_t	otherRegionNbr;
+	char		buffer[256];
+	int		textLen;
+
+	CHKVOID(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	isprintf(fileName, sizeof fileName, "passageways.%lu.ionrc", regionNbr);
+	briefingFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
+	if (briefingFile == -1)
+	{
+		putSysErrmsg("Can't create briefing file", fileName);
+		return;
+	}
+
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		close(briefingFile);
+		putErrmsg("Can't start transaction", NULL);
+		return;
+	}
+
+	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &member, obj, sizeof(RegionMember));
+		if (member.outerRegionNbr == 0)
+		{
+			continue;	/*	Not a passageway.	*/
+		}
+
+		/*	This node is a passageway to some other region.	*/
+
+		if (member.outerRegionNbr == regionNbr)
+		{
+			/*	Passageway to a sub-region.		*/
+
+			otherRegionNbr = member.homeRegionNbr;
+		}
+		else
+		{
+			/*	Passageway to the super-region.		*/
+
+			otherRegionNbr = member.outerRegionNbr;
+		}
+
+		isprintf(buffer, sizeof buffer, "^ %lu\n", otherRegionNbr);
+		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			close(briefingFile);
+			putSysErrmsg("Can't write '^' command to briefing file",
+					fileName);
+			return;
+		}
+
+		/*	Emit a registration contact: ionadmin only treats a
+		 *	contact as a registration (which records the node's
+		 *	passageway status) when its fromTime is MAX_POSIX_TIME,
+		 *	for which "-1" is the ionadmin shorthand.		*/
+
+		isprintf(buffer, sizeof buffer, "a contact -1 -1 "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " 0 1.0\n", member.fqnn, member.fqnn);
+		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			putSysErrmsg("Can't write briefing command", fileName);
+			break;
+		}
+	}
+
+	/*	Done.							*/
+
+	sdr_exit_xn(sdr);
+	close(briefingFile);
+	return;
 }
 
 void	rfx_brief_ranges(void)

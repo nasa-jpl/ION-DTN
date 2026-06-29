@@ -73,6 +73,59 @@ function getStatsCounter() {
 	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
 }
 
+# Verify a freshly-created DNAC node actually came up, recovering from the
+# startup races inherent in dnacp's asynchronous (pseudoshell) launch.  ION
+# selects the node by current directory (ion_nodes), so the check must run in
+# the node's own directory.  Two races are handled:
+#  1. dnacp fires config and start commands asynchronously and returns at once;
+#     under load the BP resume (bpadmin !) can run before config settles and
+#     silently skip bpStart, leaving BP unstarted.  Re-running the node's
+#     resume-only ionstart script (idempotent) re-attempts the start.
+#  2. bpadmin reports BP started before the ipnfw forwarder pseudoshell has
+#     forked; that fork can be dropped, leaving the node with no forwarder.
+#     Re-issuing "s scheme ipn" re-spawns only a forwarder that is not running.
+function verify_node() {
+	NODE=$1
+	DIR=$2
+	SPONSOR=$3
+
+	cd "$DIR"
+
+	ATTEMPT=0
+	while [ $ATTEMPT -lt 3 ]
+	do
+		../../../system_up -i "p 30" -b "p 30"
+		if [ $? -eq 2 ]
+		then
+			break
+		fi
+		ATTEMPT=$((ATTEMPT + 1))
+		echo "Node $NODE not fully up; re-running ionstart (retry $ATTEMPT)"
+		./ionstart >/dev/null 2>&1
+		sleep 2
+	done
+
+	if [ $ATTEMPT -ge 3 ]
+	then
+		echo "Node $NODE not started: Aborting Test"
+		exit 1
+	fi
+
+	I=0
+	while [ $I -lt 15 ]
+	do
+		if grep -q "ipnfw is running" ion.log 2>/dev/null
+		then
+			break
+		fi
+		echo "s scheme ipn" | bpadmin >/dev/null 2>&1
+		sleep 1
+		I=$((I + 1))
+	done
+
+	cd "$SPONSOR"
+}
+
 ./cleanup
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -99,41 +152,17 @@ fi
 sleep 10
 
 dnacp $ION_NODE_LIST_DIR 22 ../22.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 22 not started: Aborting Test"
-	exit 1
-fi
+verify_node 22 ../22.ipn.tcp ../21.ipn.tcp
 
 sleep 2
 
 dnacp $ION_NODE_LIST_DIR 23 ../23.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 23 not started: Aborting Test"
-	exit 1
-fi
+verify_node 23 ../23.ipn.tcp ../21.ipn.tcp
 
 sleep 2
 
 dnacp $ION_NODE_LIST_DIR 24 ../24.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 24 not started: Aborting Test"
-	exit 1
-fi
+verify_node 24 ../24.ipn.tcp ../21.ipn.tcp
 
 echo "Sleeping 15 sec to give keepalive threads time to detect open sockets..."
 sleep 15
@@ -257,29 +286,13 @@ echo "Step 5: start nodes 25 and 26 in regions 11 and 12"
 
 cd ../21.ipn.tcp
 dnacp $ION_NODE_LIST_DIR 25 ../25.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 25 not started: Aborting Test"
-	exit 1
-fi
+verify_node 25 ../25.ipn.tcp ../21.ipn.tcp
 
 sleep 1
 
 cd ../24.ipn.tcp
 dnacp $ION_NODE_LIST_DIR 26 ../26.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 26 not started: Aborting Test"
-	exit 1
-fi
+verify_node 26 ../26.ipn.tcp ../24.ipn.tcp
 
 echo "Sleeping 15 sec to give keepalive threads time to detect open sockets..."
 sleep 15
@@ -314,15 +327,7 @@ echo "Step 7: start node 27 in region 111"
 
 cd ../25.ipn.tcp
 dnacp $ION_NODE_LIST_DIR 27 ../27.ipn.tcp "" ../passwd
-../../../system_up -i "p 30" -b "p 30"
-
-if [ $? -eq 2 ]
-then
-	echo ""
-else
-	echo "Node 27 not started: Aborting Test"
-	exit 1
-fi
+verify_node 27 ../27.ipn.tcp ../25.ipn.tcp
 
 echo "Sleeping 10 sec to give keepalive threads time to detect open sockets..."
 sleep 10

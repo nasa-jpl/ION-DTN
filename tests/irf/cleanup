@@ -12,4 +12,7 @@ rm -f 21.ipn.tcp/leaveA.ionrc 22.ipn.tcp/leaveA.ionrc 23.ipn.tcp/leaveA.ionrc 24
 rm -f 21.ipn.tcp/leaveB.ionrc 22.ipn.tcp/leaveB.ionrc 23.ipn.tcp/leaveB.ionrc 24.ipn.tcp/leaveB.ionrc 25.ipn.tcp/leaveB.ionrc 26.ipn.tcp/leaveB.ionrc 27.ipn.tcp/leaveB.ionrc
 rm -f 21.ipn.tcp/join.ionrc 22.ipn.tcp/join.ionrc 23.ipn.tcp/join.ionrc 24.ipn.tcp/join.ionrc 25.ipn.tcp/join.ionrc 26.ipn.tcp/join.ionrc 27.ipn.tcp/join.ionrc
 rm -f 21.ipn.tcp/dtka.ionsecrc 22.ipn.tcp/dtka.ionsecrc 23.ipn.tcp/dtka.ionsecrc 24.ipn.tcp/dtka.ionsecrc 25.ipn.tcp/dtka.ionsecrc 26.ipn.tcp/dtka.ionsecrc 27.ipn.tcp/dtka.ionsecrc
+# dnacp gives DNAC nodes file-backed SDRs (/tmp/ionNN.sdr) that killm leaves
+# behind; remove them so each run starts from a fresh SDR, not stale state.
+rm -f /tmp/ion2[1-7].sdr*
 killm

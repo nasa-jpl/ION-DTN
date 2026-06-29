@@ -7,6 +7,7 @@
 									*/
 #include "ipnfw.h"
 #include "bei.h"
+#include "irf.h"
 
 static uaddr	_running(uaddr *newValue)
 {
@@ -29,6 +30,9 @@ static uaddr	_running(uaddr *newValue)
 static void	shutDown(int signum)
 {
 	uaddr	stop = 0;
+
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
 	isignal(SIGTERM, SIG_IGN);
 	oK(_running(&stop));	/*	Terminates irfd.		*/
@@ -106,6 +110,10 @@ static int	handleIrfMessage(IonDB *iondb, BpDelivery *dlv)
 	uvast		candidateNodeNbr;
 	LystElt		pwyElt;
 	int		result;
+
+	/*	The iondb parameter is currently unused.			*/
+
+	(void)iondb;
 
 	CHKERR(sdr_begin_xn(sdr));
 	buflen = zco_source_data_length(sdr, dlv->adu);
@@ -210,7 +218,8 @@ static int	handleIrfMessage(IonDB *iondb, BpDelivery *dlv)
 			return 0;
 		}
 
-		if (lyst_insert_last(passageways, (void *) (uintptr_t)uvtemp) == NULL)
+		if (lyst_insert_last(passageways, (void *) (uintptr_t) uvtemp)
+				== NULL)
 		{
 			putErrmsg("Can't insert passageway into lyst.", NULL);
 			lyst_destroy(passageways);
@@ -241,7 +250,7 @@ static int	handleIrfMessage(IonDB *iondb, BpDelivery *dlv)
 	}
 
 	candidateNodeNbr = metaEid.elementNbr;
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	candidate = findCandidate(terminusNode, candidateNodeNbr, &elt);
 	if (candidate)
 	{
@@ -308,8 +317,8 @@ static void	*handleIrfMessages(void *parm)
 
 		case BpEndpointStopped:
 			_running(&stop);
-
-			/*	Intentional fall-through to default.	*/
+			bp_release_delivery(&dlv, 1);
+			continue;
 
 		default:
 			bp_release_delivery(&dlv, 1);
@@ -406,7 +415,7 @@ int	irfd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	Sdr		sdr;
@@ -439,13 +448,13 @@ int	main(int argc, char *argv[])
 	ionwm = getIonwm();
 	vdb = getIonVdb();
 	isprintf(notificationsEid, sizeof notificationsEid,
-			"ipn:" UVAST_FIELDSPEC ".271", getOwnNodeNbr());
+			"ipn:" UVAST_FIELDSPEC ".271", getOwnFqnn());
 	oK(parseEidString(notificationsEid, &meid, &vscheme, &velt));
 	findEndpoint(notificationsEid, &meid, vscheme, &vpoint, &velt);
-	restoreEidString(&meid);
+	clearMetaEid(&meid);
 	if (velt == 0)
 	{
-		writeMemoNote("[i] Not configured for IRF; irfd stopping",
+		writeMemoNote("[i] Not configured for IRF, irfd stopping",
 				notificationsEid);
 		return 1;
 	}

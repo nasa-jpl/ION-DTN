@@ -279,6 +279,24 @@ typedef struct
 	float		confidence;	/*	Confidence in contact.	*/
 } CpsNotice;
 
+/*	A PwcNotice (Passageway Change) informs the IRF daemon that
+ *	the indicated node either (a) was formerly a passageway (hence
+ *	an IRF candidate) and now is not, or (b) was formerly a non-
+ *	passageway but now is a passageway and potential IRF candidate.	*/
+
+typedef enum
+{
+	NotPassageway = 0,
+	Passageway,
+	Reset
+} PwState;
+
+typedef struct
+{
+	uvast		nodeNbr;
+	PwState		state;
+} PwcNotice;
+
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
 typedef struct
@@ -287,6 +305,7 @@ typedef struct
 	IonRegion	regions[2];	/*	Home, outer.		*/
 	Object		rolodex;	/*	SDR list: RegionMember	*/
 	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
+	Object		pwcNotices;	/*	SDR list: PwcNotice	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
@@ -354,9 +373,34 @@ typedef struct
 
 typedef struct
 {
+	uvast		nodeNbr;	/*	A current passageway.	*/
+
+	/*	Confirm time is the local time at which it was
+	 *	confirmed that the indicated node is a "usable"
+	 *	passageway, i.e., a passageway through which bundles
+	 *	may be forwarded that are destined for this node.
+	 *
+	 *	A value of 0 indicates that this passageway is
+	 *	potentially usable, not yet confirmed.  A value
+	 *	of MAX_POSIX_TIME indicates that this passageway
+	 *	is *NOT* usable.					*/
+
+	time_t		confirmTime;
+} IrfCandidate;
+
+typedef struct
+{
 	uvast		fqnn;		/*	As from IonContact.	*/
 	PsmAddress	embargoes;	/*	SM list: Embargo	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
+
+	/*	The IonNode object for a given potential destination
+	 *	node also contains a list of all of the passageway
+	 *	nodes through which a bundle destined for this node
+	 *	may be forwarded in the event that the node resides
+	 *	in some foreign region.					*/
+
+	PsmAddress	viaPassageways;	/*	SM list: IrfCandidate	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
 typedef struct

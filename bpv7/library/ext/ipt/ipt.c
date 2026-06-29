@@ -15,6 +15,8 @@ int	ipt_offer(ExtensionBlock *blk, Bundle *bundle)
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
+	(void)bundle;
+
 	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
 	blk->length = 0;
 	blk->size = 1;		/*	Just to keep block alive.	*/
@@ -139,6 +141,8 @@ int	ipt_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	Sdr	sdr = getIonsdr();
 
+	(void)ctxt;
+
 	if (blk->object)
 	{
 		/*	No longer need the old array of passageways.	*/
@@ -159,7 +163,9 @@ int	ipt_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		*nodeNbrsArray;
 	uvast		*nodeNbr;
 	uvast		uvtemp;
-	int		i;
+	uvast		i;
+
+	(void)wk;
 
 	if (unparsedBytes < 1)
 	{
@@ -210,6 +216,9 @@ int	ipt_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	ipt_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }
 

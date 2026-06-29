@@ -757,6 +757,93 @@ static Object	locatePrivateKey(time_t effectiveTime, Object *nextKey)
 	return 0;
 }
 
+int	sec_generate_key_pair(unsigned char *pubKeyBuf,
+		unsigned short pubKeyBufLen, unsigned char **publicKey,
+		unsigned short *publicKeyLen, unsigned char *privKeyBuf,
+		unsigned short privKeyBufLen, unsigned char **privateKey,
+		unsigned short *privateKeyLen)
+{
+#ifdef CRYPTO_SOFTWARE_INSTALLED
+	entropy_context		entropy;
+	ctr_drbg_context	ctr_drbg;
+	const char		*pers = "rsa_genkey";
+	rsa_context		rsa;
+	int			result;
+#else		/*	For regression testing only.			*/
+	int			key;
+#endif
+
+#ifdef CRYPTO_SOFTWARE_INSTALLED
+	entropy_init(&entropy);
+	if (ctr_drbg_init(&ctr_drbg, entropy_func, &entropy,
+			(const unsigned char *) pers, strlen(pers)))
+	{
+		putErrmsg("ctr_drbg_init failed.", NULL);
+		return -1;
+	}
+
+	rsa_init(&rsa, RSA_PKCS_V15, 0);
+	if (rsa_gen_key(&rsa, ctr_drbg_random, &ctr_drbg, KEY_SIZE, EXPONENT))
+	{
+		putErrmsg("rsa_gen_key failed.", NULL);
+		return -1;
+	}
+
+	result = rsa_check_privkey(&rsa);
+	if (result != 0)
+	{
+		putErrmsg("Bad private key.", itoa(result));
+		return -1;
+	}
+
+	result = rsa_check_pubkey(&rsa);
+	if (result != 0)
+	{
+		putErrmsg("Bad public key.", itoa(result));
+		return -1;
+	}
+
+	/*	Extract public key from context.			*/
+
+	result = x509_write_pubkey_der(pubKeyBuf, pubKeyBufLen, &rsa);
+	if (result < 0)
+	{
+		putErrmsg("Can't extract public key.", NULL);
+		return -1;
+	}
+
+	*publicKeyLen = result;
+	*publicKey = (pubKeyBuf + (pubKeyBufLen - 1)) - *publicKeyLen;
+
+	/*	Extract private key from context.			*/
+
+	result = x509_write_key_der(privKeyBuf, privKeyBufLen, &rsa);
+	if (result < 0)
+	{
+		putErrmsg("Can't extract private key.", NULL);
+		return -1;
+	}
+
+	*privateKeyLen = result;
+	*privateKey = (privKeyBuf + (privKeyBufLen - 1)) - *privateKeyLen;
+	rsa_free(&rsa);
+#else		/*	For regression testing only.			*/
+	(void)pubKeyBufLen;
+	(void)privKeyBufLen;
+	srand((unsigned int) (getCtime()) / (getOwnFqnn()));
+	key = rand();
+	memcpy(pubKeyBuf, (char *) &key, sizeof key);
+	*publicKey = pubKeyBuf;
+	*publicKeyLen = sizeof key;
+	srand((unsigned int) key);
+	key = rand();
+	memcpy(privKeyBuf, (char *) &key, sizeof key);
+	*privateKey = privKeyBuf;
+	*privateKeyLen = sizeof key;
+#endif
+	return 0;
+}
+
 int	sec_addPrivateKey(time_t effectiveTime, int keyLen,
 		unsigned char *keyValue)
 {

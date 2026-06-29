@@ -27,7 +27,7 @@ static int	announceNewContacts(uint32_t regionNbr, uvast newNode)
 {
 	time_t		fromTime = getCtime();
 	time_t		toTime = fromTime + INITIAL_CONTACT_DURATION;
-	uvast		self = getOwnNodeNbr();
+	uvast		self = getOwnFqnn();
 	size_t		xmitRate = INITIAL_CONTACT_RATE;
 	PsmAddress	cxaddr;
 
@@ -398,7 +398,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	return 0;
 }
 
-static int	writeIonsecrcFile()
+static int	writeIonsecrcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -462,7 +462,7 @@ static int	writeIonsecrcFile()
 	return 0;
 }
 
-static int	writeLtprcFile()
+static int	writeLtprcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -520,7 +520,7 @@ static int	writeLtprcFile()
 	return 0;
 }
 
-static int	writeBssprcFile()
+static int	writeBssprcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -734,7 +734,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	/*	Egress plan to sponsor node				*/
 
 	isprintf(cmd, sizeof cmd, "a plan ipn:" UVAST_FIELDSPEC ".0\n",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
@@ -743,7 +743,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	}
 
 	isprintf(cmd, sizeof cmd, "a planduct ipn:" UVAST_FIELDSPEC ".0 stcp \
-%s\n", getOwnNodeNbr(), sponsorInductName);
+%s\n", getOwnFqnn(), sponsorInductName);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
@@ -798,7 +798,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	return 0;
 }
 
-static int	writeTccrcFile()
+static int	writeTccrcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -862,7 +862,7 @@ static int	writeTccrcFile()
 	return 0;
 }
 
-static int	writeDtkarcFile()
+static int	writeDtkarcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -926,7 +926,7 @@ static int	writeDtkarcFile()
 	return 0;
 }
 
-static int	writeCfdprcFile()
+static int	writeCfdprcFile(void)
 {
 	FILE	*rcfile;
 	FILE	*specFile;
@@ -1068,10 +1068,12 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 {
 	int		newSocket;
 	struct sockaddr	dnaccSocketName;
-	socklen_t	dnaccNameLength;
+	socklen_t	dnaccNameLength = sizeof dnaccSocketName;
 	int		bytesReceived;
 
-	/*	Accept only a single connection.			*/
+	/*	Accept only a single connection.  dnaccNameLength must be
+	 *	initialized to the address buffer size; passing an
+	 *	uninitialized value makes accept() fail with EINVAL.	*/
 
 	newSocket = accept(sock, &dnaccSocketName, &dnaccNameLength);
 	closesocket(sock);
@@ -1151,7 +1153,7 @@ static int	assertPublicKey(uvast nodeNbr, time_t effectiveTime,
 	int	result;
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);

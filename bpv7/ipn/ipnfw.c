@@ -11,6 +11,7 @@
 #include <stdarg.h>
 
 #include "ipnfw.h"
+#include "irf.h"	/* For inter-regional forwarding */
 #include "bei.h"	/* For findExtensionBlock */
 #include "cbr.h"	/* For CBR_BLOCK_TYPE_CTEB */
 #include "cbdedup.h"	/* Critical-bundle forward duplication guard. */
@@ -191,6 +192,193 @@ an egress plan that redirects to another EID; potential forwarding loop", eid);
 	}
 
 	return 0;
+}
+
+/*		IRF invocation functions.				*/
+
+static int 	tryIRF(Bundle *bundle, Object bundleObj, IonNode *terminusNode)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iptblkElt;
+	Object		nextPassagewayElt;
+	uvast		nextPassageway;
+	char		eid[32];
+	Lyst		nominees;
+	LystElt		elt;
+	uvast		pwyNodeNbr;
+	Bundle		newBundle;
+	Object		newBundleObj;
+
+	/*	Determine whether or not there are one or more
+	 *	passageways to other regions by which the bundle
+	 *	may be sent in order to get it delivered to the
+	 *	terminus node.  If so, enqueue one copy of the
+	 *	bundle for forwarding (via CGR) to each such
+	 *	passageway node.					*/
+
+	CHKERR(bundle && bundleObj && terminusNode);
+	if (bundle->id.source.schemeCodeNbr != ipn)
+	{
+		/*	IRF is all based on node numbers; can't be
+		 *	done if source node's ID is not ipn scheme.	*/
+
+		return 0;
+	}
+
+	CHKERR(bundle->passageways);
+	iptblkElt = findExtensionBlock(bundle, IrfPassagewaysBlk, 0);
+	{
+		char	dbgbuf[128];
+
+		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] tryIRF terminus="
+			UVAST_FIELDSPEC " iptBlk=%s", terminusNode->fqnn,
+			iptblkElt == 0 ? "ABSENT" : "present");
+		writeMemo(dbgbuf);
+	}
+	if (iptblkElt == 0)
+	{
+		/*	Absence of IRF extension block makes
+		 *	inter-regional routing infeasible.		*/
+
+		return 0;
+	}
+
+	/*	Last node in bundle's list of passageways is the
+	 *	node number of the next passageway that is charged
+	 *	with forwarding the bundle toward its destination.
+	 *	If that's not the local node, then we immediately
+	 *	forward to that passageway.				*/
+
+	nextPassagewayElt = sdr_list_last(sdr, bundle->passageways);
+	if (nextPassagewayElt == 0)
+	{
+		/*	Since the bundle has an IRF extension block,
+		 *	all passageways listed in that block have
+		 *	been loaded into the passageways list.  If
+		 *	that list is nonetheless empty, then this
+		 *	must be a newly sourced bundle; the source
+		 *	node is the local node, and there is no
+		 *	nextPassageway node number to constrain
+		 *	forwarding.					*/
+
+		nextPassageway = 0;
+	}
+	else	/*	Source node isn't the local node.		*/
+	{
+		nextPassageway = (uvast) sdr_list_data(sdr, nextPassagewayElt);
+		if (nextPassageway != getOwnFqnn())
+		{
+			/*	Must intra-regionally forward to the
+			 *	intended next passageway.		*/
+
+			bpAccept(bundleObj, bundle);
+			isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
+					nextPassageway);
+			if (forwardBundle(bundleObj, bundle, eid) < 0)
+			{
+				putErrmsg("Can't fwd to passageway.", NULL);
+				return -1;
+			}
+
+			return 1;	/*	All done.		*/
+		}
+	}
+
+	/*	Need to identify next passageway(s) to forward to.	*/
+
+	nominees = lyst_create_using(getIonMemoryMgr());
+	if (nominees == NULL)
+	{
+		putErrmsg("Can't create list for IRF nominees.", NULL);
+		return -1;
+	}
+
+	/*	Consult region topology to identify the passageway
+	 *	node(s) to forward the bundle to.			*/
+
+	if (irf_identify_passageways(terminusNode, bundle, nominees) < 0)
+	{
+		putErrmsg("Can't identify best passageways for bundle.", NULL);
+		lyst_destroy(nominees);
+		return -1;
+	}
+
+	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	{
+		char	dbgbuf[96];
+
+		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] tryIRF terminus="
+			UVAST_FIELDSPEC " nominees=%d", terminusNode->fqnn,
+			(int) lyst_length(nominees));
+		writeMemo(dbgbuf);
+	}
+	if (lyst_length(nominees) == 0)
+	{
+		lyst_destroy(nominees);
+
+		/*	No inter-regional routing is possible.  Must
+		 *	send a blacklist message to all passageways
+		 *	in the path back to the source node including
+		 *	self.						*/
+
+		if (irf_source_msg(bundle, 0) < 0)
+		{
+			putErrmsg("Failed sending IRF message.", NULL);
+			return -1;
+		}
+
+		return 0;
+	}
+
+	/*	Can forward to at least one passageway to some other
+	 *	region.							*/
+
+	oK(bpAccept(bundleObj, bundle));
+	while (lyst_length(nominees) > 0)
+	{
+		elt = lyst_first(nominees);
+		pwyNodeNbr = (uvast) (uintptr_t) lyst_data(elt);
+		lyst_delete(elt);
+		isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
+				pwyNodeNbr);
+		if (bundle->fwdQueueElt)
+		{
+			/*	This copy of bundle has already
+			 *	been enqueued.				*/
+
+			if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0)
+					< 0)
+			{
+				putErrmsg("Can't clone bundle.", NULL);
+				lyst_destroy(nominees);
+				return -1;
+			}
+
+			bundle = &newBundle;
+			bundleObj = newBundleObj;
+
+			/*	Must remove the "next passageway node
+			 *	number" that was previously appended
+			 *	to the bundle's list of passageways.	*/
+
+			sdr_list_delete(sdr, sdr_list_last(sdr,
+					bundle->passageways), NULL, NULL);
+		}
+
+		/*	Append next passageway node number to the
+		 *	bundle's list of passageways, then forward
+		 *	the bundle.					*/
+
+		sdr_list_insert_last(sdr, bundle->passageways, pwyNodeNbr);
+		if (forwardBundle(bundleObj, bundle, eid) < 0)
+		{
+			lyst_destroy(nominees);
+			return -1;
+		}
+	}
+
+	lyst_destroy(nominees);
+	return 1;
 }
 
 /*		CGR invocation functions.				*/
@@ -1149,10 +1337,9 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 
 	/*	If the terminus node resides in a region in which the
 	 *	local node also resides, consult the contact plan (CGR)
-	 *	to compute a route.  Inter-regional forwarding (routing
-	 *	across region boundaries via passageways) is not
-	 *	implemented, so a terminus in an unknown region simply
-	 *	falls through to direct neighbor delivery below.	*/
+	 *	to compute a route.  Otherwise the terminus is in some
+	 *	foreign region: try inter-regional forwarding (routing
+	 *	across region boundaries via passageways).		*/
 
 	if (ionRegionOf(fqnn, 0, &regionNbr) >= 0)
 	{
@@ -1160,6 +1347,26 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		{
 			putErrmsg("CGR failed.", NULL);
 			return -1;
+		}
+	}
+	else
+	{
+		switch (tryIRF(bundle, bundleObj, node))
+		{
+		case -1:
+			putErrmsg("IRF failed.", NULL);
+			return -1;
+
+		case 0:
+			/*	No passageway available; fall through
+			 *	to the fallback methods below.		*/
+			break;
+
+		default:
+			/*	Bundle is being forwarded to one or
+			 *	more intermediate passageway nodes.	*/
+
+			return 0;
 		}
 	}
 

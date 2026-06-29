@@ -7,6 +7,7 @@
 									*/
 #include "ipnfw.h"
 #include "bei.h"
+#include "irf.h"
 
 int	irf_add_candidate(uvast nodeNbr, IonNode *node, PsmAddress nextElt)
 {
@@ -52,6 +53,8 @@ int	irf_initialize(IonNode *terminusNode)
 	IonDB		iondb;
 	Object		elt;
 	Object		addr;
+	int		nCandidates = 0;
+	char		dbgbuf[128];
 			OBJ_POINTER(RegionMember, member);
 
 	terminusNode->viaPassageways = sm_list_create(ionwm);
@@ -79,15 +82,21 @@ int	irf_initialize(IonNode *terminusNode)
 			/*	Node is a potentially usable passageway
 			 *	for transmission to this destination.	*/
 
-			if (irf_add_candidate(member->nodeNbr, terminusNode, 0)
+			if (irf_add_candidate(member->fqnn, terminusNode, 0)
 					< 0)
 			{
 				putErrmsg("Can't note IRF candidate.", NULL);
 				return -1;
 			}
+
+			nCandidates++;
 		}
 	}
 
+	isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] init terminus=" UVAST_FIELDSPEC
+			" rolodex=%d candidates=%d", terminusNode->fqnn,
+			(int) sdr_list_length(sdr, iondb.rolodex), nCandidates);
+	writeMemo(dbgbuf);
 	return 0;
 }
 
@@ -158,7 +167,7 @@ static int	serializeIrfMsg(uvast fromNodeNbr, uvast toNodeNbr,
 
 	for (elt = lyst_first(passageways); elt; elt = lyst_next(elt))
 	{
-		uvtemp = (uvast) (uintptr_t)lyst_data(elt);
+		uvtemp = (uvast) (uintptr_t) lyst_data(elt);
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
@@ -225,11 +234,11 @@ int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 	char		destinationEid[32];
 	Object		payloadZco;
 	uvast		ttl = 604800;	/*	Seconds; 1 week.	*/
-	BpAncillaryData	ecos = { 0, 0, 255 };
+	BpAncillaryData	ecos = { .ordinal = 255 };
 
 	CHKERR(passageways);
 	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
 	elt = lyst_last(passageways);
@@ -237,7 +246,7 @@ int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 	{
 		/*	Send message to last passageway in trace list.	*/
 
-		destinationNodeNbr = (uvast) (uintptr_t)lyst_data(elt);
+		destinationNodeNbr = (uvast) (uintptr_t) lyst_data(elt);
 	}
 	else
 	{
@@ -265,8 +274,8 @@ int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 
 	case 0:
 		writeMemo("[?] IRF message not transmitted.");
+		return 0;
 
-			/*	Intentional fall-through to next case.	*/
 	default:
 		return 0;
 	}
@@ -282,8 +291,8 @@ int	irf_source_msg(Bundle *bundle, int isReachable)
 	int	result;
 
 	CHKERR(bundle);
-	fromNodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
-	toNodeNbr = bundle->destination.ssp.ipn.nodeNbr;
+	fromNodeNbr = bundle->id.source.ssp.ipn.fqnn;
+	toNodeNbr = bundle->destination.ssp.ipn.fqnn;
 	CHKERR(bundle->passageways);
 
 	/*	Copy passageways list out of bundle.			*/
@@ -333,16 +342,16 @@ int	irf_issue_ipt_rpt(Bundle *bundle)
 	Object		payloadZco;
 	char		*destinationEid;
 	uvast		ttl = 604800;	/*	Seconds; 1 week.	*/
-	BpAncillaryData	ecos = { 0, 0, 255 };
+	BpAncillaryData	ecos = { .ordinal = 255 };
 	Object		sourceData;
 	int		result;
 
 	CHKERR(bundle);
 	CHKERR(bundle->passageways);
-	fromNodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
-	toNodeNbr = bundle->destination.ssp.ipn.nodeNbr;
+	fromNodeNbr = bundle->id.source.ssp.ipn.fqnn;
+	toNodeNbr = bundle->destination.ssp.ipn.fqnn;
 	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
 
@@ -440,7 +449,7 @@ int	irf_issue_ipt_rpt(Bundle *bundle)
 
 	for (elt = lyst_first(passageways); elt; elt = lyst_next(elt))
 	{
-		uvtemp = (uvast) (uintptr_t)lyst_data(elt);
+		uvtemp = (uvast) (uintptr_t) lyst_data(elt);
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
@@ -491,8 +500,8 @@ int	irf_issue_ipt_rpt(Bundle *bundle)
 
 	case 0:
 		writeMemo("[?] IPT report not transmitted.");
+		break;
 
-			/*	Intentional fall-through to next case.	*/
 	default:
 		break;
 	}
@@ -511,6 +520,10 @@ int	irf_print_ipt_rpt(BpDelivery *dlv, unsigned char *cursor,
 	uvast	toNodeNbr;
 	uvast	pwyNodeNbr;
 	char	buf[256];
+
+	/*	The dlv parameter is currently unused.			*/
+
+	(void)dlv;
 
 	/*	Parse past IPT report array header.			*/
 
@@ -632,7 +645,7 @@ int	irf_load_passageways(Bundle *bundle, Object bundleAddr)
 	for (i = 0; i < passagewaysCount; i++, nodeNbrPtr++)
 	{
 		if (sdr_list_insert_last(sdr, bundle->passageways, *nodeNbrPtr)
-				< 0)
+				== 0)
 		{
 			MRELEASE(nodeNbrsArray);
 			putErrmsg("Can't load from IRF extension block.", NULL);
@@ -677,7 +690,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	RegionMember	candidateMember;
 	Object		candidateMemberElt;
 
-	sourceNodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
+	sourceNodeNbr = bundle->id.source.ssp.ipn.fqnn;
 	if (terminusNode->viaPassageways == 0)
 	{
 		if (irf_initialize(terminusNode) < 0)
@@ -732,11 +745,11 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	 *	is outward.						*/
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	if (sourceNodeNbr == getOwnNodeNbr())
+	if (sourceNodeNbr == getOwnFqnn())
 	{
 		/*	Initial transmission of bundle at source.	*/
 
-		senderNodeNbr = getOwnNodeNbr();
+		senderNodeNbr = getOwnFqnn();
 		if (iondb.regions[1].regionNbr != 0)
 		{
 			/*	Source node is itself a passageway,
@@ -811,18 +824,41 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 
 	/*	Populate the nominees list with candidate passageways.	*/
 
+	{
+		char	dbgbuf[160];
+
+		isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg] identify terminus="
+			UVAST_FIELDSPEC " src=" UVAST_FIELDSPEC " sender="
+			UVAST_FIELDSPEC " okHome=%u okOuter=%u exclHome=%u "
+			"viaPwys=%d", terminusNode->fqnn, sourceNodeNbr,
+			senderNodeNbr, okayHomeRegion, okayOuterRegion,
+			excludedHome, (int) sm_list_length(ionwm,
+			terminusNode->viaPassageways));
+		writeMemo(dbgbuf);
+	}
+
 	for (elt = sm_list_first(ionwm, terminusNode->viaPassageways); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
 		candidate = (IrfCandidate *) psp(ionwm, addr);
-		if (candidate->nodeNbr == getOwnNodeNbr())
+		if (candidate->nodeNbr == getOwnFqnn())
 		{
 			continue;
 		}
 
 		oK(findLocalNode(candidate->nodeNbr, &candidateMember,
 					&candidateMemberElt));
+		{
+			char	dbgbuf[160];
+
+			isprintf(dbgbuf, sizeof dbgbuf, "[irfdbg]  cand="
+				UVAST_FIELDSPEC " home=%u outer=%u confirm=%ld",
+				candidate->nodeNbr, candidateMember.homeRegionNbr,
+				candidateMember.outerRegionNbr,
+				(long) candidate->confirmTime);
+			writeMemo(dbgbuf);
+		}
 		if (!(candidateMember.homeRegionNbr == okayHomeRegion
 		|| (candidateMember.outerRegionNbr == okayOuterRegion
 		&& candidateMember.homeRegionNbr != excludedHome)))
@@ -838,8 +874,8 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 			continue;
 
 		case 0:			/*	Potential, unconfirmed.	*/
-			if (!lyst_insert_last(nominees,
-					(void *) (uintptr_t)(candidate->nodeNbr)))
+			if (!lyst_insert_last(nominees, (void *) (uintptr_t)
+					(candidate->nodeNbr)))
 			{
 				putErrmsg("Can't note potential passageway.",
 						NULL);
@@ -861,7 +897,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	{
 		lyst_clear(nominees);
 		if (!lyst_insert_last(nominees,
-				(void *) (uintptr_t)(bestCandidate->nodeNbr)))
+				(void *) (uintptr_t) (bestCandidate->nodeNbr)))
 		{
 			putErrmsg("Can't note best passageway.", NULL);
 			return -1;
@@ -885,7 +921,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 		{
 			addr = sm_list_data(ionwm, elt);
 			candidate = (IrfCandidate *) psp(ionwm, addr);
-			if (candidate->nodeNbr == getOwnNodeNbr())
+			if (candidate->nodeNbr == getOwnFqnn())
 			{
 				continue;
 			}
@@ -902,8 +938,8 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 			}
 
 			candidate->confirmTime = 0;
-			if (!lyst_insert_last(nominees,
-					(void *) (uintptr_t)(candidate->nodeNbr)))
+			if (!lyst_insert_last(nominees, (void *)
+					(uintptr_t) (candidate->nodeNbr)))
 			{
 				putErrmsg("Can't note potential passageway.",
 						NULL);

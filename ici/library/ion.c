@@ -944,6 +944,7 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		iondbBuf.ownFqnn = ownFqnn;
 		iondbBuf.rolodex = sdr_list_create(ionsdr);
 		iondbBuf.cpsNotices = sdr_list_create(ionsdr);
+		iondbBuf.pwcNotices = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/

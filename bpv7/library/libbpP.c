@@ -31,6 +31,7 @@
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
+#include "irf.h"
 #include "saga.h"
 
 #ifdef ENABLE_IMC
@@ -1572,6 +1573,7 @@ static BpVdb	*_bpvdb(char **name)
 		newVdb->bundleCounter = 0;
 		newVdb->clockPid = ERROR;
 		newVdb->cpsdPid = ERROR;
+		newVdb->irfdPid = ERROR;
 		newVdb->transitSemaphore = SM_SEM_NONE;
 		newVdb->transitPid = ERROR;
 		newVdb->watching = db->watching;
@@ -2001,6 +2003,13 @@ int	bpStart(void)
 		bpvdb->cpsdPid = pseudoshell("cpsd");
 	}
 
+	/*	Start the inter-regional forwarding daemon if necessary.*/
+
+	if (bpvdb->irfdPid == ERROR || sm_TaskExists(bpvdb->irfdPid) == 0)
+	{
+		bpvdb->irfdPid = pseudoshell("irfd");
+	}
+
 	/*	Start the bundle transit daemon if necessary.		*/
 
 	if (bpvdb->transitPid == ERROR || sm_TaskExists(bpvdb->transitPid) == 0)
@@ -2140,6 +2149,11 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->cpsdPid, SIGTERM);
 	}
 
+	if (bpvdb->irfdPid != ERROR)
+	{
+		sm_TaskKill(bpvdb->irfdPid, SIGTERM);
+	}
+
 	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
@@ -2194,6 +2208,9 @@ to SIGTERM, sending SIGKILL.",
 	sm_TaskKillWait(bpvdb->cpsdPid, "[!] bpStop: cpsd not responding to \
 SIGTERM, sending SIGKILL.",
 			NULL);
+	sm_TaskKillWait(bpvdb->irfdPid, "[!] bpStop: irfd not responding to \
+SIGTERM, sending SIGKILL.",
+			NULL);
 	sm_TaskKillWait(bpvdb->transitPid, "[!] bpStop: bptransit not \
 responding to SIGTERM, sending SIGKILL.",
 			NULL);
@@ -2203,6 +2220,7 @@ responding to SIGTERM, sending SIGKILL.",
 	CHKVOID(sdr_begin_xn(sdr));
 	bpvdb->clockPid = ERROR;
 	bpvdb->cpsdPid = ERROR;
+	bpvdb->irfdPid = ERROR;
 	bpvdb->transitPid = ERROR;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -3220,6 +3238,11 @@ incomplete bundle.", NULL);
 	if (bundle.destinations)	/*	For IMC multicast.	*/
 	{
 		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
+	}
+
+	if (bundle.passageways)		/*	Inter-regional routing.	*/
+	{
+		sdr_list_destroy(sdr, bundle.passageways, NULL, NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
@@ -6086,6 +6109,28 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	newBundle->destinations = 0;
 #endif /* ENABLE_IMC */
 
+	if (oldBundle->passageways)
+	{
+		newBundle->passageways = sdr_list_create(sdr);
+		if (newBundle->passageways == 0)
+		{
+			putErrmsg("Can't copy IRF passageways list.", NULL);
+			return -1;
+		}
+
+		for (Object elt = sdr_list_first(sdr, oldBundle->passageways);
+				elt; elt = sdr_list_next(sdr, elt))
+		{
+			uvast fqnn = (uvast) sdr_list_data(sdr, elt);
+			if (sdr_list_insert_last(sdr, newBundle->passageways,
+					fqnn) == 0)
+			{
+				putErrmsg("Can't copy IRF passageway.", NULL);
+				return -1;
+			}
+		}
+	}
+
 	/*	Copy extension blocks.					*/
 
 	newBundle->extensions = 0;
@@ -6797,6 +6842,7 @@ when asking for status reports.");
 	bundle.timeToLive = lifespan;	/*	In milliseconds.	*/
 	computeExpirationTime(&bundle);
 	bundle.destinations = sdr_list_create(sdr);
+	bundle.passageways = sdr_list_create(sdr);
 	bundle.extensions = sdr_list_create(sdr);
 	bundle.extensionsLength = 0;
 	bundle.stations = sdr_list_create(sdr);
@@ -6804,6 +6850,7 @@ when asking for status reports.");
 	bundleAddr = sdr_malloc(sdr, sizeof(Bundle));
 	if (bundleAddr == 0
 	|| bundle.destinations == 0
+	|| bundle.passageways == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions == 0)
@@ -7372,6 +7419,19 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	Object		newBundleObj;
 
 	CHKERR(ionLocked());
+
+	/*	Load the bundle's IRF passageway trace from its IRF
+	 *	passageways extension block, if any, before dispatch.	*/
+
+	if (sdr_list_length(sdr, bundle->passageways) == 0)
+	{
+		if (irf_load_passageways(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't load IRF passageways.", NULL);
+			return -1;
+		}
+	}
+
 	if (bundle->deliverable)
 	{
 #if USING_BSL
@@ -7413,6 +7473,35 @@ failed.", NULL);
 		{
 			putErrmsg("Can't process custody on delivery.", NULL);
 			return -1;
+		}
+
+		/*	If the source of this bundle is in another region,
+		 *	we may need to send a "whitelist" IRF status message
+		 *	back through the sequence of passageway nodes that
+		 *	succeeded in getting the bundle to its destination,
+		 *	and/or issue an IPT path-trace report.			*/
+
+		if (sdr_list_length(sdr, bundle->passageways) > 0)
+		{
+			if (bundle->bundleProcFlags & BDL_IS_NODE_LOCATOR)
+			{
+				if (irf_source_msg(bundle, 1) < 0)
+				{
+					putErrmsg("Failed sending IRF message.",
+							NULL);
+					return -1;
+				}
+			}
+
+			if (bundle->bundleProcFlags & BDL_IRF_TRACE_RPT_REQ)
+			{
+				if (irf_issue_ipt_rpt(bundle) < 0)
+				{
+					putErrmsg("Failed sending IPT report.",
+							NULL);
+					return -1;
+				}
+			}
 		}
 
 		if (deliverBundle(bundleObj, bundle, *vpoint) < 0)
@@ -10076,6 +10165,7 @@ bundle.", NULL);
 	/*	Construct other bundle stuctures.			*/
 
 	bundle->destinations = sdr_list_create(sdr);
+	bundle->passageways = sdr_list_create(sdr);
 	bundle->stations = sdr_list_create(sdr);
 	bundle->trackingElts = sdr_list_create(sdr);
 	bundleObj = sdr_malloc(sdr, sizeof(Bundle));
@@ -13574,6 +13664,15 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 
 			break;
 #endif
+
+		case BP_IPT_REPORT:
+			if (irf_print_ipt_rpt(&dlv, cursor, unparsedBytes) < 0)
+			{
+				putErrmsg("IPT report handler failed.", NULL);
+				running = 0;
+			}
+
+			break;
 
 		case BP_SAGA_MESSAGE:
 			if (saga_receive(&dlv, cursor, unparsedBytes) < 0)
