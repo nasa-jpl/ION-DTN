@@ -12325,8 +12325,8 @@ bundle.", NULL);
 	if (bundle.dbOverhead != oldDbOverhead)
 	{
 #if ZCODEBUG
-		char    buf[128];
-		sprintf(buf, "[i] bpDequeue: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
+		char	buf[128];
+		isprintf(buf, sizeof buf, "[i] bpDequeue: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
 		oldDbOverhead, bundle.dbOverhead);
 		writeMemo(buf);
 #endif
