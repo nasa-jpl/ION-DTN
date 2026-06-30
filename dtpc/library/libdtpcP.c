@@ -2588,6 +2588,11 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		bytesToRead = buflen - *bytesUnparsed;
 		bytesReceived = zco_receive_source(sdr, reader, bytesToRead,
 				(char *) *cursor);
+		if (bytesReceived < 0 || (bytesReceived == 0 && bytesToRead > 0))
+		{
+			putErrmsg("Error refilling buffer from ZCO.", NULL);
+			return -1;
+		}
 
 		/*	The buffer is now filled with unparsed data	*/
 
@@ -2644,6 +2649,13 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 			bytesToRead = buflen - *bytesUnparsed;
 			bytesReceived = zco_receive_source(sdr, reader,
 					bytesToRead, (char *) *cursor);
+			if (bytesReceived < 0 ||
+					(bytesReceived == 0 && bytesToRead > 0))
+			{
+				putErrmsg("Error refilling buffer from ZCO.",
+						NULL);
+				return -1;
+			}
 
 			/* The buffer is now filled with unparsed data	*/
 
@@ -2728,6 +2740,13 @@ for DlvPayload.", NULL);
 				*cursor = buffer;
 				bytesReceived = zco_receive_source(sdr, reader,
 						buflen, (char *) *cursor);
+				if (bytesReceived < 0 ||
+						(bytesReceived == 0 && buflen > 0))
+				{
+					putErrmsg("Error refilling buffer from ZCO.",
+							NULL);
+					return -1;
+				}
 				*bytesUnparsed = bytesReceived;
 				if (remainingLength >= 0 && *bytesUnparsed < (unsigned int)remainingLength)
 				{
@@ -2823,7 +2842,8 @@ int	parseInAdus(Sdr sdr)
 			zco_start_receiving(inAdu->aggregatedZCO, &reader);
 			bytesReceived = zco_receive_source(sdr, &reader, buflen,
 					(char *) cursor);
-			if (bytesReceived < 0)
+			if (bytesReceived < 0
+					|| (bytesReceived == 0 && buflen > 0))
 			{
 				putErrmsg("Error receiving adu.", NULL);
 				sdr_cancel_xn(sdr);
