@@ -125,7 +125,8 @@ None (uses environment variables for configuration)
 
 1. Runs `autoreconf -fi` to generate configure script
 2. Runs `./configure --enable-crypto-mbedtls --enable-bpsec-debugging $EXTRA_CONFIGURE_FLAGS`
-3. Runs `$MAKE_CMD -j$(nproc) all` to compile ION
+3. Runs `$MAKE_CMD -j $CORES all` to compile ION
+  where $CORES is the ARC pod CPU limit or nproc if not defined
 4. Runs `$MAKE_CMD buildcheck` to validate build integrity
 
 **Exit Codes:**

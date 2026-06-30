@@ -25,6 +25,7 @@ OSNAME=$(uname -o)
 
 # handle base..head or base ^head
 COMMITS=$(printf "%s" "$COMMIT_LIST" | xargs git rev-list --reverse)
+CORES=${ARC_CPU_LIMIT:-$(nproc)}
 for COMMIT in $COMMITS; do
     # Handle potential empty lines
     [ -z "$COMMIT" ] && continue
@@ -44,7 +45,7 @@ for COMMIT in $COMMITS; do
 
     echo "Running $MAKE_CMD..."
     {
-        $MAKE_CMD -j"$(nproc)" 2>&1
+        $MAKE_CMD -j "$CORES" 2>&1
         echo "$?" >"commit-logs/${COMMIT}-make.status"
     } | tee "commit-logs/${COMMIT}-make.log"
 

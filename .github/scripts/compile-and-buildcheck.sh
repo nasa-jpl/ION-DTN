@@ -25,8 +25,11 @@ echo "Running configure..."
     --disable-legacy-aliases \
     $EXTRA_CONFIGURE_FLAGS
 
+# ARC_CPU_LIMIT is a limit set in the infrastructure pod environment
+# Fall back to nproc if not defined to maximize available vCPU utilization
+CORES=${ARC_CPU_LIMIT:-$(nproc)}
 echo "Running ${MAKE_CMD} all..."
-$MAKE_CMD -j"$(nproc)" all
+$MAKE_CMD -j "${CORES}" all
 
 echo "Running ${MAKE_CMD} buildcheck..."
 $MAKE_CMD buildcheck

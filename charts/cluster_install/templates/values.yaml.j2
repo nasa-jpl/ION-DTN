@@ -91,6 +91,13 @@ gha-runner-scale-set:
             # Mount for buildah runtime data
             - name: containers-run
               mountPath: /run/containers
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
 
@@ -137,6 +144,13 @@ gha-runner-scale-set-2:
             # Mount for buildah runtime data
             - name: containers-run
               mountPath: /run/containers
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
       volumes:
@@ -178,6 +192,13 @@ gha-runner-scale-set-3:
             limits:
               cpu: "1000m"
               memory: "1.5Gi"
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
 
@@ -234,6 +255,13 @@ gha-runner-scale-set-4:
             - name: rhel-repos
               mountPath: /etc/yum.repos.d
               readOnly: true
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
       volumes:
@@ -310,6 +338,13 @@ gha-runner-scale-set-5:
             - name: rhel-repos
               mountPath: /etc/yum.repos.d
               readOnly: true
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
       volumes:
@@ -364,5 +399,12 @@ gha-runner-scale-set-6:
             limits:
               cpu: "1000m"
               memory: "1.5Gi"
+          env:
+            - name: ARC_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: runner
+                  resource: limits.cpu
+                  divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret

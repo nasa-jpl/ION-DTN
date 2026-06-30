@@ -545,7 +545,8 @@ jobs:
 
                 progress "Building ION (make -j$(nproc) all buildcheck)"
                 export ION_RUN_EXPERT=yes
-                make -j"$(nproc)" all buildcheck > /dev/null
+                CORES=${ARC_CPU_LIMIT:-$(nproc)}
+                make -j"$CORES" all buildcheck > /dev/null
 
                 progress "Installing ION"
                 make install > /dev/null
