@@ -94,8 +94,8 @@ jobs:
         id: build-matrix
         run: |
           MATRIX=$(bash .github/scripts/build-runner-matrix.sh \
-            --ubuntu_20=${{ github.event_name == 'push' || inputs.runner_u22 == true }} \
-            --ubuntu_22=${{ github.event_name == 'push' || inputs.runner_u24 == true }} \
+            --ubuntu_22=${{ github.event_name == 'push' || inputs.runner_u22 == true }} \
+            --ubuntu_24=${{ github.event_name == 'push' || inputs.runner_u24 == true }} \
             --oracle_linux_8=${{ github.event_name == 'push' || inputs.runner_ol8 == true }} \
             --oracle_linux_9=${{ github.event_name == 'push' || inputs.runner_ol9 == true }} \
             --rhel_8=${{ github.event_name == 'push' || inputs.runner_rhel8 == true }} \
