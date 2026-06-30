@@ -2709,7 +2709,7 @@ char		buf[256];
 	}
 
 #if BSSPDEBUG
-sprintf(buf, "Sent data block: session %u blkTypeCode %d length %d.",
+isprintf(buf, sizeof buf, "Sent data block: session %u blkTypeCode %d length %d.",
 session->sessionNbr, block.pdu.blkTypeCode, length);
 putErrmsg(buf, itoa(session->sessionNbr));
 #endif
