@@ -2879,6 +2879,7 @@ int	parseInAdus(Sdr sdr)
 					|| (bytesReceived == 0 && buflen > 0))
 			{
 				putErrmsg("Error receiving adu.", NULL);
+				MRELEASE(buffer);
 				sdr_cancel_xn(sdr);
 				return -1;
 			}
@@ -2892,6 +2893,7 @@ int	parseInAdus(Sdr sdr)
 				{
 					putErrmsg("Can't parse adu topic.",
 							NULL);
+					MRELEASE(buffer);
 					sdr_cancel_xn(sdr);
 					return -1;
 				}
