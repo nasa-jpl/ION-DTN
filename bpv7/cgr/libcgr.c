@@ -1296,6 +1296,24 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	citation;
 	CgrRoute	*newRoute;
 
+	/*	Guard (UAF): lastSelectedRoute is the route we are spurring
+	 *	from; its hops list is walked below -- and again when locating
+	 *	rootOfNextSpur -- without further validation.  Under heavy
+	 *	contact-plan churn that route can have been freed/recycled,
+	 *	leaving a corrupt hops handle that aborts ipnfw in sm_list_first
+	 *	(the smlist.c "list" assertion observed in computeSpurRoute).
+	 *	If the hops list is unsound there are no spurs to compute from
+	 *	it; bail out cleanly.					*/
+
+	if (lastSelectedRoute == NULL
+	|| !cgrHandleSane(ionwm, lastSelectedRoute->hops)
+	|| !sm_list_header_sane(ionwm, lastSelectedRoute->hops))
+	{
+		writeMemo("[?] CGR: skipping spur - lastSelectedRoute hops list \
+is corrupt (abandoning spur computation).");
+		return 0;
+	}
+
 //puts("*** Computing a spur route. ***");
 	if (rootOfSpur == 0)
 	{
