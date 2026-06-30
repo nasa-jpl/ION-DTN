@@ -2815,6 +2815,7 @@ int	parseInAdus(Sdr sdr)
 			{
 				putErrmsg("Can't allocate memory to read ZCO.",
 						NULL);
+				sdr_cancel_xn(sdr);
 				return -1;
 			}
 
