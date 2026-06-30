@@ -56,7 +56,7 @@ Returns -1 on any error.
 unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
 int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags,
 BpCustodySwitch custodySwitch, char *reportToEid, int classOfService,
-Object item, unsigned int length)
+Object item, size_t length)
 
 Inserts an application data item into an outbound DTPC application data unit
 destined for I<destEid>.

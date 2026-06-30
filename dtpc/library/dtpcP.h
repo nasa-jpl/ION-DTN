@@ -10,7 +10,13 @@
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
 */
 
+#include "bp.h"
 #include "dtpc.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrxn.h"
+
+#include <time.h>
 
 #define DTPC_SEND_SVC_NBR	(128)
 #define DTPC_RECV_SVC_NBR	(129)
@@ -195,7 +201,7 @@ extern int		initOutAdu(Profile *profile, Object outAggrAddr,
 				Object *outAduElt);
 extern int		insertRecord (DtpcSAP sap, char *dstEid,
 				unsigned int profileID, unsigned int topicID,
-				Object adu, int length);
+				Object adu, size_t length);
 extern int		createAdu(Profile *profile, Object outAduObj,
 				Object outAduElt);
 extern int		sendAdu(BpSAP sap);

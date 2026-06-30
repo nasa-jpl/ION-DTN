@@ -11,6 +11,23 @@
 
 #include "dtpcP.h"
 
+#include "bp.h"
+#include "dtpc.h"
+#include "ion.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdr.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+#include "sdrstring.h"
+#include "sdrxn.h"
+#include "smlist.h"
+#include "zco.h"
+
+#include <signal.h>
+#include <string.h>
+#include <time.h>
+
 /*      *       *       Helpful utility functions       *       *       */
 
 static Object   _dtpcdbObject(Object *newDbObj)
@@ -689,7 +706,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	return elt;
 }
 
-static int	estimateLength(OutAdu *outAdu)
+static int estimateLength(OutAdu *outAdu, uvast *returnedLength)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt1;
@@ -697,7 +714,7 @@ static int	estimateLength(OutAdu *outAdu)
 	OBJ_POINTER(Topic, topic);
 	OBJ_POINTER(PayloadRecord, record);
 	uvast	recordLength;
-	int	totalLength = 0;
+	uvast	totalLength = 0;
 
 	for (elt1 = sdr_list_first(sdr, outAdu->topics); elt1;
 			elt1 = sdr_list_next(sdr, elt1))
@@ -709,11 +726,20 @@ static int	estimateLength(OutAdu *outAdu)
 			GET_OBJ_POINTER(sdr, PayloadRecord, record,
 					sdr_list_data(sdr, elt2));
 			oK(decodeSdnv(&recordLength, record->length.text));
-			totalLength += (int) recordLength;
+			if (((uvast) -1) - totalLength < recordLength)
+			{
+
+				putErrmsg("Overflow in estimating total length"
+					  " of outAdu",
+						NULL);
+				return 0;
+			}
+			totalLength += recordLength;
 		}
 	}
 
-	return totalLength;
+	*returnedLength = totalLength;
+	return 1;
 }
 
 static Profile	*findProfileByNumber(unsigned int profNum)
@@ -737,7 +763,7 @@ static Profile	*findProfileByNumber(unsigned int profNum)
 }
 
 int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
-		unsigned int topicID, Object item, int length)
+		unsigned int topicID, Object item, size_t length)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	Sdr		sdr = getIonsdr();
@@ -753,7 +779,7 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	Object		sdrElt;
 	char		eidBuf[SDRSTRING_BUFSZ];
 	Sdnv		lengthSdnv;
-	int		totalLength;
+	uvast		totalLength;
 
 	CHKERR(dstEid && item);
 	if (*dstEid == 0)
@@ -889,7 +915,12 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	 *	outAdu.							*/
 
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
-	totalLength = estimateLength(&outAdu);
+	int estimateLengthRv = estimateLength(&outAdu, &totalLength);
+	if (!estimateLengthRv)
+	{
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
 
 	/*	If the estimated length equals or exceeds the
 	 *	aggregation size limit (or the aggregation time
@@ -897,7 +928,7 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	 *	requested for this profile) then finish aggregation
 	 *	and create an empty outbound ADU.			*/
 
-	if ((totalLength >= 0 && (unsigned int)totalLength >= vprofile->aggrSizeLimit)
+	if ((totalLength >= vprofile->aggrSizeLimit)
 		|| vprofile->aggrTimeLimit == 0)
 	{
 		if (createAdu(vprofile, outAduObj, outAduElt) < 0)

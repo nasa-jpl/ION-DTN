@@ -14,6 +14,10 @@
 #define DTPC_H
 
 #include "bp.h"
+#include "platform.h"
+#include "sdrxn.h"
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,7 +80,7 @@ extern int      dtpc_send(unsigned int profileID,
 			char *reportToEid,
 			int classOfService,
 			Object item,
-			unsigned int length);
+			size_t length);
 
 extern int      dtpc_receive(DtpcSAP sap,
 			DtpcDelivery *dlv,

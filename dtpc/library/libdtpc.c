@@ -44,7 +44,7 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			unsigned int aggrTimeLimit, int lifespan,
 			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
-			int classOfService, Object item, unsigned int length)
+			int classOfService, Object item, size_t length)
 {
 	unsigned int	topicID;
 
