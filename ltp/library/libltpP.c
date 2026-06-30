@@ -264,14 +264,14 @@ char	rsbuf[256];
 putErrmsg("List of closed export sessions:", NULL);
 for (elt = sdr_list_first(sdr, ltpdb->closedExports); elt;
 		elt = sdr_list_next(sdr, elt))
-{
-	closedExportObj = sdr_list_data(sdr, elt);
-	sdr_read(sdr, (char *) &closedExportBuf, closedExportObj,
-			sizeof(ClosedExport));
-	sprintf(rsbuf, "span: %lu session number: %u", closedExportBuf.span,
-			closedExportBuf.sessionNbr);
-	putErrmsg(rsbuf, NULL);
-}
+	{
+		closedExportObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &closedExportBuf, closedExportObj,
+				sizeof(ClosedExport));
+		isprintf(rsbuf, sizeof rsbuf, "span: %lu session number: %u", closedExportBuf.span,
+				closedExportBuf.sessionNbr);
+		putErrmsg(rsbuf, NULL);
+	}
 #endif
 	return 0;
 }
@@ -5506,7 +5506,7 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 	signalLso(span->engineId);
 #if LTPDEBUG
 char	buf[256];
-sprintf(buf, "Sending RS: to " UVAST_FIELDSPEC ", %u to %u, ckpt %u, rpt %u.",
+isprintf(buf, sizeof buf, "Sending RS: to " UVAST_FIELDSPEC ", %u to %u, ckpt %u, rpt %u.",
 rs->remoteEngineId, rs->pdu.lowerBound,
 rs->pdu.upperBound, rs->pdu.ckptSerialNbr, rs->pdu.rptSerialNbr);
 putErrmsg(buf, itoa(session->sessionNbr));
@@ -5778,7 +5778,7 @@ putErrmsg("No report, upper bound == lower bound.", itoa(upperBound));
 int	shortfall;
 char	buf[256];
 shortfall = session->redPartLength - session->redPartReceived;
-sprintf(buf, "Total of %d bytes missing.", shortfall);
+isprintf(buf, sizeof buf, "Total of %d bytes missing.", shortfall);
 putErrmsg(buf, itoa(session->sessionNbr));
 #endif
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(LtpImportSession));
@@ -6286,7 +6286,7 @@ int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
 
 #if LTPDEBUG
 char	buf[256];
-sprintf(buf, "[i] Max report segments = %d for red part length %d, max segment \
+isprintf(buf, sizeof buf, "[i] Max report segments = %d for red part length %d, max segment \
 size %d, segment loss rate %f.", maxReportSegments, redPartLength,
 maxSegmentSize, segmentLossRate);
 writeMemo(buf);
@@ -7475,7 +7475,7 @@ char	buf[256];
 if (segment.pdu.segTypeCode > 0)
 {
 putFqn(nbrBuf, segment.remoteEngineId);
-sprintf(buf, "Sending checkpoint: ckpt %u rpt %u to engine %s.",
+isprintf(buf, sizeof buf, "Sending checkpoint: ckpt %u rpt %u to engine %s.",
 segment.pdu.ckptSerialNbr, segment.pdu.rptSerialNbr, nbrBuf);
 putErrmsg(buf, itoa(session->sessionNbr));
 }
@@ -7597,7 +7597,7 @@ static int	addTransmissionExtent(Lyst extents, unsigned int startOfGap,
 	extent->length = endOfGap - startOfGap;
 #if LTPDEBUG
 char	xmitbuf[256];
-sprintf(xmitbuf, "      retransmitting from %d to %d.", extent->offset,
+isprintf(xmitbuf, sizeof xmitbuf, "      retransmitting from %d to %d.", extent->offset,
 extent->offset + extent->length);
 putErrmsg(xmitbuf, NULL);
 #endif
@@ -7663,7 +7663,7 @@ putErrmsg("Handling report.", utoa(sessionNbr));
 	extractSmallSdnv(&claimCount, cursor, bytesRemaining);
 #if LTPDEBUG
 char	rsbuf[256];
-sprintf(rsbuf, "[i] Got RS %u for checkpoint %u; %u claims from %u to %u.",
+isprintf(rsbuf, sizeof rsbuf, "[i] Got RS %u for checkpoint %u; %u claims from %u to %u.",
 rptSerialNbr, ckptSerialNbr, claimCount, rptLowerBound, rptUpperBound);
 putErrmsg(rsbuf, utoa(sessionNbr));
 #endif
@@ -8135,7 +8135,7 @@ putErrmsg("Incomplete reception.  Claims:", utoa(claimCount));
 	{
 #if LTPDEBUG
 char	claimbuf[256];
-sprintf(claimbuf, "-   offset %u length %u (%u-%u)", claim->offset,
+isprintf(claimbuf, sizeof claimbuf, "-   offset %u length %u (%u-%u)", claim->offset,
 claim->length, claim->offset, claim->offset + claim->length);
 putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 #endif
@@ -8329,7 +8329,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		sdr_stage(sdr, (char *) &rsBuf, rsObj, sizeof(LtpXmitSeg));
 #if LTPDEBUG
 char	buf[256];
-sprintf(buf, "Acknowledged report is %u, lowerBound %d, upperBound %d, \
+isprintf(buf, sizeof buf, "Acknowledged report is %u, lowerBound %d, upperBound %d, \
 last report serial number %u.", rsBuf.pdu.rptSerialNbr, rsBuf.pdu.lowerBound,
 rsBuf.pdu.upperBound, session.finalRptSerialNbr);
 putErrmsg(buf, itoa(sessionNbr));
