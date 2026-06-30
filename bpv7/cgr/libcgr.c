@@ -141,6 +141,110 @@ static void	severSpurReferences(PsmPartition ionwm, PsmAddress routes,
 	}
 }
 
+/*	Destroy a route's "hops" list, first removing from each cited
+ *	contact's "citations" list the back-reference to the hop element
+ *	being freed.  EVERY path that disposes of a route's hops must funnel
+ *	through here: freeing a hop element while a contact->citations entry
+ *	still points at it leaves a wild citation that later aborts a
+ *	removeRoute citations walk (SIGSEGV in Sm_list_delete -> orphaned SDR
+ *	-> node-wide daemon cascade).  Historically only removeRoute upheld
+ *	this invariant; computeRoute's Dijkstra-failure and no-route cleanups
+ *	and computeSpurRoute's error returns destroyed/abandoned hops without
+ *	it, leaving dangling contact citations.  [#1048 contact<->route
+ *	cross-reference]						*/
+
+static void	destroyRouteHops(PsmPartition ionwm, CgrRoute *route)
+{
+	PsmAddress	citation;
+	PsmAddress	nextCitation;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	PsmAddress	citationElt;
+	int		hopsCorrupt = 0;
+
+	if (route->hops == 0)
+	{
+		return;
+	}
+
+	/*	Each member of the "hops" list of this route is one among
+	 *	possibly many citations of some specific contact, i.e., its
+	 *	content is the address of that contact.  For each hop, go
+	 *	through the cited contact's citations list and remove the
+	 *	member whose content is the address of this hop element.	*/
+
+	for (citation = sm_list_first(ionwm, route->hops); citation;
+			citation = nextCitation)
+	{
+		/*	#1048: route->hops can be a stale/recycled list whose
+		 *	elements are wild offsets; validate each before use.	*/
+
+		if (!cgrHandleSane(ionwm, citation))
+		{
+			writeMemo("[?] CGR: abandoning corrupt route hops "
+					"list (#1048)");
+			hopsCorrupt = 1;
+			break;
+		}
+
+		nextCitation = sm_list_next(ionwm, citation);
+		contactAddr = sm_list_data(ionwm, citation);
+		if (contactAddr == 0)
+		{
+			/*	Contact deleted; reference already zeroed.	*/
+
+			sm_list_delete(ionwm, citation, NULL, NULL);
+			continue;
+		}
+
+		if (!cgrHandleSane(ionwm, contactAddr))
+		{
+			char	dbg[128];
+
+			isprintf(dbg, sizeof dbg, "[?] CGR: dropping stale \
+contact citation (#1048): contactAddr=" UVAST_FIELDSPEC ".",
+					(uvast) contactAddr);
+			writeMemo(dbg);
+			sm_list_delete(ionwm, citation, NULL, NULL);
+			continue;
+		}
+
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->citations
+		&& cgrHandleSane(ionwm, contact->citations)
+		&& sm_list_header_sane(ionwm, contact->citations))
+		{
+			for (citationElt = sm_list_first(ionwm,
+				contact->citations); citationElt;
+				citationElt = sm_list_next(ionwm,
+				citationElt))
+			{
+				if (sm_list_data(ionwm, citationElt)
+						== citation)
+				{
+					sm_list_delete(ionwm,
+						citationElt, NULL,
+						NULL);
+					break;
+				}
+			}
+		}
+
+		sm_list_delete(ionwm, citation, NULL, NULL);
+	}
+
+	if (hopsCorrupt)
+	{
+		route->hops = 0;	/*	leak the corrupt list; it
+					 *	cannot be safely destroyed	*/
+	}
+	else
+	{
+		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		route->hops = 0;
+	}
+}
+
 static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
@@ -149,11 +253,6 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 	PsmAddress	nodeAddr = 0;
 	IonNode		*node;
 	CgrRtgObject	*routingObj = NULL;
-	PsmAddress	citation;
-	PsmAddress	nextCitation;
-	PsmAddress	contactAddr;
-	IonCXref	*contact;
-	PsmAddress	citationElt;
 
 	routeAddr = sm_list_data(ionwm, routeElt);
 	route = (CgrRoute *) psp(ionwm, routeAddr);
@@ -217,126 +316,11 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 		}
 	}
 
-	/*	Each member of the "hops" list of this route is one
-	 *	among possibly many citations of some specific contact,
-	 *	i.e., its content is the address of that contact.
-	 *	For many-to-many cross-referencing, we append the
-	 *	address of each citation - that is, the address of
-	 *	the list element that cites some contact - to the
-	 *	cited contact's list of citations; the content of
-	 *	each member of a contact's citations list is the
-	 *	address of one among possibly many citations of that
-	 *	contact, each of which is a member of some route's
-	 *	list of hops.
-	 *
-	 *	When a route is removed, we must detach the route
-	 *	from every contact that is cited in one of that
-	 *	route's hops.  That is, for each hop of the route,
-	 *	we must go through the citations list of the contact
-	 *	cited by that hop and remove from that list the list
-	 *	member whose content is the address of this citation
-	 *	- the address of this "hops" list element.		*/
+	/*	Detach this route from every contact cited in its hops and
+	 *	destroy the hops list (centralized so every disposal path
+	 *	maintains the contact<->route cross-reference).			*/
 
-	if (route->hops)
-	{
-		int	hopsCorrupt = 0;
-
-		for (citation = sm_list_first(ionwm, route->hops); citation;
-				citation = nextCitation)
-		{
-			/*	#1048 follow-up: route->hops can be a stale or
-			 *	recycled list whose header passes disabledRoute's
-			 *	validation but whose elements are wild offsets, so
-			 *	sm_list_next / sm_list_data abort in CHKERR(psp(elt))
-			 *	and kill ipnfw mid-transaction.  Validate each
-			 *	element before touching it; if one is unsound the
-			 *	hops list is corrupt -- stop and abandon it, since it
-			 *	can be neither safely walked nor destroyed.	*/
-
-			if (!cgrHandleSane(ionwm, citation))
-			{
-				writeMemo("[?] CGR: abandoning corrupt route hops "
-						"list (#1048)");
-				hopsCorrupt = 1;
-				break;
-			}
-
-			nextCitation = sm_list_next(ionwm, citation);
-			contactAddr = sm_list_data(ionwm, citation);
-			if (contactAddr == 0)
-			{
-				/*	This contact has been deleted;
-				 *	all references to it have been
-				 *	zeroed out.			*/
-
-				sm_list_delete(ionwm, citation, NULL, NULL);
-				continue;
-			}
-
-			/*	#1048 follow-up: the contact handle from this
-			 *	hop can be stale -- the cited contact may have
-			 *	been deleted and its block recycled, leaving
-			 *	contact->citations a dangling SmList handle.
-			 *	disabledRoute validates the route's hops list
-			 *	but not these per-contact citation lists, so a
-			 *	bad handle still reaches sm_list_next below and
-			 *	aborts ipnfw (smlist.c "list at address zero" ->
-			 *	_iEnd -> sm_Abort), orphaning the SDR lock and
-			 *	degrading the node.  Drop our citation and move
-			 *	on when the contact or its citations list is
-			 *	unsound -- the cross-reference is already broken.*/
-
-			if (!cgrHandleSane(ionwm, contactAddr))
-			{
-				char	dbg[128];
-
-				isprintf(dbg, sizeof dbg, "[?] CGR: dropping \
-stale contact citation (#1048): contactAddr=" UVAST_FIELDSPEC ".",
-						(uvast) contactAddr);
-				writeMemo(dbg);
-				sm_list_delete(ionwm, citation, NULL, NULL);
-				continue;
-			}
-
-			contact = (IonCXref *) psp(ionwm, contactAddr);
-			if (contact->citations
-			&& cgrHandleSane(ionwm, contact->citations)
-			&& sm_list_header_sane(ionwm, contact->citations))
-			{
-				for (citationElt = sm_list_first(ionwm,
-					contact->citations); citationElt;
-					citationElt = sm_list_next(ionwm,
-					citationElt))
-				{
-					/*	Does this list element
-					 *	point at this route's
-					 *	citation of the contact?
-					 *	If so, delete it.	*/
-
-					if (sm_list_data(ionwm, citationElt)
-							== citation)
-					{
-						sm_list_delete(ionwm,
-							citationElt, NULL,
-							NULL);
-						break;
-					}
-				}
-			}
-
-			sm_list_delete(ionwm, citation, NULL, NULL);
-		}
-
-		if (hopsCorrupt)
-		{
-			route->hops = 0;	/*	leak the corrupt list; it
-						 *	cannot be safely destroyed	*/
-		}
-		else
-		{
-			sm_list_destroy(ionwm, route->hops, NULL, NULL);
-		}
-	}
+	destroyRouteHops(ionwm, route);
 
 	psm_free(ionwm, routeAddr);
 }
@@ -1211,11 +1195,7 @@ UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
 	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
 			currentTime, excludedEdges, route, trace) < 0)
 	{
-		if (route->hops)
-		{
-			sm_list_destroy(ionwm, route->hops, NULL, NULL);
-		}
-
+		destroyRouteHops(ionwm, route);
 		psm_free(ionwm, addr);
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
@@ -1227,11 +1207,7 @@ UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
 
 		/*	No more routes in graph.			*/
 
-		if (route->hops)
-		{
-			sm_list_destroy(ionwm, route->hops, NULL, NULL);
-		}
-
+		destroyRouteHops(ionwm, route);
 		psm_free(ionwm, addr);
 		*routeAddr = 0;
 	}
@@ -1509,6 +1485,8 @@ excluded edge.", NULL);
 		if (citation == 0)
 		{
 			putErrmsg("Can't prepend trunk to spur route.", NULL);
+			destroyRouteHops(ionwm, newRoute);
+			psm_free(ionwm, newRouteAddr);
 			return -1;
 		}
 
@@ -1527,6 +1505,8 @@ excluded edge.", NULL);
 			{
 				putErrmsg("Can't create citation list for spur \
 hop.", NULL);
+				destroyRouteHops(ionwm, newRoute);
+				psm_free(ionwm, newRouteAddr);
 				return -1;
 			}
 		}
@@ -1535,6 +1515,8 @@ hop.", NULL);
 				== 0)
 		{
 			putErrmsg("Can't cross-reference spur hop.", NULL);
+			destroyRouteHops(ionwm, newRoute);
+			psm_free(ionwm, newRouteAddr);
 			return -1;
 		}
 
@@ -1560,6 +1542,8 @@ hop.", NULL);
 	if (newRoute->referenceElt == 0)
 	{
 		putErrmsg("Can't append known route.", NULL);
+		destroyRouteHops(ionwm, newRoute);
+		psm_free(ionwm, newRouteAddr);
 		return -1;
 	}
 
