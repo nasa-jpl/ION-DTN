@@ -407,7 +407,7 @@ char* bpsec_scvm_hexStrEncode(PsmPartition wm, sc_value *val)
 	for (i = 0; i < val->scValLength; i++)
 	{
 		value = (int) data[i];
-		sprintf(cursor, "%02x", value);
+		isprintf(cursor, ((val->scValLength * 2) + 1) - (cursor - result), "%02x", value);
 		cursor += 2;
 	}
 	cursor = NULL;
