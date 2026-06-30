@@ -237,7 +237,7 @@ numbers 2-255 are in use.", NULL);
 	bundle->dbOverhead += additionalOverhead;
 #if ZCODEBUG
 	char    buf[128];
-	sprintf(buf, "[i] outbound: attachExtensionBlock(): type %d, dbOverhead = %d, increase = %d, suppresed = %d .",
+	isprintf(buf, sizeof buf, "[i] outbound: attachExtensionBlock(): type %d, dbOverhead = %d, increase = %d, suppresed = %d .",
 	(int) type, bundle->dbOverhead, additionalOverhead, blk->suppressed);
 	writeMemo(buf);
 #endif
@@ -735,7 +735,7 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 	{
 #if ZCODEBUG
 		char    buf[128];
-		sprintf(buf, "[i] processExtensionBlocks: process id = %d, old dbOverhead = %d, new dbOverhead = %d",
+		isprintf(buf, sizeof buf, "[i] processExtensionBlocks: process id = %d, old dbOverhead = %d, new dbOverhead = %d",
 		fnIdx, oldDbOverhead, bundle->dbOverhead);
 		writeMemo(buf);
 #endif
