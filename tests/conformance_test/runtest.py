@@ -41,18 +41,26 @@ def bpstats() -> None:
     subprocess.run(["bpstats"], cwd=nodedir, check=True)
 
 
-def bpstats_check(bundle_count: int) -> int:
-    """Check that bpstats increased correctly"""
+# Every bundle that reaches node 3 (the bptrace probe and the pass-through
+# conformance bundles) carries a 7-byte payload, so the received byte total is
+# normally 7 per bundle.  A bundle may override this via "bytes_thru" (e.g. the
+# zero-length-payload bundle contributes 0 bytes), otherwise it defaults here.
+BYTES_PER_BUNDLE = 7
+
+
+def bpstats_check(expected_count: int, expected_size: int) -> int:
+    """Check that bpstats increased to the expected received count and size."""
     actual_count, actual_size = ion_parse.bpstats_parse("rcv", "+", str(NODE3LOG))
 
     return ion_parse.bpstats_compare(
-        bundle_count, (7 * bundle_count), actual_count, actual_size
+        expected_count, expected_size, actual_count, actual_size
     )
 
 
 def main(bundles: list[str], mapping: dict[int, dict]) -> None:
     """Run tests of conformance suite."""
     total_bundles = 0
+    total_bytes = 0
     for num, bundle in enumerate(bundles, 1):
         print(f"Running test of bundle {num}...")
         bundle_send(bundle)
@@ -62,6 +70,9 @@ def main(bundles: list[str], mapping: dict[int, dict]) -> None:
         bptrace()
         time.sleep(1)
         total_bundles += mapping[num]["bundle_thru"]
+        total_bytes += mapping[num].get(
+            "bytes_thru", BYTES_PER_BUNDLE * mapping[num]["bundle_thru"]
+        )
 
         # Poll for the expected outcome instead of sampling once after a fixed
         # delay.  bpstats() freezes a snapshot when it runs, so we must re-run
@@ -77,7 +88,7 @@ def main(bundles: list[str], mapping: dict[int, dict]) -> None:
                 )
             else:
                 log_result = 1
-            stats_result = bpstats_check(total_bundles)
+            stats_result = bpstats_check(total_bundles, total_bytes)
             if log_result != 0 and stats_result == 0:
                 print(f"Bundle {num} success")
                 break
@@ -119,6 +130,17 @@ if __name__ == "__main__":
             "msg": "Block number exceeds maximum supported value",
             "bundle_thru": 1,
         },  # Large block number
+        6: {
+            "msg": "",
+            "bundle_thru": 2,
+            "bytes_thru": 7,
+        },  # Zero-length payload (GHSA-27wg-h3xq-4p9g): a legal empty payload
+        # must be acquired and delivered, not crash acquisition.  Both the
+        # injected bundle and the bptrace probe are received (count += 2), but
+        # only the probe carries bytes, so bytes_thru is 7 (not 14).  A
+        # vulnerable node aborts on the ZCO length assertion or discards the
+        # bundle as malformed, so the injected bundle never reaches node 3 and
+        # the received count fails to advance to 2.
     }
 
     main(bundle_list, expected_msgs)

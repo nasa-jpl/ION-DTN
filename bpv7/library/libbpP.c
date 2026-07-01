@@ -9540,8 +9540,25 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	 *	bundle header, payload block header, and payload CRC
 	 *	(if any).  This simplifies decryption.			*/
 
-	bundle->payload.content = zco_clone(sdr, work->rawBundle,
-			work->preambleLength, bundle->payload.length);
+	if (bundle->payload.length == 0)
+	{
+		/*	A zero-length payload is legal in BPv7 (the
+		 *	payload block's data is the empty CBOR byte
+		 *	string h'').  zco_clone() rejects a zero-length
+		 *	clone with an assertion, so an attacker could
+		 *	crash acquisition by sending such a bundle; use
+		 *	an empty inbound ZCO to represent the payload
+		 *	instead of cloning.				*/
+
+		bundle->payload.content = zco_create(sdr, ZcoSdrSource,
+				0, 0, 0, ZcoInbound);
+	}
+	else
+	{
+		bundle->payload.content = zco_clone(sdr, work->rawBundle,
+				work->preambleLength, bundle->payload.length);
+	}
+
 	zco_destroy(sdr, work->rawBundle);
 	switch (bundle->payload.content)
 	{
