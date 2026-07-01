@@ -28,63 +28,212 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  regenerate-durations:
+  setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      testmatrix: ${{ steps.map-matrix.outputs.matrix }}
+      timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
+      src_hash: ${{ steps.calculate-hash.outputs.hash }}
+      num_batches: ${{ steps.map-matrix.outputs.count }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Calculate Source Hash
+        id: calculate-hash
+        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am') }}" >> $GITHUB_OUTPUT
+
+      - name: Get test batches
+        id: map-matrix
+        uses: ./.github/actions/generate-test-matrix
+        with:
+          tests_to_run: ""
+          num_runners: 7
+          is_solaris: "false"
+          exclude_optional: "true"
+
+      - name: Generate timestamp for artifacts
+        id: generate-timestamp
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated timestamp: $TIMESTAMP"
+
+      - name: Validate test matrix not empty
+        run: |
+          if [ "${{ steps.map-matrix.outputs.count }}" == "0" ]; then
+            echo "::error::No tests to run after filtering optional tests"
+            exit 1
+          fi
+          echo "Test matrix generated with ${{ steps.map-matrix.outputs.count }} batches"
+
+  build:
+    needs: setup
     runs-on: arc-runner-set-u22
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Restore Build Workspace Cache
+        id: cache-build-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          # Primary key is globally unique to prevent save collisions
+          key: ion-build-arc-runner-set-u22-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # Fallback looks for any previous cache sharing this exact source code hash
+          restore-keys: |
+            ion-build-arc-runner-set-u22-${{ needs.setup.outputs.src_hash }}-
+
+      - name: Build ION and Run Buildcheck
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        timeout-minutes: 90
+        env:
+          EXTRA_CONFIGURE_FLAGS: "CFLAGS=-DHAVE_VALGRIND_VALGRIND_H"
+        run: |
+          ./.github/scripts/compile-and-buildcheck.sh > compile-and-buildcheck.log 2>&1 || {
+            BUILD_STATUS=$?
+            echo "Build or buildcheck failed with status $BUILD_STATUS" >&2
+            exit $BUILD_STATUS
+          }
+
+      - name: Upload build and buildcheck logs
+        if: ${{ always() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: compile-and-buildcheck-log-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}
+          path: compile-and-buildcheck.log
+          if-no-files-found: warn
+
+      - name: Save Build Workspace Cache
+        if: ${{ success() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-arc-runner-set-u22-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+  benchmark:
+    needs: [setup, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        test_batch: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
+    runs-on: arc-runner-set-u22
+    timeout-minutes: 420
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Restore Build Workspace Cache
+        uses: actions/cache/restore@v5
+        id: cache-restore
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-arc-runner-set-u22-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ion-build-arc-runner-set-u22-${{ needs.setup.outputs.src_hash }}-
+
+      - name: Overlay fresh tests and scripts
+        if: ${{ steps.cache-restore.outputs.cache-matched-key != '' }}
+        run: git restore tests/ demos/ killm .github/
+
+      - name: Install ION
+        if: ${{ steps.cache-restore.outputs.cache-matched-key != '' }}
+        run: |
+          {
+            echo "Starting test installation at $(date)"
+            sudo make install
+            sudo ldconfig
+          } > install.log 2> >(tee -a install.log >&2)
+
+      - name: Run benchmark on test batch
+        timeout-minutes: 420
+        run: |
+          .github/scripts/run-benchmark-batch.sh \
+            ${{ matrix.test_batch.batch }} \
+            ${{ join(matrix.test_batch.tests, ' ') }} \
+            2>&1 | tee benchmark-batch-${{ matrix.test_batch.batch }}.log
+
+      - name: Upload .DURATION files for this batch
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: duration-files-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
+          path: |
+            tests/**/.DURATION
+            demos/**/.DURATION
+          if-no-files-found: error
+
+      - name: Upload .stdout files for this batch
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-stdout-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
+          path: |
+            tests/**/*.stdout
+            demos/**/*.stdout
+          if-no-files-found: warn
+
+      - name: Upload benchmark log for this batch
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-log-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
+          path: benchmark-batch-${{ matrix.test_batch.batch }}.log
+          if-no-files-found: warn
+
+  aggregate-results:
+    name: "Merge Duration Files and Create PR"
+    needs: [setup, build, benchmark]
+    runs-on: arc-runner-set-u22
+    if: ${{ always() }}
+
+    steps:
+      - name: Checkout Code
         uses: actions/checkout@v6
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Generate timestamp for artifacts
-        id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Download all duration file artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: duration-files-*
+          path: artifacts-staging/
 
-      - name: Install ION and regenerate all .DURATION files
-        timeout-minutes: 420
+      - name: Merge duration files into working tree
         run: |
-          {
-            echo "Starting ION installation and bulk duration regeneration at $(date)"
-            export USER=$(whoami)
-            echo "USER is set to: $USER"
-            export ION_RUN_EXPERT="yes"
-            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            autoreconf -fi
-            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
-              --disable-silent-rules
-            make all buildcheck
-            sudo make install
-            sudo ldconfig
-            echo "Running bulk duration regeneration..."
-            test -x ./tests/benchmark.py || { echo "::error::benchmark.py not found or not executable"; exit 1; }
-            ./tests/benchmark.py -f --bulk
-          } > duration-sync.log 2> >(tee -a duration-sync.log >&2)
-
-          TEST_STATUS=$?
-          wait  # Wait for background processes to complete
-
-          if [ $TEST_STATUS -ne 0 ]; then
-            echo "Bulk duration regeneration failed with status $TEST_STATUS" >&2
-            echo "::error::Bulk duration regeneration failed. Please investigate."
-            exit $TEST_STATUS
-          fi
-
-      - name: Upload full sync log
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: duration-sync-log-${{ steps.timestamp.outputs.TIMESTAMP }}
-          path: duration-sync.log
-
-      - name: Upload benchmark stdout logs
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-logs-${{ steps.timestamp.outputs.TIMESTAMP }}
-          path: |
-            tests/**/*.stdout
-            demos/**/*.stdout
+          # Merge all downloaded artifacts
+          .github/scripts/merge-duration-artifacts.sh artifacts-staging/ . || {
+            MERGE_STATUS=$?
+            if [ "$MERGE_STATUS" -eq 1 ]; then
+              echo "No duration files changed"
+              exit 0
+            else
+              echo "::error::Merge failed with status $MERGE_STATUS"
+              exit $MERGE_STATUS
+            fi
+          }
 
       - name: Check for changes
         id: changes
@@ -98,30 +247,36 @@ jobs:
             git diff --stat tests/ demos/
           fi
 
+      - name: Upload combined sync log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: monthly-duration-sync-log-${{ needs.setup.outputs.timestamp }}
+          path: |
+            artifacts-staging/**/benchmark-*.log
+          if-no-files-found: warn
+
       - name: Create Pull Request
-        if: steps.changes.outputs.changes == 'true'
+        if: steps.changes.outputs.changes == 'true' && needs.benchmark.result == 'success'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: integration
-          commit-message: "chore: monthly .DURATION file sync - ${{ steps.timestamp.outputs.TIMESTAMP }}"
-          branch: monthly-duration-sync-${{ steps.timestamp.outputs.TIMESTAMP }}
+          commit-message: "chore: monthly .DURATION file sync - ${{ needs.setup.outputs.timestamp }}"
+          branch: monthly-duration-sync-${{ needs.setup.outputs.timestamp }}
           delete-branch: true
-          title: "Monthly .DURATION File Sync - ${{ steps.timestamp.outputs.TIMESTAMP }}"
+          title: "Monthly .DURATION File Sync - ${{ needs.setup.outputs.timestamp }}"
           body: |
             ## Monthly .DURATION File Synchronization
 
             This PR contains the monthly regeneration of all `.DURATION` files for ION tests and demos.
 
             **Triggered:** ${{ github.event_name == 'schedule' && 'Automated monthly cron' || format('Manual trigger: {0}', inputs.reason) }}
-            **Timestamp:** ${{ steps.timestamp.outputs.TIMESTAMP }}
+            **Timestamp:** ${{ needs.setup.outputs.timestamp }}
             **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ### What Changed
-            All `.DURATION` files in `tests/` and `demos/` have been regenerated by running:
-            ```bash
-            ./tests/benchmark.py -f --bulk
-            ```
+            All non-optional `.DURATION` files have been regenerated across ${{ needs.setup.outputs.num_batches }} parallel benchmark batches.
 
             ### Review Checklist
             - [ ] Verify no unexpected test failures in the workflow logs
@@ -130,8 +285,8 @@ jobs:
             - [ ] Review artifacts for any test failures or warnings
 
             ### Artifacts
-            - Build and sync logs: `duration-sync-log-${{ steps.timestamp.outputs.TIMESTAMP }}`
-            - Individual test logs: `benchmark-logs-${{ steps.timestamp.outputs.TIMESTAMP }}`
+            - Combined sync logs: `monthly-duration-sync-log-${{ needs.setup.outputs.timestamp }}`
+            - Individual batch logs: `benchmark-log-*-batch-*`
 
             ---
             🤖 This PR was automatically generated by the monthly duration sync workflow.
@@ -145,20 +300,13 @@ jobs:
         run: |
           echo "## 📊 Monthly Duration Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Timestamp:** ${{ steps.timestamp.outputs.TIMESTAMP }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** ${{ needs.setup.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
           echo "**Trigger:** ${{ github.event_name == 'schedule' && '⏰ Automated monthly cron' || format('👤 Manual trigger: {0}', inputs.reason) }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Parallel Batches:** ${{ needs.setup.outputs.num_batches }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ steps.changes.outputs.changes }}" == "true" ]; then
             echo "✅ **Status:** PR created with updated .DURATION files" >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ **Status:** No changes detected, PR not created" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Changed Files" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.changes.outputs.changes }}" == "true" ]; then
-            git diff --stat tests/ demos/ >> $GITHUB_STEP_SUMMARY || echo "*Error generating diff*" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "*No files changed*" >> $GITHUB_STEP_SUMMARY
           fi

@@ -276,20 +276,14 @@ def main() -> None:
             print(f"Error: Could not find a valid './dotest' script at {target}")
             sys.exit(1)
 
-        try:
-            tests_root = Path("tests").resolve()
-            rel_script = test_dir.resolve().relative_to(tests_root)
-        except ValueError:
-            rel_script = Path(test_dir.name)
-
         if is_excluded(test_dir):
             print(f"Skipping {test_dir}: excluded by marker", file=sys.stderr)
             target_scripts = []
         else:
-            target_scripts = [rel_script]
+            target_scripts = [test_dir]
 
     else:
-        target_scripts = list_tests()
+        target_scripts = [Path("tests") / script for script in list_tests()]
 
     if not target_scripts:
         print("No 'dotest' scripts found.")
@@ -299,7 +293,7 @@ def main() -> None:
     has_failures = False  # Track if any benchmark failed
 
     for script in target_scripts:
-        result = benchmark_and_log("tests" / script, force_update=args.force_update)
+        result = benchmark_and_log(script, force_update=args.force_update)
         if result == "FAILED":
             has_failures = True
         results.append((str(script), result))
