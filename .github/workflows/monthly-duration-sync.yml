@@ -1,4 +1,39 @@
-# Monthly Duration Sync Workflow
+# Monthly Duration Sync Workflow - Parallelized
+#
+# Architecture: 4-job parallel pipeline
+#   1. Setup: Generate test matrix, calculate cache keys, create timestamp
+#   2. Build: Compile ION once, cache workspace for all benchmark jobs
+#   3. Benchmark (matrix): Run benchmark.py in parallel across 7 batches
+#   4. Aggregate: Merge .DURATION files, create PR if changes detected
+#
+# Workflow Structure:
+#   - Filters optional tests at matrix generation (Phase 1: --exclude-optional)
+#   - Hash-based caching invalidates only on source code changes (Phase 4)
+#   - Parallel benchmark execution across 7 runners (default, Phase 5)
+#   - Artifacts merged via merge-duration-artifacts.sh (Phase 2, Phase 6)
+#
+# Testing Requirements:
+#   ⚠️  CRITICAL: Workflow testing MUST be done interactively with human operator
+#   - No autonomous agent testing of GitHub Actions workflows
+#   - Manual workflow_dispatch trigger required for validation
+#   - Verify parallel execution, caching, artifact merge, PR creation
+#
+# Inputs (workflow_dispatch):
+#   - reason: Description for manual trigger
+#
+# Outputs:
+#   - PR to integration branch (if .DURATION files changed)
+#   - Artifacts: combined sync log, per-batch benchmark logs
+#
+# Rollout Checklist:
+#   - [ ] Phase 1-6 implementation complete
+#   - [ ] Manual test with small test subset (2-3 batches)
+#   - [ ] Manual test with full test suite (7 batches)
+#   - [ ] Verify cache hit behavior on repeat runs
+#   - [ ] Verify PR creation with changes
+#   - [ ] Verify no PR when no changes
+#   - [ ] Confirm workflow completes within 7-hour timeout
+#   - [ ] Schedule enabled for monthly execution (1st @ 8:00 UTC)
 
 # Requirements:
 # - Repository has 'contents: write' and 'pull-requests: write' permissions
@@ -18,6 +53,16 @@ on:
         required: false
         type: string
         default: "Manual duration sync"
+      test_subset:
+        description: "Test subset for validation (empty = all tests)"
+        required: false
+        type: string
+        default: ""
+      num_runners:
+        description: "Number of parallel benchmark batches (default: 7)"
+        required: false
+        type: number
+        default: 7
 
 permissions:
   contents: write
@@ -48,8 +93,8 @@ jobs:
         id: map-matrix
         uses: ./.github/actions/generate-test-matrix
         with:
-          tests_to_run: ""
-          num_runners: 7
+          tests_to_run: ${{ inputs.test_subset || '' }}
+          num_runners: ${{ inputs.num_runners || 7 }}
           is_solaris: "false"
           exclude_optional: "true"
 
