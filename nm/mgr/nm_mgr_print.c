@@ -139,11 +139,11 @@ static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* sta
 		{
 			if (choice == 1)
 			{
-				sprintf(status_msg, "Succcessfully built & sent control to '%s'", agent->eid.name);
+				isprintf(status_msg, 80, "Succcessfully built & sent control to '%s'", agent->eid.name);
 			}
 			else
 			{
-				sprintf(status_msg, "Build Control aborted or transmission to '%s' failed", agent->eid.name);
+				isprintf(status_msg, 80, "Build Control aborted or transmission to '%s' failed", agent->eid.name);
 			}
 			return UI_CB_RTV_STATUS;
 		}
@@ -241,7 +241,7 @@ int ui_print_agents(void)
 			list[i].description = malloc(32);
 			if (list[i].description != NULL)
 			{
-				snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
+				isprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
 			}
 		}
 		else
@@ -310,7 +310,7 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	}
 
 	/* Step 1: Print the report banner. This will include the report
-	 *         name.
+	 * name.
 	 */
 	rpt_info = rhht_retrieve_key(&(gMgrDB.metadata), rpt->id);
 	num_entries = tnvc_get_count(rpt->entries);
@@ -368,7 +368,7 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 
 			if(entry_info == NULL)
 			{
-				sprintf(name, "Entry %d", i);
+				isprintf(name, sizeof(name), "Entry %d", i);
 			}
 			else
 			{
@@ -422,11 +422,11 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	{
 		if(rpt_info == NULL)
 		{
-			sprintf(name, "Entry 1");
+			isprintf(name, sizeof(name), "%s", "Entry 1");
 		}
 		else
 		{
-			sprintf(name, "%.30s", rpt_info->name);
+			isprintf(name, sizeof(name), "%.30s", rpt_info->name);
 		}
 
 		val = tnvc_get(rpt->entries, 0);
@@ -489,7 +489,7 @@ void ui_print_report_set(agent_t* agent)
 
 	num_rpts = vec_num_entries(agent->rpts);
 
-	snprintf(title, 39, "Agent Reports for %s", agent->eid.name);
+	isprintf(title, sizeof title, "Agent Reports for %s", agent->eid.name);
 	ui_display_init(title);
 
 	if (num_rpts == 0)
@@ -522,7 +522,7 @@ void ui_print_table_set(agent_t* agent)
 
 	num_tbls = vec_num_entries(agent->tbls);
 
-	snprintf(title, 39, "Agent Tables for %s", agent->eid.name);
+	isprintf(title, sizeof title, "Agent Tables for %s", agent->eid.name);
 	ui_display_init(title);
 
 	if (num_tbls == 0)
@@ -600,12 +600,12 @@ char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 		{
 			char *nm_str = utils_hex_to_string(blob->value, blob->length);
 			blob_release(blob, 1);
-			sprintf(str, "Anonymous ARI: %s", nm_str);
+			isprintf(str, 1024, "Anonymous ARI: %s", nm_str);
 			SRELEASE(nm_str);
 		}
 		else
 		{
-			sprintf(str, "NULL ARI");
+			isprintf(str, 1024, "%s", "NULL ARI");
 		}
 	}
 	else
@@ -624,12 +624,12 @@ char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 
 		if(parm_str != NULL)
 		{
-			sprintf(str,"%s(%s)", meta->name, parm_str);
+			isprintf(str, 1024, "%s(%s)", meta->name, parm_str);
 			SRELEASE(parm_str);
 		}
 		else
 		{
-			sprintf(str,"%s", meta->name);
+			isprintf(str, 1024, "%s", meta->name);
 		}
 
 		if(desc)
@@ -673,7 +673,7 @@ char *ui_str_from_expr(expr_t *expr)
 	CHKNULL(str);
 
 	char *alt_str = ui_str_from_ac(&(expr->rpn));
-	snprintf(str, 1023, "EXPR: (%s) %s", type_to_str(expr->type), (alt_str == NULL) ? "null" : alt_str);
+	isprintf(str, 1024, "EXPR: (%s) %s", type_to_str(expr->type), (alt_str == NULL) ? "null" : alt_str);
 	SRELEASE(alt_str);
 	return str;
 }
@@ -722,7 +722,7 @@ char *ui_str_from_mac(macdef_t *mac)
 	vecit_t it;
 
 	tmp = ui_str_from_ari(mac->ari, NULL, 0);
-	sprintf(fmt,"%s = [", (tmp==NULL) ? "null" : tmp);
+	isprintf(fmt, sizeof fmt, "%s = [", (tmp==NULL) ? "null" : tmp);
 	SRELEASE(tmp);
 
 	strcat(result, fmt);
@@ -769,7 +769,7 @@ char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 	int i = 0;
 
 	tmp = ui_str_from_ari(rpttpl->id, NULL, 0);
-	sprintf(fmt,"%s = [", (tmp==NULL) ? "null" : tmp);
+	isprintf(fmt, sizeof fmt, "%s = [", (tmp==NULL) ? "null" : tmp);
 	SRELEASE(tmp);
 
 	strcat(result, fmt);
@@ -800,8 +800,8 @@ char *ui_str_from_sbr(rule_t *sbr)
 		char *ac_str = ui_str_from_ac(&(sbr->action));
 		char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
 
-		snprintf(str,
-				1023,
+		isprintf(str,
+				1024,
 				"SBR: ID=%s, S=0x"ADDR_FIELDSPEC", E=%s, M=0x"ADDR_FIELDSPEC", C=0x"ADDR_FIELDSPEC", A=%s\n",
 				(id_str == NULL) ? "null" :id_str,
 				(uaddr)sbr->start,
@@ -858,7 +858,7 @@ char *ui_str_from_tbl(tbl_t *tbl)
 				strcat(result, "|");
 			}
 			tmp = ui_str_from_tnv(val);
-			snprintf(fmt,100,"   %23s   ", tmp);
+			isprintf(fmt, sizeof fmt,"   %23s   ", tmp);
 			SRELEASE(tmp);
 			strcat(result, fmt);
 			strcat(result, "|");
@@ -891,7 +891,7 @@ char *ui_str_from_tblt(tblt_t *tblt)
 			{
 				strcat(result, "|");
 			}
-			sprintf(tmp, "   %7s %15s   |",
+			isprintf(tmp, sizeof tmp, "   %7s %15s   |",
 					(col) ? type_to_str(col->type) : "null",
 					(col) ? col->name : "null");
 			strcat(result, tmp);
@@ -910,7 +910,7 @@ char *ui_str_from_tbr(rule_t *tbr)
 	{
 		char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
 		char *ac_str = ui_str_from_ac(&(tbr->action));
-		snprintf(str,
+		isprintf(str,
 				1024,
 				"TBR: ID=%s, S=" \
 				UVAST_FIELDSPEC ", P=" \
@@ -960,16 +960,16 @@ char *ui_str_from_tnv(tnv_t *tnv)
 
 		/* Primitive Types */
 		case AMP_TYPE_BOOL:
-		case AMP_TYPE_BYTE:  sprintf(str,"%d", tnv->value.as_byte);    break;
-		case AMP_TYPE_STR:   snprintf(str, 1023, "%s", (char*) tnv->value.as_ptr); break;
-		case AMP_TYPE_INT:   sprintf(str,"%d", tnv->value.as_int);     break;
-		case AMP_TYPE_UINT:  sprintf(str,"%d", tnv->value.as_uint);    break;
-		case AMP_TYPE_VAST:  sprintf(str, VAST_FIELDSPEC , tnv->value.as_vast);   break;
+		case AMP_TYPE_BYTE:  isprintf(str, 1024, "%d", tnv->value.as_byte);    break;
+		case AMP_TYPE_STR:   isprintf(str, 1024, "%s", (char*) tnv->value.as_ptr); break;
+		case AMP_TYPE_INT:   isprintf(str, 1024, "%d", tnv->value.as_int);     break;
+		case AMP_TYPE_UINT:  isprintf(str, 1024, "%d", tnv->value.as_uint);    break;
+		case AMP_TYPE_VAST:  isprintf(str, 1024, VAST_FIELDSPEC , tnv->value.as_vast);   break;
 		case AMP_TYPE_TV:
 		case AMP_TYPE_TS:
-		case AMP_TYPE_UVAST: sprintf(str, UVAST_FIELDSPEC , tnv->value.as_uvast);  break;
-		case AMP_TYPE_REAL32:sprintf(str,"%f", tnv->value.as_real32);  break;
-		case AMP_TYPE_REAL64:sprintf(str,"%lf", tnv->value.as_real64); break;
+		case AMP_TYPE_UVAST: isprintf(str, 1024, UVAST_FIELDSPEC , tnv->value.as_uvast);  break;
+		case AMP_TYPE_REAL32:isprintf(str, 1024, "%f", tnv->value.as_real32);  break;
+		case AMP_TYPE_REAL64:isprintf(str, 1024, "%lf", tnv->value.as_real64); break;
 
 		/* Compound Objects */
 		case AMP_TYPE_TNV:    alt_str = ui_str_from_tnv(tnv->value.as_ptr);  break;
