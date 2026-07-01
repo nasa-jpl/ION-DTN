@@ -1107,7 +1107,7 @@ void	inferUtcDelta(char *correctUtcTimeStamp)
 	char	buffer[80];
 
 	CHKVOID(setDeltaFromUTC(delta) == 0);
-	sprintf(buffer, "[i] Delta from UTC revised, is now %d.", delta);
+	isprintf(buffer, sizeof buffer, "[i] Delta from UTC revised, is now %d.", delta);
 	writeMemo(buffer);
 }
 
@@ -1116,7 +1116,7 @@ void	showUtcDelta()
 	IonVdb	*ionvdb = getIonVdb();
 	char	buffer[80];
 
-	sprintf(buffer, "[i] Delta from UTC is %d.", ionvdb->deltaFromUTC);
+	isprintf(buffer, sizeof buffer, "[i] Delta from UTC is %d.", ionvdb->deltaFromUTC);
 	writeMemo(buffer);
 }
 
