@@ -65,6 +65,32 @@ static void	purgeRouteReferences(PsmPartition ionwm, PsmAddress routes,
 	}
 }
 
+/*	Return the first element of a route list that cites routeAddr, or 0 if
+ *	none.  Used to detect a route already present in a list so it is not
+ *	cited twice.							*/
+
+static PsmAddress	firstRouteListElt(PsmPartition ionwm, PsmAddress routes,
+				PsmAddress routeAddr)
+{
+	PsmAddress	elt;
+
+	if (routes == 0)
+	{
+		return 0;
+	}
+
+	for (elt = sm_list_first(ionwm, routes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		if (sm_list_data(ionwm, elt) == routeAddr)
+		{
+			return elt;
+		}
+	}
+
+	return 0;
+}
+
 /*	#1048 follow-up: validate a handle taken from a route's hops,
  *	contact-citation, or rootOfSpur cross-references before walking the
  *	SmList it points at.  A freed/recycled block keeps a valid-looking
@@ -1676,39 +1702,64 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 
 	if (bestKnownRouteElt)
 	{
+		PsmAddress	existingElt;
+
 //puts("*** Migrating best route in list B into list A. ***");
-		*elt = sm_list_insert_last(ionwm, routingObj->selectedRoutes,
-				bestKnownRouteAddr);
-		if (*elt == 0)
+
+		/*	#1048: if this route is already cited in selectedRoutes
+		 *	-- e.g. a recomputed spur that duplicates an already-
+		 *	selected route (possibly via a recycled address) -- do
+		 *	NOT add a second citation.  A duplicate selectedRoutes
+		 *	element orphans one citation, which later dereferences a
+		 *	freed/recycled route and is dropped as a malformed route.
+		 *	Reuse the existing element and just drop the redundant
+		 *	knownRoutes element.					*/
+
+		existingElt = firstRouteListElt(ionwm,
+				routingObj->selectedRoutes, bestKnownRouteAddr);
+		if (existingElt)
 		{
-			putErrmsg("Can't insert selected route.", NULL);
-			return -1;
+			sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
+			bestKnownRoute->referenceElt = existingElt;
+			*elt = existingElt;
 		}
-
-		/*	#1054 tripwire: a known route's only reference should
-		 *	be the knownRoutes element we are migrating from.  If
-		 *	referenceElt points at some other element, overwriting
-		 *	it below would orphan that element (still citing this
-		 *	route) -- the suspected source of the disabledRoute
-		 *	use-after-free.  Log it and delete the stale reference
-		 *	so the route cannot be left dangling.			*/
-
-		if (bestKnownRoute->referenceElt
-		&& bestKnownRoute->referenceElt != bestKnownRouteElt)
+		else
 		{
-			char	memo[160];
+			*elt = sm_list_insert_last(ionwm,
+					routingObj->selectedRoutes,
+					bestKnownRouteAddr);
+			if (*elt == 0)
+			{
+				putErrmsg("Can't insert selected route.", NULL);
+				return -1;
+			}
 
-			isprintf(memo, sizeof memo, "[?] CGR: migrating route \
-with referenceElt " UVAST_FIELDSPEC " != listElt " UVAST_FIELDSPEC " (#1054).",
-					(uvast) bestKnownRoute->referenceElt,
-					(uvast) bestKnownRouteElt);
-			writeMemo(memo);
-			sm_list_delete(ionwm, bestKnownRoute->referenceElt,
-					NULL, NULL);
+			/*	#1054 tripwire: a known route's only reference
+			 *	should be the knownRoutes element we are migrating
+			 *	from.  If referenceElt points at some other
+			 *	element, overwriting it below would orphan that
+			 *	element (still citing this route) -- the suspected
+			 *	source of the disabledRoute use-after-free.  Log it
+			 *	and delete the stale reference so the route cannot
+			 *	be left dangling.				*/
+
+			if (bestKnownRoute->referenceElt
+			&& bestKnownRoute->referenceElt != bestKnownRouteElt)
+			{
+				char	memo[160];
+
+				isprintf(memo, sizeof memo, "[?] CGR: migrating \
+route with referenceElt " UVAST_FIELDSPEC " != listElt " UVAST_FIELDSPEC \
+" (#1054).", (uvast) bestKnownRoute->referenceElt,
+						(uvast) bestKnownRouteElt);
+				writeMemo(memo);
+				sm_list_delete(ionwm, bestKnownRoute->referenceElt,
+						NULL, NULL);
+			}
+
+			sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
+			bestKnownRoute->referenceElt = *elt;
 		}
-
-		sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
-		bestKnownRoute->referenceElt = *elt;
 	}
 //else puts("*** No routes in list B to migrate into list A. ***");
 
