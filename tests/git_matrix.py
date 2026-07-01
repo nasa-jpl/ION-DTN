@@ -65,7 +65,10 @@ def find_tests() -> list[Path]:
 
 
 def is_excluded(
-    test_dir: Path, solaris_run: bool = False, mode: str = "native_bpsec"
+    test_dir: Path,
+    solaris_run: bool = False,
+    mode: str = "native_bpsec",
+    exclude_optional: bool = False,
 ) -> bool:
     """Check whether a test directory has any exclusion markers.
 
@@ -89,11 +92,17 @@ def is_excluded(
     elif mode == "native_bpsec":
         exclude_set.append(".exclude_native_bpsec")
 
+    # Add optional marker if requested
+    if exclude_optional:
+        exclude_set.append(".optional")
+
     # Check if ANY of the markers in our list exist in the directory
     return any((test_dir / marker).exists() for marker in exclude_set)
 
 
-def list_tests(solaris_run: bool = False, bpsec: str = "native_bpsec") -> list[Path]:
+def list_tests(
+    solaris_run: bool = False, bpsec: str = "native_bpsec", exclude_optional: bool = False
+) -> list[Path]:
     """Generate list of tests.
 
     Returns:
@@ -114,7 +123,7 @@ def list_tests(solaris_run: bool = False, bpsec: str = "native_bpsec") -> list[P
         if not os.access(dotest_path, os.X_OK):
             continue
 
-        if is_excluded(test_dir, solaris_run, bpsec):
+        if is_excluded(test_dir, solaris_run, bpsec, exclude_optional):
             continue
 
         # Convert absolute test paths to relative paths for runtests wrapper.
@@ -153,6 +162,7 @@ def main(
     subset: list[Path] | None = None,
     solaris_run: bool = False,
     bpsec: str = "native_bpsec",
+    exclude_optional: bool = False,
 ) -> None:
     """Check list of existing tests and return JSON array for batching to GitHub
     Actions Runner Set.
@@ -163,8 +173,17 @@ def main(
     """
     if subset:
         valid_tests = subset
+        # Filter out optional tests from the subset if requested
+        if exclude_optional:
+            filtered_tests = []
+            for test in valid_tests:
+                # Check both relative (to tests/) and absolute paths
+                test_path = test if test.is_absolute() else (Path("tests") / test)
+                if not (test_path / ".optional").exists():
+                    filtered_tests.append(test)
+            valid_tests = filtered_tests
     else:
-        valid_tests = list_tests(solaris_run, bpsec)
+        valid_tests = list_tests(solaris_run, bpsec, exclude_optional)
     if not valid_tests:
         sys.exit(1)
 
@@ -343,6 +362,12 @@ if __name__ == "__main__":
         help="If passed, exclude native BPSec test, using BSL.",
     )
 
+    parser.add_argument(
+        "--exclude-optional",
+        action="store_true",
+        help="If passed, exclude tests marked with .optional files",
+    )
+
     args = parser.parse_args()
 
     test_subset = []
@@ -360,4 +385,4 @@ if __name__ == "__main__":
     else:
         RUNNER_COUNT = args.runners
 
-    main(RUNNER_COUNT, test_subset, args.solaris, current_bpsec_mode)
+    main(RUNNER_COUNT, test_subset, args.solaris, current_bpsec_mode, args.exclude_optional)
