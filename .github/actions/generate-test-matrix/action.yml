@@ -38,7 +38,6 @@ runs:
         RUNNERS: ${{ inputs.num_runners }}
         OPTIONAL: ${{ inputs.exclude_optional }}
       run: |
-        # Set the Solaris flag if applicable
         SOLARIS_FLAG=""
         if [ "$IS_SOLARIS" == "true" ]; then
           SOLARIS_FLAG="-s"
