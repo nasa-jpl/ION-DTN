@@ -81,9 +81,10 @@ char* dtnTimeToDate(uvast time){
 		return buffer;
 	}
 	strftime(buffer, datelen, "%Y-%m-%dT%H:%M:%S", epoch_time);
-	sprintf(buffer + strlen(buffer), ".%03.f", ms);
+	int current_len = strlen(buffer);
+	isprintf(buffer + current_len, datelen - current_len, ".%03.f", ms);
 	return buffer;
-}
+	}
 
 char* statusToString(int statusFlags, char* buf, unsigned buflen){
 	char* buffer = malloc(32);
