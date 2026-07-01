@@ -413,7 +413,6 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	Object		zco;
 	Object		newBundle;
 #if TC_DEBUG
-char	nbrBuf[FQN_MAX_LENGTH];
 char	bytes[256];
 char	*byte;
 int	n;
@@ -554,7 +553,7 @@ writeMemo("tcapublish: No records to publish.");
 			rec->effectiveTime = 0;
 		}
 #if TC_DEBUG
-putFqn(nbrBuf, req->fqnn);
+putFqn(nbrBuf, rec->fqnn);
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Appending record to bulletin \
 for node %s, effective time %lu.", nbrBuf, rec->effectiveTime);
 writeMemo(msgbuf);
@@ -586,15 +585,15 @@ writeMemo(msgbuf);
 
 	writeMemo("tcapublish: ...consensus reached on all other records.");
 #if TC_DEBUG
-for (byte = bulletin, n = 0; n < bulletinLen; byte++, n++)
+for (byte = bulletin, n = 0; n < bulletinLen && n < (int)((sizeof bytes / 2) - 1); byte++, n++)
 {
-	sprintf(bytes + n, "%x", (int) *byte);
+	isprintf(bytes + (n * 2), sizeof bytes - (n * 2), "%02x", (unsigned char) *byte);
 }
 
-bytes[n] = 0;
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Bulletin '%s'", bytes);
 writeMemo(msgbuf);
 #endif
+
 	MRELEASE(acknowledged);
 	isprintf(msgbuf, sizeof msgbuf, "tcapublish: Number of records in \
 consensus: %d", recCount);
@@ -629,15 +628,15 @@ consensus: %d", recCount);
 	memset(buffer, 0, buflen);
 	memcpy(buffer, bulletin, bulletinLen);
 #if TC_DEBUG
-for (byte = buffer, n = 0; n < buflen; byte++, n++)
+for (byte = buffer, n = 0; n < buflen && n < (int)((sizeof bytes / 2) - 1); byte++, n++)
 {
-	sprintf(bytes + n, "%x", (int) *byte);
+	isprintf(bytes + (n * 2), sizeof bytes - (n * 2), "%02x", (unsigned char) *byte);
 }
 
-bytes[n] = 0;
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Buffer '%s'", bytes);
 writeMemo(msgbuf);
 #endif
+
 	MRELEASE(bulletin);
 
 	/*	We initialize the hash output to a dummy value in
