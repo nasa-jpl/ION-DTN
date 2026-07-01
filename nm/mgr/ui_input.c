@@ -436,7 +436,7 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, uvast mask)
 		"Type the entire ARI in hex.",
 	};
 	char title[64];
-	sprintf(title, "Entering ARI for: %s", prompt);
+	isprintf(title, sizeof title, "Entering ARI for: %s", prompt);
 	uint32_t opt = ui_menu(title, builder_menu, NULL, ARRAY_SIZE(builder_menu), NULL);
 
 	switch(opt)
@@ -915,7 +915,7 @@ int ui_input_parms(ari_t *id)
 	{
 		meta_fp_t *parm = vec_at(&(meta->parmspec), i);
 
-		sprintf(prompt,"Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
+		isprintf(prompt, sizeof prompt, "Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
 		tnv_t *val = ui_input_tnv(parm->type, prompt);
 
 		if (val == NULL)
