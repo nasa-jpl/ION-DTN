@@ -2658,142 +2658,10 @@ void	printDottedString(unsigned int hostNbr, char *buffer)
 #define	SN_PAD_ZERO		3
 #define	SN_ALT_OUTPUT		4
 
-static void	snGetFlags(char **cursor, char *fmt, int *fmtLen)
+int _isprintf(char *buffer, int bufSize, char *format, ...)
 {
-	int	flags[5];
-
-	/*	Copy all flags to field print format.  No flag is
-	 *	copied more than once.					*/
-
-	memset((char *) flags, 0, sizeof flags);
-	while (1)
-	{
-		switch (**cursor)
-		{
-		case '-':
-			if (flags[SN_LEFT_JUST] == 0)
-			{
-				*(fmt + *fmtLen) = **cursor;
-				(*fmtLen)++;
-				flags[SN_LEFT_JUST] = 1;
-			}
-
-			break;
-
-		case '+':
-			if (flags[SN_SIGNED] == 0)
-			{
-				*(fmt + *fmtLen) = **cursor;
-				(*fmtLen)++;
-				flags[SN_SIGNED] = 1;
-			}
-
-			break;
-
-		case ' ':
-			if (flags[SN_SPACE_PREFIX] == 0)
-			{
-				*(fmt + *fmtLen) = **cursor;
-				(*fmtLen)++;
-				flags[SN_SPACE_PREFIX] = 1;
-			}
-
-			break;
-
-		case '0':
-			if (flags[SN_PAD_ZERO] == 0)
-			{
-				*(fmt + *fmtLen) = **cursor;
-				(*fmtLen)++;
-				flags[SN_PAD_ZERO] = 1;
-			}
-
-			break;
-
-		case '#':
-			if (flags[SN_ALT_OUTPUT] == 0)
-			{
-				*(fmt + *fmtLen) = **cursor;
-				(*fmtLen)++;
-				flags[SN_ALT_OUTPUT] = 1;
-			}
-
-			break;
-
-		default:
-			return;	/*	No more flags for field.	*/
-		}
-
-		(*cursor)++;
-	}
-}
-
-static void	snGetNumber(char **cursor, char *fmt, int *fmtLen, int *number)
-{
-	int	numDigits = 0;
-	char	digit;
-
-	while (1)
-	{
-		digit = **cursor;
-		if (digit < '0' || digit > '9')
-		{
-			return;	/*	No more digits in number.	*/
-		}
-
-		/*	Accumulate number value.			*/
-
-		digit -= 48;	/*	Convert from ASCII.		*/
-		if ((*number) < 0)	/*	First digit.		*/
-		{
-			(*number) = digit;
-		}
-		else
-		{
-			(*number) = (*number) * 10;
-			(*number) += digit;
-		}
-
-		/*	Copy to field format if possible.  Largest
-		 *	possible value in a 32-bit number is about
-		 *	4 billion, represented in 10 decimal digits.
-		 *	Largest possible value in a 64-bit number is
-		 *	the square of that value, represented in no
-		 *	more than 21 decimal digits.  So any number
-		 *	of more than 21 decimal digits is invalid.	*/
-
-		numDigits++;
-		if (numDigits < 22)
-		{
-			*(fmt + *fmtLen) = **cursor;
-			(*fmtLen)++;
-		}
-
-		(*cursor)++;
-	}
-}
-
-int	_isprintf(char *buffer, int bufSize, char *format, ...)
-{
-	va_list		args;
-	char		*cursor;
-	int		stringLength = 0;
-	int		printLength = 0;
-	char		fmt[SN_FMT_SIZE];
-	int		fmtLen;
-	int		minFieldLength;
-	int		precision;
-	char		scratchpad[64];
-	int		numLen;
-	int		fieldLength;
-	int		isLongLong;		/*	Boolean		*/
-	int		*ipval;
-	char		*sval;
-	int		ival;
-	long long	llval;
-	double		dval;
-	void		*vpval;
-	uaddr		uaddrval;
+	va_list args;
+	int ret;
 
 	if (buffer == NULL || bufSize < 1)
 	{
@@ -2817,286 +2685,42 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 		return 0;
 	}
 
+	/*
+	 * Delegate variadic argument extraction and string formatting to
+	 * the C99 standard library.
+	 */
 	va_start(args, format);
-	for (cursor = format; *cursor != '\0'; cursor++)
-	{
-		if (*cursor != '%')
-		{
-			if ((stringLength + 1) < bufSize)
-			{
-				*(buffer + stringLength) = *cursor;
-				printLength++;
-			}
-
-			stringLength++;
-			continue;
-		}
-
-		/*	We've encountered a variable-length field in
-		 *	the string.					*/
-
-		minFieldLength = -1;	/*	Indicates none.		*/
-		precision = -1;		/*	Indicates none.		*/
-
-		/*	Start extracting the field format so that
-		 *	we can safely use snprintf to format and
-		 *	determine the length of the field.		*/
-
-		fmt[0] = '%';
-		fmtLen = 1;
-		cursor++;
-
-		/*	Copy any flags for field.			*/
-
-		snGetFlags(&cursor, fmt, &fmtLen);
-
-		/*	Copy the minimum length of field, if present.	*/
-
-		if (*cursor == '*')
-		{
-			cursor++;
-			minFieldLength = va_arg(args, int);
-			if (minFieldLength < 0)
-			{
-				minFieldLength = -1;	/*	None.	*/
-			}
-			else
-			{
-				snprintf(scratchpad, sizeof scratchpad, "%d", minFieldLength);
-				numLen = strlen(scratchpad);
-				memcpy(fmt + fmtLen, scratchpad, numLen);
-				fmtLen += numLen;
-			}
-		}
-		else
-		{
-			snGetNumber(&cursor, fmt, &fmtLen, &minFieldLength);
-		}
-
-		if (*cursor == '.')	/*	Start of precision.	*/
-		{
-			fmt[fmtLen] = '.';
-			fmtLen++;
-			cursor++;
-
-			/*	Copy the precision of the field.	*/
-
-			if (*cursor == '*')
-			{
-				cursor++;
-				precision = va_arg(args, int);
-				if (precision < 0)
-				{
-					precision = -1;	/*	None.	*/
-				}
-				else
-				{
-					snprintf(scratchpad, sizeof scratchpad, "%d", precision);
-					numLen = strlen(scratchpad);
-					memcpy(fmt + fmtLen, scratchpad,
-							numLen);
-					fmtLen += numLen;
-				}
-			}
-			else
-			{
-				snGetNumber(&cursor, fmt, &fmtLen, &precision);
-			}
-		}
-
-		/*	Copy the field's length modifier, if any.	*/
-
-		isLongLong = 0;
-		if ((*cursor) == 'h'		/*	Short.		*/
-		|| (*cursor) == 'L')		/*	Long double.	*/
-		{
-			fmt[fmtLen] = *cursor;
-			fmtLen++;
-			cursor++;
-		}
-		else
-		{
-			if ((*cursor) == 'l')	/*	Long...		*/
-			{
-				fmt[fmtLen] = *cursor;
-				fmtLen++;
-				cursor++;
-				if (LONG_LONG_OKAY)
-				{
-					if (SPACE_ORDER == 3)
-					{
-						/*	Vast.		*/
-
-						isLongLong = 1;
-
-						/* Might be "ll." */
-						if ((*cursor) == 'l')
-						{
-							fmt[fmtLen] = *cursor;
-							fmtLen++;
-							cursor++;
-						}
-					}
-					else	/*	Check for "ll".	*/
-					{
-						if ((*cursor) == 'l')
-						{
-							/*	Vast.	*/
-
-							isLongLong = 1;
-							fmt[fmtLen] = *cursor;
-							fmtLen++;
-							cursor++;
-						}
-					}
-				}
-			}
-			else
-			{
-				if ((*cursor) == 'I'
-				&& (*(cursor + 1)) == '6'
-				&& (*(cursor + 2)) == '4')
-				{
-				}
-			}
-		}
-
-		/*	Handle a couple of weird conversion characters
-		 *	as applicable.					*/
-
-		if (*cursor == 'n')	/*	Report on string size.	*/
-		{
-			ipval = va_arg(args, int *);
-			if (ipval)
-			{
-				*ipval = stringLength;
-			}
-
-			continue;
-		}
-
-		if (*cursor == '%')	/*	Literal '%' in string.	*/
-		{
-			if ((stringLength + 1) < bufSize)
-			{
-				*(buffer + stringLength) = '%';
-				printLength++;
-			}
-
-			stringLength++;
-			continue;	/*	No argument consumed.	*/
-		}
-
-		/*	Ready to compute field length.			*/
-
-		fmt[fmtLen] = *cursor;	/*	Copy conversion char.	*/
-		fmtLen++;
-		fmt[fmtLen] = '\0';	/*	Terminate format.	*/
-
-		/*	Handle string field conversion character.	*/
-
-		if (*cursor == 's')
-		{
-			sval = va_arg(args, char *);
-			if (sval == NULL)
-			{
-				continue;
-			}
-
-			fieldLength = strlen(sval);
-
-			/*	Truncate per precision.			*/
-
-			if (precision != -1 && precision < fieldLength)
-			{
-				fieldLength = precision;
-			}
-
-			/*	Add padding as per minFieldLength.	*/
-
-			if (minFieldLength != -1
-			&& fieldLength < minFieldLength)
-			{
-				fieldLength = minFieldLength;
-			}
-
-			if (stringLength + fieldLength < bufSize)
-			{
-				snprintf(buffer + stringLength, bufSize - stringLength, fmt, sval);
-				printLength += fieldLength;
-			}
-
-			stringLength += fieldLength;
-			continue;
-		}
-
-		/*	Handle numeric field conversion character.	*/
-
-		switch (*cursor)
-		{
-		case 'd':
-		case 'u':
-		case 'i':
-		case 'o':
-		case 'x':
-		case 'X':
-		case 'c':
-			if (isLongLong)
-			{
-				llval = va_arg(args, long long);
-				snprintf(scratchpad, sizeof scratchpad, fmt, llval);
-			}
-			else
-			{
-				ival = va_arg(args, int);
-				snprintf(scratchpad, sizeof scratchpad, fmt, ival);
-			}
-
-			break;
-
-		case 'f':
-		case 'e':
-		case 'E':
-		case 'g':
-		case 'G':
-			dval = va_arg(args, double);
-			snprintf(scratchpad, sizeof scratchpad, fmt, dval);
-			break;
-
-		case 'p':
-			vpval = va_arg(args, void *);
-			uaddrval = (uaddr) vpval;
-			snprintf(scratchpad, sizeof scratchpad, ADDR_FIELDSPEC, uaddrval);
-			break;
-
-		default:		/*	Bad conversion char.	*/
-			continue;	/*	No argument consumed.	*/
-		}
-
-		fieldLength = strlen(scratchpad);
-		if (stringLength + fieldLength < bufSize)
-		{
-			memcpy(buffer + stringLength, scratchpad, fieldLength);
-			printLength += fieldLength;
-		}
-
-		stringLength += fieldLength;
-	}
-
+	ret = vsnprintf(buffer, (size_t)bufSize, format, args);
 	va_end(args);
 
-	/*	NULL-terminate the buffer contents, one way or another.	*/
-
-	if (stringLength < bufSize)
+	/*
+	 * Fulfill platform(3) man page promise: log on overrun or error.
+	 * We bypass putErrmsg completely to prevent infinite recursion,
+	 * sending the raw string directly to the registered logger.
+	 */
+	if (ret < 0 || ret >= bufSize)
 	{
-		*(buffer + stringLength) = '\0';
-	}
-	else
-	{
-		*(buffer + printLength) = '\0';
+		writeMemo("[?] isprintf buffer overrun or encoding "
+			"error.");
+
+		/*
+		 * Protect caller pointer math. If vsnprintf fails with an
+		 * encoding error, buffer contents are indeterminate. We
+		 * terminate the string safely and return 0 to prevent
+		 * upstream out-of-bounds strlen calls.
+		 */
+		if (ret < 0)
+		{
+			buffer[0] = '\0';
+			return 0;
+		}
 	}
 
-	return stringLength;
+	/*
+	 * Return the length that would have been written, matching both
+	 * the C99 standard and the legacy function behavior.
+	 */
+	return ret;
 }
 
 /*	*	*	Other portability adaptations	*	*	*/
