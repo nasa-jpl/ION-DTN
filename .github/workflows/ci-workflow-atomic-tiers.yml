@@ -680,6 +680,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Clean up intermediate artifacts
+        if: success()
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
@@ -691,3 +692,4 @@ jobs:
             ion-logs-*
             diagnostics-*
             arm64-linux-tier-logs-*
+          failOnError: false

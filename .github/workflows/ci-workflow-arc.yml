@@ -567,6 +567,7 @@ jobs:
           overwrite: true
 
       - name: Clean up ALL intermediate artifacts
+        if: success()
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
