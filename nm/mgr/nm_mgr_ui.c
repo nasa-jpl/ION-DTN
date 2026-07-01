@@ -214,7 +214,7 @@ int ui_build_control(agent_t* agent)
 	fields[0].args.num.vmax = 0xFFFFFFFF;
 
 
-	sprintf(title, "Build Control for agent %s", agent->eid.name);
+	isprintf(title, sizeof title, "Build Control for agent %s", agent->eid.name);
 	ui_form(title, NULL, fields, ARRAY_SIZE(fields) );
 	ts = atoi(tsc);
 #else
@@ -778,7 +778,7 @@ void ui_eventLoop(ion_atomic_t *running)
 				switch(choice)
 				{
 				case MAIN_MENU_VERSION:
-					sprintf(msg, "VERSION: Built on %s %s\nAMP Protocol Version %d - %s/%02d",
+					isprintf(msg, sizeof msg, "VERSION: Built on %s %s\nAMP Protocol Version %d - %s/%02d",
 						__DATE__, __TIME__, AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION);
 					new_msg = 1;
 					break;
@@ -790,7 +790,7 @@ void ui_eventLoop(ion_atomic_t *running)
 					if (ui_print_agents() == 0)
 					{
 						new_msg = 1;
-						sprintf(msg, "No Agents Defined");
+						isprintf(msg, sizeof msg, "%s", "No Agents Defined");
 					}
 					break;
 				case MAIN_MENU_LIST_AMM: // List Object Information (old Control Menu merged with Admmin Menu's List Agents)
@@ -816,7 +816,7 @@ void ui_eventLoop(ion_atomic_t *running)
 					break;
 				default:
 					new_msg = 1;
-					sprintf(msg, "ERROR: Menu choice %d is not valid.", choice);
+					isprintf(msg, sizeof msg, "ERROR: Menu choice %d is not valid.", choice);
 				}
 			}
 		}
@@ -853,11 +853,11 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
 
 	if (adm_id == ADM_ENUM_ALL)
 	{
-	   sprintf(title, "Listing all %s objects", type_to_str(type));
+	   isprintf(title, sizeof title, "Listing all %s objects", type_to_str(type));
 	}
 	else
 	{
-	   sprintf(title, "Listing Objects for ADM ID %d, Type %s", adm_id, type_to_str(type));
+	   isprintf(title, sizeof title, "Listing Objects for ADM ID %d, Type %s", adm_id, type_to_str(type));
 	}
 
 	col =  meta_filter(adm_id, type);
@@ -895,7 +895,8 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
 				{
 					strcat(list[i].name, ", ");
 				}
-				sprintf( (list[i].name + strlen(list[i].name)),
+				int current_len = strlen(list[i].name);
+				isprintf( (list[i].name + current_len), META_DESCR_MAX - current_len,
 					"%s %s",
 					type_to_str(parm->type),
 					parm->name
@@ -1167,7 +1168,8 @@ void ui_register_agent(char* msg)
 		AMP_DEBUG_EXIT("register_agent","->.", NULL);
 	if (msg != NULL)
 	{
-		sprintf(msg, "Agent registration aborted");
+		/* length 128 per the caller: ui_eventLoop's static allocation of 128 bytes*/
+		isprintf(msg, 128, "%s", "Agent registration aborted");
 	}
 		return;
 	}
@@ -1182,7 +1184,8 @@ void ui_register_agent(char* msg)
 	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
 	if (msg != NULL)
 	{
-		sprintf(msg, "Successfully registered new agent: %s", line);
+		/*length 128 per the caller: ui_eventLoop's static allocation of 128 bytes*/
+		isprintf(msg, 128, "Successfully registered new agent: %s", line);
 	}
 }
 
@@ -1451,11 +1454,11 @@ void ui_db_menu(ion_atomic_t *running)
 			case 2 : // Reset Tables
 				if (ui_db_reset())
 				{
-					sprintf(msg, "non-ADM tables cleared");
+					isprintf(msg, sizeof msg, "%s", "non-ADM tables cleared");
 				}
 				else
 				{
-					sprintf(msg, "Unable to clear tables. See error log for details.");
+					isprintf(msg, sizeof msg, "%s", "Unable to clear tables. See error log for details.");
 				}
 				new_msg = 1;
 				break;
@@ -1463,11 +1466,11 @@ void ui_db_menu(ion_atomic_t *running)
 				// Clear Received Reports
 				if (ui_db_clear_rpt())
 				{
-					sprintf(msg, "Reports Cleared");
+					isprintf(msg, sizeof msg, "%s", "Reports Cleared");
 				}
 				else
 				{
-					sprintf(msg, "Unable to clear reports. See error log for details.");
+					isprintf(msg, sizeof msg, "%s", "Unable to clear reports. See error log for details.");
 				}
 				new_msg = 1;
 				break;
@@ -1475,17 +1478,17 @@ void ui_db_menu(ion_atomic_t *running)
 				// Disconnect from DB
 				ui_db_disconn();
 				new_msg = 1;
-				sprintf(msg, "Database Disconnected");
+				isprintf(msg, sizeof msg, "%s", "Database Disconnected");
 				break;
 			case 5 :
 				// Connect to DB
 				if (ui_db_conn())
 				{
-				   sprintf(msg, "Successfully connected");
+				   isprintf(msg, sizeof msg, "%s", "Successfully connected");
 				}
 				else
 				{
-				   sprintf(msg, "Connection failed. See error log for details.");
+				   isprintf(msg, sizeof msg, "%s", "Connection failed. See error log for details.");
 				}
 				new_msg = 1;
 				break;
@@ -1669,15 +1672,16 @@ void ui_ctrl_list_menu(ion_atomic_t *running)
 			return;
 		}
 	}
-	sprintf(ctrl_menu_list_descriptions[1], "(%d known)", gVDB.adm_edds.num_elts);
-	sprintf(ctrl_menu_list_descriptions[2], "(%d known)",  gVDB.adm_atomics.num_elts);
-	sprintf(ctrl_menu_list_descriptions[3], "(%d known)",  gVDB.adm_ctrl_defs.num_elts);
-	sprintf(ctrl_menu_list_descriptions[4], "(%d known)",  gVDB.macdefs.num_elts);
-	sprintf(ctrl_menu_list_descriptions[5], "(%d known)",  gVDB.adm_ops.num_elts);
-	sprintf(ctrl_menu_list_descriptions[6], "(%d known)",  gVDB.rpttpls.num_elts);
-	sprintf(ctrl_menu_list_descriptions[7], "(%d known)",  gVDB.rules.num_elts);
-	sprintf(ctrl_menu_list_descriptions[8], "(%d known)",  gVDB.adm_tblts.num_elts);
-	sprintf(ctrl_menu_list_descriptions[9], "(%d known)",  gVDB.vars.num_elts);
+	/* Bound to 32 to match the malloc(32) heap allocations above */
+	isprintf(ctrl_menu_list_descriptions[1], 32, "(%d known)", gVDB.adm_edds.num_elts);
+	isprintf(ctrl_menu_list_descriptions[2], 32, "(%d known)",  gVDB.adm_atomics.num_elts);
+	isprintf(ctrl_menu_list_descriptions[3], 32, "(%d known)",  gVDB.adm_ctrl_defs.num_elts);
+	isprintf(ctrl_menu_list_descriptions[4], 32, "(%d known)",  gVDB.macdefs.num_elts);
+	isprintf(ctrl_menu_list_descriptions[5], 32, "(%d known)",  gVDB.adm_ops.num_elts);
+	isprintf(ctrl_menu_list_descriptions[6], 32, "(%d known)",  gVDB.rpttpls.num_elts);
+	isprintf(ctrl_menu_list_descriptions[7], 32, "(%d known)",  gVDB.rules.num_elts);
+	isprintf(ctrl_menu_list_descriptions[8], 32, "(%d known)",  gVDB.adm_tblts.num_elts);
+	isprintf(ctrl_menu_list_descriptions[9], 32, "(%d known)",  gVDB.vars.num_elts);
 
 
 	while(ion_atomic_get(running))
@@ -1729,7 +1733,7 @@ void ui_ctrl_list_menu(ion_atomic_t *running)
 
 			default:
 				new_msg = 1;
-				sprintf(msg, "ERROR: Menu choice %d is not currently supported.", choice);
+				isprintf(msg, sizeof msg, "ERROR: Menu choice %d is not currently supported.", choice);
 			}
 
 		}
@@ -2152,16 +2156,16 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
 			{
 			case TYPE_CHECK_INT:
 			case TYPE_CHECK_NUM:
-				sprintf(tmp, "%i", *((int *) fields[i].parsed_value));
+				isprintf(tmp, sizeof tmp, "%i", *((int *) fields[i].parsed_value));
 				break;
 			case TYPE_CHECK_BOOL:
 				if ( (*((int*)fields[i].parsed_value)) == 1)
 				{
-					sprintf(tmp, "True");
+					isprintf(tmp, sizeof tmp, "%s", "True");
 				}
 				else
 				{
-					sprintf(tmp, "False");
+					isprintf(tmp, sizeof tmp, "%s", "False");
 				}
 				break;
 			default:
@@ -2491,7 +2495,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	// Quick Select Labels (TODO: support for menus with > 10 items)
 	for(i = 0; i < n_choices && n_choices <= 10; i++)
 	{
-		sprintf(label,"%hd.",i);
+		isprintf(label, sizeof label, "%hd.", i);
 		mvwprintw(my_menu_win, MENU_START_LINE+i, 1, label);
 	}
 
@@ -2631,7 +2635,7 @@ int ui_menu_listing(
 	{
 		for(i = 0; i < n_choices && n_choices < 10; i++)
 		{
-			sprintf(label,"%hd.",i);
+			isprintf(label, sizeof label, "%hd.", i);
 			mvwprintw(my_menu_win, MENU_START_LINE+i, 1, label);
 		}
 	}
