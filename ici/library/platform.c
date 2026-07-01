@@ -2839,8 +2839,8 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 		precision = -1;		/*	Indicates none.		*/
 
 		/*	Start extracting the field format so that
-		 *	we can use sprintf to figure out the length
-		 *	of the field.					*/
+		 *	we can safely use snprintf to format and
+		 *	determine the length of the field.		*/
 
 		fmt[0] = '%';
 		fmtLen = 1;
@@ -2862,7 +2862,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 			}
 			else
 			{
-				sprintf(scratchpad, "%d", minFieldLength);
+				snprintf(scratchpad, sizeof scratchpad, "%d", minFieldLength);
 				numLen = strlen(scratchpad);
 				memcpy(fmt + fmtLen, scratchpad, numLen);
 				fmtLen += numLen;
@@ -2891,7 +2891,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				}
 				else
 				{
-					sprintf(scratchpad, "%d", precision);
+					snprintf(scratchpad, sizeof scratchpad, "%d", precision);
 					numLen = strlen(scratchpad);
 					memcpy(fmt + fmtLen, scratchpad,
 							numLen);
@@ -3022,7 +3022,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 			if (stringLength + fieldLength < bufSize)
 			{
-				sprintf(buffer + stringLength, fmt, sval);
+				snprintf(buffer + stringLength, bufSize - stringLength, fmt, sval);
 				printLength += fieldLength;
 			}
 
@@ -3044,12 +3044,12 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 			if (isLongLong)
 			{
 				llval = va_arg(args, long long);
-				sprintf(scratchpad, fmt, llval);
+				snprintf(scratchpad, sizeof scratchpad, fmt, llval);
 			}
 			else
 			{
 				ival = va_arg(args, int);
-				sprintf(scratchpad, fmt, ival);
+				snprintf(scratchpad, sizeof scratchpad, fmt, ival);
 			}
 
 			break;
@@ -3060,13 +3060,13 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 		case 'g':
 		case 'G':
 			dval = va_arg(args, double);
-			sprintf(scratchpad, fmt, dval);
+			snprintf(scratchpad, sizeof scratchpad, fmt, dval);
 			break;
 
 		case 'p':
 			vpval = va_arg(args, void *);
 			uaddrval = (uaddr) vpval;
-			sprintf(scratchpad, ADDR_FIELDSPEC, uaddrval);
+			snprintf(scratchpad, sizeof scratchpad, ADDR_FIELDSPEC, uaddrval);
 			break;
 
 		default:		/*	Bad conversion char.	*/
