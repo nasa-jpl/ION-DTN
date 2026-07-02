@@ -49,7 +49,7 @@ typedef struct
 {
 	DtpcIndResult result;
 	char	     *srcEid;
-	unsigned int  length;
+	size_t	      length;
 	Object	      item;
 } DtpcDelivery;
 

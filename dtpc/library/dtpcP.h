@@ -173,7 +173,7 @@ typedef struct
 typedef struct
 {
 	Object		srcEid;		/*	SDR string		*/
-	unsigned int	length;
+	size_t		length;
 	Object		content;
 } DlvPayload;
 

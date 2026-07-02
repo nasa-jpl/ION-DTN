@@ -2581,19 +2581,19 @@ void	deletePlaceholder(Sdr sdr, Object aduElt)
 	sdr_list_delete(sdr, aduElt, NULL, NULL);
 }
 
-static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
-			unsigned char **cursor,	int buflen,
-			unsigned int *bytesUnparsed)
+static int parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
+		unsigned char **cursor, size_t buflen, size_t *bytesUnparsed,
+		size_t *parsedBytesOut)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	unsigned char	*buffer;
-	int		parsedBytes = 0;
-	int		bytesToRead;
-	int		bytesReceived;
+	size_t		parsedBytes = 0;
+	size_t		bytesToRead;
+	vast		bytesReceived;
 	uvast		topicNum;
 	uvast		recordsCounter;
-	uvast		payloadLength;
-	int		remainingLength;
+	size_t		payloadLength;
+	size_t		remainingLength;
 	int		sdnvLength;
 	char		skipTopic = 0;		/*	Boolean		*/
 	VSap		*vsap = 0;		/*	To hush gcc	*/
@@ -2622,7 +2622,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		if (bytesReceived < 0 || (bytesReceived == 0 && bytesToRead > 0))
 		{
 			putErrmsg("Error refilling buffer from ZCO.", NULL);
-			return -1;
+			return 0;
 		}
 
 		/*	The buffer is now filled with unparsed data	*/
@@ -2685,7 +2685,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 			{
 				putErrmsg("Error refilling buffer from ZCO.",
 						NULL);
-				return -1;
+				return 0;
 			}
 
 			/* The buffer is now filled with unparsed data	*/
@@ -2696,10 +2696,22 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 
 		/*	Get payload length				*/
 
-		sdnvLength = decodeSdnv(&payloadLength, *cursor);
+		uvast decodedLength;
+		sdnvLength = decodeSdnv(&decodedLength, *cursor);
 		*cursor += sdnvLength;
 		*bytesUnparsed -= sdnvLength;
 		parsedBytes += sdnvLength;
+
+		size_t sdrHeapSize = sdr_heap_size(sdr);
+		if (skipTopic == 0 && decodedLength > sdrHeapSize)
+		{
+			putErrmsg("DTPC payload length "
+				  "exceeds total size of SDR heap.",
+					NULL);
+			return 0;
+		}
+		payloadLength = (size_t) decodedLength;
+
 		if (skipTopic == 0)
 		{
 			payloadObj = sdr_malloc(sdr, payloadLength);
@@ -2707,7 +2719,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 			{
 				putErrmsg("Can't allocate SDR for payload.",
 						NULL);
-				return -1;
+				return 0;
 			}
 
 			addr = payloadObj;
@@ -2716,7 +2728,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		remainingLength = payloadLength;
 		while (remainingLength > 0)
 		{
-			if (remainingLength >= 0 && (unsigned int)remainingLength <= *bytesUnparsed)
+			if (remainingLength <= *bytesUnparsed)
 			{
 				/*	Remainder of payload is in
 				 *	the buffer.			*/
@@ -2731,7 +2743,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 					{
 						putErrmsg("Can't allocate SDR \
 for DlvPayload.", NULL);
-						return -1;
+						return 0;
 					}
 
 					dlvPayload.srcEid =
@@ -2776,15 +2788,14 @@ for DlvPayload.", NULL);
 				{
 					putErrmsg("Error refilling buffer from ZCO.",
 							NULL);
-					return -1;
+					return 0;
 				}
 				*bytesUnparsed = bytesReceived;
-				if (bytesReceived < buflen &&
-						remainingLength >= 0 &&
-						*bytesUnparsed < (unsigned int) remainingLength)
+				if (*bytesUnparsed < buflen &&
+						*bytesUnparsed < remainingLength)
 				{
 					writeMemoNote("[?] DTPC user data \
-item truncated", itoa(remainingLength - (*bytesUnparsed)));
+item truncated", sizetoa(remainingLength - (*bytesUnparsed)));
 					break;
 				}
 			}
@@ -2796,7 +2807,8 @@ item truncated", itoa(remainingLength - (*bytesUnparsed)));
 		sm_SemGive(vsap->semaphore);
 	}
 
-	return parsedBytes;
+	*parsedBytesOut = parsedBytes;
+	return 1;
 }
 
 int	parseInAdus(Sdr sdr)
@@ -2807,15 +2819,15 @@ int	parseInAdus(Sdr sdr)
 	Object		aggrObj;
 	Object		aduElt;
 	Object		aduObj;
-	int		remainingBytes;
-	unsigned int	bytesUnparsed;
-	vast		bytesReceived;
-	int		parsedBytes;
+	uvast		remainingBytes;	 /* Length of ZCO source data extents */
+	size_t		bytesUnparsed;	 /* Remaining bytes in buffer */
+	vast		bytesReceived;	 /* Intermediary for zco_receive_source */
+	size_t		parsedBytes = 0; /* Tracks bytes parsed by parseTopic */
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	Scalar		parsedSeqNum;
 	Scalar		tempScalar;
-	int		buflen;
+	size_t		buflen;
 	char		srcEid[SDRSTRING_BUFSZ];
 	ZcoReader	reader;
 			OBJ_POINTER(InAdu, inAdu);
@@ -2851,15 +2863,23 @@ int	parseInAdus(Sdr sdr)
 				break;	/*	Found gap		*/
 			}
 
-			remainingBytes = zco_source_data_length(sdr,
+			vast zcoDataLength = zco_source_data_length(sdr,
 					inAdu->aggregatedZCO);
+			if (zcoDataLength <= 0)
+			{
+				putErrmsg("Invalid or overflow ZCO data length.",
+						NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+			remainingBytes = (uvast) zcoDataLength;
 			if (remainingBytes > BUFMAXSIZE)
 			{
 				buflen = BUFMAXSIZE;
 			}
 			else
 			{
-				buflen = remainingBytes;
+				buflen = (size_t) remainingBytes;
 			}
 
 			buffer = MTAKE(buflen);
@@ -2887,9 +2907,10 @@ int	parseInAdus(Sdr sdr)
 			bytesUnparsed = bytesReceived;
 			while (remainingBytes)
 			{
-				parsedBytes = parseTopic(sdr, srcEid, &reader,
-					&cursor, buflen, &bytesUnparsed);
-				if (parsedBytes < 0)
+				int parseTopicRv = parseTopic(sdr, srcEid,
+						&reader, &cursor, buflen,
+						&bytesUnparsed, &parsedBytes);
+				if (!parseTopicRv)
 				{
 					putErrmsg("Can't parse adu topic.",
 							NULL);
@@ -2898,7 +2919,15 @@ int	parseInAdus(Sdr sdr)
 					return -1;
 				}
 
-				remainingBytes -= parsedBytes;
+				if (remainingBytes < parsedBytes ||
+						parsedBytes == 0)
+				{
+					remainingBytes = 0;
+				}
+				else
+				{
+					remainingBytes -= parsedBytes;
+				}
 			}
 
 			copyScalar(&parsedSeqNum, &inAdu->seqNum);
