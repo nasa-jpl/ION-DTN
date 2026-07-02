@@ -53,7 +53,7 @@ I<elisionFn> (if not NULL) is associated with this topic, and 0 is returned.
 Returns -1 on any error.
 
 =item int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid,
-unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
+unsigned int maxRtx, size_t aggrSizeLimit, unsigned int aggrTimeLimit,
 int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags,
 BpCustodySwitch custodySwitch, char *reportToEid, int classOfService,
 Object item, size_t length)

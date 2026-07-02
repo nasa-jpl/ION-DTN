@@ -147,7 +147,7 @@ typedef struct
 	unsigned int	profileID;
 	unsigned int	maxRtx;
 	unsigned int	lifespan;
-	unsigned int	aggrSizeLimit;
+	size_t		aggrSizeLimit;
 	unsigned int	aggrTimeLimit;
 	BpAncillaryData ancillaryData;
 	int		srrFlags;
@@ -184,7 +184,7 @@ extern int		_dtpcStart(void);
 extern void		_dtpcStop(void);
 extern int		dtpcAttach(void);
 extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
-				unsigned int aggrSizeLimit,
+				size_t aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				unsigned int lifespan,
 				BpAncillaryData *ancillaryData,
@@ -208,7 +208,7 @@ extern void		deleteAdu(Sdr sdr, Object aduElt);
 extern int		resendAdu(Sdr sdr, Object aduElt, time_t currentTime);
 extern int		addProfile(unsigned int profileID,
 				unsigned int maxRtx,
-				unsigned int aggrSizeLimit,
+				size_t aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				unsigned int lifespan,
 				char *svcClass,

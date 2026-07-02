@@ -12,6 +12,7 @@
 									*/
 
 #include "dtpcP.h"
+#include <stdint.h>
 
 #ifdef INPUT_HISTORY
 #include "linenoise.h"
@@ -141,7 +142,7 @@ static void	printProfile(Profile *vprofile)
 			vprofile->profileID, vprofile->maxRtx,
 			vprofile->lifespan);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "aggrSizeLimit: %u, aggTimeLimit: \
+	isprintf(buffer, sizeof buffer, "aggrSizeLimit: %zu, aggTimeLimit: \
 %u Priority: %d Custody: %d", vprofile->aggrSizeLimit, vprofile->aggrTimeLimit,
 			vprofile->classOfService, vprofile->custodySwitch);
 	printText(buffer);
@@ -245,7 +246,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		if (platform_parse_uvast(tokens[4], &p_aggrSize) < 0
-			|| p_aggrSize > UINT_MAX)
+			|| p_aggrSize > SIZE_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid aggrSizeLimit: %s", tokens[4]);
@@ -273,7 +274,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		oK(addProfile((unsigned int) p_id,
 				(unsigned int) p_maxRtx,
-				(unsigned int) p_aggrSize,
+				(size_t) p_aggrSize,
 				(unsigned int) p_aggrTime,
 				(unsigned int) p_ttl,
 				tokens[7], tokens[8], tokens[9]));

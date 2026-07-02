@@ -1523,7 +1523,7 @@ event.", NULL);
 	return 0;
 }
 
-unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
+unsigned int     dtpcGetProfile(unsigned int maxRtx, size_t aggrSizeLimit,
 			unsigned int aggrTimeLimit, unsigned int lifespan,
 			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
@@ -1625,7 +1625,7 @@ static void setFlags(int *srrFlags, char *flagString)
 }
 
 int	addProfile(unsigned int profileID, unsigned int maxRtx,
-		unsigned int aggrSizeLimit, unsigned int aggrTimeLimit,
+		size_t aggrSizeLimit, unsigned int aggrTimeLimit,
 		unsigned int lifespan, char *svcClass, char *reportToEid,
 		char *flags)
 {

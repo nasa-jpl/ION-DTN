@@ -10,6 +10,7 @@
 										*/
 
 #include "dtpcP.h"
+#include <stddef.h>
 
 typedef struct
 {
@@ -40,7 +41,7 @@ char    *dtpc_working_directory(void)
 }
 
 int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
-			unsigned int maxRtx, unsigned int aggrSizeLimit,
+			unsigned int maxRtx, size_t aggrSizeLimit,
 			unsigned int aggrTimeLimit, int lifespan,
 			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
