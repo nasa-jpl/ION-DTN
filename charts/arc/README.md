@@ -12,7 +12,7 @@ This is an umbrella chart that installs:
 ## Prerequisites
 
 1. Kubernetes cluster
-2. Helm 3.x
+2. Helm 4.x
 3. Two secrets defined in local file `secrets.local.yaml`:
    - `kind-cluster-secret` - for pulling images from enterprise registry
    - `githubtoken` - for GitHub API access
@@ -39,7 +39,7 @@ helm upgrade -i --reset-values --create-namespace --values=arc/secrets.local.yam
 
 | Parameter | Description | Default |
 | ----------- | ------------- | --------- |
-| `githubConfigUrl` | GitHub repository URL | `https://github.com/nasa-jpl/ion-ios-dev` |
+| `githubConfigUrl` | GitHub repository URL | `https://github.com/nasa-jpl/ION-DTN` |
 | `githubConfigSecret` | Name of the GitHub token secret | `githubToken` |
 | `imagePullSecrets` | Name of the image pull secret | `pullSecretData` |
 | `controller.enabled` | Enable controller installation | `true` |
@@ -180,3 +180,7 @@ kubectl get runners -n arc-runners
 ```bash
 kubectl get secrets -n arc-runners
 ```
+
+## ## Overriding Public Defaults
+
+The `charts/arc/secrets.yaml` file contains default configuration values for the Arc Chart. To override these values for a specific environment, create a `charts/arc/secrets.local.yaml` file and specify the desired overrides. This local file should not be committed to source control.

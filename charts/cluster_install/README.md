@@ -63,7 +63,7 @@ Run the playbook and select your configuration when prompted:
 
 ```bash
 # Deploy with ol8 configuration
-cd /ion_tests/ion-ios-dev/charts
+cd /ion_tests/ION-DTN/charts
 ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 # Enter: ol8
 
@@ -92,6 +92,10 @@ ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 - **rhel9**: Red Hat Enterprise Linux 9 - Enables only runnerScaleSet5 (RHEL9)
   - Deploys 2 pods: 1 controller + 1 listener
   - Requires kind-config.yaml for RHEL entitlements
+
+- **rtems**: Ubuntu 24 pod creates RTEMS pods as a sidecar - Enables only runnerScaleSetRtems
+  - Deploys 2 pods: 1 controller + 1 listener
+  - Does not require kind-config.yaml
 
 ## How It Works
 

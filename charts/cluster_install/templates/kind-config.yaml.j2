@@ -28,4 +28,8 @@ nodes:
 {% endif %}
 networking:
   disableDefaultCNI: false  # Use default kindnetd CNI for IP masquerade
+{% if config == "rhel8" %}
+  kubeProxyMode: "iptables"  # RHEL 8 only supports iptables
+{% else %}
   kubeProxyMode: "nftables"  # Use nftables mode for kube-proxy
+{% endif %}

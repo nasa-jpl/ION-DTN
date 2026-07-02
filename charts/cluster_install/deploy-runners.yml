@@ -17,11 +17,12 @@
       - ol8
       - rhel8
       - rhel9
+      - rtems
     charts_path: "{{ playbook_dir }}/.."
 
   vars_prompt:
     - name: config
-      prompt: "Select configuration (ol8, rhel8, rhel9)"
+      prompt: "Select configuration (ol8, rhel8, rhel9, rtems)"
       private: false
       default: ol8
 
