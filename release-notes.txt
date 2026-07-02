@@ -65,6 +65,56 @@ Features included:
 
 February 2026
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.2.0-b =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ION Open Source 4.2.0 beta.  Highlights of the changes since the 4.2.0-a.2
+alpha follow; see the git history for the complete list.
+
+Security:
+
+- Fixed a remotely triggerable denial of service (GHSA-27wg-h3xq-4p9g) in
+  BPv7 bundle acquisition.  A syntactically valid bundle whose payload block
+  carried the empty CBOR byte string (h'', 0x40) has a zero-length payload,
+  which is legal under RFC 9171.  acquireBundle() passed that length to
+  zco_clone(), which rejects a zero-length clone via CHKZERO(length > 0) in
+  zco.c, terminating the receiving process.  An unauthenticated sender could
+  crash any reachable induct that feeds bundle bytes into bpEndAcq() with a
+  single small datagram.  Zero-length payloads are now represented with an
+  empty inbound ZCO via zco_create(); nonzero-length payloads are unchanged.
+  A conformance regression (tests/conformance_test) injects the zero-length
+  payload bundle and verifies the node keeps acquiring traffic.
+
+Contact Graph Routing (CGR) reliability:
+
+- Fixed a series of use-after-free and dangling-handle defects in the CGR
+  route computation and teardown paths: centralized route-hops teardown to
+  resolve a contact<->route use-after-free, guarded stale contact and spur
+  waypoint citations during removeRoute, severed dangling rootOfSpur
+  references, and de-duplicated route-list migration to prevent duplicate
+  route citations.
+
+Build system:
+
+- Substantial configure.ac and Makefile.am overhaul: DGR, TC, BSSP, and
+  DTPC are now conditionally built; IMC support is honored consistently
+  across sources; AMS builds against libexpat were reworked; and several
+  stale conditionals and AC_ARG usages were cleaned up.  AC_INIT metadata
+  (package name and project URL) was corrected.
+
+RTEMS port:
+
+- Added an RTEMS BPv7 port under arch-rtems (build.sh, wscript), with CFDP,
+  DGR, BSSP, and AMS enabled in the minimal port, plus build-info and
+  memory-footprint diagnostics.
+
+Testing and CI:
+
+- The conformance test now polls for expected results instead of sampling
+  once after a fixed delay, and CI adds TCP, CFDP, and AMS loopback
+  scenario verification.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
