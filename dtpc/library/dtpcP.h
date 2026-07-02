@@ -20,8 +20,6 @@
 
 #define DTPC_SEND_SVC_NBR	(128)
 #define DTPC_RECV_SVC_NBR	(129)
-#define EPOCH_2000_SEC		946684800
-#define BUFMAXSIZE		(65536)
 
 /*	"Watch" switches for DTPC protocol operation.			*/
 #define WATCH_o			(1)

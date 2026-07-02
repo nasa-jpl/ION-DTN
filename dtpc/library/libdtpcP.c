@@ -28,6 +28,9 @@
 #include <string.h>
 #include <time.h>
 
+#define EPOCH_2000_SEC 946684800
+#define BUFMAXSIZE     (65536U)
+
 /*      *       *       Helpful utility functions       *       *       */
 
 static Object   _dtpcdbObject(Object *newDbObj)
