@@ -17,25 +17,8 @@
 extern "C" {
 #endif
 
-/*	Temporarily undefine ION's check macros (from platform.h) to
- *	allow BSL headers to define their own versions without error.	*/
-#ifdef CHKVOID
-#undef CHKVOID
-#endif
-#ifdef CHKNULL
-#undef CHKNULL
-#endif
-
 #include <BPSecLib_Private.h>
 #include <BPSecLib_Public.h>
-
-/*	Immediately undefine BSL's deprecated versions.		*/
-#undef CHKVOID
-#undef CHKNULL
-
-/*	Redefine using ION's versions (copied from platform.h).	*/
-#define CHKVOID(e)    if (!(e) && (iEnd(#e)||1)) return
-#define CHKNULL(e)    if (!(e) && (iEnd(#e)||1)) return NULL
 #include <CryptoInterface.h>
 #include <policy_provider/SamplePolicyProvider.h>
 #include <policy_provider/SamplePolicyConfigParser.h>
