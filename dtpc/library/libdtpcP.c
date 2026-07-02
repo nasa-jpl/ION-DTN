@@ -2748,7 +2748,9 @@ for DlvPayload.", NULL);
 					return -1;
 				}
 				*bytesUnparsed = bytesReceived;
-				if (remainingLength >= 0 && *bytesUnparsed < (unsigned int)remainingLength)
+				if (bytesReceived < buflen &&
+						remainingLength >= 0 &&
+						*bytesUnparsed < (unsigned int) remainingLength)
 				{
 					writeMemoNote("[?] DTPC user data \
 item truncated", itoa(remainingLength - (*bytesUnparsed)));
