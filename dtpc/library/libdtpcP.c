@@ -2751,7 +2751,7 @@ for DlvPayload.", NULL);
 				if (remainingLength >= 0 && *bytesUnparsed < (unsigned int)remainingLength)
 				{
 					writeMemoNote("[?] DTPC user data \
-item truncated", itoa((*bytesUnparsed) - remainingLength));
+item truncated", itoa(remainingLength - (*bytesUnparsed)));
 					break;
 				}
 			}
