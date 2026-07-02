@@ -8,6 +8,10 @@
 	Copyright (c) 2025, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  									*/
+
+#ifndef IONPATCH_H
+#define IONPATCH_H
+
 #include <sys/time.h>
 #include "ion.h"
 
@@ -32,3 +36,5 @@ extern void		*ion_bsl_malloc_cb(size_t);
 extern void		*ion_bsl_realloc_cb(void *, size_t);
 extern void		*ion_bsl_calloc_cb(size_t, size_t);
 extern void		ion_bsl_free_cb(void *);
+
+#endif /* IONPATCH_H */
