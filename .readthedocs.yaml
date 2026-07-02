@@ -10,7 +10,11 @@ build:
   jobs:
     pre_create_environment:
       # Install the required Perl module
-      - cpanm --from https://www.cpan.org MIME::Base32@1.303 URI@5.34 Pod::Markdown@3.400
+      # URI is pinned to a floor (>=), not an exact version: CPAN drops old point
+      # releases, so `URI@5.34` started failing once 5.35 shipped ("Found URI 5.35
+      # which doesn't satisfy == 5.34").  `~5.34` keeps the minimum while tolerating
+      # CPAN patch bumps.
+      - cpanm --from https://www.cpan.org MIME::Base32@1.303 URI~5.34 Pod::Markdown@3.400
       - chmod +x ./gh-pages/docs/convert-pod-to-md.sh
       - cd ./gh-pages/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
     install:
