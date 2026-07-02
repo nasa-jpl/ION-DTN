@@ -1,0 +1,426 @@
+name: RTEMS Multi-Version Build and Test
+
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: read
+
+on:
+  workflow_call:
+    inputs:
+      rtems_version:
+        description: "RTEMS version (6 or 7)"
+        required: false
+        type: string
+        default: ""
+      arch:
+        description: "Architecture (aarch64 or arm)"
+        required: false
+        type: string
+        default: ""
+      pr_number:
+        description:
+          Optional PR number to use for status reporting. If left blank, the
+          workflow will attempt to auto-detect it.
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout for build and tests in minutes (default: 30 minutes)"
+        required: false
+        type: number
+        default: 30
+
+  workflow_dispatch:
+    inputs:
+      rtems_version:
+        description: "RTEMS version (6, 7, or both)"
+        required: true
+        type: choice
+        options:
+          - "6"
+          - "7"
+          - "both"
+        default: "6"
+      arch:
+        description: "Architecture (aarch64, arm, or both)"
+        required: true
+        type: choice
+        options:
+          - "aarch64"
+          - "arm"
+          - "both"
+        default: "aarch64"
+      pr_number:
+        description:
+          Optional PR number to use for status reporting. If left blank, the
+          workflow will attempt to auto-detect it.
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout for build and tests in minutes (default: 30 minutes)"
+        required: false
+        type: number
+        default: 30
+
+  push:
+    branches:
+      - integration
+    paths:
+      - "arch-rtems/**"
+      - "ici/**"
+      - "ltp/**"
+      - "bpv7/**"
+      - "bssp/**"
+      - "ams/**"
+      - "cfdp/**"
+      - "dtpc/**"
+      - ".github/workflows/ci-rtems.yml"
+
+  pull_request:
+    paths:
+      - "arch-rtems/**"
+      - "ici/**"
+      - "ltp/**"
+      - "bpv7/**"
+      - "bssp/**"
+      - "ams/**"
+      - "cfdp/**"
+      - "dtpc/**"
+      - ".github/workflows/ci-rtems.yml"
+
+  merge_group:
+    branches:
+      - integration
+
+concurrency:
+  group: rtems-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+      timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
+      src_hash: ${{ steps.calculate-hash.outputs.hash }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Calculate Source Hash
+        id: calculate-hash
+        run: echo "hash=${{ hashFiles('arch-rtems/**', 'ici/**', 'ltp/**', 'bpv7/**', 'bssp/**', 'ams/**', 'cfdp/**', 'dtpc/**') }}" >> $GITHUB_OUTPUT
+
+      - name: Generate timestamp for artifacts
+        id: generate-timestamp
+        run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Generate test matrix
+        id: generate-matrix
+        env:
+          RTEMS_VER: ${{ inputs.rtems_version }}
+          ARCH: ${{ inputs.arch }}
+        run: |
+          # Validate inputs if provided (workflow_call triggers)
+          if [ -n "${{ env.RTEMS_VER }}" ]; then
+            if [[ ! "${{ env.RTEMS_VER }}" =~ ^(6|7|both)$ ]]; then
+              echo "::error::Invalid rtems_version: ${{ env.RTEMS_VER }}"
+              exit 1
+            fi
+          fi
+          if [ -n "${{ env.ARCH }}" ]; then
+            if [[ ! "${{ env.ARCH }}" =~ ^(aarch64|arm|both)$ ]]; then
+              echo "::error::Invalid arch: ${{ env.ARCH }}"
+              exit 1
+            fi
+          fi
+
+          # Determine which versions and architectures to test
+          if [ -n "${{ env.RTEMS_VER }}" ] && [ -n "${{ env.ARCH }}" ]; then
+            # Manual trigger: expand "both" into all values
+            if [ "${{ env.RTEMS_VER }}" = "both" ]; then
+              VERSIONS=("6" "7")
+            else
+              VERSIONS=("${{ env.RTEMS_VER }}")
+            fi
+
+            if [ "${{ env.ARCH }}" = "both" ]; then
+              ARCHS=("aarch64" "arm")
+            else
+              ARCHS=("${{ env.ARCH }}")
+            fi
+
+            # Build matrix from cartesian product of versions and archs
+            MATRIX="["
+            FIRST=true
+            for v in "${VERSIONS[@]}"; do
+              for a in "${ARCHS[@]}"; do
+                if [ "$FIRST" = true ]; then
+                  FIRST=false
+                else
+                  MATRIX+=", "
+                fi
+                MATRIX+="{\"rtems_version\": \"$v\", \"arch\": \"$a\"}"
+              done
+            done
+            MATRIX+="]"
+
+            echo "Manual trigger: testing RTEMS version(s) ${{ env.RTEMS_VER }} on arch(es) ${{ env.ARCH }}"
+          else
+            # Automatic trigger (PR/push/merge_group) → all 4 combinations
+            MATRIX='[{"rtems_version": "6", "arch": "aarch64"}, {"rtems_version": "6", "arch": "arm"}, {"rtems_version": "7", "arch": "aarch64"}, {"rtems_version": "7", "arch": "arm"}]'
+            echo "Automatic trigger: testing all RTEMS combinations"
+          fi
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Generated matrix:"
+          echo "$MATRIX" | jq .
+
+  build-and-test:
+    needs: setup
+    runs-on: arc-rtems
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      fail-fast: false
+
+    # Job-level container execution
+    container:
+      image: ${{ vars.RTEMS_ADDRESS }}:rtems${{ matrix.rtems_version }}-${{ matrix.arch }}
+      credentials:
+        username: ${{ secrets.RTEMS_USER }}
+        password: ${{ secrets.RTEMS_PASSWORD }}
+
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '30') }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Display environment information
+        run: |
+          echo "RTEMS Version: ${{ matrix.rtems_version }}"
+          echo "Architecture: ${{ matrix.arch }}"
+          echo "Working directory: $(pwd)"
+          echo "Runner: ${{ runner.name }}"
+
+      - name: Cache RTEMS build artifacts
+        id: cache-rtems-build
+        uses: actions/cache/restore@v5
+        with:
+          path: arch-rtems/build
+          key: rtems-build-${{ matrix.rtems_version }}-${{ matrix.arch }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            rtems-build-${{ matrix.rtems_version }}-${{ matrix.arch }}-${{ needs.setup.outputs.src_hash }}-
+
+      - name: Build ION for RTEMS
+        id: build
+        if: ${{ steps.cache-rtems-build.outputs.cache-matched-key == '' }}
+        timeout-minutes: 20
+        working-directory: arch-rtems
+        run: |
+          echo "Building ION for RTEMS ${{ matrix.rtems_version }} on ${{ matrix.arch }}"
+          echo "Cache status: MISS - building from source"
+
+          mkdir -p rtems-test-output
+          build-ion  > rtems-test-output/build-output.txt 2>&1 || {
+            BUILD_STATUS=$?
+            echo "Build failed with status $BUILD_STATUS" >&2
+            exit $BUILD_STATUS
+          }
+
+      - name: Save RTEMS build artifacts
+        # Only save a new cache if we actually had to build from scratch
+        if: steps.cache-rtems-build.outputs.cache-matched-key == ''
+        uses: actions/cache/save@v5
+        with:
+          path: arch-rtems/build
+          key: rtems-build-${{ matrix.rtems_version }}-${{ matrix.arch }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Test ION in QEMU
+        id: test
+        timeout-minutes: 2
+        working-directory: arch-rtems
+        shell: bash # Required for PIPESTATUS array to capture test-ion exit code
+        run: |
+          echo "Testing ION for RTEMS ${{ matrix.rtems_version }} on ${{ matrix.arch }} in QEMU"
+
+          # Ensure output directory exists
+          mkdir -p rtems-test-output
+
+          # Capture QEMU output - test-ion exits 0 on success (timeout 124) or failure
+          test-ion 2>&1 | tee rtems-test-output/qemu-output.txt
+          TEST_STATUS=${PIPESTATUS[0]}
+
+          if [ $TEST_STATUS -ne 0 ]; then
+            echo "test_failed=true" >> $GITHUB_OUTPUT
+            echo "QEMU test failed with exit code: $TEST_STATUS"
+            exit 1
+          else
+            echo "test_failed=false" >> $GITHUB_OUTPUT
+            echo "QEMU test completed successfully"
+          fi
+
+      - name: Verify test results
+        id: verify
+        if: steps.test.outputs.test_failed != 'true'
+        working-directory: arch-rtems
+        run: |
+          echo "Verifying QEMU output for RTEMS ${{ matrix.rtems_version }} on ${{ matrix.arch }}"
+
+          ../.github/scripts/rtems-verify-qemu-output.sh \
+            --qemu-output=rtems-test-output/qemu-output.txt \
+            --report-output=rtems-test-output/verification-report.txt
+
+          VERIFY_STATUS=$?
+          if [ $VERIFY_STATUS -ne 0 ]; then
+            echo "verification_failed=true" >> $GITHUB_OUTPUT
+            echo "Verification failed - see verification-report.txt for details"
+            exit 1
+          else
+            echo "verification_failed=false" >> $GITHUB_OUTPUT
+            echo "Verification passed"
+          fi
+
+      - name: Create test summary
+        if: always()
+        working-directory: arch-rtems
+        env:
+          PR: ${{ inputs.pr_number }}
+        run: |
+          cat > rtems-test-output/test-summary.txt << EOF
+          RTEMS ${{ matrix.rtems_version }} ${{ matrix.arch }} ION Test Summary
+          ================================
+          Date: $(date)
+          Workflow Run: ${{ github.run_id }}
+          PR Number: ${{ env.PR }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+
+          RTEMS Version: ${{ matrix.rtems_version }}
+          Architecture: ${{ matrix.arch }}
+
+          Build Status: ${{ steps.build.outcome == 'success' && 'SUCCESS' || 'SKIPPED/FAILED' }}
+          Test Status: ${{ steps.test.outputs.test_failed == 'true' && 'FAILED' || 'SUCCESS' }}
+          Verification Status: ${{ steps.verify.outputs.verification_failed == 'true' && 'FAILED' || 'SUCCESS' }}
+
+          Runner: ${{ runner.name }}
+          Container Image: ${{ vars.RTEMS_ADDRESS }}:rtems${{ matrix.rtems_version }}-${{ matrix.arch }}
+
+          Artifacts:
+          - build-output.txt: Build process output (waf configure and build)
+          - qemu-output.txt: QEMU execution output
+          - verification-report.txt: Verification script output
+          - test-summary.txt: This summary file
+          EOF
+
+          cat rtems-test-output/test-summary.txt
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rtems-test-results-rtems${{ matrix.rtems_version }}-${{ matrix.arch }}-${{ needs.setup.outputs.timestamp }}
+          path: arch-rtems/rtems-test-output/
+          if-no-files-found: warn
+
+      - name: Clean workspace for next job
+        if: always()
+        working-directory: arch-rtems
+        run: |
+          echo "Cleaning workspace for RTEMS ${{ matrix.rtems_version }} on ${{ matrix.arch }}"
+
+          # Clean waf lock files only - NOT build artifacts (needed for cache)
+          rm -rf .lock-waf* .waf-* .waf3-* || true
+
+          echo "✓ Workspace cleaned successfully"
+
+  aggregate-results:
+    name: "Aggregate RTEMS Test Results"
+    needs: [setup, build-and-test]
+    runs-on: arc-runner-set-u22
+    if: always()
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Download all RTEMS test artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "rtems-test-results-*-${{ needs.setup.outputs.timestamp }}"
+          path: all-artifacts
+          merge-multiple: false
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts for analysis:"
+
+          if [ ! -d all-artifacts ]; then
+            echo "::error::all-artifacts directory does not exist"
+            exit 1
+          fi
+
+          # Check for subdirectories (multiple artifacts) vs flat structure (single artifact)
+          ARTIFACT_DIRS=$(find all-artifacts -maxdepth 1 -type d -name "rtems-test-results-*" 2>/dev/null || true)
+          ARTIFACT_COUNT=$(echo "$ARTIFACT_DIRS" | grep -c "rtems-test-results" || true)
+
+          echo "=== Artifact Structure Detection ==="
+          if [ $ARTIFACT_COUNT -gt 0 ]; then
+            echo "Structure: Multiple artifacts (subdirectories)"
+            echo "Found $ARTIFACT_COUNT artifact directory(ies):"
+            echo "$ARTIFACT_DIRS" | while read dir; do
+              if [ -n "$dir" ]; then
+                echo "  - $(basename "$dir"): $(ls "$dir" 2>/dev/null | wc -l) files"
+              fi
+            done
+          elif [ -f all-artifacts/test-summary.txt ] || [ $(find all-artifacts -maxdepth 1 -type f | wc -l) -gt 0 ]; then
+            echo "Structure: Single artifact (flat - files directly in all-artifacts/)"
+            echo "Files found:"
+            ls -1 all-artifacts/ | sed 's/^/  - /'
+            echo
+            echo "Note: download-artifact@v8 extracts single artifacts directly to path."
+            echo "This is expected when only one matrix combination was run."
+          else
+            echo "::warning::No artifacts found - all matrix jobs may have failed before artifact upload"
+          fi
+
+      - name: Generate test summary
+        id: summary
+        run: |
+          echo "Generating test summary for all RTEMS combinations..."
+
+          .github/scripts/generate-test-summary.sh \
+            --platform rtems \
+            --artifact-pattern "all-artifacts/rtems-test-results-*"
+
+          echo "✓ Test summary generated successfully"
+
+      - name: Set PR status
+        if: github.event_name == 'pull_request' || inputs.pr_number != ''
+        uses: ./.github/actions/set-pr-status
+        with:
+          pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
+          context: "ci/rtems"
+          state: ${{ steps.summary.outputs.status }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload final bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: final-rtems-bundle-${{ needs.setup.outputs.timestamp }}
+          path: |
+            all-artifacts/
+          if-no-files-found: warn
+
+      - name: Clean up intermediate artifacts
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: rtems-test-results-*
+          failOnError: false

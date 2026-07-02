@@ -393,7 +393,7 @@ rtems-verify-qemu-output.sh --qemu-output=<file> --report-output=<file>
 
 **Used By:**
 
-- [`.github/workflows/ci-rtems61-aarch64-libbsd.yml`](../workflows/ci-rtems61-aarch64-libbsd.yml)
+- [`.github/workflows/ci-rtems.yml`](../workflows/ci-rtems.yml)
   (verify step, QEMU output verification)
 
 **Example:**

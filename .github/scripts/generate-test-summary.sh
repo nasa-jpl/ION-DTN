@@ -12,41 +12,41 @@ TOTAL_BATCHES=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --platform)
-            PLATFORM="$2"
-            shift 2
-            ;;
-        --artifact-pattern)
-            ARTIFACT_PATTERN="$2"
-            shift 2
-            ;;
-        --active-runners)
-            ACTIVE_RUNNERS="$2"
-            shift 2
-            ;;
-        --is-cancelled)
-            IS_CANCELLED="true"
-            shift 2
-            ;;
-        --total-batches)
-            TOTAL_BATCHES="$2"
-            shift 2
-            ;;
-        *)
-            echo "ERROR: Unknown argument $1" >&2
-            echo "Usage: $0 --platform (arc|solaris) \\" >&2
-            echo "       [--artifact-pattern <pattern>] \\" >&2
-            echo "       [--active-runners <count>] \\" >&2
-            echo "       [--is-cancelled] \\" >&2
-            echo "       [--total-batches <batch_count>]" >&2
-            exit 1
-            ;;
+    --platform)
+        PLATFORM="$2"
+        shift 2
+        ;;
+    --artifact-pattern)
+        ARTIFACT_PATTERN="$2"
+        shift 2
+        ;;
+    --active-runners)
+        ACTIVE_RUNNERS="$2"
+        shift 2
+        ;;
+    --is-cancelled)
+        IS_CANCELLED="true"
+        shift 2
+        ;;
+    --total-batches)
+        TOTAL_BATCHES="$2"
+        shift 2
+        ;;
+    *)
+        echo "ERROR: Unknown argument $1" >&2
+        echo "Usage: $0 --platform (arc|solaris|rtems) \\" >&2
+        echo "       [--artifact-pattern <pattern>] \\" >&2
+        echo "       [--active-runners <count>] \\" >&2
+        echo "       [--is-cancelled] \\" >&2
+        echo "       [--total-batches <batch_count>]" >&2
+        exit 1
+        ;;
     esac
 done
 
 # Validate platform
-if [[ "$PLATFORM" != "arc" && "$PLATFORM" != "solaris" ]]; then
-    echo "ERROR: Invalid platform '$PLATFORM'. Must be 'arc' or 'solaris'." >&2
+if [[ "$PLATFORM" != "arc" && "$PLATFORM" != "solaris" && "$PLATFORM" != "rtems" ]]; then
+    echo "ERROR: Invalid platform '$PLATFORM'. Must be 'arc', 'solaris', or 'rtems'." >&2
     exit 1
 fi
 
@@ -78,26 +78,47 @@ if [[ "$PLATFORM" == "solaris" ]]; then
         echo "## 📊 Solaris Test Overview"
         echo "| Batch | Result | Failed Tests | Skipped Tests |"
         echo "|-------|--------|--------------|---------------|"
-    } >> "$GITHUB_STEP_SUMMARY"
+    } >>"$GITHUB_STEP_SUMMARY"
+elif [[ "$PLATFORM" == "rtems" ]]; then
+    {
+        echo "## 📊 RTEMS Test Overview"
+        echo "| RTEMS Version | Architecture | Build | Verification | Result |"
+        echo "|---------------|--------------|-------|--------------|--------|"
+    } >>"$GITHUB_STEP_SUMMARY"
 else
     {
         echo "## 📊 Arc Test Overview"
         echo "| Runner | Batch | Result | Failed Tests | Skipped Tests |"
         echo "|--------|-------|--------|--------------|---------------|"
-    } >> "$GITHUB_STEP_SUMMARY"
+    } >>"$GITHUB_STEP_SUMMARY"
 fi
 
 OVERALL_STATUS="success"
 FOUND_ANY_RESULTS=false
 
 # For arc: collect per-runner status
-declare -A runner_status  # runner -> success/failure
-declare -A runner_failed  # runner -> comma-separated failed tests
-declare -A processed_batches # solaris batch tracking to help with cancelled workflows
+declare -A runner_status         # runner -> success/failure
+declare -A runner_failed         # runner -> comma-separated failed tests
+declare -A processed_batches     # solaris batch tracking to help with cancelled workflows
 declare -A processed_arc_batches # arc batch tracking
 
-# Loop through all artifact directories
+# Check if we have subdirectories or a flat structure
+ARTIFACT_DIRS=()
 for dir in ${ARTIFACT_PATTERN}; do
+    if [ -d "$dir" ]; then
+        ARTIFACT_DIRS+=("$dir")
+    fi
+done
+
+# Handle flat structure (single artifact extracted directly to path)
+# This happens when download-artifact@v8 downloads only ONE artifact
+if [ ${#ARTIFACT_DIRS[@]} -eq 0 ] && ([ -f "all-artifacts/test-summary.txt" ] || [ $(find all-artifacts -maxdepth 1 -type f 2>/dev/null | wc -l) -gt 0 ]); then
+    echo "Detected flat artifact structure (single artifact)"
+    ARTIFACT_DIRS=("all-artifacts")
+fi
+
+# Loop through all artifact directories
+for dir in "${ARTIFACT_DIRS[@]}"; do
     if [ -d "$dir" ]; then
         FOUND_ANY_RESULTS=true
 
@@ -133,9 +154,9 @@ for dir in ${ARTIFACT_PATTERN}; do
             fi
 
             # Append row to table
-            echo "| Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >>"$GITHUB_STEP_SUMMARY"
 
-        else
+        elif [[ "$PLATFORM" == "arc" ]]; then
             # Arc: extract runner and batch from artifact name
             # Expected pattern: test-results-arc-runner-set-{os_name}-{timestamp}-batch-{N}
             # where {timestamp} is YYYYMMDD-HHMMSS and {os_name} is u22, u24, ol8, etc.
@@ -207,19 +228,85 @@ for dir in ${ARTIFACT_PATTERN}; do
             fi
 
             # Append row to table
-            echo "| $RUNNER | Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| $RUNNER | Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >>"$GITHUB_STEP_SUMMARY"
+
+        else
+            # RTEMS: extract version and architecture from artifact name or test-summary.txt
+            BASENAME=$(basename "$dir")
+
+            # Try to extract from directory name first
+            if [[ "$BASENAME" =~ rtems([0-9]+)-([a-z0-9]+) ]]; then
+                RTEMS_VERSION="${BASH_REMATCH[1]}"
+                ARCH="${BASH_REMATCH[2]}"
+            elif [ -f "$dir/test-summary.txt" ]; then
+                # Flat structure: extract using awk and default to '?' if missing or empty
+                RTEMS_VERSION=$(awk '/^RTEMS Version:/ {print $3}' "$dir/test-summary.txt" 2>/dev/null)
+                ARCH=$(awk '/^Architecture:/ {print $2}' "$dir/test-summary.txt" 2>/dev/null)
+
+                # Apply fallback if extraction returned an empty result
+                RTEMS_VERSION="${RTEMS_VERSION:-?}"
+                ARCH="${ARCH:-?}"
+            else
+                # Fallback: unknown
+                RTEMS_VERSION="?"
+                ARCH="?"
+            fi
+
+            # Parse verification report for overall status
+            VERIFICATION_REPORT="$dir/verification-report.txt"
+            BUILD_STATUS="❓"
+            VERIFY_STATUS="❓"
+            OVERALL_RESULT="❓ unknown"
+
+            if [ -f "$VERIFICATION_REPORT" ]; then
+                if grep -q "OVERALL RESULT: PASSED" "$VERIFICATION_REPORT"; then
+                    BUILD_STATUS="✅"
+                    VERIFY_STATUS="✅"
+                    OVERALL_RESULT="✅ pass"
+                elif grep -q "OVERALL RESULT: FAILED" "$VERIFICATION_REPORT"; then
+                    BUILD_STATUS="✅" # Build succeeded if we got to verification
+                    VERIFY_STATUS="❌"
+                    OVERALL_RESULT="❌ fail"
+                    OVERALL_STATUS="failure"
+                else
+                    # Verification report exists but no result line (incomplete)
+                    BUILD_STATUS="✅"
+                    VERIFY_STATUS="❓"
+                    OVERALL_RESULT="❌ incomplete"
+                    OVERALL_STATUS="failure"
+                fi
+            else
+                # No verification report - check for build output
+                BUILD_OUTPUT="$dir/build-output.txt"
+                if [ -f "$BUILD_OUTPUT" ]; then
+                    # Build output exists but no verification - likely build failure
+                    BUILD_STATUS="❌"
+                    VERIFY_STATUS="-"
+                    OVERALL_RESULT="❌ build failed"
+                    OVERALL_STATUS="failure"
+                else
+                    # No artifacts at all - test job may have crashed
+                    BUILD_STATUS="-"
+                    VERIFY_STATUS="-"
+                    OVERALL_RESULT="❌ no results"
+                    OVERALL_STATUS="failure"
+                fi
+            fi
+
+            # Append row to table
+            echo "| $RTEMS_VERSION | $ARCH | $BUILD_STATUS | $VERIFY_STATUS | $OVERALL_RESULT |" >>"$GITHUB_STEP_SUMMARY"
         fi
     fi
 done
 
 if [[ "$PLATFORM" == "solaris" ]] && [ -n "$TOTAL_BATCHES" ]; then
-    for (( i=1; i<=TOTAL_BATCHES; i++ )); do
+    for ((i = 1; i <= TOTAL_BATCHES; i++)); do
         if [ -z "${processed_batches[$i]:-}" ]; then
             if [ "$IS_CANCELLED" == "true" ]; then
-                echo "| Batch $i | ⚠️ cancelled | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                echo "| Batch $i | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
                 OVERALL_STATUS="pending"
             else
-                echo "| Batch $i | ❌ missing | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                echo "| Batch $i | ❌ missing | - | - |" >>"$GITHUB_STEP_SUMMARY"
                 OVERALL_STATUS="failure"
             fi
         fi
@@ -236,18 +323,18 @@ if [[ "$PLATFORM" == "arc" ]] && [ -n "$ACTIVE_RUNNERS" ] && [ "$ACTIVE_RUNNERS"
 
         # Check for missing batches if TOTAL_BATCHES is provided
         if [ -n "$TOTAL_BATCHES" ]; then
-            for (( i=1; i<=TOTAL_BATCHES; i++ )); do
+            for ((i = 1; i <= TOTAL_BATCHES; i++)); do
                 if [ -z "${processed_arc_batches["${short_runner}-${i}"]:-}" ]; then
                     if [ "$IS_CANCELLED" == "true" ]; then
                         OVERALL_STATUS="pending"
                         runner_status[$short_runner]="pending"
                         runner_failed[$short_runner]="Workflow cancelled"
-                        echo "| $short_runner | Batch $i | ⚠️ cancelled | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                        echo "| $short_runner | Batch $i | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
                     else
                         OVERALL_STATUS="failure"
                         runner_status[$short_runner]="failure"
                         runner_failed[$short_runner]="Runner crashed or failed to report"
-                        echo "| $short_runner | Batch $i | ❌ missing | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                        echo "| $short_runner | Batch $i | ❌ missing | - | - |" >>"$GITHUB_STEP_SUMMARY"
                     fi
                 fi
             done
@@ -261,16 +348,28 @@ if [ "$FOUND_ANY_RESULTS" = "false" ] && [ "$IS_CANCELLED" = "false" ]; then
     OVERALL_STATUS="failure"
 
     if [[ "$PLATFORM" == "solaris" ]]; then
-        echo "| N/A | ❌ no results | - | - |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
+    elif [[ "$PLATFORM" == "rtems" ]]; then
+        echo "| N/A | N/A | - | - | ❌ no results |" >>"$GITHUB_STEP_SUMMARY"
     else
-        echo "| N/A | N/A | ❌ no results | - | - |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| N/A | N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
     fi
 fi
 
 # Output status based on platform
-if [[ "$PLATFORM" == "solaris" ]]; then
+if [[ "$PLATFORM" == "rtems" ]]; then
+    # RTEMS: simple overall status (no per-runner payload needed)
+    echo "status=$OVERALL_STATUS" >>"$GITHUB_OUTPUT"
+
+    if [ "$OVERALL_STATUS" = "failure" ]; then
+        echo "One or more RTEMS matrix combinations failed"
+    else
+        echo "All RTEMS matrix combinations passed"
+    fi
+
+elif [[ "$PLATFORM" == "solaris" ]]; then
     # Solaris: single overall status
-    echo "status=$OVERALL_STATUS" >> "$GITHUB_OUTPUT"
+    echo "status=$OVERALL_STATUS" >>"$GITHUB_OUTPUT"
 
     if [ "$OVERALL_STATUS" = "failure" ]; then
         echo "Tests FAILED"
@@ -327,7 +426,7 @@ else
     {
         echo "status=$OVERALL_STATUS"
         echo "status_payload=$STATUS_PAYLOAD"
-    } >> "$GITHUB_OUTPUT"
+    } >>"$GITHUB_OUTPUT"
 
     if [ "$OVERALL_STATUS" = "failure" ]; then
         echo "Tests FAILED (see per-runner status)"
