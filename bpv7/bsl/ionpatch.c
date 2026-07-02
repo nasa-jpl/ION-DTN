@@ -10,35 +10,24 @@
  */
 
 #include "ionpatch.h"
+#include "ion.h"
+#include <stddef.h>
+#include <string.h>
 
-extern void	*ion_malloc(const char *file, int line, size_t size)
+void	*ion_bsl_malloc_cb(size_t size)
 {
-#if 0
-	writeMemo("[i] ION BSL_MALLOC called.");
-#endif
-	return allocFromIonMemory(file, line, size);
+	return allocFromIonMemory(__FILE__, __LINE__, size);
 }
 
-extern void	*ion_calloc(const char *file, int line, size_t ct, size_t size)
-{
-#if 0
-	writeMemo("[i] ION BSL_CALLOC called.");
-#endif
-	return allocFromIonMemory(file, line, ct * size);
-}
-
-extern void	*ion_realloc(const char *file, int line, void *mem, size_t size)
+void	*ion_bsl_realloc_cb(void *ptr, size_t size)
 {
 	void	*newMem;
-#if 0
-	writeMemo("[?] ION's dubious function for BSL_REALLOC invoked.");
-	printStackTrace();
-#endif
-	/*	Note that this function is of no use to the 
+
+	/*	Note that this function is of no use to the
 	 *	BSL_BundleCtx_ReallocBTSD function, since
 		ION stores extension blocks in the SDR heap
 		rather than in system memory.
-	 
+
 	 	Note also that the ION implementation of this
 		function does not work in the way that standard
 		realloc() works.  The space immediately adjacent
@@ -52,49 +41,31 @@ extern void	*ion_realloc(const char *file, int line, void *mem, size_t size)
 
 	if (size == 0)
 	{
-		if (mem)
+		if (ptr)
 		{
-			releaseToIonMemory(file, line, mem);
+			releaseToIonMemory(__FILE__, __LINE__, ptr);
 		}
 
 		newMem = NULL;
 	}
 	else
 	{
-		newMem = allocFromIonMemory(file, line, size);
+		newMem = allocFromIonMemory(__FILE__, __LINE__, size);
 		if (newMem == NULL)
 		{
-			newMem = mem;	/*	Retain orginal data.	*/
+			newMem = ptr;	/*	Retain orginal data.	*/
 		}
 		else	/*	New memory block was obtained.		*/
 		{
-			if (mem)
+			if (ptr)
 			{
-				memcpy(newMem, mem, size);
-				releaseToIonMemory(file, line, mem);
+				memcpy(newMem, ptr, size);
+				releaseToIonMemory(__FILE__, __LINE__, ptr);
 			}
 		}
 	}
 
 	return newMem;
-}
-
-extern void	ion_free(const char *file, int line,  void *mem)
-{
-#if 0
-	writeMemo("[i] ION BSL_FREE called.");
-#endif
-	releaseToIonMemory(file, line, mem);
-}
-
-void	*ion_bsl_malloc_cb(size_t size)
-{
-	return allocFromIonMemory(__FILE__, __LINE__, size);
-}
-
-void	*ion_bsl_realloc_cb(void *ptr, size_t size)
-{
-	return ion_realloc(__FILE__, __LINE__, ptr, size);
 }
 
 void	*ion_bsl_calloc_cb(size_t nmemb, size_t size)

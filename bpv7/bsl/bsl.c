@@ -165,7 +165,7 @@ static int	getBlockNumbersFromSdr(Bundle *bundle,
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	canonicalBlockCount = 1	+ sdr_list_length(sdr, bundle->extensions);
-	result_primary_block->block_numbers = BSL_CALLOC(canonicalBlockCount,
+	result_primary_block->block_numbers = BSL_calloc(canonicalBlockCount,
 			sizeof(uint64_t));
 	if (!result_primary_block->block_numbers)
 	{
@@ -209,7 +209,7 @@ static int	getBlockNumbersFromRAM(AcqWorkArea *work,
 	AcqExtBlock	*blk;
 
 	canonicalBlockCount = 1	+ lyst_length(work->extBlocks);
-	result_primary_block->block_numbers = BSL_CALLOC(canonicalBlockCount,
+	result_primary_block->block_numbers = BSL_calloc(canonicalBlockCount,
 			sizeof(uint64_t));
 	if (!result_primary_block->block_numbers)
 	{
@@ -307,16 +307,16 @@ static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 	if (destinationEidLength < 1 || sourceEidLength < 1 || reportToEidLength
 			< 1)
 	{
-		BSL_FREE(result_primary_block->block_numbers);
+		BSL_free(result_primary_block->block_numbers);
 		return -2;
 	}
 
 	maxPrimaryBlockLength = 50 + destinationEidLength + sourceEidLength
 			+ reportToEidLength;
-	buffer = BSL_CALLOC(1, maxPrimaryBlockLength);
+	buffer = BSL_calloc(1, maxPrimaryBlockLength);
 	if (buffer == NULL)
 	{
-		BSL_FREE(result_primary_block->block_numbers);
+		BSL_free(result_primary_block->block_numbers);
 		return -2;
 	}
 
@@ -333,13 +333,13 @@ static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 	if (BSL_Data_InitBuffer(&result_primary_block->encoded,
 			cursor - buffer) != BSL_SUCCESS)
 	{
-		BSL_FREE(result_primary_block->block_numbers);
-		BSL_FREE(buffer);
+		BSL_free(result_primary_block->block_numbers);
+		BSL_free(buffer);
 		return -2;
 	}
 
 	memcpy(result_primary_block->encoded.ptr, buffer, cursor - buffer);
-	BSL_FREE(buffer);	/*	Free temporary serialization buffer.	*/
+	BSL_free(buffer);	/*	Free temporary serialization buffer.	*/
 	return 0;
 }
 
@@ -699,7 +699,7 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 		char	msgbuf[128];
 
 		isprintf(msgbuf, sizeof msgbuf,
-			"[BSL-REALLOC] Block %lu: requested size=%lu",
+			"[BSL-realloc] Block %lu: requested size=%lu",
 			(unsigned long) block_num,
 			(unsigned long) bytesize);
 		writeMemo(msgbuf);
@@ -709,7 +709,7 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	 *	zco_revise() handles dynamic expansion, so no realloc needed.	*/
 	if (block_num == 1)
 	{
-		writeMemo("[BSL-REALLOC] Block 1 (payload): zco_revise will handle expansion");
+		writeMemo("[BSL-realloc] Block 1 (payload): zco_revise will handle expansion");
 		return 0;	/*	Success - no action needed	*/
 	}
 
@@ -800,7 +800,7 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 		char	msgbuf[128];
 
 		isprintf(msgbuf, sizeof msgbuf,
-			"[BSL-REALLOC] Block %lu: OLD len=%d NEW len=%lu bytes=%lu overhead_delta=%d",
+			"[BSL-realloc] Block %lu: OLD len=%d NEW len=%lu bytes=%lu overhead_delta=%d",
 			(unsigned long) block_num, oldSize,
 			(unsigned long) bytesize,
 			(unsigned long) newBytesObj, overhead_delta);
@@ -830,12 +830,12 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 
 	if (found_block->btsd == NULL)
 	{
-		found_block->btsd	 = BSL_CALLOC(1, bytesize);
+		found_block->btsd	 = BSL_calloc(1, bytesize);
 		found_block->btsd_len = bytesize;
 	}
 	else
 	{
-		found_block->btsd	 = BSL_REALLOC(found_block->btsd, bytesize);
+		found_block->btsd	 = BSL_realloc(found_block->btsd, bytesize);
 		found_block->btsd_len = bytesize;
 	}
 
@@ -847,7 +847,7 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 static void	destroyBtsdIoRef(void *user_data)
 {
 	CHKVOID(user_data);
-	BSL_FREE(user_data);
+	BSL_free(user_data);
 }
 
 static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
@@ -1050,12 +1050,12 @@ static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 		return NULL;
 	}
 
-	reader = (BSL_SeqReader_t *) BSL_CALLOC(1, sizeof(BSL_SeqReader_t));
+	reader = (BSL_SeqReader_t *) BSL_calloc(1, sizeof(BSL_SeqReader_t));
 	CHKNULL(reader);
-	ref = (BtsdIoRef *) BSL_MALLOC(sizeof(BtsdIoRef));
+	ref = (BtsdIoRef *) BSL_malloc(sizeof(BtsdIoRef));
 	if (ref == NULL)
 	{
-		BSL_FREE(reader);
+		BSL_free(reader);
 		return NULL;
 	}
 
@@ -1333,12 +1333,12 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 	 *	(extension blocks and payload), not primary block.
 	 *	The primary block has no BTSD.				*/
 
-	writer = (BSL_SeqWriter_t *) BSL_CALLOC(1, sizeof(BSL_SeqWriter_t));
+	writer = (BSL_SeqWriter_t *) BSL_calloc(1, sizeof(BSL_SeqWriter_t));
 	CHKNULL(writer);
-	ref = (BtsdIoRef *) BSL_MALLOC(sizeof(BtsdIoRef));
+	ref = (BtsdIoRef *) BSL_malloc(sizeof(BtsdIoRef));
 	if (ref == NULL)
 	{
-		BSL_FREE(writer);
+		BSL_free(writer);
 		return NULL;
 	}
 
@@ -1375,7 +1375,7 @@ static void	ion_bsl_eid_load(void *user_data _U_,
 {
 	CHKVOID(eidWrapper);
 	memset(eidWrapper, 0, sizeof(BSL_HostEID_t));
-	eidWrapper->handle = BSL_MALLOC(sizeof(EndpointId));
+	eidWrapper->handle = BSL_malloc(sizeof(EndpointId));
 	if (!(eidWrapper->handle))
 	{
 		return;
@@ -1391,7 +1391,7 @@ static void	ion_bsl_eid_unload(void *user_data _U_,
 	if (eidWrapper->handle)
 	{
 		ion_bsl_eid_deinit(eidWrapper->handle);
-		BSL_FREE(eidWrapper->handle);
+		BSL_free(eidWrapper->handle);
 	}
 
 	memset(eidWrapper, 0, sizeof(BSL_HostEID_t));
@@ -2027,7 +2027,7 @@ static int	initializeAgent(BslAgent *agent)
 
 	for (i = 0, ctx = ctxs[0]; i < 4; i++, ctx++)
 	{
-		ctx->bsl = BSL_CALLOC(1, BSL_LibCtx_Sizeof());
+		ctx->bsl = BSL_calloc(1, BSL_LibCtx_Sizeof());
 		if (BSL_API_InitLib(ctx->bsl))
 		{
 			BSL_LOG_ERR("Failed BSL_API_InitLib()");
@@ -2225,7 +2225,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 	 *	occupied by the argument object.  No system memory
 	 *	is allocated at any time.				*/
 
-	descriptors = BSL_MALLOC(sizeof(BSL_HostDescriptors_t));
+	descriptors = BSL_malloc(sizeof(BSL_HostDescriptors_t));
 	if (descriptors == NULL)
 	{
 		writeMemo("[?] Can't create Bsl host descriptors object.");
@@ -2235,7 +2235,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 	descriptors->user_data = agent;
 	loadCallbacks(descriptors);
 	result = BSL_HostDescriptors_Set(*descriptors);	/*	Value.	*/
-	BSL_FREE(descriptors);
+	BSL_free(descriptors);
 	if (result < 0)
 	{
 		bslCleanup(agent);
@@ -2304,8 +2304,8 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	(void)agent;	/*	Unused parameter			*/
 	BSL_BundleRef_t			bundle_ref;
 
-	malloced_action_set = BSL_CALLOC(1, BSL_SecurityActionSet_Sizeof());
-	malloced_response_set = BSL_CALLOC(1, BSL_SecurityResponseSet_Sizeof());
+	malloced_action_set = BSL_calloc(1, BSL_SecurityActionSet_Sizeof());
+	malloced_response_set = BSL_calloc(1, BSL_SecurityResponseSet_Sizeof());
 	bundle_ref.data = bundleWorkArea;
 	if (pthread_mutex_lock(&ctx->mutex))
 	{
@@ -2492,8 +2492,8 @@ block.", NULL);
 	}
 
 	BSL_SecurityActionSet_Deinit(malloced_action_set);
-	BSL_FREE(malloced_action_set);
-	BSL_FREE(malloced_response_set);
+	BSL_free(malloced_action_set);
+	BSL_free(malloced_response_set);
 	BSL_LOG_INFO("result code %d", returncode);
 	return returncode;
 }
@@ -2535,7 +2535,7 @@ void	bslCleanup(BslAgent *agent)
 				BSL_LOG_ERR("Failed BSL_API_DeinitLib()");
 			}
 
-			BSL_FREE(ctx->bsl);
+			BSL_free(ctx->bsl);
 			ctx->bsl = NULL;
 		}
 	}
