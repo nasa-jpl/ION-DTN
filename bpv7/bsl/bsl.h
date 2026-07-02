@@ -10,8 +10,8 @@
 
 	Author: Scott Burleigh
 									*/
-#ifndef _BSL_H_
-#define _BSL_H_
+#ifndef BSL_H
+#define BSL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,4 +69,4 @@ void	bslCleanup(BslAgent *agent);
 }
 #endif
 
-#endif  /* _BSL_H_ */
+#endif /* BSL_H */
