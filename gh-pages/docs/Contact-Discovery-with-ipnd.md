@@ -38,6 +38,41 @@ flowchart TD
 
 ---
 
+## Specification basis and status
+
+ION's `ipnd` implements the IETF/IRTF **"DTN IP Neighbor Discovery (IPND)"**
+Internet-Draft (`draft-irtf-dtnrg-ipnd`, November 2012 revision; the source cites
+it directly in `bpv7/ipnd/helper.c`). It emits beacon **version 4** and accepts
+versions 2 and 4, using the draft's service-block TLV data types.
+
+!!! warning "IPND is experimental — it never became an RFC"
+    The IPND draft was an IRTF DTN Research Group work item that **expired without
+    ever being published as an RFC** (unlike Bundle Protocol v7 itself, which is
+    RFC 9171, or BPSec, RFC 9172). Treat ION's `ipnd` as an **experimental /
+    reference implementation** of an unratified protocol, not a standards-track,
+    actively-maintained one. Do not assume interoperability with other IPND
+    implementations, and pin critical links with static configuration.
+
+**Where the lasting value is.** The important, reusable part of this subsystem is
+*not* the beacon wire format — it is the pair of **neighbor-discovery
+contact-management APIs** that `ipnd` exercises:
+
+- **eureka** — `bp_discovery_acquired()` / `bp_discovery_lost()`: given only a
+  neighbor's EID, CL protocol, and socket, ION creates or tears down the induct,
+  outduct, egress plan, and discovered contact automatically.
+- **saga** — encounter history and predicted-contact generation
+  (`saga_insert` / `saga_receive` / `saga_ingest`).
+
+`ipnd` is just *one* front-end that decides *when* a neighbor is up or down. Any
+other source of that signal — a different discovery protocol, a radio's
+link-state indication, an SDN/orbit-propagator controller, a GPS-triggered
+rendezvous, or your own daemon — can drive the **same** eureka/saga APIs and get
+identical automatic duct/plan/contact management. Read this document as much for
+those APIs as for `ipnd` itself: if you are building opportunistic-contact
+support on ION, that is the integration surface to target.
+
+---
+
 ## The two layers
 
 ### eureka — live ducts, plans, and *discovered* contacts
