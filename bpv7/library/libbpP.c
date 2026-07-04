@@ -8250,8 +8250,16 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	/*	Store the EID and return length parsed.  There must
 	 *	be an easier way to do all this.			*/
 
-	/* Return 0 if parseEidString failed to parse the EID. */
-	CHKZERO(parseEidString(eidString, &metaEid, &vscheme,&elt));
+	/*	Treat an unparsable EID as a malformed bundle rather than
+	 *	asserting on it: eidString is composed from attacker-
+	 *	supplied primary-block bytes, and CHKZERO() would call
+	 *	iEnd() (aborting the process on core-file-needed builds),
+	 *	giving a remote, unauthenticated denial of service.	*/
+	if (parseEidString(eidString, &metaEid, &vscheme, &elt) == 0)
+	{
+		writeMemo("[?] Can't parse acquired endpoint ID.");
+		return 0;	/*	Malformed.			*/
+	}
 	if (jotEid(eid, &metaEid) < 0)
 	{
 		clearMetaEid(&metaEid);
