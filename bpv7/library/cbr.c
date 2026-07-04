@@ -1227,6 +1227,17 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 			return -1;
 		}
 
+		/*	Each range element is at least one byte on the wire,
+		 *	so a range count exceeding the bytes remaining is
+		 *	malformed.  Reject it before sizing the allocation:
+		 *	on 32-bit builds *rangeCount * sizeof(uvast) would
+		 *	otherwise overflow, under-allocate, and be written
+		 *	past by the decode loop below.				*/
+		if (rangeLen > (uvast) *bytesRemaining)
+		{
+			return -1;
+		}
+
 		*rangeCount = (int) rangeLen;
 		*rangeArray = MTAKE(*rangeCount * sizeof(uvast));
 		if (*rangeArray == NULL)

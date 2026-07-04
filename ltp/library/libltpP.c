@@ -7667,6 +7667,18 @@ isprintf(rsbuf, sizeof rsbuf, "[i] Got RS %u for checkpoint %u; %u claims from %
 rptSerialNbr, ckptSerialNbr, claimCount, rptLowerBound, rptUpperBound);
 putErrmsg(rsbuf, utoa(sessionNbr));
 #endif
+	/*	Each reception claim is at least two bytes on the wire
+	 *	(lower-bound and length SDNVs), so a claim count that
+	 *	exceeds the bytes remaining in the segment is malformed.
+	 *	Reject it before sizing the allocation: on 32-bit builds
+	 *	claimCount * sizeof(LtpReceptionClaim) would otherwise
+	 *	overflow size_t, under-allocate, and then be written past
+	 *	by loadClaimsArray().					*/
+	if (claimCount > (unsigned int) *bytesRemaining)
+	{
+		return 0;		/*	Malformed report.	*/
+	}
+
 	newClaims = (LtpReceptionClaim *)
 			MTAKE(claimCount * sizeof(LtpReceptionClaim));
 	if (newClaims == NULL)
