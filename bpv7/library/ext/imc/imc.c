@@ -192,6 +192,20 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;
 	}
 
+	/*	Each destination node number occupies at least one byte
+	 *	on the wire, so a declared node count that exceeds the
+	 *	number of unparsed bytes remaining in the block is
+	 *	malformed.  Rejecting it here also prevents a large
+	 *	64-bit nbrOfDestinationNodes from overflowing the 32-bit
+	 *	blk->size below: the product would be truncated, MTAKE
+	 *	would under-allocate, and the loop (bounded by the full
+	 *	64-bit count) would write out of bounds.		*/
+	if (nbrOfDestinationNodes > unparsedBytes)
+	{
+		writeMemo("[?] IMC block destination count too large.");
+		return 0;		/*	Malformed.		*/
+	}
+
 	blk->size = nbrOfDestinationNodes * sizeof(uvast);
 	blk->object = MTAKE(blk->size);
 	if (blk->object == NULL)
