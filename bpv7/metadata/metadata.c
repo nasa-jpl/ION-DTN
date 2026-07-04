@@ -303,13 +303,19 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	if (meta->aux_command_length > 0)
 	{
-		meta->aux_command = MTAKE(meta->aux_command_length); //free me
+		/*	Allocate one extra byte and NUL-terminate: this
+		 *	field is consumed downstream as a C string
+		 *	(parseCommandString/myStrdup -> strlen), so a
+		 *	received, non-terminated buffer would be read past
+		 *	its end.					*/
+		meta->aux_command = MTAKE(meta->aux_command_length + 1);
 		if(meta->aux_command == NULL)
 		{
 			fclose(file);
 			return -1;
 		}
 		bytes_read = fread(meta->aux_command, 1, meta->aux_command_length, file);
+		meta->aux_command[bytes_read] = '\0';
 		offset += bytes_read;
 	}
 
@@ -326,13 +332,15 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	}
 
 	fseek(file, offset, SEEK_SET);
-	meta->filetype = MTAKE(meta->filetypeLength); //free me
+	/*	NUL-terminate: consumed downstream as a C string.	*/
+	meta->filetype = MTAKE(meta->filetypeLength + 1);
 	if(meta->filetype == NULL)
 	{
 		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filetype, 1, meta->filetypeLength, file);
+	meta->filetype[bytes_read] = '\0';
 	offset += bytes_read;
 
 
@@ -347,13 +355,16 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	}
 
 	fseek(file, offset, SEEK_SET);
-	meta->filename = MTAKE(meta->fileNameLength); //free me
+	/*	NUL-terminate: consumed downstream as a C string
+	 *	(generateNewFilename -> strrchr/strncpy).		*/
+	meta->filename = MTAKE(meta->fileNameLength + 1);
 	if(meta->filename == NULL)
 	{
 		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filename, 1, meta->fileNameLength, file);
+	meta->filename[bytes_read] = '\0';
 	offset += bytes_read;
 
 
