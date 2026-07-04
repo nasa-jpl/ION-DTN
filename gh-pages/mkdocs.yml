@@ -108,6 +108,7 @@ nav:
       - LTP Performance: topics/LTP-Performance.md
       - CFDP SW Architecture: CFDP-SW-Architecture.md
       - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
+      - Contact Discovery with ipnd (Opportunistic Ducts): Contact-Discovery-with-ipnd.md
       - Bundle Forwarding Disposition (Prospect/Limbo/Abandon): topics/bundle-forwarding-disposition.md
       - Knowledge Base, Issues & Patches: Known-Issues.md
       - ION Shutdown Guide: ION-Shutdown-Guide.md
