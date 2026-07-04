@@ -163,6 +163,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   {d|i} contact <from time> <from node> <to node>");
 	PUTS("\t   {d|i} range <from time> <from node> <to node>");
 	PUTS("\t   i memprotect");
+	PUTS("\t   i clock");
 	PUTS("\t\tTo delete all contacts or ranges for some pair of nodes,");
 	PUTS("\t\tuse '*' as <from time>.");
 	PUTS("\tl\tList");
@@ -612,6 +613,28 @@ static void	executeInfo(int tokenCount, char **tokens)
 			wmPctFree,
 			(wmPct > 0 && wmPctFree < wmPct)
 				? "BREACHED" : "OK");
+		printText(buffer);
+		return;
+	}
+
+	if (strcmp(tokens[1], "clock") == 0)
+	{
+		Object		iondbObj = getIonDbObject();
+		IonDB		iondb;
+		struct timeval	tv;
+
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		sdr_exit_xn(sdr);
+		getCurrentTime(&tv);
+		isprintf(buffer, sizeof buffer,
+			"utcdelta %d clockerr %d clocksync %d "
+			"ctime %ld.%06ld systime %ld.%06ld",
+			iondb.deltaFromUTC, iondb.maxClockError,
+			(int) iondb.clockIsSynchronized,
+			(long) (tv.tv_sec - iondb.deltaFromUTC),
+			(long) tv.tv_usec,
+			(long) tv.tv_sec, (long) tv.tv_usec);
 		printText(buffer);
 		return;
 	}
