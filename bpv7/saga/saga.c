@@ -787,6 +787,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&majorType, &additionalInfo) < 1)
 		{
 			writeMemo("[?] Can't decode saga encounter.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -798,6 +799,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 		if (majorType != CborArray || additionalInfo != 5)
 		{
 			writeMemo("[?] Malformed saga encounter.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -805,6 +807,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter fromTime.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -813,6 +816,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter toTime.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -821,6 +825,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter fromFqnn.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -829,6 +834,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter toFqnn.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -837,6 +843,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter xmitRate.");
+			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
