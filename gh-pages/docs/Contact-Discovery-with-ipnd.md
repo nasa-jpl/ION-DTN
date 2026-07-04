@@ -71,6 +71,15 @@ identical automatic duct/plan/contact management. Read this document as much for
 those APIs as for `ipnd` itself: if you are building opportunistic-contact
 support on ION, that is the integration surface to target.
 
+!!! tip "Worked example / template"
+    The ION source tree includes a small, customizable example of exactly this:
+    **`demos/l2-neighbor-discovery/`** (`l2discd`) discovers neighbors over raw
+    Ethernet/Wi-Fi broadcast frames — a deliberately simple custom format, *not*
+    IPND — and drives the same `bp_discovery_acquired()` / `bp_discovery_lost()`
+    calls to create ducts/plans/contacts for the TCP and UDP CLs. It is meant to
+    be forked as a starting point for your own discovery mechanism; see its
+    `README.md` and `run-demo.sh`.
+
 ---
 
 ## The two layers
@@ -236,6 +245,9 @@ This is the saga half, and its trigger is easy to miss:
 ## See also
 
 - `ipnd` man page — daemon configuration and beacon format.
+- **`demos/l2-neighbor-discovery/`** (in the ION source tree) — `l2discd`, a
+  standalone, customizable example that drives the eureka discovery API from
+  Layer-2 (Ethernet/Wi-Fi) beacons instead of `ipnd`; includes a two-node demo.
 - [Contact Graph Events and LTP](Contact-Graph-Events-and-LTP.md) — how contacts
   drive routing and rate management.
 - [Bundle Forwarding Disposition (Prospect/Limbo/Abandon)](topics/bundle-forwarding-disposition.md)
