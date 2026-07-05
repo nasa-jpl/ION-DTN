@@ -1846,7 +1846,7 @@ void* rcv_msg_thread(void* param)
 						/*Wake up main thread to continue copy operations*/
 						TID21=TID22=0;
 						dbgprintf(3, "EOF Sent\n");
-						dbgprintf(3, "Transaction ID: %i\n", TID22);
+						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=sent;
 						sm_SemGive(events_sem);
 				}

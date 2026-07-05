@@ -6948,7 +6948,6 @@ when asking for status reports.");
 
 	if (custodySwitch == NoCustodyRequested
 	&& cbr_getCustodyMode(sdr) == BP_CUSTODY_ORANGEBOOK
-	&& destEidString != NULL
 	&& cbr_isCustodyRequired(sdr, destEidString))
 	{
 		custodySwitch = SourceCustodyRequired;
