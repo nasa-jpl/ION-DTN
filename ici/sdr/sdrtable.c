@@ -53,10 +53,20 @@ Object	Sdr_table_create(const char *file, int line, Sdr sdrv, int rowSize,
 		return 0;
 	}
 
+	/*	Guard against integer overflow: rowSize * rowCount is
+	 *	otherwise computed in int and can wrap before being
+	 *	widened to size_t for the allocation below.  rowCount
+	 *	is >= 1 here, so the division is safe.			*/
+	if ((size_t) rowCount > ((size_t) -1) / (size_t) rowSize)
+	{
+		oK(_xniEnd(file, line, _apiErrMsg(), sdrv));
+		return 0;
+	}
+
 	tableBuffer.userData = 0;
 	tableBuffer.rowSize = rowSize;
 	tableBuffer.rowCount = rowCount;
-	tableBuffer.rows = _sdrmalloc(sdrv, rowSize * rowCount);
+	tableBuffer.rows = _sdrmalloc(sdrv, (size_t) rowSize * (size_t) rowCount);
 	if (tableBuffer.rows == 0)
 	{
 		oK(_iEnd(file, line, "tableBuffer.rows"));
