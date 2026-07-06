@@ -2,19 +2,24 @@ name: CI/CD Checks
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
-  pull_request:
+  push:
     branches:
       - integration
     paths:
       - "charts/**"
       - "images/**"
       - ".github/**"
+  pull_request:
+    branches:
+      - integration
   workflow_dispatch:
 
 jobs:
@@ -43,6 +48,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+          cache: false
 
       - name: Build KICS from source
         run: |
