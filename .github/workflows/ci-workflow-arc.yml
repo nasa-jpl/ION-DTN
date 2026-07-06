@@ -459,15 +459,6 @@ jobs:
           path: all-artifacts
           merge-multiple: false
 
-      # Re-run taxonomy this handles: artifact names are keyed on
-      # setup.outputs.timestamp (a wall-clock `date` generated in the setup job).
-      # A full "re-run all jobs" re-runs setup, mints a NEW timestamp, and re-runs
-      # the test jobs, so fresh test-results-* are uploaded and found normally --
-      # that case needs none of the fallback logic below. The problem case is
-      # re-running only the finalize job (or "re-run failed jobs"): setup does not
-      # re-run, so the timestamp is REUSED, and the test-results-* under that
-      # timestamp were already deleted by the first finalize's cleanup step. Then
-      # this check finds nothing and we recover from the bundle instead.
       - name: Check for downloaded test results
         id: check-results
         run: |
@@ -481,13 +472,7 @@ jobs:
           fi
 
       - name: Fall back to final bundle on re-run
-        # Only reached when finalize is re-run without setup/test (same timestamp,
-        # intermediates already deleted). The bundle from the first attempt still
-        # carries each runner's top-level progress file (only job-reports/ is
-        # stripped before upload), so re-extracting it restores everything the
-        # summary needs to reproduce per-runner statuses. continue-on-error keeps
-        # the job green if the bundle itself has aged out -- the summary then
-        # degrades to an empty payload, handled below.
+        # get previous successful progress files from the final bundle
         if: ${{ steps.check-results.outputs.found == 'false' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
@@ -505,10 +490,7 @@ jobs:
       - name: Set PR status per runner
         run: |
           # Transform status_payload array to simple context->state mapping for set-pr-status
-          # `add` on an empty array yields null; default to {} so set-pr-status
-          # receives a valid (empty) object in the finalize-only re-run case where
-          # no results were found. (Full re-runs regenerate results, so this is a
-          # no-op for them.)
+          # default to {} so empty object is valid
           STATUS_SIMPLE=$(echo '${{ steps.test-summary.outputs.status_payload }}' | \
             jq -c '[.[] | {(.context): .state}] | add // {}')
           echo "status_payload=$STATUS_SIMPLE" >> $GITHUB_OUTPUT
@@ -530,11 +512,7 @@ jobs:
         with:
           name: final-arc-bundle-${{ needs.setup.outputs.timestamp }}
           path: all-artifacts/
-          # A finalize-only re-run reuses the timestamp, so this bundle name
-          # already exists from the first attempt; overwrite instead of 409-failing
-          # on the duplicate. (A full re-run gets a new timestamp, so the name is
-          # unique -- but this also future-proofs the workflow if the timestamp
-          # ever becomes stable, e.g. run-id based.)
+          # overwrite to handle running just failed jobs
           overwrite: true
 
       - name: Clean up ALL intermediate artifacts
