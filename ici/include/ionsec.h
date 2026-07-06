@@ -75,23 +75,19 @@ typedef struct
 	time_t	  nextRekeyTime;    /* 1970 epoch time. */
 	SdrObject keys;		    /* SdrList of SecKey */
 	SdrObject rules[5];	    /* SdrLists of sec rules */
-#if !USING_BSL
 	SdrObject bpSecPolicyRules; /* Policy Engine Database */
 	SdrObject bpSecEventSets;
-#endif
 } SecDB;
 
 typedef struct
 {
 	PsmAddress publicKeys;	       /* SM RB tree of PubKeyRef */
-#if !USING_BSL
 	PsmAddress bpsecPolicyRules;   /* sm_list of BpSecPolRule */
 	PsmAddress bpsecRuleIdxBySrc;  /* Radix tree of BpSecPolRule */
 	PsmAddress bpsecRuleIdxByDest; /* Radix tree of BpSecPolRule */
 	PsmAddress bpsecRuleIdxBySSrc; /* Radix tree of BpSecPolRule */
 	PsmAddress bpsecEidDictionary; /* Radix tree of char[] */
 	PsmAddress bpsecEventSet;      /* SM RB tree of BpSecPolEventSet */
-#endif
 } SecVdb;
 
 extern int	secInitialize(void);

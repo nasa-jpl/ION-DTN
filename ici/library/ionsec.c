@@ -304,6 +304,9 @@ int	secInitialize(void)
 #if !USING_BSL
 		secdbBuf.bpSecPolicyRules = sdr_list_create(ionsdr);
 		secdbBuf.bpSecEventSets   = sdr_list_create(ionsdr);
+#else
+		secdbBuf.bpSecPolicyRules = 0;
+		secdbBuf.bpSecEventSets = 0;
 #endif
 
 		secdbObject = sdr_malloc(ionsdr, sizeof(SecDB));
