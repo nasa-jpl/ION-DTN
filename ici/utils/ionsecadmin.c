@@ -22,12 +22,21 @@
 	6-27-19    SB	   ltpsecadmin and bpsecadmin extracted.
 									*/
 #include "ionsec.h"
+#include "ion.h"
+#include "platform.h"
+#include "sdrlist.h"
+#include "sdrxn.h"
+#include <ctype.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #ifdef INPUT_HISTORY
 #include "linenoise.h"
 #include <errno.h>
-#include <stdio.h>
-#include <string.h>
 #endif
 
 static int	_echo(int *newValue)
