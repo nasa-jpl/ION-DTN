@@ -20,7 +20,11 @@
 #ifndef SEC_H
 #define SEC_H
 
-#include "ion.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrxn.h"
+#include <stdint.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {

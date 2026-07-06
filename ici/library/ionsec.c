@@ -21,7 +21,20 @@
 
 									*/
 #include "ionsec.h"
+#include "ion.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdr.h"
+#include "sdrmgt.h"
+#include "sdrlist.h"
+#include "sdrxn.h"
+#include "smrbt.h"
+#include <fcntl.h>
+#include <string.h>
+#include <stdint.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 static char	*_secDbName(void)
 {
