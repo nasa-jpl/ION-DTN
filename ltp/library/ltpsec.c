@@ -20,6 +20,13 @@
 	06-27-19  SB	   Extracted from ionsec.c
 									*/
 #include "ltpsec.h"
+#include "ion.h"
+#include "ionsec.h"
+#include "platform.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+#include <string.h>
 
 static void	writeRuleMessage(char* ruleMessage, uvast engineId,
 			unsigned char ciphersuiteNbr, char *keyName)

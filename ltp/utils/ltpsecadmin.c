@@ -22,7 +22,19 @@
 	6-27-19    SB	   Extracted from ionsecadmin.
 									*/
 #include "ltpsec.h"
-#include "ltpP.h"
+#include "ion.h"
+#include "ionsec.h"
+#include "platform.h"
+#include "sdrlist.h"
+#include "sdrxn.h"
+#include <ctype.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static char	*_omitted(void)
 {

@@ -20,7 +20,8 @@
 #ifndef LTPSEC_H
 #define LTPSEC_H
 
-#include "ionsec.h"
+#include "platform.h"
+#include "sdrxn.h"
 
 #ifdef __cplusplus
 extern "C" {
