@@ -105,7 +105,7 @@ Some subdirectories pin to a specific standard in their own Makefiles:
 - A basic [`AGENTS.md`](AGENTS.md) is provided for use with LLMs.
   Copy it into the main folder to use.
   PRs and issues will not be accepted for this.
-  To use a for claude create a symlink to it called CLAUDE.md
+  To use it with Claude Code, create a symlink to it named `CLAUDE.md`.
 
 ### Operating System Support Matrix for Space Processors
 
