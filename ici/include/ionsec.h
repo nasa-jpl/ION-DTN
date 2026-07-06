@@ -22,8 +22,6 @@
 
 #include "ion.h"
 
-#define	EPOCH_2000_SEC	946684800
-
 #ifdef __cplusplus
 extern "C" {
 #endif
