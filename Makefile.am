@@ -1254,16 +1254,7 @@ bplib = \
 bpinclude = \
 	bpv7/include/bp.h \
 	bpv7/include/bp_admin.h \
-	bpv7/include/eureka.h \
-	bpv7/bpsec/sci/sci.h \
-	bpv7/bpsec/sci/ion_test_sc.h \
-	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
-	bpv7/bpsec/sci/bcb_aes_gcm_sc.h \
-	bpv7/bpsec/sci/rfc9173_utils.h \
-	bpv7/bpsec/utils/bpsec_util.h \
-	bpv7/bpsec/utils/bpsec_asb.h \
-	bpv7/bpsec/instr/bpsec_instr.h
-
+	bpv7/include/eureka.h
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
@@ -1463,17 +1454,25 @@ bpclean-local:
 # -- Libraries --- #
 
 libbp_la_SOURCES = \
-	bpv7/bpsec/sci/ion_test_sc.c \
-	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
-	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
-	bpv7/bpsec/sci/rfc9173_utils.c \
-	bpv7/bpsec/sci/sc_util.c \
-	bpv7/bpsec/sci/sci.c \
-	bpv7/bpsec/sci/sci_valmap.c \
-	bpv7/bpsec/sci/sc_value.c \
-	bpv7/bpsec/utils/bpsec_util.c \
-	bpv7/bpsec/utils/bpsec_asb.c \
 	bpv7/bpsec/instr/bpsec_instr.c \
+	bpv7/bpsec/instr/bpsec_instr.h \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.h \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
+	bpv7/bpsec/sci/ion_test_sc.c \
+	bpv7/bpsec/sci/ion_test_sc.h \
+	bpv7/bpsec/sci/rfc9173_utils.c \
+	bpv7/bpsec/sci/rfc9173_utils.h \
+	bpv7/bpsec/sci/sc_util.c \
+	bpv7/bpsec/sci/sc_value.c \
+	bpv7/bpsec/sci/sci.c \
+	bpv7/bpsec/sci/sci.h \
+	bpv7/bpsec/sci/sci_valmap.c \
+	bpv7/bpsec/utils/bpsec_asb.c \
+	bpv7/bpsec/utils/bpsec_asb.h \
+	bpv7/bpsec/utils/bpsec_util.c \
+	bpv7/bpsec/utils/bpsec_util.h \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
 	bpv7/library/libbp.c \
