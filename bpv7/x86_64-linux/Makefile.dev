@@ -126,6 +126,7 @@ RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bpr
 ifeq ($(USING_BSL),1)
 RUNTIMES = $(RUNTIMES_BASE)
 else
+RUNTIMES = $(RUNTIMES_BASE) bpsecadmin
 endif
 
 ALL = check $(BPLIBS) $(RUNTIMES)
