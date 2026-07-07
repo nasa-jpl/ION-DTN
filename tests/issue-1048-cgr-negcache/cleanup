@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+killm f
+rm -f ion.log ion_nodes

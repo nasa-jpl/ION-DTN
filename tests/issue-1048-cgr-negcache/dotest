@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for the CGR negative-result cache (#1048).
+#
+# The cache defers route re-enumeration for a destination after a
+# forwarding decision finds no usable route.  It must be armed ONLY
+# when the destination has no computed routes at all -- NOT when routes
+# exist but the particular bundle could not use them (e.g., its
+# lifetime is shorter than the route's delivery time).  If it is armed
+# by such a bundle-specific failure, a viable bundle sent to the same
+# destination moments later is sent to limbo without any route
+# computation at all, and a short-lifetime bundle bouncing through
+# bpclock's limbo flush keeps re-arming the cache, starving viable
+# traffic to that destination (seen originally as an intermittent
+# asymmetric-range failure on loaded CI runners).
+#
+# Topology (borrowed from the asymmetric-range test): only node 9
+# runs.  The contact graph offers a route to (nonexistent) node 6 via
+# node 5 with a best-case delivery time of about 21 seconds (1 second
+# to node 5, 20 seconds on to node 6).
+#
+# Scenario, repeated for several pairs: send a DOOMED bundle (10-second
+# lifetime, below the 21-second delivery estimate, so no route can ever
+# qualify) immediately followed by a VIABLE bundle (25-second lifetime)
+# to the same destination.  Back-to-back submission guarantees the
+# viable bundle is processed within the doomed bundle's cache window,
+# so with the over-broad arming the viable bundle goes straight to
+# limbo and -- because its remaining lifetime drops below the delivery
+# estimate before the doomed bundle stops re-arming the cache -- it
+# never forwards at all.  With correct arming the route list computed
+# for the doomed bundle is consulted directly and the viable bundle
+# forwards within a second or two.
+#
+# Verification: after each pair, the cumulative 'fwd' tally must reach
+# the number of pairs sent so far within a short window.  Doomed
+# bundles never forward and viable bundles are never re-forwarded
+# successfully (the LTP retransmission limit is reached only after
+# their remaining lifetime is below the delivery estimate), so the
+# 'fwd' tally counts exactly the viable bundles that forwarded.
+
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionsecrc \
+./amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that the CGR negative-result cache is scoped to
+    genuinely unroutable destinations: a bundle that cannot meet any
+    route's delivery time must not suppress route computation for a
+    viable bundle sent to the same destination immediately afterward."
+echo
+echo "CONFIG: Contact graph with a ~21-second best-case delivery time
+    to (nonexistent) node 6 via node 5.  Only node 9 runs:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: For each doomed/viable bundle pair, the viable bundle must
+    be forwarded promptly ('fwd' tally advances within the check window)."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm f
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+./ionstart
+
+# Wait for the forwarder and both LTP outducts to report in, so the
+# first pair's processing is not delayed by daemon initialization.
+echo "Waiting for BP daemons to start..."
+i=0
+while [ $i -lt 30 ]
+do
+    if grep -q "ipnfw is running" ion.log \
+    && grep -q "ltpclo is running, rengine = 5" ion.log \
+    && grep -q "ltpclo is running, rengine = 9" ion.log
+    then
+        break
+    fi
+    sleep 1
+    i=`expr $i + 1`
+done
+sleep 1
+
+lastTally()
+{
+    grep "\[x\] $1 " ion.log | tail -1 | sed "s/.*(+) //" | awk '{print $1}'
+}
+
+RETVAL=0
+PAIRS=3
+pair=1
+while [ $pair -le $PAIRS ]
+do
+    echo ""
+    echo "Pair $pair: sending doomed (10s) then viable (25s) bundle to ipn:6.1..."
+    bptrace ipn:9.1 ipn:6.1 dtn:none 10 0.1 "doomed$pair"
+    bptrace ipn:9.1 ipn:6.1 dtn:none 25 0.1 "viable$pair"
+
+    # The viable bundle should be forwarded almost immediately; allow
+    # a generous window for loaded hosts.  The window must stay well
+    # inside the doomed bundle's 10-second lifetime, during which the
+    # broken behavior deterministically pins the viable bundle in limbo.
+    FORWARDED=0
+    i=0
+    while [ $i -lt 8 ]
+    do
+        bpstats
+        sleep 1
+        FWD=`lastTally fwd`
+        if [ "${FWD:-0}" -ge $pair ]
+        then
+            FORWARDED=1
+            break
+        fi
+        i=`expr $i + 1`
+    done
+
+    if [ $FORWARDED -eq 1 ]
+    then
+        echo "OK: Pair $pair viable bundle was forwarded (fwd tally >= $pair)."
+    else
+        echo "ERROR: Pair $pair viable bundle was not forwarded within the window."
+        RETVAL=1
+    fi
+
+    # Space the pairs out so each pair's cache interactions are
+    # independent of the previous pair's initial sends.
+    if [ $pair -lt $PAIRS ]
+    then
+        sleep 5
+    fi
+    pair=`expr $pair + 1`
+done
+
+echo ""
+if [ $RETVAL -eq 0 ]
+then
+    echo "TEST PASSED: all viable bundles forwarded promptly."
+else
+    echo "TEST FAILED: negative-result cache starved viable bundle(s)."
+fi
+
+echo "Stopping ION..."
+exit $RETVAL

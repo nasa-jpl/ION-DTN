@@ -1,0 +1,1 @@
+Verifies the CGR negative-result cache is armed only for genuinely unroutable destinations, not by bundle-specific (deadline) routing failures.

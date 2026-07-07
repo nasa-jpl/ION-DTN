@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# shell script to get node running
+bpadmin		.
+sleep 1
+ltpadmin	.
+sleep 1
+ionadmin	.

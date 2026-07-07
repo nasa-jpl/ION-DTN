@@ -241,12 +241,15 @@ typedef struct
 	PsmAddress	knownRoutes;	/*	SmList of CgrRoute.	*/
 	PsmAddress	proximateNodes;	/*	SmList of uvast FQNNs.	*/
 
-	/*	Negative-result cache (#1048): if no usable route was
-	 *	found for this destination, the time before which we
-	 *	should not re-run the (costly) route enumeration.  A
-	 *	contact-plan change wipes the whole routing object via
-	 *	cgr_clear_vdb, so this is only consulted within one
-	 *	contact-plan version.					*/
+	/*	Negative-result cache (#1048): if route enumeration
+	 *	found no routes at all for this destination (the
+	 *	selectedRoutes list is empty), the time before which
+	 *	we should not re-run the (costly) route enumeration.
+	 *	Never armed by bundle-specific failures (deadline too
+	 *	tight for the cached routes), only by an empty route
+	 *	list.  A contact-plan change wipes the whole routing
+	 *	object via cgr_clear_vdb, so this is only consulted
+	 *	within one contact-plan version.			*/
 
 	time_t		computeDeferredUntil;
 } CgrRtgObject;	/*	IonNode's routingObject is one of these.	*/

@@ -2599,15 +2599,22 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 #define	CGR_MAX_ROUTES_PER_BUNDLE	(100)	/*	Routes computed.*/
 #endif
 
-/*	Negative-result cache TTL (#1048): when a forwarding decision
- *	finds no usable route to a destination, defer re-enumerating that
- *	destination's route space for this many seconds.  Repeated bundles
- *	to a currently-unroutable destination then go straight to limbo
- *	instead of each paying a full (bounded) CGR computation, which is
- *	what produced the multi-second SDR-lock-hold storms.  A contact-
- *	plan change clears the cache (cgr_clear_vdb wipes the routing
- *	object); the short TTL bounds how long a newly-usable route (e.g.
- *	from a contact that just became active) waits to be discovered.	*/
+/*	Negative-result cache TTL (#1048): when route enumeration for a
+ *	destination comes up completely empty (no geometric route exists,
+ *	so the routing object's selectedRoutes list is bare), defer
+ *	re-enumerating that destination's route space for this many
+ *	seconds.  Repeated bundles to a currently-unroutable destination
+ *	then go straight to limbo instead of each paying a full (bounded)
+ *	CGR computation, which is what produced the multi-second SDR-
+ *	lock-hold storms.  The cache is deliberately NOT armed when
+ *	routes exist but none suited the current bundle (e.g., deadline
+ *	too tight): that outcome is bundle-specific, evaluating the next
+ *	bundle against the cached route list is cheap, and arming on it
+ *	was observed to deny routing to viable bundles sent shortly after
+ *	a short-lifetime bundle to the same destination.  A contact-plan
+ *	change clears the cache (cgr_clear_vdb wipes the routing object);
+ *	the short TTL bounds how long a newly-usable route (e.g. from a
+ *	contact that just became active) waits to be discovered.	*/
 
 #ifndef	CGR_NEG_CACHE_SECS
 #define	CGR_NEG_CACHE_SECS	(1)
@@ -2971,9 +2978,20 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 			return -1;
 		}
 
-		/*	Update the negative-result cache for next time.	*/
+		/*	Update the negative-result cache for next time.
+		 *	Arm it only when this destination has no computed
+		 *	routes at all, i.e., the route enumeration itself
+		 *	came up empty; only then would the next bundle pay
+		 *	a full re-enumeration.  When routes exist but none
+		 *	suited this particular bundle (e.g., its deadline
+		 *	precedes every route's arrival time), the next
+		 *	bundle may well qualify, and evaluating it against
+		 *	the cached route list is cheap -- arming the cache
+		 *	in that case would deny routing to viable bundles
+		 *	on the basis of an unrelated bundle's failure.	*/
 
-		if (lyst_length(bestRoutes) == 0)
+		if (lyst_length(bestRoutes) == 0
+		&& sm_list_length(ionwm, routingObj->selectedRoutes) == 0)
 		{
 			routingObj->computeDeferredUntil = currentTime
 					+ CGR_NEG_CACHE_SECS;
