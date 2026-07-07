@@ -85,17 +85,22 @@ int	main(int argc, char *argv[])
 	Object		bclaAddr;
 	Object		bclaElt;
 	Bcla		bcla;
+	Sdr		sdr;
 	char		sourceEid[SDRSTRING_BUFSZ];
+	uvast		threshold;
 	char		reportToBuffer[SDRSTRING_BUFSZ];
 	char		*reportToEid;
-	Sdr		sdr;
 	int		ttl;
+	BpAncillaryData	bibeAncillaryData;
 	BpSAP		sap;
 	unsigned char	*buffer;
 	Object		bundleZco;
-	vast		bundleZcoLength;
-	Object		bpduZco;
 	BpAncillaryData	ancillaryData;
+	vast		bundleZcoLength;
+	uvast		remainingSourceLength;
+	uvast		offset;
+	uvast		segmentLength;
+	Object		bpduZco;
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		hdrlen;
@@ -109,6 +114,13 @@ int	main(int argc, char *argv[])
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bibeclo can't attach to BP.", NULL);
+		return -1;
+	}
+
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
+	if (bclaElt == 0)
+	{
+		writeMemoNote("[?] No such bcla", peerEid);
 		return -1;
 	}
 
@@ -126,19 +138,25 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	bibeFind(peerEid, &bclaAddr, &bclaElt);
-	if (bclaElt == 0)
-	{
-		writeMemoNote("[?] No such bcla", peerEid);
-		return -1;
-	}
-
 	/*	Command-line argument is now validated.			*/
 
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	sdr_string_read(sdr, sourceEid, bcla.source);
+
+	/*	The properties of the encapsulating bundle are taken
+	 *	from the bcla as configured by bibeadmin.		*/
+
+	if (bcla.threshold == 0)
+	{
+		threshold = (uvast) -1;		/*	Max integer.	*/
+	}
+	else
+	{
+		threshold = bcla.threshold;
+	}
+
 	reportToEid = NULL;
 	if (bcla.reportTo)
 	{
@@ -149,19 +167,15 @@ int	main(int argc, char *argv[])
 		}
 	}
 
+	ttl = bcla.lifespan;
+	memcpy((char *) &bibeAncillaryData, (char *) &bcla.ancillaryData,
+			sizeof(BpAncillaryData));
+	bibeAncillaryData.flags &= (BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
 
-	/*	The properties of the encapsulating bundle are taken
-	 *	from the bcla as configured by bibeadmin.		*/
-
-	bcla.ancillaryData.flags &= (BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
-	ttl = bcla.fwdLatency + bcla.rtnLatency;	/*	seconds	*/
-	if (bcla.lifespan > ttl)
-	{
-		ttl = bcla.lifespan;
-	}
+	/*	Open BP service access point for sending bundles.	*/
 
 	if (bp_open_source(sourceEid, &sap, 0) < 0)
 	{
@@ -177,9 +191,13 @@ int	main(int argc, char *argv[])
 	oK(bibecloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, handleQuit);
 
-	/*	Allocate buffer for admin record header.		*/
+	/*	Allocate buffer for BPDU header.			*/
 
-	buffer = (unsigned char *) MTAKE(1);	/*	Array (1) open	*/
+	buffer = (unsigned char *) MTAKE(1	/*	Array () open	*/
+			+ sizeof(uvast)		/*	Transfer ID	*/
+			+ sizeof(uvast)		/*	Total length	*/
+			+ sizeof(uvast)		/*	Offset		*/
+					);
 	if (buffer == NULL)
 	{
 		bp_close(sap);
@@ -187,7 +205,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	/*	Can now begin transmitting to remote duct.		*/
+	/*	Can now begin transmitting to remote bibecli duct.	*/
 
 	writeMemoNote("[i] bibeclo is now transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
@@ -211,67 +229,133 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
-		/*	The BPDU (a message comprising a header
-		 *	followed by the serialized outbound bundle;
-		 *	the payload of the encapsulating bundle) will
-		 *	be formed by prepending a BPDU message header
-		 *	to a copy of the outbound bundle.		*/
-
 		bundleZcoLength = zco_length(sdr, bundleZco);
+
+		/*	Each BPDU (a message comprising a header
+		 *	followed by a serialized outbound bundle
+		 *	segment; the payload of the encapsulating
+		 *	bundle) will be formed by prepending a
+		 *	BPDU message header to a clone of part or
+		 *	all of the outbound bundle.			*/
+
+		remainingSourceLength = bundleZcoLength;
+		offset = 0;
+
+		/*	Get transfer ID for segmentation.		*/
+
 		CHKZERO(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
+		bcla.count++;
+		sdr_write(sdr, bclaAddr, (char *) &bcla, sizeof(Bcla));
+
+		/*	Send bundles encapsulating segments of bundle.	*/
+
 		zco_bond(sdr, bundleZco);
-		bpduZco = zco_clone(sdr, bundleZco, 0, bundleZcoLength);
-		if (sdr_end_xn(sdr))
+		while (remainingSourceLength > 0)
 		{
-			putErrmsg("Can't clone source bundle; CLO stopping.",
-					NULL);
-			shutDownClo();
-			continue;
+			if (remainingSourceLength > threshold)
+			{
+				segmentLength = threshold;
+			}
+			else
+			{
+				segmentLength = remainingSourceLength;
+			}
+
+			bpduZco = zco_clone(sdr, bundleZco, offset,
+					segmentLength);
+			if (sdr_end_xn(sdr))
+			{
+				putErrmsg("Can't clone from source bundle; \
+CLO stopping.", NULL);
+				remainingSourceLength = 0;
+				continue;
+			}
+
+			/*	Serialize the BPDU record, an array
+			 *	of 1 or 4 elements.			*/
+
+			cursor = buffer;
+			if (segmentLength == bundleZcoLength)
+			{
+				/*	Simple BPDU, no segmentation.	*/
+
+				uvtemp = 1;
+				oK(cbor_encode_array_open(uvtemp, &cursor));
+			}
+			else
+			{
+				/*	Segment BPDU.			*/
+
+				uvtemp = 4;
+				oK(cbor_encode_array_open(uvtemp, &cursor));
+				uvtemp = bcla.count;
+				oK(cbor_encode_integer(uvtemp, &cursor));
+				uvtemp = bundleZcoLength;
+				oK(cbor_encode_integer(uvtemp, &cursor));
+				uvtemp = offset;
+				oK(cbor_encode_integer(uvtemp, &cursor));
+			}
+
+			/*	Last element of content array is the
+		 	*	encapsulated bundle segment, a CBOR
+		 	*	byte string.				*/
+
+			uvtemp = segmentLength;
+			oK(cbor_encode_byte_string(NULL, uvtemp, &cursor));
+
+			/*	Complete construction of BPDU.		*/
+
+			hdrlen = cursor - buffer;
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_prepend_header(sdr, bpduZco, (char *) buffer,
+					hdrlen);
+			if (sdr_end_xn(sdr))
+			{
+				putErrmsg("Can't prepend header; CLO stopping.",
+						NULL);
+				shutDownClo();
+				remainingSourceLength = 0;
+				continue;
+			}
+
+			/*	Send bundle whose payload is the BPDU,
+			 *	i.e., a ZCO comprising the BPDU message
+			 *	header and the encapsulated bundle
+			 *	segment.
+			 *
+			 *	Note that ttl must be converted from
+			 *	seconds to milliseconds for BP
+			 *	processing.				*/
+
+			switch (bpSend(&(sap->endpointMetaEid),
+					peerEid, reportToEid, ttl * 1000,
+					bcla.classOfService, NoCustodyRequested,
+					bcla.bsrFlags, 0, &bibeAncillaryData,
+					bpduZco, NULL, 0))
+			{
+			case -1:	/*	System error.		*/
+				putErrmsg("Can't send encapsulating bundle.",
+						NULL);
+				remainingSourceLength = 0;
+				continue;
+
+			case 0:		/*	Malformed request.	*/
+				writeMemo("[?] Encapsulating bundle not sent.");
+				remainingSourceLength = 0;
+				continue;
+			}
+
+			/*	Successful transmission of BIBE bundle.	*/
+
+			remainingSourceLength -= segmentLength;
+			offset += segmentLength;
 		}
 
-		/*	Serialize the BPDU record, an array of 1
-		 *	element.					*/
+		/*	Done with segmentation and transmission.	*/
 
-		cursor = buffer;
-		uvtemp = 1;
-		oK(cbor_encode_array_open(uvtemp, &cursor));
-
-		/*	Sole element of content array is the
-		 *	encapsulated bundle, represented as a
-		 *	byte string.					*/
-
-		uvtemp = bundleZcoLength;
-		oK(cbor_encode_byte_string(NULL, uvtemp, &cursor));
-		hdrlen = cursor - buffer;
-		CHKZERO(sdr_begin_xn(sdr));
-		zco_prepend_header(sdr, bpduZco, (char *) buffer, hdrlen);
-		if (sdr_end_xn(sdr))
+		if (offset < bundleZcoLength)	/*	Didn't finish.	*/
 		{
-			putErrmsg("Can't prepend header; CLO stopping.", NULL);
-			shutDownClo();
-			continue;
-		}
-
-		/*	Send bundle whose payload is the ZCO
-		 *	comprising the BPDU message header and the
-		 *	encapsulated bundle.
-		 *
-		 *	Note that ttl must be converted from seconds
-		 *	to milliseconds for BP processing.		*/
-
-		switch (bpSend(&(sap->endpointMetaEid),
-				peerEid, reportToEid, ttl * 1000,
-				bcla.classOfService, NoCustodyRequested,
-				bcla.bsrFlags, 0, &bcla.ancillaryData,
-				bpduZco, NULL, 0))
-		{
-		case -1:	/*	System error.			*/
-			putErrmsg("Can't send encapsulating bundle.", NULL);
-			shutDownClo();
-			continue;
-
-		case 0:		/*	Malformed request.		*/
-			writeMemo("[?] Encapsulating bundle not sent.");
 			CHKZERO(sdr_begin_xn(sdr));
 			zco_destroy(sdr, bpduZco);
 			if (sdr_end_xn(sdr))
@@ -287,22 +371,12 @@ int	main(int argc, char *argv[])
 				shutDownClo();
 				continue;
 			}
-
-			break;
-
-		default:
-			CHKZERO(sdr_begin_xn(sdr));
+		}
+		else	/*	Successful BIBE encapsulation.		*/
+		{
 			if (bpHandleXmitSuccess(bundleZco) < 0)
 			{
 				putErrmsg("Can't handle xmit success.", NULL);
-				shutDownClo();
-				continue;
-			}
-
-			if (sdr_end_xn(sdr))
-			{
-				putErrmsg("Can't release ZCO; CLO stopping.",
-						NULL);
 				shutDownClo();
 				continue;
 			}

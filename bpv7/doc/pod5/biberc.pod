@@ -9,8 +9,7 @@ text lines or interactively at bibeadmin's command prompt (:).  Commands
 are interpreted line-by line, with exactly one command per line.
 
 BIBE configuration commands establish the parameters governing transmission
-of BIBE PDUs to specified B<peer> nodes: anticipated delivery latency in the
-forward direction, anticipated delivery latency in the return direction,
+of BIBE PDUs to specified B<peer> nodes: segmentation threshold,
 report-to endpoint, bundle status report request flags, TTL for BIBE PDUs,
 priority, ordinal priority in the event that priority is Expedited,
 quality-of service flags, and (optionally) data label.  As such, they
@@ -31,14 +30,14 @@ is an overlay on top of the "real" BP network).  Since the sending and
 receiving nodes are topologically adjacent, they are neighbors: the sending
 node MUST have an egress plan for transmission to the receiving (that is,
 peer) node, and there MUST be a BIBE outduct attached to that plan.  The
-affected bundles will be encapsulated within BIBE bundles (BIBE protocol
-data units, or BPDUs) by the BIBE convergence-layer output daemon
-(B<bibeclo>), which will obtain all forwarding parameters from the bcla
-for the peer node as established by bibeadmin.
+affected bundles will be encapsulated within BIBE bundles (bundles whose
+payloads are BIBE protocol data units, or BPDUs) by the BIBE convergence-layer
+output daemon (B<bibeclo>), which will obtain all forwarding parameters from
+the bcla for the peer node as established by bibeadmin.
 
 =item B<Routing>
 
-In order to compel bundles to be forwarded via the BIBE peer node rather
+In order to compel a bundle to be forwarded via the BIBE peer node rather
 than over some other route computed by CGR, you have to override CGR routing
 for that bundle.  This is done in node administration: use ipnadmin to
 establish at the BIBE sending node a I<routing override> that coerces all
@@ -46,13 +45,26 @@ bundles characterized by specified data label, destination, and/or source
 to be sent directly to the peer node by means of the BIBE outduct attached
 to that node's egress plan.
 
-=item B<Quality of Service>
+=item B<Segmentation and reassembly>
 
-If you want custody transfer to be invoked for BIBE transmissions
-from the sending node to the peer node, set the BP_CT_REQUESTED
-flag to 1 in the I<qosFlags> of the bcla for the peer node as
-configured by bibeadmin.  This can be done by OR'ing BP_CT_REQUESTED
-(which has the value 64) with the other values in qosFlags.
+B<bibeclo> operates by acting as a BP application: it passes to the bundle
+protocol agent, as application data units, BIBE protocol data units that
+encapsulate B<segments> of the serialized bundle that is being forwarded.
+Upon reception by the peer node, those segments are reassembled into the
+original serialized bundle and that bundle is passed to the bundle protocol
+agent in the same way as any other bundle received via any convergence-layer
+adapter.
+
+The sizes of the segments into which the original serialized bundle is
+divided are determined by the value of the B<segmentation threshold> that
+is mandated for BIBE traffic directed to the destination peer node.
+
+If the segmentation threshold is zero, then segmentation is disabled for
+BIBE transmission to this peer node.  The entire serialized bundle, regardless
+of size, will be passed to the bundle protocol agent in a single BPDU.
+
+Otherwise the size of each segment will be less than or equal to the
+applicable segmentation threshold value.
 
 =back
 
@@ -85,12 +97,12 @@ formats.  It is the same as the B<?> command.
 
 =over 4
 
-=item B<a> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
+=item B<a> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
 
 The B<add bcla> command.  This command adds the neighboring node identified
 by I<peer_EID> as a BIBE destination of the local node.
 
-=item B<c> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
+=item B<c> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
 
 The B<change bcla> command.  This command changes the transmission parameters
 governing BIBE PDU transmission to the indicated peer node.
@@ -105,9 +117,10 @@ I<peer_EID>.
 This command will print information (the transmission parameters) for the
 BIBE peer node identified by I<peer_EID>.
 
-=item B<l>
+=item B<l> bcla I<scheme_name>
 
-This command lists all of the local node's BIBE peers.
+This command lists all of the local node's BIBE peers whose endpoint IDs are
+formed in the URI scheme identified by I<scheme_name>, e.g., B<ipn>.
 
 =back
 
@@ -115,13 +128,13 @@ This command lists all of the local node's BIBE peers.
 
 =over 4
 
-=item a bcla ipn:3.2 10 10 dtn:none 0 60 1 0 0 16
+=item a bcla ipn:3.2 8192 dtn:none 0 60 1 0 0 16
 
-Declares that ipn:3.2 is a BIBE peer and that BIBE PDUs destined for this
-node are to be sent with TTL 60 seconds, priority 1 (standard), and data
-label 16; no bundle status reporting is required for these bundles and it
-is expected that BIBE PDUs sent to this node will arrive within 10 seconds
-and that BIBE PDUs sent from this node will arrive within 10 seconds.
+Declares that ipn:3.2 is a BIBE peer for which the segmentation threshold is
+8192 and that BIBE PDUs destined for this node are to be sent with TTL 60
+seconds, priority 1 (standard), and data label 16; no bundle status reporting
+is required for these bundles.  Any bundle larger than 8192 octets will be
+sent in multiple segments of at most 8192 octets each.
 
 =back
 

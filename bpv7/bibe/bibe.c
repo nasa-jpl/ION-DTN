@@ -28,11 +28,10 @@ static void	getSchemeName(char *eid, char *schemeNameBuf)
 	}
 }
 
-void	bibeAdd(char *peerEid, unsigned int fwdLatency,
-		unsigned int rtnLatency, char *reportToEid,
-		unsigned char bsrFlags, int lifespan,
-		unsigned char priority, unsigned char ordinal,
-		unsigned char qosFlags, unsigned int label)
+void	bibeAdd(char *peerEid, unsigned int threshold, char *reportToEid,
+		unsigned char bsrFlags, int lifespan, unsigned char priority,
+		unsigned char ordinal, unsigned char qosFlags,
+		unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -70,9 +69,7 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	memset((char *) &bcla, 0, sizeof(Bcla));
 	bcla.source = sdr_string_create(sdr, vscheme->adminEid);
 	bcla.dest = sdr_string_create(sdr, peerEid);
-	bcla.bpdus = sdr_list_create(sdr);
-	bcla.fwdLatency = fwdLatency;
-	bcla.rtnLatency = rtnLatency;
+	bcla.threshold = threshold;
 	if (reportToEid == NULL || strlen(reportToEid) == 0)
 	{
 		bcla.reportTo = 0;
@@ -101,11 +98,10 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	}
 }
 
-void	bibeChange(char *peerEid, unsigned int fwdLatency,
-		unsigned int rtnLatency, char *reportToEid,
-		unsigned char bsrFlags, int lifespan,
-		unsigned char priority, unsigned char ordinal,
-		unsigned char qosFlags, unsigned int label)
+void	bibeChange(char *peerEid, unsigned int threshold, char *reportToEid,
+		unsigned char bsrFlags, int lifespan, unsigned char priority,
+		unsigned char ordinal, unsigned char qosFlags,
+		unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -121,8 +117,7 @@ void	bibeChange(char *peerEid, unsigned int fwdLatency,
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
-	bcla.fwdLatency = fwdLatency;
-	bcla.rtnLatency = rtnLatency;
+	bcla.threshold = threshold;
 	if (bcla.reportTo)
 	{
 		sdr_free(sdr, bcla.reportTo);
@@ -153,9 +148,6 @@ void	bibeDelete(char *peerEid)
 	Object	bclaAddr;
 	Object	bclaElt;
 	Bcla	bcla;
-	Object	elt;
-	Object	addr;
-	Bpdu	bpdu;
 
 	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt == 0)
@@ -172,19 +164,6 @@ void	bibeDelete(char *peerEid)
 		sdr_free(sdr, bcla.reportTo);
 	}
 
-	while ((elt = sdr_list_first(sdr, bcla.bpdus)))
-	{
-		addr = sdr_list_data(sdr, elt);
-
-		/*	Custodial BIBE for this bundle has failed.	*/
-
-		sdr_list_delete(sdr, elt, NULL, NULL);
-		sdr_read(sdr, (char *) &bpdu, addr, sizeof(Bpdu));
-		sdr_free(sdr, addr);
-		oK(bpHandleXmitFailure(bpdu.bundleZco));
-	}
-
-	sdr_list_destroy(sdr, bcla.bpdus, NULL, NULL);
 	sdr_free(sdr, bclaAddr);
 	sdr_list_delete(sdr, bclaElt, NULL, NULL);
 	if (sdr_end_xn(sdr) < 0)

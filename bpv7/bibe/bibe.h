@@ -21,17 +21,17 @@ extern "C" {
 
 /*		Functions for bundle-in-bundle encapsulation.		*/
 
-extern void	bibeAdd(char *peerEid, unsigned int fwdLatency,
-			unsigned int rtnLatency, char *reportToEid,
-			unsigned char bsrFlags, int lifespan,
-			unsigned char priority, unsigned char ordinal,
-			unsigned char qosFlags, unsigned int dataLabel);
+extern void	bibeAdd(char *peerEid, unsigned int threshold,
+			char *reportToEid, unsigned char bsrFlags,
+			int lifespan, unsigned char priority,
+			unsigned char ordinal, unsigned char qosFlags, 
+			unsigned int dataLabel);
 
-extern void	bibeChange(char *peerEid, unsigned int fwdLatency,
-			unsigned int rtnLatency, char *reportToEid,
-			unsigned char bsrFlags, int lifespan,
-			unsigned char priority, unsigned char ordinal,
-			unsigned char qosFlags, unsigned int dataLabel);
+extern void	bibeChange(char *peerEid, unsigned int threshold,
+			char *reportToEid, unsigned char bsrFlags,
+			int lifespan, unsigned char priority,
+			unsigned char ordinal, unsigned char qosFlags, 
+			unsigned int dataLabel);
 
 extern void	bibeDelete(char *peerEid);
 

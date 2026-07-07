@@ -29,12 +29,10 @@ typedef struct
 	Object		source;		/*	Own EID, an sdrstring.	*/
 	Object		dest;		/*	Peer EID, an sdrstring.	*/
 	uvast		count;		/*	xmitId counter.		*/
-	Object		bpdus;		/*	sdrlist of Bpdu objects.*/
 
 	/*	Transmission parameters for BPDUs sent to peer node.	*/
 
-	unsigned int	fwdLatency;	/*	seconds			*/
-	unsigned int	rtnLatency;	/*	seconds			*/
+	unsigned int	threshold;	/*	Segmentation threshold.	*/
 	Object		reportTo;	/*	EID, an sdrstring.	*/
 	unsigned int	bsrFlags;	/*	For status reporting.	*/
 	int		lifespan;	/*	A.k.a. TTL.		*/
