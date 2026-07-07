@@ -1197,6 +1197,8 @@ bpbin = \
 	bprecvtest \
 	bpsendfile \
 	bpsendtest \
+	bpsh \
+	bpshd \
 	bpsink \
 	bpsource \
 	cbrcustodytest \
@@ -1321,6 +1323,8 @@ bpextra = \
 	bpv7/doc/pod1/bprecvtest.pod \
 	bpv7/doc/pod1/bpsecadmin.pod \
 	bpv7/doc/pod1/bpsendfile.pod \
+	bpv7/doc/pod1/bpsh.pod \
+	bpv7/doc/pod1/bpshd.pod \
 	bpv7/doc/pod1/bpsendtest.pod \
 	bpv7/doc/pod1/bpsink.pod \
 	bpv7/doc/pod1/bpsource.pod \
@@ -1411,6 +1415,8 @@ bpmans = \
 	bpv7/doc/bprecvtest.1 \
 	bpv7/doc/bpsecadmin.1 \
 	bpv7/doc/bpsendfile.1 \
+	bpv7/doc/bpsh.1 \
+	bpv7/doc/bpshd.1 \
 	bpv7/doc/bpsendtest.1 \
 	bpv7/doc/bpsink.1 \
 	bpv7/doc/bpsource.1 \
@@ -1883,6 +1889,14 @@ bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsendtest_SOURCES = bpv7/utils/bpsendtest.c
 bpsendtest_LDADD = libici.la $(bplib)
 bpsendtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsh_SOURCES = bpv7/utils/bpsh.c bpv7/utils/bpsh_proto.c
+bpsh_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+bpsh_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpshd_SOURCES = bpv7/utils/bpshd.c bpv7/utils/bpshd_session.c bpv7/utils/bpsh_proto.c
+bpshd_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+bpshd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsink_SOURCES = bpv7/test/bpsink.c
 bpsink_LDADD = libici.la $(bplib)

@@ -123,7 +123,7 @@ endif
 
 LBP = -lbp $(LBSL)
 
-RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat bpsh bpshd imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
 
 ifeq ($(USING_BSL),1)
 RUNTIMES = $(RUNTIMES_BASE)
@@ -424,6 +424,14 @@ bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
 bpsendtest:	bpsendtest.o libbp.so $(BPLIBS)
 		$(CC) -o bpsendtest bpsendtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsendtest ./bin
+
+bpsh:		bpsh.o bpsh_proto.o libbp.so $(BPLIBS)
+		$(CC) -o bpsh bpsh.o bpsh_proto.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpsh ./bin
+
+bpshd:		bpshd.o bpsh_proto.o libbp.so $(BPLIBS)
+		$(CC) -o bpshd bpshd.o bpsh_proto.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpshd ./bin
 
 bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm

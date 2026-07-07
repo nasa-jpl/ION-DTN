@@ -1,0 +1,108 @@
+=head1 NAME
+
+bpshd - Bundle Protocol remote shell daemon
+
+=head1 SYNOPSIS
+
+B<bpshd> I<listenEID>
+
+=head1 DESCRIPTION
+
+B<bpshd> is the server side of the B<bpsh> remote shell.  It listens on
+I<listenEID> for requests from B<bpsh> clients, executes their commands over
+Bundle Protocol version 7, and returns standard output, standard error, and
+the command exit code to the requesting client in separate bundles.
+
+Each client (keyed by its source endpoint ID) is given its own persistent
+B</bin/sh>, so B<cd>, environment variables, and shell functions persist
+across the commands of a session.  The exit status and the command boundary
+travel out-of-band on a dedicated control file descriptor, so standard output
+and standard error stream verbatim with no in-band sentinels.
+
+Command output is transmitted under ION flow control by way of a transmission
+attendant (see B<ionStartAttendant>): when a large volume of output is
+produced, bundle creation blocks waiting for ZCO space rather than dropping
+data.  Each command is also subject to a wall-clock timeout (300 seconds by
+default; see ENVIRONMENT) and an output cap of 16 MB; exceeding either tears
+down the command's process group.
+
+A fresh INIT from a client aborts any stalled command for that client and
+starts a new session, which provides recovery from a hung command.
+
+B<bpshd> runs until it receives SIGINT or SIGTERM, at which point it tears
+down all active sessions and detaches from BP.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpshd> terminated normally after receiving SIGINT or SIGTERM.
+
+=item "1"
+
+B<bpshd> terminated due to a startup or BP failure.  Details are noted in the
+B<ion.log> log file.
+
+=back
+
+=head1 OPTIONS
+
+=over 4
+
+=item I<listenEID>
+
+The local endpoint ID on which B<bpshd> listens for client requests.
+Mandatory.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item BPSHD_CMD_TIMEOUT
+
+Wall-clock limit, in seconds, for a single command before it and its shell
+are killed.  Defaults to 300.  A value of 0 disables the timeout.
+
+=back
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bpshd: bp_attach failed.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item bpshd: can't open listen endpoint.
+
+Another application has already opened I<listenEID>.  Terminate that
+application and rerun, or choose a different listen endpoint.
+
+=item bpshd: can't start transmission attendant.
+
+ION system error.  Check for earlier diagnostic messages describing the cause
+of the error; correct problem and rerun.
+
+=item [i] bpshd listening on ...
+
+Informational: B<bpshd> has started and is listening on I<listenEID>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpsh(1), bp(3)
