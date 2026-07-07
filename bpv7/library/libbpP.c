@@ -42,13 +42,11 @@
 static BslAgent			agent;
 static int			bslConfigured = 0;
 #else
+#include "bcb.h"
+#include "bib.h"
 #include "bpsec_instr.h"
-#include "bpsec_util.h"
 #include "bpsec_policy.h"
 #endif
-
-#include "bib.h"
-#include "bcb.h"
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
