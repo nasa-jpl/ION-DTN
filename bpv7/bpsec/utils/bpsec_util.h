@@ -292,7 +292,7 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms);
 
 
-int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);
+int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action, int *misconfTgtNum);
 #endif /* !USING_BSL */
 
 

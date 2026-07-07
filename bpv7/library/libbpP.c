@@ -6276,7 +6276,8 @@ int forwardBundle(SdrObject bundleObj, Bundle *bundle, char *eid)
 
 	if (bundle->corrupt)
 	{
-		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
+		return bpAbandon(bundleObj, bundle, bundle->hopLimitExceeded ?
+				BP_REASON_TOO_MANY_HOPS : BP_REASON_BLK_MALFORMED);
 	}
 
 	if (bundle->insecure)
@@ -9888,7 +9889,7 @@ bundle.", NULL);
 		writeMemo("[?] Decryption failed for bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 			bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bpsec_verify(work) < 0)
@@ -9904,7 +9905,7 @@ bundle.", NULL);
 		writeMemo("[?] primary block security verification failed.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bundle->altered == 1)
@@ -9912,7 +9913,7 @@ bundle.", NULL);
 		writeMemo("[?] security verification failed for target block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bundle->insecure == 1)
@@ -9920,7 +9921,7 @@ bundle.", NULL);
 		writeMemo("[?] security verification failed for bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bundle->clDossier.authentic == 0)
@@ -9928,7 +9929,7 @@ bundle.", NULL);
 		writeMemo("[?] Bundle judged inauthentic.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	/*	Can now finish block acquisition for any blocks
@@ -10018,7 +10019,7 @@ bundle.", NULL);
 		writeMemo("[?] security verification failed for target primary block.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 			bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bundle->altered == 1)
@@ -10026,7 +10027,7 @@ bundle.", NULL);
 		writeMemo("[?] security verification failed for target block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 	if (bundle->insecure == 1)
@@ -10034,7 +10035,7 @@ bundle.", NULL);
 		writeMemo("[?] security verification failed for bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 #endif
 
@@ -10065,7 +10066,7 @@ bundle.", NULL);
 		writeMemo("[?] Bundle judged inauthentic.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
-		return abortBundleAcq(work);
+		return discardReceivedBundle(work, SrFailedSecurityService);
 	}
 
 #ifdef TENANCY
@@ -12495,6 +12496,35 @@ int bpDequeue(VOutduct *vduct, SdrObject *bundleZco,
 	if (bundle.corrupt)
 	{
 		*bundleZco = 1;		/*	Client need not stop.	*/
+		if (bundle.hopLimitExceeded)
+		{
+			/*	Bundle's hop count has exceeded its hop
+			 *	limit, so the bundle must be deleted;
+			 *	if deletion status reporting was
+			 *	requested, report the deletion.		*/
+
+			if (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT)
+			{
+				bundle.statusRpt.flags |= BP_DELETED_RPT;
+				bundle.statusRpt.reasonCode
+						= SrHopCountExceeded;
+				if (bundle.bundleProcFlags
+						& BDL_STATUS_TIME_REQ)
+				{
+					getCurrentDtnTime(&(bundle.statusRpt
+							.deletionTime));
+				}
+
+				if (sendStatusRpt(&bundle) < 0)
+				{
+					putErrmsg("Can't send status report.",
+							NULL);
+				}
+			}
+
+			bpDelTally(SrHopCountExceeded);
+		}
+
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 		if (bpDestroyBundle(bundleObj, 5) < 0)
 		{

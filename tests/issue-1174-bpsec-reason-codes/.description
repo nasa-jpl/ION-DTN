@@ -1,0 +1,1 @@
+Verify that bpsec failures generate status reports with security reason codes (12-16).

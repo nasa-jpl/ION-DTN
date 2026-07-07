@@ -1104,7 +1104,7 @@ SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_De
  * @retval  0 - Nothing to do
  * @retval  1 - Results computed for the block.
  *****************************************************************************/
-int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action)
+int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action, int *misconfTgtNum)
 {
 	Sdr sdr = getIonsdr();
 	int8_t result = 1;
@@ -1194,6 +1194,22 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 		if(def.scProcOutBlk(&state, extraParms, bundle, secAsb, &tgtResult) < 1)
 		{
 			BPSEC_DEBUG_ERR("Failed processing target number %d", tgtResult.scTargetId);
+
+			/*
+			 * The security operation could not be produced (e.g., the
+			 * signing key is not in the security database), so it is
+			 * misconfigured at this security source. Only note the
+			 * target here: the sop_misconfigured_at_source event must
+			 * not be raised while this loop is still walking the
+			 * target result list, because a configured removal action
+			 * destroys that list along with the security block. The
+			 * caller raises the event once the loop has ended.
+			 */
+			if (misconfTgtNum != NULL && *misconfTgtNum < 0)
+			{
+				*misconfTgtNum = (int) tgtResult.scTargetId;
+			}
+
 			result = 0;
 		}
 
@@ -1428,6 +1444,7 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 	uint8_t *serializedAsb = NULL;
 	char *fromEid = NULL; /*    Instrumentation.*/
 	int result = 0;
+	int misconfTgtNum;
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,%d)", (uaddr)bundle, secBlkType, action);
 
@@ -1455,11 +1472,27 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 		readEid(&(asb.scSource), &fromEid);
 
 		BPSEC_DEBUG_INFO("Attaching security block with source %s", fromEid);
-		if(bpsec_util_generateSecurityResults(bundle, fromEid, &block, &asb, action) <= 0)
+		misconfTgtNum = -1;
+		if(bpsec_util_generateSecurityResults(bundle, fromEid, &block, &asb, action, &misconfTgtNum) <= 0)
 		{
 			BPSEC_DEBUG_ERR("Unable to populate security block (type %d, id %d) with source %s.", block.type, block.number, fromEid);
 			MRELEASE(fromEid);
 			sdr_write(sdr, block.object, (char* ) &asb, sizeof(BpsecOutboundASB));
+
+			/*
+			 * A security operation could not be produced for at least
+			 * one target, so raise the sop_misconfigured_at_source
+			 * event now that the target result list is no longer being
+			 * walked. A configured removal action is free to delete
+			 * the security block here; this function is done with it.
+			 */
+			if (misconfTgtNum >= 0)
+			{
+				bsl_handle_sender_sop_event(bundle,
+						sop_misconf_at_src, &block, &asb,
+						(unsigned char) misconfTgtNum);
+			}
+
 			return -1;
 		}
 

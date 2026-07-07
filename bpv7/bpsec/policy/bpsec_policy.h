@@ -138,14 +138,16 @@ void       bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBl
 		BpsecOutboundASB *asb, unsigned char tgtNum);
 void       bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum);
 void       bsl_do_not_forward_at_sender(Bundle *bundle);
-void       bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason);
+void       bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason,
+		int deleted);
 
 /* Receiver Optional Processing Action Callbacks */
 void       bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt);
 void       bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt);
 void       bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, unsigned char tgtBlkNum);
 void       bsl_do_not_forward_at_receiver(AcqWorkArea *wk);
-void       bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason);
+void       bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason,
+		int deleted);
 
 
 #endif /* BPSEC_POLICY_H */

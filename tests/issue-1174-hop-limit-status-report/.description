@@ -1,0 +1,1 @@
+Verify that a received bundle whose hop count exceeds its hop limit is deleted with a 'hop limit exceeded' (code 9) status report.

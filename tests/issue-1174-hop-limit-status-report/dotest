@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for issue 1174: a bundle whose hop count exceeds its
+# hop limit must be deleted with a "hop limit exceeded" (code 9) bundle
+# deletion status report, when deletion reporting was requested.
+#
+# A single ION node (node 3) receives an externally built bundle
+# (bespokebpv7) that already carries a Hop Count extension block with
+# hop count equal to hop limit.  Forwarding the bundle increments the
+# hop count past the limit, so the node must delete the bundle and send
+# a deletion status report with reason code 9 to the report-to
+# endpoint, which runtest.py receives and decodes.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that hop-limit exceedance generates a bundle"
+echo "         deletion status report with reason code 9 (hop limit"
+echo "         exceeded) rather than silently destroying the bundle."
+echo
+echo "########################################"
+
+# Find a Python 3 version >= 3.10 with bespokebpv7 installed.
+PYTHON_CMD="python3"
+if command -v "$PYTHON_CMD" &> /dev/null; then
+	py_maj=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+	py_min=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+	if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
+		:
+	else
+		PYTHON_CMD=""
+	fi
+else
+	PYTHON_CMD=""
+fi
+
+if [ -z "$PYTHON_CMD" ]; then
+	echo "SKIP: Python 3.10 or higher is required but not found."
+	exit 2
+fi
+
+if ! "$PYTHON_CMD" -c 'import bespokebpv7' 2>/dev/null; then
+	echo "SKIP: bespokebpv7 module not found. Please install bespokebpv7."
+	exit 2
+fi
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.udp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+cd ..
+
+echo "Running hop-limit status report test..."
+$PYTHON_CMD runtest.py
+RETVAL=$?
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 3.ipn.udp
+./ionstop
+cd ..
+killm f
+echo "Hop limit status report test completed."
+exit $RETVAL

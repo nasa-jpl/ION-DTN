@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for issue 1174: security failures must generate
+# bundle status reports carrying the BPSec reason codes.
+#
+# Topology: nodes 2 and 3, connected by LTP (from bpsec-policy-test).
+#
+# Scenario A ("failed security service", code 15): node 2 applies a BIB
+# to the payload of a bundle destined for node 3.  Node 3 has no policy
+# rule for processing that BIB, so security verification at the
+# destination fails and the bundle must be discarded.  Because the
+# bundle requested deletion status reports, node 3 must send a deletion
+# report with reason code 15 to the report-to endpoint ipn:2.0, where
+# ipnadminep logs 'failed security service' in ion.log.
+#
+# Scenario B ("missing security service", code 12, via policy action):
+# node 2's source rule names a key that is not in the security
+# database, so applying the rule fails and the sop_misconfigured_at_source
+# event fires.  The event is configured with the report_reason_code
+# optional processing action (reason code 12) plus do_not_forward, so a
+# well-formed deletion status report with reason code 12 must arrive at
+# ipn:2.0 and be logged as 'missing security service'.  The bundle
+# requests deletion reporting, which the action honors.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that BPSec failures generate bundle status"
+echo "         reports carrying the BPSec reason codes: code 15"
+echo "         (failed security service) on receive-side verification"
+echo "         failure, and code 12 (missing security service) via the"
+echo "         report_reason_code policy action."
+echo
+echo "########################################"
+
+TIMETOWAITFORREPORT=60
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ..
+
+waitforlog() {
+	# waitforlog <log file> <pattern> <max seconds>
+	local I
+	for I in $(seq 1 $((${3} / 2)))
+	do
+		if grep -q "${2}" "${1}"
+		then
+			return 0
+		fi
+
+		sleep 2
+	done
+
+	grep -q "${2}" "${1}"
+}
+
+#################################################################
+echo ""
+echo "*** Scenario A: BIB unverifiable at destination (code 15) ***"
+echo ""
+
+# Node 2: sign the payload block of bundles sourced by ipn:2.1.
+cd 2.ipn.ltp
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_integrity", "desc":"default integrity event set"}}
+a {"policyrule" : {"desc":"Integrity source rule", "filter" : {"rule_id" : "1", "role" : "s" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bib-integrity", "sc_id" : 1, "sc_parms" : [{"key_name": "myKey"}]}, "es_ref":"d_integrity"}}
+ENDOFBPSECADMINCOMMANDS
+
+# Node 3 has no policy for this BIB, so verification at the
+# destination is impossible and the bundle must be discarded with a
+# deletion status report, reason code 15.
+sleep 2
+echo "Sending trace bundle with BIB to ipn:3.1..."
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 30 0.1 "issue-1174-bib-no-acceptor-rule" del
+
+echo "Waiting for 'failed security service' deletion report at node 2..."
+if waitforlog ion.log "failed security service" ${TIMETOWAITFORREPORT}
+then
+	grep "failed security service" ion.log
+	echo ""
+	echo "OK: deletion status report with reason 'failed security"
+	echo "    service' was received."
+else
+	echo ""
+	echo "ERROR: no 'failed security service' deletion report received."
+	echo ""
+	echo "--- node 2 ion.log (tail) ---"
+	tail -30 ion.log
+	echo "--- node 3 ion.log (tail) ---"
+	tail -30 ../3.ipn.ltp/ion.log
+	RETVAL=1
+fi
+
+# Clear scenario A policy.
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "1"}}
+ENDOFBPSECADMINCOMMANDS
+
+#################################################################
+echo ""
+echo "*** Scenario B: report_reason_code policy action (code 12) ***"
+echo ""
+
+# Node 2: source rule names a key that is not in the security
+# database.  Rule application fails, firing sop_misconfigured_at_source,
+# whose actions report reason code 12 and stop the bundle.
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "mkes", "desc":"report misconfigured sop"}}
+a {"event" : {"es_ref":"mkes", "event_id": "sop_misconfigured_at_source", "actions":[{"id":"report_reason_code", "reason_code":12}, {"id":"do_not_forward"}]}}
+a {"policyrule" : {"desc":"BIB source rule, bad key", "filter" : {"rule_id" : "2", "role" : "s" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bib-integrity", "sc_id" : 1, "sc_parms" : [{"key_name": "noSuchKey"}]}, "es_ref":"mkes"}}
+ENDOFBPSECADMINCOMMANDS
+
+sleep 2
+echo "Sending trace bundle whose signing must fail..."
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 30 0.1 "issue-1174-missing-key" del
+
+echo "Waiting for 'missing security service' report at node 2..."
+if waitforlog ion.log "missing security service" ${TIMETOWAITFORREPORT}
+then
+	grep "missing security service" ion.log
+	echo ""
+	echo "OK: status report with reason 'missing security service'"
+	echo "    was received."
+else
+	echo ""
+	echo "ERROR: no 'missing security service' report received."
+	echo ""
+	echo "--- node 2 ion.log (tail) ---"
+	tail -30 ion.log
+	RETVAL=1
+fi
+
+cd ..
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ..
+sleep 5
+killm f
+echo "BPSec reason codes test completed."
+exit $RETVAL

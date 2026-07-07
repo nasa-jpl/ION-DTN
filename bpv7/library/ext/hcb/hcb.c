@@ -60,7 +60,13 @@ int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	bundle->hopCount += 1;
 	if (bundle->hopCount > bundle->hopLimit)
 	{
-		bundle->corrupt = 1;	/*	Hop limit exceeded.	*/
+		/*	Hop limit exceeded.  The corrupt flag forces
+		 *	destruction of the bundle; hopLimitExceeded
+		 *	selects the "hop limit exceeded" reason code
+		 *	for any requested deletion status report.	*/
+
+		bundle->corrupt = 1;
+		bundle->hopLimitExceeded = 1;
 		return 0;
 	}
 

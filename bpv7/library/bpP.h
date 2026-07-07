@@ -330,6 +330,7 @@ typedef struct
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
+	char		hopLimitExceeded;	/*	Boolean.	*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/

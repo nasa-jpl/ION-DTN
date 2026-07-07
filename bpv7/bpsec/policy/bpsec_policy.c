@@ -843,18 +843,51 @@ void bsl_request_storage(Bundle *bundle)
  *  --------  ------------   ---------------------------------------------
  *  01/26/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-void bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason)
+void bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason,
+		int deleted)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
 	CHKVOID(reason);
 
-	bundle->statusRpt.reasonCode = reason;
+	/*	A status report must assert at least one status; a
+	 *	report carrying only a reason code is discarded as
+	 *	vacuous by receiving nodes.  Assert "deleted" when
+	 *	the triggering event also ends processing of the
+	 *	bundle at this node, else assert "received".
+	 *
+	 *	Per RFC 9171 5.1 a status report is only generated if
+	 *	the bundle requested that status, so a report is sent
+	 *	only when the corresponding request flag is set.	*/
 
-	if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+	if (deleted)
 	{
-		getCurrentDtnTime(&(bundle->statusRpt.deletionTime));
+		if ((SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT) == 0)
+		{
+			return;
+		}
+
+		bundle->statusRpt.flags |= BP_DELETED_RPT;
+		if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+		{
+			getCurrentDtnTime(&(bundle->statusRpt.deletionTime));
+		}
 	}
+	else
+	{
+		if ((SRR_FLAGS(bundle->bundleProcFlags) & BP_RECEIVED_RPT) == 0)
+		{
+			return;
+		}
+
+		bundle->statusRpt.flags |= BP_RECEIVED_RPT;
+		if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+		{
+			getCurrentDtnTime(&(bundle->statusRpt.receiptTime));
+		}
+	}
+
+	bundle->statusRpt.reasonCode = reason;
 
 	sendStatusRpt(bundle);
 }
@@ -879,16 +912,15 @@ void bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason)
  *  --------  ------------   ---------------------------------------------
  *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-void bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason)
+void bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason,
+		int deleted)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(wk);
 
 	Bundle *bundle = &(wk->bundle);
 
-	bsl_report_reason_code_at_sender(bundle, reason);
-
-
+	bsl_report_reason_code_at_sender(bundle, reason, deleted);
 }
 /******************************************************************************
  *
@@ -1082,7 +1114,8 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 						if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
 						{
 							bsl_report_reason_code_at_sender(bundle,
-									curEventPtr->action_parms[0].asReason.reasonCode);
+									curEventPtr->action_parms[0].asReason.reasonCode,
+									curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD);
 						}
 					}
 				}
@@ -1265,7 +1298,9 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 
 						if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
 						{
-							bsl_report_reason_code_at_receiver(wk, curEventPtr->action_parms[0].asReason.reasonCode);
+							bsl_report_reason_code_at_receiver(wk,
+									curEventPtr->action_parms[0].asReason.reasonCode,
+									curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD);
 						}
 					}
 				}
