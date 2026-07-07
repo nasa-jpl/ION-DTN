@@ -280,13 +280,11 @@ static int bpsec_admin_attach(int state)
 
 	if (state == 1)
 	{
-#if USING_BSL
 		if (bsl_all_init(gWm) < 1)
 		{
 			putErrmsg("Failed to initialize BPSec policy.", NULL);
 			return 0;
 		}
-#endif
 	}
 
 	return 1;
