@@ -19,31 +19,8 @@ extern "C" {
 
 #include "bibe.h"
 
-#define CT_ACCEPTED	0
-#define CT_REDUNDANT	3
-#define CT_DEPLETED	4
-#define CT_BAD_EID	5
-#define CT_NO_ROUTE	6
-#define CT_NO_CONTACT	7
-#define CT_BAD_BLOCK	8
-#define CT_DISPOSITIONS	9
-
 typedef struct
 {
-	unsigned int	firstXmitId;
-	unsigned int	lastXmitId;
-} CtSequence;	/*	Sequence of bundles that can be signaled.	*/
-
-typedef struct
-{
-	time_t		deadline;	/*	Ctime.			*/
-	Object		sequences;	/*	sdrlist of CtSequence.	*/
-} CtSignal;	/*	Parameters of pending outbound CT signal.	*/
-
-typedef struct
-{
-	unsigned int	xmitId;		/*	Within CT sequence.	*/
-	time_t		deadline;	/*	Ctime.			*/
 	Object		bundleZco;	/*	Encapsulated bundle.	*/
 } Bpdu;
 
@@ -63,10 +40,6 @@ typedef struct
 	int		lifespan;	/*	A.k.a. TTL.		*/
 	unsigned char	classOfService;	/*	Priority.		*/
 	BpAncillaryData	ancillaryData;	/*	Ordinal, QoS, label.	*/
-
-	/*	Parameters of pending outbound CT signals.		*/
-
-	CtSignal	signals[CT_DISPOSITIONS];
 } Bcla;		/*	BIBE convergence-layer adapter			*/
 
 #ifdef __cplusplus

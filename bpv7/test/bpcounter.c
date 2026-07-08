@@ -106,7 +106,7 @@ int	main(int argc, char **argv)
 	double		interval;
 	char		textBuf[256];
 	double 		bundleSize;
-	int		  	pilotReceived = 0;
+	int	  	pilotReceived = 0;
 
 	if (ownEid == NULL)
 	{

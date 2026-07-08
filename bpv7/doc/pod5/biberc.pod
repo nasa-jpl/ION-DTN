@@ -27,7 +27,7 @@ NOTE: in order to cause bundles to be transmitted via BIBE:
 Remember that BIBE is a convergence-layer protocol; as such, it operates
 between two nodes that are topologically adjacent in a BP network (but in
 this case the BP network within which the nodes are topologically adjacent
-is an overlay on top of the real BP network).  Since the sending and
+is an overlay on top of the "real" BP network).  Since the sending and
 receiving nodes are topologically adjacent, they are neighbors: the sending
 node MUST have an egress plan for transmission to the receiving (that is,
 peer) node, and there MUST be a BIBE outduct attached to that plan.  The
@@ -73,27 +73,6 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 
 Echo control.  Setting echo to 1 causes all output printed by bibeadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
-
-=item B<w> { 0 | 1 | I<activity_spec> }
-
-The B<watch> command.  This command enables and disables production of a
-continuous stream of user-selected Bundle-in-Bundle Encapsulation
-custody transfer activity indication characters.  A watch parameter of "1"
-selects all BIBE-CT activity indication characters; "0" de-selects all
-BIBE-CT activity indication characters; any other I<activity_spec> such
-as "mw" selects all activity indicators in the string, de-selecting all
-others.  BIBE will print each selected activity indication character to
-B<stdout> every time a processing event of the associated type occurs:
-
-B<w>	custody of bundle is accepted
-
-B<m>	custody acceptance is received for one bundle
-
-B<x>	custody of bundle is refused
-
-B<&>	custody refusal is received for one bundle
-
-B<$>	bundle retransmitted due to expired custodial retransmission interval
 
 =item B<h>
 

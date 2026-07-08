@@ -13,7 +13,10 @@
 #include "ipnfw.h"
 #include "bei.h"	/* For findExtensionBlock */
 #include "cbr.h"	/* For CBR_BLOCK_TYPE_CTEB */
+
+#ifdef CBDEDUP
 #include "cbdedup.h"	/* Critical-bundle forward duplication guard. */
+#endif
 
 #ifdef	ION_BANDWIDTH_RESERVED
 #define	MANAGE_OVERBOOKING	0
@@ -685,7 +688,9 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	lyst_destroy(bestRoutes);
 	if (enqueued)
 	{
+#ifdef CBDEDUP
 		oK(cbdedup_record(bundle));
+#endif
 	}
 
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
@@ -1071,18 +1076,21 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	CgrTrace	*trace = NULL;
 #endif
 
-	/*	Critical-bundle de-duplication (Layer 1): if this node has
-	 *	already forwarded a copy of this critical bundle, drop the
-	 *	duplicate here, before any routing/cloning/migration, so it
-	 *	never coexists with the sibling copy in the forward/transmit
-	 *	path.  cbdedup_seen() is a no-op for non-critical bundles.
-	 *	There is no "duplicate" status-report reason code, so use the
-	 *	generic "no additional information" reason (BP_REASON_NONE).	*/
+#ifdef CBDEDUP
+	/*	Critical-bundle de-duplication (Layer 1): if this
+	 *	node has already forwarded a copy of this critical
+	 *	bundle, drop the duplicate here, before any routing
+	 *	and cloning, so it never coexists with the sibling
+	 *	copy in the forward/transmit path.  cbdedup_seen()
+	 *	is a no-op for non-critical bundles.  There is no
+	 *	"duplicate" status-report reason code, so use the
+	 *	"no additional information" reason (BP_REASON_NONE).	*/
 
 	if (cbdedup_seen(bundle))
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_NONE);
 	}
+#endif
 
 	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
@@ -1291,12 +1299,14 @@ int	main(void)
 	}
 
 	cgr_start();
+#ifdef CBDEDUP
 	if (cbdedup_init() < 0)
 	{
 		putErrmsg("ipnfw can't init critical-bundle dedup table.",
 				NULL);
 		return 1;
 	}
+#endif
 
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
@@ -1406,9 +1416,9 @@ int	main(void)
 			running = 0;	/*	Terminate loop.		*/
 		}
 
-		/*	Breadcrumb (#1047): flag any transaction that held
-		 *	the SDR lock abnormally long (the incident showed a
-		 *	179 ms hold just before the silent death).		*/
+		/*	Breadcrumb (#1047): flag any transaction that
+		 *	held the SDR lock abnormally long (the incident
+		 *	showed a 179 ms hold just before silent death).	*/
 
 		getCurrentTime(&xnEnd);
 		{
@@ -1434,7 +1444,9 @@ lock %ld us.", ipnfwCurrentDest, ipnfwCurrentSize, heldUsec);
 	}
 
 	closeCgr();
+#ifdef CBDEDUP
 	cbdedup_shutdown();
+#endif
 	writeErrmsgMemos();
 	ipnfwShutdownClean = 1;	/*	Normal exit; suppress exit report.	*/
 	writeMemo("[i] ipnfw forwarder has ended.");
