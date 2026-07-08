@@ -122,6 +122,13 @@ typedef struct
 	SdrObject    eofPdu;	   /* bytes */
 	unsigned int epduLength;   /* in bytes */
 	SdrObject    closureElt;   /* in sdrlist */
+
+	/*	Appended at the end of the structure: OutFdu is
+	 *	persisted in the SDR heap, so inserting a member
+	 *	would shift the offsets of every member below it
+	 *	in any existing SDR image.			*/
+
+	unsigned int finishedEventPosted;  /* Boolean. */
 } OutFdu;
 
 /*	Each CfdpExtent in "extents" indicates a range of bytes of file

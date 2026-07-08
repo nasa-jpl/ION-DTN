@@ -146,6 +146,17 @@ static int handleFinishOverdue(Sdr sdr, SdrObject fduObj)
 	sdr_list_delete(sdr, fdu.closureElt, NULL, NULL);
 	fdu.closureElt = 0;
 	fdu.finishReceived = 1;
+	if (fdu.finishedEventPosted)
+	{
+		/*	A Transaction-Finished indication has already
+		 *	been delivered for this transaction (e.g., on
+		 *	cancellation); don't post a duplicate.		*/
+
+		sdr_write(sdr, fduObj, (char *) &fdu, sizeof(OutFdu));
+		return 0;
+	}
+
+	fdu.finishedEventPosted = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
@@ -364,6 +375,15 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 								NULL);
 						return -1;
 					}
+				}
+				else
+				{
+					/*	enqueueIndications will post
+					 *	the Transaction-Finished
+					 *	indication (Unacknowledged
+					 *	procedures).		*/
+
+					fdu.finishedEventPosted = 1;
 				}
 
 				sdr_write(sdr, fduObj, (char *) &fdu,

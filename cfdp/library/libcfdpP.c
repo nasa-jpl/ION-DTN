@@ -541,7 +541,7 @@ int	cfdpInit(void)
 		cfdpdbBuf.transactionInactivityLimit = 86400;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
-		cfdpdbBuf.maxQueuedEvents = 20;
+		cfdpdbBuf.maxQueuedEvents = 100;
 		cfdpdbBuf.maxTransmitRate = 0;		/*	Unlimited.	*/
 
 		/*	Management information.				*/
@@ -1662,6 +1662,18 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 
 	sdr_stage(sdr, NULL, fduObj, 0);
 	fduBuf.state = FduCanceled;
+	if (fduBuf.finishedEventPosted)
+	{
+		/*	A Transaction-Finished indication has already
+		 *	been delivered for this transaction (e.g., on
+		 *	receipt of a Finished PDU); posting another
+		 *	would confuse the user application.		*/
+
+		sdr_write(sdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
+		return reqNbr;
+	}
+
+	fduBuf.finishedEventPosted = 1;
 	sdr_write(sdr, fduObj, (char *) &fduBuf, sizeof(OutFdu));
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
@@ -3056,7 +3068,15 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 
 	while (sdr_list_length(sdr, cfdpdb.events) > cfdpdb.maxQueuedEvents)
 	{
+		CfdpEvent	discardedEvent;
+
 		elt = sdr_list_first(sdr, cfdpdb.events);
+		sdr_read(sdr, (char *) &discardedEvent, sdr_list_data(sdr,
+				elt), sizeof(CfdpEvent));
+		writeMemoNote("[?] CFDP event queue overflow; discarding \
+oldest unread event.  To avoid this, drain events faster or raise the limit \
+with cfdpadmin 'm maxevents'.  Discarded event type",
+				itoa(discardedEvent.type));
 		sdr_free(sdr, sdr_list_data(sdr, elt));
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
@@ -3979,6 +3999,18 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	fdu->finishReceived = 1;
+	if (fdu->finishedEventPosted)
+	{
+		/*	A Transaction-Finished indication has already
+		 *	been delivered for this transaction (e.g., on
+		 *	cancellation); note receipt of the Finished PDU
+		 *	but don't post a duplicate indication.		*/
+
+		sdr_write(sdr, fduObj, (char *) fdu, sizeof(OutFdu));
+		return 0;
+	}
+
+	fdu->finishedEventPosted = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));

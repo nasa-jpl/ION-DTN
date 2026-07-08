@@ -232,9 +232,14 @@ static void initTransactionTracker(CfdpTransactionId *transactionId,
 	/* Check if already exists */
 	idx = findTransactionIndex(transactionId);
 	if (idx >= 0) {
-		/* Already tracking this transaction, just update it */
-		transactionTrackers[idx].startTime = time(NULL);
-		transactionTrackers[idx].isActive = 1;
+		/* Already tracking this transaction.  CFDP events may be
+		 * detected (and delivered) out of semantic order, so a
+		 * late Transaction event must not reactivate an entry
+		 * that has already been finalized - it would be reported
+		 * as active forever, since Finished won't come again. */
+		if (transactionTrackers[idx].isActive) {
+			transactionTrackers[idx].startTime = time(NULL);
+		}
 		return;
 	}
 
@@ -371,7 +376,17 @@ static void finalizeTransaction(CfdpTransactionId *transactionId,
 {
 	int idx = findTransactionIndex(transactionId);
 	if (idx < 0) {
-		return;  /* Transaction not found */
+		/* Finished/Abandoned can be delivered before the
+		 * Transaction event when CFDP detects events out of
+		 * order.  Create the entry now so the completion is
+		 * recorded instead of dropped; otherwise a late
+		 * Transaction event would create an entry that stays
+		 * active forever. */
+		initTransactionTracker(transactionId, NULL, NULL, 0, 0);
+		idx = findTransactionIndex(transactionId);
+		if (idx < 0) {
+			return;  /* Tracker full */
+		}
 	}
 
 	transactionTrackers[idx].endTime = time(NULL);

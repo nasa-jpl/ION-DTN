@@ -124,7 +124,11 @@ The B<manage event queue limit> command.  This command establishes the
 maximum number of unread service indications (CFDP "events") that may be
 queued up for delivery at any time.  When the events queue length exceeds
 this figure, events are simply deleted (in decreasing age order, oldest
-first) until the limit is no longer exceeded.  Default value is 20.
+first) until the limit is no longer exceeded; each such deletion is
+noted by a "[?] CFDP event queue overflow" message in the ION log.
+Applications that must observe every service indication (e.g., transfer
+monitoring tools awaiting Transaction-Finished) should drain events
+promptly and/or raise this limit.  Default value is 100.
 
 =item B<m maxtrnbr> I<max_transaction_number>
 
