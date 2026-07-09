@@ -63,6 +63,7 @@ nav:
       - Publications/Documents: List-of-Papers.md
       - Open Source Development & Support: community/OpenSource-Development-Support.md
       - ION Test Set: ION-TestSet-Readme.md
+      - Regression & Demo Test Matrix: Regression-Demo-Test-Matrix.md
       - ION Tutorials: ION-Tutorials.md
       - AGENTS file for ION: AGENTS.md
   - Configuration:
