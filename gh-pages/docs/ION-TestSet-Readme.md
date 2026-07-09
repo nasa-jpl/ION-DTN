@@ -414,10 +414,10 @@ Stale `ion-system.log` files from prior runs are swept out of each test director
 
 When tests fail during a test campaign, `runtests` writes the names of all failed non-optional tests to a file called `retest` in the `tests` directory. Optional tests (marked with `.optional`) are never included.
 
-Automatic retesting is **off by default**. To re-enable the prior behavior of automatically re-running every failed test once at the end of the campaign, set `ENABLE_RETEST=1`:
+Automatic retesting is **on by default**: every failed test is re-run once at the end of the campaign, and a test that passes on retest is counted as passed. To disable the retest pass and see the true first-run failure rate (e.g. when investigating flaky tests), set `ENABLE_RETEST=0`:
 
 ```bash
-ENABLE_RETEST=1 ./runtests
+ENABLE_RETEST=0 ./runtests
 ```
 
 The `retest` file is generated regardless of `ENABLE_RETEST`, so failed tests can be replayed manually at any time:
@@ -432,7 +432,7 @@ The `retest` file is generated regardless of `ENABLE_RETEST`, so failed tests ca
 |----------|---------|--------|
 | `RUNTESTS_OUTPUTDIR` | unset | If set to a directory, per-test output is written to `<dir>/results.<testname>` instead of the terminal |
 | `PRESERVE_TEST_LOGS` | `0` | When `1`, logs from passing tests are kept (failed-test logs are always preserved) |
-| `ENABLE_RETEST` | `0` | When `1`, automatically re-runs failed tests once after the initial pass |
+| `ENABLE_RETEST` | `1` | When `1`, automatically re-runs failed tests once after the initial pass; set to `0` to skip the retest pass (flaky-test investigations) |
 | `ION_TEST_TIMEOUT` | unset | Overrides the computed per-test timeout (seconds, uncapped) |
 | `ION_MIN_DISK_MB` | `500` | Minimum free disk space (MB) required before each test; lower values abort the test as `ABORT (disk full)` |
 | `ION_RUN_EXPERT` | unset | When non-empty, enables tests marked with `.exclude_expert` (e.g., BPSec) |

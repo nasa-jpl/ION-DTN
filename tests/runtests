@@ -28,10 +28,12 @@ echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 : ${PRESERVE_TEST_LOGS:=0}
 
 # Controls whether failed tests are automatically retested at end of run.
-# When set to 1, runtests re-runs each failed test once before reporting.
-# Default (0/unset) skips the retest pass; the retest file is still
-# generated so it can be replayed manually via `./runtests retest`.
-: ${ENABLE_RETEST:=0}
+# When set to 1 (the default), runtests re-runs each failed test once
+# before reporting.  Set to 0 to skip the retest pass and see the true
+# first-run failure rate (e.g. when investigating flaky tests); the
+# retest file is still generated either way, so failed tests can be
+# replayed manually via `./runtests retest`.
+: ${ENABLE_RETEST:=1}
 
 # Allow core dumps so ion-diagnostics can extract stack traces from
 # crashed ION processes. Best-effort: a setrlimit-restricted environment
