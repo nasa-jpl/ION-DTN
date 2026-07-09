@@ -436,6 +436,7 @@ jobs:
               -e "RUN_ID=${{ github.run_id }}" \
               -e "JOB_INDEX=${{ matrix.test_batch.job_index }}" \
               -e "OPERATION=pull" \
+              -e "LOCAL_DEST=test-bundle/test-results-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}" \
               -v
 
       - name: Upload test results
@@ -443,7 +444,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}
-          path: .github/ansible/test-results/
+          # Upload the wrapper directory so the inner folder structure is preserved
+          path: .github/ansible/test-bundle/
 
   aggregate-results:
     name: "Finalize Logs and Reports"
@@ -467,7 +469,7 @@ jobs:
         with:
           pattern: test-results-${{ github.run_id }}-batch-*
           path: all-artifacts
-          merge-multiple: false
+          merge-multiple: true # Forces flat extraction
         continue-on-error: true
 
       - name: Check if artifacts were downloaded
@@ -525,7 +527,6 @@ jobs:
           name: |
             test-results-*-batch-*
             compile-and-buildcheck-log-solaris-*
-            ion-build-*
           failOnError: false
 
   destroy-zones:

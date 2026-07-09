@@ -28,7 +28,7 @@
 
     - name: Pull results - Create local results directory # noqa: run-once[task]
       ansible.builtin.file:
-        path: "./test-results"
+        path: "./{{ LOCAL_DEST | default('test-results') }}"
         state: directory
         mode: "0755"
       delegate_to: localhost
@@ -38,7 +38,7 @@
     - name: Pull results - Collect test results from VM
       ansible.posix.synchronize:
         src: "/var/tmp/ci-results/{{ RUN_ID }}-{{ JOB_INDEX }}/"
-        dest: "./test-results/"
+        dest: "./{{ LOCAL_DEST | default('test-results') }}/"
         mode: pull
         archive: true
       when: OPERATION == 'pull'

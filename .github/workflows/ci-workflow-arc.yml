@@ -433,26 +433,23 @@ jobs:
       - name: Bundle test artifacts
         if: ${{ always() }}
         run: |
-          # Create bundle directory
-          mkdir -p test-bundle
+          ARTIFACT_NAME="test-results-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}"
 
-          # Copy all test outputs into bundle
-          cp build-and-test.log test-bundle/ 2>/dev/null || echo "No build-and-test.log"
-          cp ./tests/progress test-bundle/ 2>/dev/null || echo "No progress file"
+          mkdir -p "test-bundle/$ARTIFACT_NAME"
 
-          # Copy ion.log collection if it exists
+          cp build-and-test.log "test-bundle/$ARTIFACT_NAME/" 2>/dev/null || echo "No build-and-test.log"
+          cp ./tests/progress "test-bundle/$ARTIFACT_NAME/" 2>/dev/null || echo "No progress file"
+
           if [ -d "ion-logs-collection" ]; then
-            cp -r ion-logs-collection test-bundle/
+            cp -r ion-logs-collection "test-bundle/$ARTIFACT_NAME/"
           fi
 
-          # Copy diagnostics if they exist
           if [ -d "diagnostics-collection" ]; then
-            cp -r diagnostics-collection test-bundle/
+            cp -r diagnostics-collection "test-bundle/$ARTIFACT_NAME/"
           fi
 
-          # Copy status fragment
           if [ -d "job-reports" ]; then
-            cp -r job-reports test-bundle/
+            cp -r job-reports "test-bundle/$ARTIFACT_NAME/"
           fi
 
           echo "Test bundle contents:"
@@ -479,15 +476,19 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          # Download only arc-specific artifacts (test results and build logs)
-          # Pattern matches artifacts containing "arc-runner-set-" to exclude Solaris artifacts
           pattern: "*arc-runner-set-*-${{ needs.setup.outputs.timestamp }}*"
           path: all-artifacts
-          merge-multiple: false
+          merge-multiple: true # Forces flat extraction so nested dirs become siblings
 
       - name: Check for downloaded test results
         id: check-results
         run: |
+          # Check for loose progress files (indicates flat extraction of old un-nested format)
+          if ls all-artifacts/progress >/dev/null 2>&1; then
+             echo "::error::Loose files detected in all-artifacts/. Artifact nesting failed."
+             exit 1
+          fi
+
           if ls -d all-artifacts/test-results-*-batch-* >/dev/null 2>&1; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
