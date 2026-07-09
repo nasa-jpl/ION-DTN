@@ -157,6 +157,7 @@ jobs:
     runs-on: arc-runner-set-u22
     outputs:
       testmatrix: ${{ steps.map-matrix.outputs.matrix }}
+      count: ${{ steps.map-matrix.outputs.count }}
       pr_number: ${{ inputs.pr_number }}
       active_runners: ${{ steps.build-runners.outputs.runners }}
       timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
@@ -476,6 +477,7 @@ jobs:
 
       - name: Download ALL ARC artifacts
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           # Download only arc-specific artifacts (test results and build logs)
           # Pattern matches artifacts containing "arc-runner-set-" to exclude Solaris artifacts
@@ -506,10 +508,17 @@ jobs:
 
       - name: Generate test summary and PR status payload
         id: test-summary
+        env:
+          ACTIVE_RUNNERS: ${{ needs.setup.outputs.active_runners }}
+          IS_CANCELLED: ${{ contains(needs.*.result, 'cancelled') }}
+          TOTAL_BATCHES: ${{ needs.setup.outputs.count }}
         run: |
           ./.github/scripts/generate-test-summary.sh \
             --platform arc \
-            --artifact-pattern "all-artifacts/test-results-*-batch-*"
+            --artifact-pattern "all-artifacts/test-results-*-batch-*" \
+            --active-runners "$ACTIVE_RUNNERS" \
+            --is-cancelled "$IS_CANCELLED" \
+            --total-batches "$TOTAL_BATCHES"
 
       - name: Set PR status per runner
         run: |

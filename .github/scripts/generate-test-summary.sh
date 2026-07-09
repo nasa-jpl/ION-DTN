@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Usage: generate-test-summary.sh --platform <arc|solaris> [--artifact-pattern <pattern>]
 # Parses test results to generate a GitHub Actions step summary and determine overall test status.
 
 set -euo pipefail
 
 # Parse command line arguments
-PLATFORM="solaris"  # default for backward compatibility
+PLATFORM="solaris"
 ARTIFACT_PATTERN="all-artifacts/test-results-*"
+ACTIVE_RUNNERS=""
+IS_CANCELLED="false"
+TOTAL_BATCHES=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -18,9 +20,25 @@ while [[ $# -gt 0 ]]; do
             ARTIFACT_PATTERN="$2"
             shift 2
             ;;
+        --active-runners)
+            ACTIVE_RUNNERS="$2"
+            shift 2
+            ;;
+        --is-cancelled)
+            IS_CANCELLED="true"
+            shift 2
+            ;;
+        --total-batches)
+            TOTAL_BATCHES="$2"
+            shift 2
+            ;;
         *)
             echo "ERROR: Unknown argument $1" >&2
-            echo "Usage: $0 --platform <arc|solaris> [--artifact-pattern <pattern>]" >&2
+            echo "Usage: $0 --platform (arc|solaris) \\" >&2
+            echo "       [--artifact-pattern <pattern>] \\" >&2
+            echo "       [--active-runners <count>] \\" >&2
+            echo "       [--is-cancelled] \\" >&2
+            echo "       [--total-batches <batch_count>]" >&2
             exit 1
             ;;
     esac
@@ -75,6 +93,8 @@ FOUND_ANY_RESULTS=false
 # For arc: collect per-runner status
 declare -A runner_status  # runner -> success/failure
 declare -A runner_failed  # runner -> comma-separated failed tests
+declare -A processed_batches # solaris batch tracking to help with cancelled workflows
+declare -A processed_arc_batches # arc batch tracking
 
 # Loop through all artifact directories
 for dir in ${ARTIFACT_PATTERN}; do
@@ -84,6 +104,7 @@ for dir in ${ARTIFACT_PATTERN}; do
         if [[ "$PLATFORM" == "solaris" ]]; then
             # Solaris: extract batch number (1-indexed)
             BATCH=$(basename "$dir" | sed 's/.*-batch-//')
+            processed_batches[$BATCH]="true"
             PROGRESS_FILE="$dir/progress-batch-${BATCH}.txt"
 
             if [ -f "$PROGRESS_FILE" ]; then
@@ -130,6 +151,9 @@ for dir in ${ARTIFACT_PATTERN}; do
             # Arc uses "progress" (no extension), Solaris uses "progress-batch-N.txt"
             PROGRESS_FILE=$(find "$dir" -name "progress*" -type f | head -n 1)
 
+            # Track that this runner completed this specific batch
+            processed_arc_batches["${RUNNER}-${BATCH}"]="true"
+
             if [ -n "$PROGRESS_FILE" ] && [ -f "$PROGRESS_FILE" ]; then
                 # Extract Failed Tests list
                 FAILED=$(awk '/^failed: /{flag=1; next} /^$/{flag=0} flag {print $1}' "$PROGRESS_FILE" | tr -d '\r' | xargs | sed 's/ /, /g')
@@ -137,8 +161,25 @@ for dir in ${ARTIFACT_PATTERN}; do
                 # Extract Skipped Tests list
                 SKIPPED=$(awk '/^skipped: /{flag=1; next} /^$/{flag=0} flag {print $1}' "$PROGRESS_FILE" | tr -d '\r' | xargs | sed 's/ /, /g')
 
+                # Check the exact job status from the workflow report
+                JOB_REPORT_FILE="$dir/job-reports/arc-runner-set-${RUNNER}-${BATCH}.txt"
+                IS_JOB_CANCELLED="false"
+                if [ -f "$JOB_REPORT_FILE" ] && grep -q "cancelled" "$JOB_REPORT_FILE"; then
+                    IS_JOB_CANCELLED="true"
+                fi
+
                 # Determine row result
-                if [ -n "$FAILED" ]; then
+                if [ "$IS_JOB_CANCELLED" = "true" ]; then
+                    RESULT="⚠️ cancelled"
+                    runner_status[$RUNNER]="error"
+                    if [ -n "${runner_failed[$RUNNER]:-}" ]; then
+                        runner_failed[$RUNNER]="${runner_failed[$RUNNER]}, Workflow cancelled"
+                    else
+                        runner_failed[$RUNNER]="Workflow cancelled"
+                    fi
+                    OVERALL_STATUS="pending"
+                    [ -z "$FAILED" ] && FAILED="-"
+                elif [ -n "$FAILED" ]; then
                     RESULT="❌ failed"
                     runner_status[$RUNNER]="failure"
                     # Accumulate failed tests for this runner
@@ -166,13 +207,56 @@ for dir in ${ARTIFACT_PATTERN}; do
             fi
 
             # Append row to table
-            echo "| $RUNNER | batch-$BATCH | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| $RUNNER | Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
         fi
     fi
 done
 
+if [[ "$PLATFORM" == "solaris" ]] && [ -n "$TOTAL_BATCHES" ]; then
+    for (( i=1; i<=TOTAL_BATCHES; i++ )); do
+        if [ -z "${processed_batches[$i]:-}" ]; then
+            if [ "$IS_CANCELLED" == "true" ]; then
+                echo "| Batch $i | ⚠️ cancelled | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                OVERALL_STATUS="pending"
+            else
+                echo "| Batch $i | ❌ missing | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                OVERALL_STATUS="failure"
+            fi
+        fi
+    done
+fi
+
+if [[ "$PLATFORM" == "arc" ]] && [ -n "$ACTIVE_RUNNERS" ] && [ "$ACTIVE_RUNNERS" != "null" ]; then
+    # Parse the JSON array of active runners into a bash list
+    RUNNER_LIST=$(echo "$ACTIVE_RUNNERS" | jq -r '.[]')
+
+    for full_runner in $RUNNER_LIST; do
+        # Extract just the OS name to match our internal array keys (e.g., "arc-runner-set-u22" -> "u22")
+        short_runner=$(echo "$full_runner" | sed -E 's/arc-runner-set-//')
+
+        # Check for missing batches if TOTAL_BATCHES is provided
+        if [ -n "$TOTAL_BATCHES" ]; then
+            for (( i=1; i<=TOTAL_BATCHES; i++ )); do
+                if [ -z "${processed_arc_batches["${short_runner}-${i}"]:-}" ]; then
+                    if [ "$IS_CANCELLED" == "true" ]; then
+                        OVERALL_STATUS="pending"
+                        runner_status[$short_runner]="pending"
+                        runner_failed[$short_runner]="Workflow cancelled"
+                        echo "| $short_runner | Batch $i | ⚠️ cancelled | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                    else
+                        OVERALL_STATUS="failure"
+                        runner_status[$short_runner]="failure"
+                        runner_failed[$short_runner]="Runner crashed or failed to report"
+                        echo "| $short_runner | Batch $i | ❌ missing | - | - |" >> "$GITHUB_STEP_SUMMARY"
+                    fi
+                fi
+            done
+        fi
+    done
+fi
+
 # Handle edge case where no test results were downloaded
-if [ "$FOUND_ANY_RESULTS" = "false" ]; then
+if [ "$FOUND_ANY_RESULTS" = "false" ] && [ "$IS_CANCELLED" = "false" ]; then
     echo "ERROR: No test results found - all jobs may have failed"
     OVERALL_STATUS="failure"
 
@@ -190,6 +274,8 @@ if [[ "$PLATFORM" == "solaris" ]]; then
 
     if [ "$OVERALL_STATUS" = "failure" ]; then
         echo "Tests FAILED"
+    elif [ "$OVERALL_STATUS" = "pending" ]; then
+        echo "Tests PENDING, cancelled"
     else
         echo "All tests PASSED"
     fi
@@ -204,7 +290,9 @@ else
         state="${runner_status[$runner]}"
 
         # Determine description
-        if [ "$state" = "failure" ]; then
+        if [ "$state" = "error" ]; then
+            description="${runner_failed[$runner]}"
+        elif [ "$state" = "failure" ]; then
             if [ -n "${runner_failed[$runner]:-}" ]; then
                 description="Tests failed: ${runner_failed[$runner]}"
             else
@@ -243,6 +331,8 @@ else
 
     if [ "$OVERALL_STATUS" = "failure" ]; then
         echo "Tests FAILED (see per-runner status)"
+    elif [ "$OVERALL_STATUS" = "pending" ]; then
+        echo "Tests still pending, likely cancelled"
     else
         echo "All tests PASSED"
     fi

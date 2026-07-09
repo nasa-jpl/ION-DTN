@@ -447,7 +447,7 @@ jobs:
 
   aggregate-results:
     name: "Finalize Logs and Reports"
-    needs: test-parallel
+    needs: [test-parallel, generate-matrix]
     # Note: if: always() runs when dependencies fail/succeed but NOT when workflow is cancelled
     # The cleanup step uses if: success() to preserve artifacts when this job is skipped
     if: always()
@@ -484,12 +484,18 @@ jobs:
 
       - name: Generate Final Summary Table and Status
         id: test-status
-        if: steps.check-artifacts.outputs.found == 'true'
-        run: bash .github/scripts/generate-test-summary.sh
         continue-on-error: true
+        env:
+          IS_CANCELLED: ${{ contains(needs.*.result, 'cancelled') }}
+          TOTAL_BATCHES: ${{ needs.generate-matrix.outputs.count }}
+        run: |
+          bash .github/scripts/generate-test-summary.sh \
+            --platform solaris \
+            --artifact-pattern "all-artifacts/test-results-${{ github.run_id }}-batch-*" \
+            --total-batches "$TOTAL_BATCHES" \
+            --is-cancelled "$IS_CANCELLED"
 
       - name: Set PR status
-        if: steps.check-artifacts.outputs.found == 'true'
         uses: ./.github/actions/set-pr-status
         with:
           pr_number: ${{ inputs.pr_number }}
