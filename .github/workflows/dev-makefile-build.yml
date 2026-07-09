@@ -78,25 +78,6 @@ jobs:
             echo "has_pr=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Report build start
-        if: steps.pr-context.outputs.has_pr == 'true'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ steps.pr-context.outputs.pr_number }},
-              body: `## 🔨 Development Makefile Build Started
-
-              **Workflow:** ${context.workflow}
-              **Run:** ${context.runNumber}
-              **Commit:** ${context.sha.substring(0, 7)}
-
-              Testing development Makefile build (make.dev system)...
-              [View workflow run →](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
-            });
-
       - name: Enable development Makefiles
         id: enable-dev-makefiles
         run: |
