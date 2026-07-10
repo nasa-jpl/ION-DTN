@@ -331,7 +331,7 @@ compatibility, but it is ignored.");
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	oK(udpbsoSemaphore(&(vspan->beSemaphore)));
-	signal(SIGTERM, shutDownBso);
+	isignal(SIGTERM, shutDownBso);
 
 	/*	Start the echo handler thread.				*/
 

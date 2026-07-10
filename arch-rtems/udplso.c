@@ -404,7 +404,7 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
-	signal(SIGTERM, shutDownLso);
+	isignal(SIGTERM, shutDownLso);
 
 	/*	  Start the receiver thread.		*/
 
