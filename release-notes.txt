@@ -36,6 +36,55 @@ Configuration file changes required:
 - Replace "dccplsi" with "udplsi"
 - Replace "dccplso" with "udplso"
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= ION 4.2.0 - ipn/imc EID CBOR Encoding Preservation =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ION now preserves the CBOR array encoding (2-element vs 3-element) of
+each ipn and imc EID as it was received or configured, rather than
+re-deriving it from the fully-qualified node number when a bundle is
+(re)serialized.
+
+BACKGROUND:
+RFC 9758 permits an ipn EID to be encoded either as a 2-element array
+[node-number, service-number] or a 3-element array
+[allocator-identifier, node-number, service-number]; both denote the
+same EID.  Previously ION stored only the fully-qualified node number
+and chose the encoding at serialization time (3-element when the
+allocator was non-zero, 2-element otherwise).  Because ION reconstructs
+the primary block on every hop, any EID whose received form differed
+from that rule was silently transcoded.  RFC 9758 6.4 notes that
+syntax-based integrity checks may treat the two encodings differently,
+so transcoding an EID covered by a BPSec Block Integrity Block (BIB)
+invalidates the signature at a downstream verifier.
+
+CHANGE:
+- A new EidFormat field on each EndpointId records whether the EID was
+  acquired or configured as a 2-element or 3-element encoding.
+  serializeEid now honors it, and acquireEid and parseEidString set it.
+- The default (EidFormatDefault) reproduces the previous, RFC-recommended
+  behavior (2-element for the default allocator, 3-element otherwise), so
+  EIDs originated on nodes using the default allocator are unchanged on
+  the wire.
+- Primary block, Previous Node Block, CTEB, CREB, custody signals, status
+  reports and BPSec canonicalization all inherit the behavior because
+  they share serializeEid/acquireEid.
+
+BUILD NOTE - Clean rebuild required:
+The EidFormat field occupies existing padding within EndpointId, so
+sizeof(EndpointId) and sizeof(Bundle) are unchanged and no SDR datastore
+migration is required.  This has been verified (sizeof(EndpointId) == 24,
+unchanged) on x86_64, on 64-bit RTEMS (aarch64-rtems6, LP64), and on
+32-bit RTEMS (arm-rtems6, ILP32) with the standard ION build setting
+LONG_LONG_OKAY=1, under which uvast is a 64-bit, 8-byte-aligned type.
+This is nonetheless a struct-layout change: rebuild all ION components
+from source after updating so that every translation unit shares the new
+definition.  The only configuration in which the field grows
+sizeof(EndpointId) is a 32-bit build with LONG_LONG_OKAY=0 (uvast defined
+as a 4-byte unsigned long, which cannot represent node numbers above 4G
+in the first place); such a build must drain and rebuild the SDR before
+restarting.
+
 %%%%%%%%%%%
 = GENERAL =
 %%%%%%%%%%%
