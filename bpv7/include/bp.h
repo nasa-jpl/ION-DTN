@@ -87,6 +87,24 @@ typedef enum
 	imc = 3
 } SchemeCodeNbr;
 
+/*	EidFormat records the CBOR array cardinality in which an ipn or
+ *	imc EID was received or configured, so that the EID can be
+ *	re-serialized in the same form rather than transcoded.  RFC 9758
+ *	permits both a 2-element ([fqnn, service]) and a 3-element
+ *	([allocator, node, service]) encoding of the same EID; transcoding
+ *	between them changes the CBOR bytes and breaks any covering BPSec
+ *	integrity block.  EidFormatDefault (0) preserves legacy behavior:
+ *	derive the encoding from the fully-qualified node number per the
+ *	RFC 9758 recommendation (2-element when the allocator is 0, else
+ *	3-element).							*/
+
+typedef enum
+{
+	EidFormatDefault = 0,	/*	Derive from fqnn (legacy).	*/
+	EidFormat2Element,	/*	[fqnn, service]			*/
+	EidFormat3Element	/*	[allocator, node, service]	*/
+} EidFormat;
+
 /*	Scheme objects are used to encapsulate knowledge about how to
  *	forward bundles.  						*/
 
@@ -166,6 +184,7 @@ typedef union
 typedef struct
 {
 	SchemeCodeNbr	schemeCodeNbr;
+	unsigned char	eidFormat;	/*	EidFormat; fills padding.*/
 	SSP		ssp;
 } EndpointId;
 
@@ -184,6 +203,7 @@ typedef struct
 	uvast		elementNbr;	/*	FQNN or group nbr.	*/
 	unsigned long	serviceNbr;
 	char		nullEndpoint;	/*	Boolean.		*/
+	unsigned char	eidFormat;	/*	EidFormat of the text.	*/
 } MetaEid;
 
 /*	*	*	Objects for managing endpoint ID patterns.	*/

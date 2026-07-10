@@ -6211,7 +6211,8 @@ static int	loadEids(Bundle *bundle, MetaEid *destMetaEid,
 			MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
 {
 	static MetaEid	nullMetaEid =
-		{NULL, "dtn", 3, dtn, NULL, "none", 4, NULL, NULL, NULL, 0, 0, 1};
+		{NULL, "dtn", 3, dtn, NULL, "none", 4, NULL, NULL, NULL, 0, 0, 1,
+			EidFormatDefault};
 
 	if (writeEid(&(bundle->destination), destMetaEid) < 0)
 	{
@@ -8263,6 +8264,19 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		clearMetaEid(&metaEid);
 		putErrmsg("Can't jot eid.", NULL);
 		return -1;
+	}
+
+	/*	Record the CBOR cardinality in which this ipn/imc EID was
+	 *	received, directly from the decoded array length, so that
+	 *	re-serialization reproduces the received form rather than
+	 *	transcoding it (which would break a covering BPSec integrity
+	 *	block).  Taken from arrayLength rather than the composed text
+	 *	to be robust against the ipn:0.N.S vs ipn:N.S alias.	*/
+
+	if (eid->schemeCodeNbr == ipn || eid->schemeCodeNbr == imc)
+	{
+		eid->eidFormat = (arrayLength == 3) ?
+				EidFormat3Element : EidFormat2Element;
 	}
 
 	clearMetaEid(&metaEid);
@@ -10869,7 +10883,8 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 
 	case ipn:
 		allocatorNbr = (eid->ssp.ipn.fqnn >> 32) & 0xffffffff;
-		if (allocatorNbr > 0)
+		if (eid->eidFormat == EidFormat3Element
+		|| (eid->eidFormat == EidFormatDefault && allocatorNbr > 0))
 		{
 			nodeNbr = eid->ssp.ipn.fqnn & 0xffffffff;
 			uvtemp = 3;
@@ -10894,7 +10909,8 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 #ifdef ENABLE_IMC
 	case imc:
 		allocatorNbr = (eid->ssp.imc.fqgn >> 32) & 0xffffffff;
-		if (allocatorNbr > 0)
+		if (eid->eidFormat == EidFormat3Element
+		|| (eid->eidFormat == EidFormatDefault && allocatorNbr > 0))
 		{
 			unsigned long groupNbr = eid->ssp.imc.fqgn & 0xffffffff;
 			uvtemp = 3;

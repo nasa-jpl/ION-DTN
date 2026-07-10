@@ -466,9 +466,14 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 			metaEid->elementNbr = ((allocatorNbr << 32)
 				& 0xffffffff00000000) +
 				(nodeNbr & 0x00000000ffffffff);
+			metaEid->eidFormat = EidFormat3Element;
 		}
 		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
-			&(metaEid->elementNbr), &(metaEid->serviceNbr)) != 2)
+			&(metaEid->elementNbr), &(metaEid->serviceNbr)) == 2)
+		{
+			metaEid->eidFormat = EidFormat2Element;
+		}
+		else
 		{
 			writeMemoNote("[?] Malformed URI", eidString);
 			clearMetaEid(metaEid);
@@ -493,9 +498,14 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 			metaEid->elementNbr = ((allocatorNbr << 32)
 				& 0xffffffff00000000) +
 				(groupNbr & 0x00000000ffffffff);
+			metaEid->eidFormat = EidFormat3Element;
 		}
 		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
-			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
+			&(metaEid->elementNbr), &(metaEid->serviceNbr)) == 2)
+		{
+			metaEid->eidFormat = EidFormat2Element;
+		}
+		else
 		{
 			writeMemoNote("[?] Malformed URI", eidString);
 			clearMetaEid(metaEid);
@@ -540,6 +550,7 @@ int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 	char		*ptr;
 
 	eid->schemeCodeNbr = meid->schemeCodeNbr;
+	eid->eidFormat = meid->eidFormat;	/*	Preserve CBOR form.	*/
 	switch (meid->schemeCodeNbr)
 	{
 	case dtn:
