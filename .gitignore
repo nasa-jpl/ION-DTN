@@ -296,6 +296,7 @@ tests/1000.loopback/dotest
 tests/1300.loopback-tcp/dotest
 tests/1400.loopback-stcp/dotest
 tests/1500.loopback-brs/dotest
+tests/eid-format-preservation/dotest
 tests/issue-188-common-cos-syntax/dotest
 tests/issue-260-teach-valgrind-mtake/domtake
 tests/atomics/test_ipc_atomics

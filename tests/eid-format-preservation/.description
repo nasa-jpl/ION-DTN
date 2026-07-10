@@ -1,0 +1,1 @@
+Verify ipn EID CBOR cardinality (2- vs 3-element) is preserved across acquire/serialize (RFC 9758).
