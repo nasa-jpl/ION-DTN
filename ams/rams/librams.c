@@ -3125,7 +3125,7 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	if (contentLen > MAX_AMS_MSG_SIZE)
 	{
 		char errBuf[128];
-		sprintf(errBuf, "ForwardPublishedMessage: Content too large (%d bytes). Max is %d.",
+		snprintf(errBuf, sizeof(errBuf), "ForwardPublishedMessage: Content too large (%d bytes). Max is %d.",
 				contentLen, MAX_AMS_MSG_SIZE);
 		ErrMsg(errBuf);
 		return -1;
