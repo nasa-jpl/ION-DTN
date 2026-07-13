@@ -4,8 +4,8 @@ a endpoint ipn:2.0 q
 a endpoint ipn:2.1 q
 a endpoint ipn:2.2 q
 a endpoint ipn:2.3 q
-a protocol ltp 1400 100
-a induct ltp 2 ltpcli
-a outduct ltp 1 ltpclo
+a protocol udp 1400 100
+a induct udp 127.0.0.1:2113 udpcli
+a outduct udp 127.0.0.1:1113 udpclo
 r 'ipnadmin config.ipnrc'
 s

@@ -1,522 +1,80 @@
-#!/usr/bin/env bash
-trap 'killm f' EXIT
+#!/bin/sh
 #
 # bpinspect operations regression test
 # Tests cancel, filter+cancel, and dry-run operations
 #
+# Nate Richard
+# 2026-07-22
+trap 'killm f' EXIT
+set -e
 
-echo "========================================="
-echo "bpinspect Operations Test"
-echo "========================================="
+CONFIGFILES=" \
+./node2/config.bprc \
+./node2/config.ionconfig \
+./node2/config.ionrc \
+./node2/config.ionsecrc \
+./node2/config.ipnrc \
+./global.ionrc \
+"
 
-RETVAL=0
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify functionality of bpinspect to inspect, cancel, suspend,
+    and filter+cancel bundles inflight."
+echo
+echo "CONFIG: single node custom:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+
+echo "Checking test prerequisites..."
+
+# Find the latest available Python 3 version >= 3.10
+if [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python3" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python3"
+elif [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python"
+else
+    PYTHON_CMD="python3"
+fi
+
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
+echo
+
+if ! "$PYTHON_CMD" -c "import bespokebpv7" ; then
+    echo "Error: bespokebpv7 is not installed or import failed."
+    exit 2
+fi
 
 # cleanup any previous test runs before starting
 ./cleanup
 
-# Setup
-export ION_NODE_LIST_DIR=$PWD
+export ION_NODE_LIST_DIR="$PWD"
 
-# Start nodes sequentially.  Backgrounding ionstart and then immediately
-# polling with system_up doesn't work: system_up's ionadmin needs to
-# attach to ION, but if ionstart hasn't yet written the ion_nodes entry
-# the attach fails before the polling can begin.  Synchronous starts (per
-# bug-0001-cgr-loopback) guarantee ION is up before we verify.
+STATUS=0
+TEST_RESULT=1
+
 echo ""
-echo "Starting 2-node test network..."
-(cd node1; ./ionstart) >/dev/null 2>&1
-(cd node2; ./ionstart) >/dev/null 2>&1
-
-# Poll each subsystem (ION+LTP+BP) for up to 30s as a sanity check.
-echo "Verifying nodes..."
-(cd node1; ../../../system_up -i "p 30" -l "p 30" -b "p 30") >/dev/null 2>&1
-if [ $? -ne 3 ]; then
-    echo "FAIL: Node 1 failed to start"
-    RETVAL=1
-    # Don't scrub artifacts on failure; runtests preserves logs for
-    # debugging and the EXIT trap (killm f) still stops ION.
-    # ./cleanup
-    exit $RETVAL
+echo "Starting Node 2..."
+cd node2
+./ionstart
+../../../system_up -i "p 30" -b "p 30" || STATUS=$?
+if [ "$STATUS" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
+cd ..
 
-(cd node2; ../../../system_up -i "p 30" -l "p 30" -b "p 30") >/dev/null 2>&1
-if [ $? -ne 3 ]; then
-    echo "FAIL: Node 2 failed to start"
-    RETVAL=1
-    # Don't scrub artifacts on failure (see note above).
-    # ./cleanup
-    exit $RETVAL
-fi
-
-echo "  Node 1: OK"
-echo "  Node 2: OK"
-
-# All tests run from node1
-cd node1
-
-#
-# Test 1: Basic Cancel Operation
-#
 echo ""
-echo "Test 1: Basic bundle cancellation"
-echo "  Sending 3 bundles to ipn:2.1..."
-bpsource ipn:2.1 "test data 1" -t7200
-bpsource ipn:2.1 "test data 2" -t7200
-bpsource ipn:2.1 "test data 3" -t7200
-sleep 2
+echo "Running Python test suite..."
+"$PYTHON_CMD" runtest.py --induct-port 2113
+TEST_RESULT=$?
 
-# Show bundles before cancel
-echo ""
-echo "  BEFORE cancel:"
-bpinspect -t ipn:2.1 -l 2>&1 | head -20
-
-# Verify bundles are queued
-COUNT1=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
-echo ""
-echo "  Found $COUNT1 bundles queued"
-if [ "$COUNT1" -ne 3 ]; then
-    echo "  FAIL: Expected 3 bundles, found $COUNT1"
-    RETVAL=1
-else
-    echo "  OK: 3 bundles queued as expected"
-fi
-
-# Cancel them (with -n for no confirmation)
-echo ""
-echo "  Canceling bundles..."
-bpinspect -t ipn:2.1 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
-sleep 1
-
-# Show bundles after cancel
-echo ""
-echo "  AFTER cancel:"
-bpinspect -t ipn:2.1 -l 2>&1 | head -20
-
-# Verify bundles were removed
-COUNT2=$(bpinspect -l 2>&1 | grep -c "ipn:2.1" || true)
-echo ""
-echo "  Found $COUNT2 bundles after cancel"
-if [ "$COUNT2" -ne 0 ]; then
-    echo "  FAIL: Expected 0 bundles after cancel, found $COUNT2"
-    RETVAL=1
-else
-    echo "  PASS: All bundles successfully canceled"
-fi
-
-#
-# Test 2: Filter + Cancel (Destination Filter)
-#
-echo ""
-echo "Test 2: Filter + cancel (destination filter)"
-echo "  Sending bundles to different destinations (ipn:2.2 and ipn:2.3)..."
-bpsource ipn:2.2 "to endpoint 2.2" -t7200 >/dev/null 2>&1
-bpsource ipn:2.3 "to endpoint 2.3" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundles before cancel
-echo ""
-echo "  BEFORE cancel:"
-bpinspect -l 2>&1 | head -20
-
-# Verify both bundles queued
-COUNT3=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[23]" | wc -l)
-echo ""
-echo "  Found $COUNT3 bundles queued"
-if [ "$COUNT3" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles, found $COUNT3"
-    RETVAL=1
-else
-    echo "  OK: 2 bundles queued as expected"
-fi
-
-# Cancel only bundles to ipn:2.2
-echo ""
-echo "  Canceling only bundles to ipn:2.2..."
-bpinspect -t ipn:2.2 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
-sleep 1
-
-# Show bundles after cancel
-echo ""
-echo "  AFTER cancel:"
-bpinspect -l 2>&1 | head -20
-
-# Should have 1 bundle remaining (to ipn:2.3)
-COUNT4=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[23]" | wc -l)
-echo ""
-echo "  Found $COUNT4 bundles after filtered cancel"
-if [ "$COUNT4" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle remaining, found $COUNT4"
-    RETVAL=1
-else
-    echo "  PASS: Filtered cancel successful (1 bundle to ipn:2.3 remains)"
-fi
-
-# Clean up remaining bundle
-bpinspect -t ipn:2.3 -c -n >/dev/null 2>&1
-sleep 1
-
-#
-# Test 3: Dry-run Mode
-#
-echo ""
-echo "Test 3: Dry-run mode (no actual cancel)"
-echo "  Sending bundle to ipn:2.3..."
-bpsource ipn:2.3 "dry-run test" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundle before dry-run
-echo ""
-echo "  BEFORE dry-run cancel:"
-bpinspect -t ipn:2.3 -l 2>&1 | head -20
-
-# Verify bundle queued
-COUNT5=$(bpinspect -t ipn:2.3 -l 2>&1 | grep -c "ipn:2.3" || true)
-echo ""
-echo "  Found $COUNT5 bundles queued"
-if [ "$COUNT5" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle, found $COUNT5"
-    RETVAL=1
-else
-    echo "  OK: 1 bundle queued as expected"
-fi
-
-# Dry-run cancel (should NOT actually cancel)
-echo ""
-echo "  Running dry-run cancel (-D flag)..."
-bpinspect -t ipn:2.3 -D -c -n 2>&1 | grep -E "(Would cancel|Dry-run)" || true
-sleep 1
-
-# Show bundle after dry-run
-echo ""
-echo "  AFTER dry-run cancel:"
-bpinspect -t ipn:2.3 -l 2>&1 | head -20
-
-# Bundle should still be present
-COUNT6=$(bpinspect -t ipn:2.3 -l 2>&1 | grep -c "ipn:2.3" || true)
-echo ""
-echo "  Found $COUNT6 bundles after dry-run"
-if [ "$COUNT6" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle after dry-run, found $COUNT6"
-    RETVAL=1
-else
-    echo "  PASS: Dry-run successful (bundle not canceled)"
-fi
-
-# Clean up dry-run test bundle
-bpinspect -t ipn:2.3 -c -n >/dev/null 2>&1
-sleep 1
-
-#
-# Test 4: Multiple Bundle Cancel
-#
-echo ""
-echo "Test 4: Multiple bundle cancel"
-echo "  Sending multiple bundles to ipn:2.1..."
-bpsource ipn:2.1 "bundle 1" -t7200 >/dev/null 2>&1
-bpsource ipn:2.1 "bundle 2" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundles before cancel
-echo ""
-echo "  BEFORE cancel:"
-bpinspect -t ipn:2.1 -l 2>&1 | head -20
-
-# Verify both queued
-COUNT7=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
-echo ""
-echo "  Found $COUNT7 bundles queued"
-if [ "$COUNT7" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles, found $COUNT7"
-    RETVAL=1
-else
-    echo "  OK: 2 bundles queued as expected"
-fi
-
-# Cancel all bundles to ipn:2.1
-echo ""
-echo "  Canceling all bundles to ipn:2.1..."
-bpinspect -t ipn:2.1 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
-sleep 1
-
-# Show bundles after cancel
-echo ""
-echo "  AFTER cancel:"
-bpinspect -t ipn:2.1 -l 2>&1 | head -20
-
-# Should have 0 bundles remaining
-COUNT8=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
-echo ""
-echo "  Found $COUNT8 bundles after cancel"
-if [ "$COUNT8" -ne 0 ]; then
-    echo "  FAIL: Expected 0 bundles remaining, found $COUNT8"
-    RETVAL=1
-else
-    echo "  PASS: Multiple bundle cancel successful"
-fi
-
-#
-# Test 5: Priority Filter + Cancel
-#
-echo ""
-echo "Test 5: Priority filter + cancel"
-echo "  Sending bulk (pri=0) and standard (pri=1) bundles to ipn:2.2..."
-
-# Send bundles with different priorities using bptrace with dtn:none traceEid
-bptrace -qos 0.0 -msg "bulk priority" -ttl 7200 ipn:1.1 ipn:2.2 dtn:none >/dev/null 2>&1
-bptrace -qos 0.1 -msg "standard priority" -ttl 7200 ipn:1.1 ipn:2.2 dtn:none >/dev/null 2>&1
-sleep 2
-
-# Show bundles with their priorities
-echo ""
-echo "  BEFORE cancel:"
-bpinspect -t ipn:2.2 -l 2>&1 | head -20
-
-# Verify both bundles queued
-COUNT9=$(bpinspect -t ipn:2.2 -l 2>&1 | grep -c "ipn:2.2" || true)
-echo ""
-echo "  Found $COUNT9 bundles queued"
-if [ "$COUNT9" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles, found $COUNT9"
-    RETVAL=1
-else
-    echo "  OK: 2 bundles queued as expected"
-fi
-
-# Cancel only bulk priority bundles (priority 0)
-echo ""
-echo "  Canceling only bulk priority bundles (-p 0)..."
-bpinspect -t ipn:2.2 -p 0 -c -n 2>&1 | grep -E "(Canceling|Canceled|bundles)" || true
-sleep 1
-
-# Show remaining bundles
-echo ""
-echo "  AFTER cancel:"
-bpinspect -t ipn:2.2 -l 2>&1 | head -20
-
-# Should have 1 bundle remaining (standard priority)
-COUNT10=$(bpinspect -t ipn:2.2 -l 2>&1 | grep -c "ipn:2.2" || true)
-echo ""
-echo "  Found $COUNT10 bundles after filtered cancel"
-if [ "$COUNT10" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle remaining, found $COUNT10"
-    RETVAL=1
-else
-    echo "  PASS: Priority filter successful (1 standard priority bundle remains)"
-fi
-
-# Clean up remaining bundle
-bpinspect -t ipn:2.2 -c -n >/dev/null 2>&1
-sleep 1
-
-#
-# Test 6: Basic Suspend Operation
-#
-echo ""
-echo "Test 6: Basic bundle suspension"
-echo "  Sending 2 bundles to ipn:2.4..."
-bpsource ipn:2.4 "suspend test 1" -t7200 >/dev/null 2>&1
-bpsource ipn:2.4 "suspend test 2" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundles before suspend
-echo ""
-echo "  BEFORE suspend:"
-bpinspect -t ipn:2.4 -l 2>&1 | head -20
-
-# Verify bundles are queued
-COUNT11=$(bpinspect -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
-echo ""
-echo "  Found $COUNT11 bundles queued"
-if [ "$COUNT11" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles, found $COUNT11"
-    RETVAL=1
-else
-    echo "  OK: 2 bundles queued as expected"
-fi
-
-# Suspend them
-echo ""
-echo "  Suspending bundles..."
-bpinspect -t ipn:2.4 -u -n 2>&1 | grep -E "(Suspending|Suspended)" || true
-sleep 1
-
-# Show bundles after suspend (check limbo queue)
-echo ""
-echo "  AFTER suspend (checking limbo):"
-bpinspect -q limbo -t ipn:2.4 -l 2>&1 | head -20
-
-# Verify bundles moved to limbo
-COUNT12=$(bpinspect -q limbo -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
-echo ""
-echo "  Found $COUNT12 bundles in limbo"
-if [ "$COUNT12" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles in limbo, found $COUNT12"
-    RETVAL=1
-else
-    echo "  PASS: All bundles successfully suspended"
-fi
-
-#
-# Test 7: Resume Suspended Bundles
-#
-echo ""
-echo "Test 7: Resume suspended bundles"
-echo "  Resuming bundles from limbo..."
-bpinspect -q limbo -t ipn:2.4 -R -n 2>&1 | grep -E "(Resuming|Resumed)" || true
-sleep 1
-
-# Show bundles after resume
-echo ""
-echo "  AFTER resume:"
-bpinspect -t ipn:2.4 -l 2>&1 | head -20
-
-# Check limbo is now empty for these bundles
-COUNT13=$(bpinspect -q limbo -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
-echo ""
-echo "  Found $COUNT13 bundles in limbo after resume"
-if [ "$COUNT13" -ne 0 ]; then
-    echo "  FAIL: Expected 0 bundles in limbo after resume, found $COUNT13"
-    RETVAL=1
-else
-    echo "  PASS: Bundles successfully resumed"
-fi
-
-# Clean up resumed bundles
-bpinspect -t ipn:2.4 -c -n >/dev/null 2>&1
-sleep 1
-
-#
-# Test 8: Filter + Suspend (Destination Filter)
-#
-echo ""
-echo "Test 8: Filter + suspend (destination filter)"
-echo "  Sending bundles to different destinations (ipn:2.5 and ipn:2.6)..."
-bpsource ipn:2.5 "to endpoint 2.5" -t7200 >/dev/null 2>&1
-bpsource ipn:2.6 "to endpoint 2.6" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundles before suspend
-echo ""
-echo "  BEFORE suspend:"
-bpinspect -l 2>&1 | grep -E "ipn:2\.[56]" || true
-
-# Verify both bundles queued
-COUNT14=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[56]" | wc -l)
-echo ""
-echo "  Found $COUNT14 bundles queued"
-if [ "$COUNT14" -ne 2 ]; then
-    echo "  FAIL: Expected 2 bundles, found $COUNT14"
-    RETVAL=1
-else
-    echo "  OK: 2 bundles queued as expected"
-fi
-
-# Suspend only bundles to ipn:2.5
-echo ""
-echo "  Suspending only bundles to ipn:2.5..."
-bpinspect -t ipn:2.5 -u -n 2>&1 | grep -E "(Suspending|Suspended)" || true
-sleep 1
-
-# Show bundles after suspend
-echo ""
-echo "  AFTER suspend:"
-bpinspect -q limbo -t ipn:2.5 -l 2>&1 | head -20
-
-# Should have 1 bundle in limbo (ipn:2.5)
-COUNT15=$(bpinspect -q limbo -t ipn:2.5 -l 2>&1 | grep -c "ipn:2.5" || true)
-echo ""
-echo "  Found $COUNT15 bundles to ipn:2.5 in limbo"
-if [ "$COUNT15" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle in limbo, found $COUNT15"
-    RETVAL=1
-else
-    echo "  PASS: Filtered suspend successful (1 bundle to ipn:2.5 in limbo)"
-fi
-
-# Clean up both bundles
-bpinspect -q limbo -t ipn:2.5 -c -n >/dev/null 2>&1
-bpinspect -t ipn:2.6 -c -n >/dev/null 2>&1
-sleep 1
-
-#
-# Test 9: Dry-run Suspend/Resume
-#
-echo ""
-echo "Test 9: Dry-run mode (suspend and resume)"
-echo "  Sending bundle to ipn:2.7..."
-bpsource ipn:2.7 "dry-run suspend test" -t7200 >/dev/null 2>&1
-sleep 2
-
-# Show bundle before dry-run
-echo ""
-echo "  BEFORE dry-run suspend:"
-bpinspect -t ipn:2.7 -l 2>&1 | head -20
-
-# Verify bundle queued
-COUNT16=$(bpinspect -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
-echo ""
-echo "  Found $COUNT16 bundles queued"
-if [ "$COUNT16" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle, found $COUNT16"
-    RETVAL=1
-else
-    echo "  OK: 1 bundle queued as expected"
-fi
-
-# Dry-run suspend (should NOT actually suspend)
-echo ""
-echo "  Running dry-run suspend (-D flag)..."
-bpinspect -t ipn:2.7 -D -u -n 2>&1 | grep -E "(Would suspend|Dry-run)" || true
-sleep 1
-
-# Show bundle after dry-run (should NOT be in limbo)
-echo ""
-echo "  AFTER dry-run suspend:"
-COUNT17=$(bpinspect -q limbo -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
-echo ""
-echo "  Found $COUNT17 bundles in limbo after dry-run"
-if [ "$COUNT17" -ne 0 ]; then
-    echo "  FAIL: Expected 0 bundles in limbo after dry-run suspend, found $COUNT17"
-    RETVAL=1
-else
-    echo "  PASS: Dry-run suspend successful (bundle not moved to limbo)"
-fi
-
-# Now actually suspend it for dry-run resume test
-bpinspect -t ipn:2.7 -u -n >/dev/null 2>&1
-sleep 1
-
-# Dry-run resume (should NOT actually resume)
-echo ""
-echo "  Running dry-run resume (-D flag)..."
-bpinspect -q limbo -t ipn:2.7 -D -R -n 2>&1 | grep -E "(Would resume|Dry-run)" || true
-sleep 1
-
-# Should still be in limbo
-COUNT18=$(bpinspect -q limbo -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
-echo ""
-echo "  Found $COUNT18 bundles in limbo after dry-run resume"
-if [ "$COUNT18" -ne 1 ]; then
-    echo "  FAIL: Expected 1 bundle in limbo after dry-run resume, found $COUNT18"
-    RETVAL=1
-else
-    echo "  PASS: Dry-run resume successful (bundle still in limbo)"
-fi
-
-# Clean up test bundle
-bpinspect -q limbo -t ipn:2.7 -c -n >/dev/null 2>&1
-sleep 1
-
-# "runtest" will determine whether to clean up or not.
-
-# Summary
-echo ""
-echo "========================================="
-if [ "$RETVAL" -eq 0 ]; then
-    echo "PASS: All tests passed"
-else
-    echo "FAIL: Some tests failed"
-fi
-echo "========================================="
-
-exit $RETVAL
+exit $TEST_RESULT

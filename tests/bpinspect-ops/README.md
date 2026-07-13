@@ -5,6 +5,7 @@ Automated regression test for bpinspect utility operations including bundle canc
 ## Test Overview
 
 This test validates the following bpinspect operations:
+
 1. **Basic bundle cancellation** - Cancel bundles with confirmation bypass (-n)
 2. **Filtered cancellation** - Cancel with destination filter (-t)
 3. **Dry-run cancellation** - Preview cancellation without executing (-D)
@@ -17,8 +18,7 @@ This test validates the following bpinspect operations:
 
 ## Network Topology
 
-- **Node 1 (ipn:1.0)**: Test source node (LTP port 1111)
-- **Node 2 (ipn:2.0)**: Test destination node (LTP port 1112)
+- **Node 2 (ipn:2.0)**: Test destination node (UDP port 2113)
 - Contact: Immediate bidirectional link at 5 KB/s
 
 The test intentionally sends bundles to Node 2 with short TTL (7200s) to create queued bundles for manipulation.
@@ -40,6 +40,7 @@ sudo cp bin/bpinspect /usr/local/bin/
 ```
 
 Verify installation:
+
 ```bash
 which bpinspect
 # Should show: /usr/local/bin/bpinspect
@@ -56,7 +57,8 @@ Run the complete regression test:
 ```
 
 The test will:
-- Start a 2-node ION network
+
+- Start the ION node
 - Execute 9 test scenarios automatically
 - Report PASS/FAIL for each test
 - Return exit code 0 on success, 1 on failure
@@ -98,69 +100,71 @@ cd ..
 The automated test (`dotest`) executes 9 test scenarios:
 
 ### Test 1: Basic Cancel Operation
+
 - Sends 3 bundles to ipn:2.1
 - Verifies bundles are queued
 - Cancels all bundles with `-c -n` (no confirmation)
 - Verifies bundles are removed
 
 ### Test 2: Filter + Cancel (Destination Filter)
+
 - Sends bundles to ipn:2.2 and ipn:2.3
 - Cancels only bundles to ipn:2.2 using `-t ipn:2.2 -c -n`
 - Verifies only ipn:2.2 bundles canceled, ipn:2.3 remains
 
 ### Test 3: Dry-run Mode
+
 - Sends bundle to ipn:2.3
 - Runs dry-run cancel with `-D -c -n`
 - Verifies bundle is NOT canceled (dry-run only shows what would happen)
 
 ### Test 4: Multiple Bundle Cancel
+
 - Sends 2 bundles to ipn:2.1
 - Cancels all at once
 - Verifies both removed
 
 ### Test 5: Priority Filter + Cancel
+
 - Sends bulk (priority 0) and standard (priority 1) bundles
 - Cancels only bulk priority with `-p 0 -c -n`
 - Verifies only bulk bundles canceled
 
 ### Test 6: Basic Suspend Operation
+
 - Sends 2 bundles to ipn:2.4
 - Suspends them with `-u -n`
 - Verifies bundles moved to limbo queue using `-q limbo`
 
 ### Test 7: Resume Suspended Bundles
+
 - Resumes bundles from limbo with `-q limbo -R -n`
 - Verifies bundles removed from limbo and re-queued for transmission
 
 ### Test 8: Filter + Suspend
+
 - Sends bundles to ipn:2.5 and ipn:2.6
 - Suspends only ipn:2.5 bundles with `-t ipn:2.5 -u -n`
 - Verifies selective suspension
 
 ### Test 9: Dry-run Suspend/Resume
+
 - Tests dry-run suspend (bundle NOT moved to limbo)
 - Tests dry-run resume (bundle stays in limbo)
 - Verifies `-D` flag works for both operations
 
 ## Node Directory Structure
 
-- `node1/` - Node 1 (test source, ipn:1.0)
 - `node2/` - Node 2 (test destination, ipn:2.0)
 
 ## Configuration Details
 
-### Node 1 (Test Source)
-- Node number: ipn:1.0
-- IPC Key: 11111
-- SDR Name: ion1
-- LTP Port: 1111 (listen), 1112 (send to node 2)
-- 20MB SDR storage
-
 ### Node 2 (Test Destination)
+
 - Node number: ipn:2.0
 - IPC Key: 22222
 - SDR Name: ion2
-- LTP Port: 1112 (listen), 1111 (send to node 1)
+- UDP Port: 2113 (listen), 1113 (send to node 1)
 - 5MB SDR storage
 - Contact: Immediate bidirectional link at 5 KB/s
 
@@ -168,7 +172,7 @@ The automated test (`dotest`) executes 9 test scenarios:
 
 When the test passes, you should see:
 
-```
+```text
 =========================================
 bpinspect Operations Test
 =========================================
@@ -234,6 +238,7 @@ tail -f node2/ion.log
 ## Integration with ION Test Suite
 
 This test is designed to be run by ION's automated test framework. It:
+
 - Returns exit code 0 on success, 1 on failure
 - Provides clear PASS/FAIL output
 - Cleans up after itself (when run via `cleanup` script)
