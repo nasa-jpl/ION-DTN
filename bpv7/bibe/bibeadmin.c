@@ -77,6 +77,8 @@ static void	printUsage(void)
 	PUTS("\tv\tPrint version of ION and crypto suite.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
+	PUTS("\tm\tManage");
+	PUTS("\t   {m} limit <reassembly time limit (seconds)>");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <rptTo> <bsrFlags> <lifespan> \
 <priority> <ordinal> <qosFlags> <seg threshold> [<data label>]");
@@ -103,6 +105,44 @@ static int	attachToBp(void)
 	}
 
 	return 0;
+}
+
+static void	manageLimit(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	BpDB	*bpdb = getBpConstants();
+	uvast	limit;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	limit = strtoul(tokens[2], NULL, 0);
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_list_user_data_set(sdr, bpdb->bibeTransfers, limit);
+	if (sdr_end_xn(sdr) < 0)
+        {
+		putErrmsg("Can't set reassembly time limit.", NULL);
+        }
+}
+
+static void	executeManage(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Manage what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "limit") == 0)
+	{
+		manageLimit(tokenCount, tokens);
+		return;
+	}
+
+	SYNTAX_ERROR;
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
@@ -352,6 +392,18 @@ static void	executeDelete(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	infoLimit(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	BpDB	*bpdb = getBpConstants();
+	uvast	limit;
+	char	buffer[1024];
+
+	limit = sdr_list_user_data(sdr, bpdb->bibeTransfers);
+	isprintf(buffer, sizeof buffer, "limit: %lu", limit);
+	printText(buffer);
+}
+
 static void	printBcla(Bcla *bcla)
 {
 	Sdr	sdr = getIonsdr();
@@ -414,6 +466,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "limit") == 0)
+	{
+		infoLimit(tokenCount, tokens);
 		return;
 	}
 
@@ -608,6 +666,14 @@ static int	processLine(char *line, int lineLength, int *rc)
 			if (attachToBp() == 0)
 			{
 				executeList(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'm':
+			if (attachToBp() == 0)
+			{
+				executeManage(tokenCount, tokens);
 			}
 
 			return 0;

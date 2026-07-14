@@ -224,3 +224,39 @@ void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 
 	sdr_exit_xn(sdr);
 }
+
+static void	deleteBibeSegment(Sdr sdr, Object elt, void *arg)
+{
+	Object		obj;
+	BibeSegment	segment;
+
+	/* Parameter intentionally unused. */
+	(void)arg;
+
+	obj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) &segment, obj, sizeof(BibeSegment));
+	zco_destroy(sdr, segment.segmentZco);
+	sdr_free(sdr, obj);
+}
+
+void	bibeDeleteTransfer(Sdr sdr, Object transferObj)
+{
+	BibeTransfer	transfer;
+
+	sdr_read(sdr, (char *) &transfer, transferObj, sizeof(BibeTransfer));
+	sdr_free(sdr, transfer.source);
+	destroyBpTimelineEvent(transfer.timelineElt);
+	sdr_list_destroy(sdr, transfer.segments, deleteBibeSegment, NULL);
+	sdr_free(sdr, transferObj);
+}
+
+int	bibeCancelTransfer(Object transferElt)
+{
+	Sdr	sdr = getIonsdr();
+
+	putErrmsg("Reassembly of encapsulated source bundle is overdue; \
+transfer has been canceled.", NULL);
+	bibeDeleteTransfer(sdr, sdr_list_data(sdr, transferElt));
+	sdr_list_delete(sdr, transferElt, NULL, NULL);
+	return 0;
+}

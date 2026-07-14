@@ -273,7 +273,9 @@ void bpnm_disposition_get(NmbpDisposition *results)
 	Object	   elt;
 	Scheme	   scheme;
 	Object	   elt2;
+#if 0
 	Bcla	   bcla;
+#endif
 	Endpoint   endpoint;
 	BpPlan	   plan;
 	BpDelStats delStats;
@@ -306,6 +308,7 @@ void bpnm_disposition_get(NmbpDisposition *results)
 			sizeof(Scheme));
 		results->currentDispatchPending
 			+= sdr_list_length(sdr, scheme.forwardQueue);
+#if 0
 		if (scheme.bclas)
 		{
 			for (elt2 = sdr_list_first(sdr, scheme.bclas); elt2;
@@ -317,7 +320,7 @@ void bpnm_disposition_get(NmbpDisposition *results)
 					+= sdr_list_length(sdr, bcla.bpdus);
 			}
 		}
-
+#endif
 		for (elt2 = sdr_list_first(sdr, scheme.endpoints); elt2;
 			elt2 = sdr_list_next(sdr, elt2))
 		{

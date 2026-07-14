@@ -23,7 +23,6 @@
 #include "smrbt.h"
 #include "bei.h"
 #include "eureka.h"
-#include "bibe.h"
 #include "cbrP.h"	/* Private CBR header for internal functions */
 #include "cteb.h"	/* For cteb_getCustodyInfo */
 #include "creb.h"	/* For creb_getReportInfo */
@@ -1608,8 +1607,14 @@ int	bpInit(void)
 				BUNDLES_HASH_ENTRIES,
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(sdr);
-		bpdbBuf.limboQueue = sdr_list_create(sdr);
+		bpdbBuf.bibeTransfers = sdr_list_create(sdr);
+		if (bpdbBuf.bibeTransfers)
+		{
+			sdr_list_user_data_set(sdr, bpdbBuf.bibeTransfers, 600);
+		}
+
 		bpdbBuf.transit = sdr_list_create(sdr);
+		bpdbBuf.limboQueue = sdr_list_create(sdr);
 		bpdbBuf.clockCmd = sdr_string_create(sdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(sdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
@@ -4569,6 +4574,7 @@ int	addProtocol(char *protocolName, int protocolClass)
 		clpbuf.protocolClass = BP_PROTOCOL_ANY;
 	}
 	else if (protocolClass == 2
+	|| strcmp(protocolName, "bibe") == 0
 	|| strcmp(protocolName, "udp") == 0
 	|| strcmp(protocolName, "spp") == 0
 	|| strcmp(protocolName, "epp") == 0
@@ -4577,8 +4583,7 @@ int	addProtocol(char *protocolName, int protocolClass)
 		clpbuf.protocolClass = BP_BEST_EFFORT;
 	}
 	else if (protocolClass == 10
-	|| strcmp(protocolName, "ltp") == 0
-	|| strcmp(protocolName, "bibe") == 0)
+	|| strcmp(protocolName, "ltp") == 0)
 	{
 		clpbuf.protocolClass = BP_BEST_EFFORT | BP_RELIABLE;
 	}

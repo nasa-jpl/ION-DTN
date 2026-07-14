@@ -72,6 +72,23 @@ applicable segmentation threshold value.
 
 =over 4
 
+=item B<m> limit I<reassembly time limit>
+
+The B<manage limit> command.  This command is used to set the maximum
+length of time (in seconds) within which any single segmented BIBE transfer
+must be reassembled before being canceled.  It's provided to defend against
+unlimited resource consumption due to bundle reassemblies that don't
+complete due to loss of segment BPDUs.  The default value is 600, i.e.,
+ten minutes.
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<i> limit
+
+This command will simply print the BIBE reassembly time limit that is
+currently configured for this node.
+
 =item B<?>
 
 The B<help> command.  This will display a listing of the commands and their

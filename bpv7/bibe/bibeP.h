@@ -21,8 +21,21 @@ extern "C" {
 
 typedef struct
 {
-	Object		bundleZco;	/*	Encapsulated bundle.	*/
-} Bpdu;
+	uvast		offset;		/*	Location within bundle.	*/
+	uvast		length;		/*	Length of segment.	*/
+	Object		segmentZco;	/*	An array of bytes.	*/
+} BibeSegment;
+
+typedef struct
+{
+	Object		source;		/*	Peer EID, an sdrstring.	*/
+	uvast		transferId;	/*	Identifies transfer.	*/
+	time_t		expirationTime;	/*	Reassembly deadline.	*/
+	Object		timelineElt;	/*	For cleanup.		*/
+	uvast		totalLength;	/*	Length of bundle.	*/
+	Object		segments;	/*	SDR list of BibeSegments*/
+	uvast		acquiredLength;	/*	Sum of segment lengths.	*/
+} BibeTransfer;
 
 typedef struct
 {
@@ -39,6 +52,10 @@ typedef struct
 	unsigned char	classOfService;	/*	Priority.		*/
 	BpAncillaryData	ancillaryData;	/*	Ordinal, QoS, label.	*/
 } Bcla;		/*	BIBE convergence-layer adapter			*/
+
+extern void	bibeDeleteTransfer(Sdr sdr, Object transferObj);
+
+extern int	bibeCancelTransfer(Object transferElt);
 
 #ifdef __cplusplus
 }

@@ -634,7 +634,7 @@ typedef enum
 {
 	expiredTTL = 1,
 	xmitOverdue = 2,
-	ctOverdue = 3
+	reassemblyOverdue = 3
 } BpEventType;
 
 /**
@@ -685,6 +685,7 @@ typedef struct
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
+	Object		bibeTransfers;	/*	SDR list of Transfers	*/
 
 	/*	The Transit queue is a list of received in-transit
 	 *	Bundles that are awaiting presentation to forwarder

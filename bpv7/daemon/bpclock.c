@@ -9,7 +9,7 @@
 
 									*/
 #include "bpP.h"
-#include "bibe.h"
+#include "bibeP.h"
 #include "sdrhash.h"
 #include "smlist.h"
 #include "cbr.h"
@@ -84,8 +84,9 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			result = bpDestroyBundle(event->ref, 1);
 
 			/*	Note that bpDestroyBundle() always
-			 *	erases the bundle's timeline event,
-			 *	so we must NOT do so here.		*/
+			 *	erases the bundle's expiredTTL event
+			 *	(timelineElt), so we must NOT do so
+			 *	here.					*/
 
 			break;		/*	Out of switch.		*/
 
@@ -93,8 +94,19 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			result = bpReforwardBundle(event->ref);
 
 			/*	Note that bpReforwardBundle() always
-			 *	erases the bundle's xmitOverdue event,
-			 *	so we must NOT do so here.		*/
+			 *	erases the bundle's xmitOverdue event
+			 *	(overdueElt), so we must NOT do so
+			 *	here.					*/
+
+			break;		/*	Out of switch.		*/
+
+		case reassemblyOverdue:
+			result = bibeCancelTransfer(event->ref);
+
+			/*	Note that bibeCancelTransfer() always
+			 *	erases the transfer's reassemblyOverdue
+			 *	event (timelineElt), so we must NOT do
+			 *	so here.				*/
 
 			break;		/*	Out of switch.		*/
 
