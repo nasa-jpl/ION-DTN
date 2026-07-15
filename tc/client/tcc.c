@@ -227,7 +227,7 @@ static void	snap(TccDB *db, TccBulletin *bulletin,
 	{
 		printf("Buffer slot %02d:\n", i);
 		blk = outputBlocks[i];
-		for (j = 0; j < blksize; j++)
+		for (j = 0; (size_t) j < blksize; j++)
 		{
 			printf("%02x", blk[j]);
 		}
@@ -769,7 +769,7 @@ char	nbrBuf[FQN_MAX_LENGTH];
 	header.sharenum = ntohl(header.sharenum);
 #if TC_DEBUG
 writeMemoNote("tcc: received block for share", itoa(header.sharenum));
-if (header.sharenum >= db->fec_K)
+if (header.sharenum >= (unsigned int) db->fec_K)
 {
 	writeMemoNote("tcc: Parity block printing at", itoa(time(NULL)));
 	printf("\ntcc: Parity block printing at %lu:\n", time(NULL));
