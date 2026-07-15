@@ -589,6 +589,7 @@ for (byte = bulletin, n = 0; n < bulletinLen && n < (int)((sizeof bytes / 2) - 1
 {
 	isprintf(bytes + (n * 2), sizeof bytes - (n * 2), "%02x", (unsigned char) *byte);
 }
+bytes[n * 2] = '\0'; /* Guarantee termination if loop skips (bulletinLen == 0) */
 
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Bulletin '%s'", bytes);
 writeMemo(msgbuf);
@@ -632,6 +633,7 @@ for (byte = buffer, n = 0; n < buflen && n < (int)((sizeof bytes / 2) - 1); byte
 {
 	isprintf(bytes + (n * 2), sizeof bytes - (n * 2), "%02x", (unsigned char) *byte);
 }
+bytes[n * 2] = '\0'; /* Prevent stale data leakage if loop skips (buflen == 0) */
 
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Buffer '%s'", bytes);
 writeMemo(msgbuf);
