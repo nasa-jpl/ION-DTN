@@ -115,7 +115,8 @@ if [ -n "$ENV_VARS" ]; then
     echo "Processing environment variables: $ENV_VARS"
 
     # Security check: reject dangerous shell metacharacters
-    if echo "$ENV_VARS" | grep -qE '[;|&$()<>`\\]'; then
+    # shellcheck disable=SC2016
+    if echo "$ENV_VARS" | /usr/gnu/bin/grep -qE '[;|&$()<>`\\]'; then
         echo "Error: ENV_VARS contains invalid/dangerous characters (;|&\$()<>\`\\)"
         echo "Only KEY=VALUE pairs with alphanumeric values are allowed"
         exit 1
@@ -123,7 +124,7 @@ if [ -n "$ENV_VARS" ]; then
 
     # Validate format: KEY=VALUE pairs separated by spaces
     # Keys must start with letter/underscore, contain only alphanumeric/underscore
-    if ! echo "$ENV_VARS" | grep -qE '^[A-Za-z_][A-Za-z0-9_]*=[^ ]+([ ]+[A-Za-z_][A-Za-z0-9_]*=[^ ]+)*$'; then
+    if ! echo "$ENV_VARS" | /usr/gnu/bin/grep -qE '^[A-Za-z_][A-Za-z0-9_]*=[^ ]+([ ]+[A-Za-z_][A-Za-z0-9_]*=[^ ]+)*$'; then
         echo "Error: ENV_VARS must be space-separated KEY=VALUE pairs"
         echo "Keys must start with letter/underscore and contain only alphanumeric/underscore"
         echo "Example: FOO=bar BAZ=qux"

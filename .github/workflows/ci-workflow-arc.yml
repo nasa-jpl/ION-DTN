@@ -22,6 +22,13 @@ on:
         required: false
         type: string
         default: ""
+      # When true, the runtests script will automatically retry failed tests.
+      # Note: Explicit ENABLE_RETEST in env_vars takes precedence over this input.
+      enable_retest:
+        description: "Enable automatic rerun of failed tests (ENABLE_RETEST). Default: false (no reruns)."
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description:
           "Timeout for build and tests in minutes (default: 90 minutes / 1.5
@@ -34,7 +41,6 @@ on:
         required: false
         type: number
         default: 7
-      # Replaced the single string input with boolean toggles
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
@@ -89,6 +95,13 @@ on:
         required: false
         type: string
         default: ""
+      # When true, the runtests script will automatically retry failed tests.
+      # Note: Explicit ENABLE_RETEST in env_vars takes precedence over this input.
+      enable_retest:
+        description: "Enable automatic rerun of failed tests (ENABLE_RETEST). Default: false (no reruns)."
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description:
           "Timeout for build and tests in minutes (default: 90 minutes / 1.5
@@ -332,9 +345,20 @@ jobs:
             sudo make install
             sudo ldconfig
             cd tests
-            if [ -n "${{ inputs.env_vars }}" ]; then
-              echo "Setting environment variables: ${{ inputs.env_vars }}"
-              for env_var in ${{ inputs.env_vars }}; do
+            # Construct ENABLE_RETEST based on enable_retest input (unless already in env_vars)
+            CONSTRUCTED_ENV_VARS="${{ inputs.env_vars }}"
+            if echo "$CONSTRUCTED_ENV_VARS" | grep -qE '(^|[[:space:]])ENABLE_RETEST='; then
+              echo "ENABLE_RETEST already set in env_vars, honoring explicit value"
+            else
+              if [ "${{ inputs.enable_retest }}" = "true" ]; then
+                CONSTRUCTED_ENV_VARS="ENABLE_RETEST=1 $CONSTRUCTED_ENV_VARS"
+              else
+                CONSTRUCTED_ENV_VARS="ENABLE_RETEST=0 $CONSTRUCTED_ENV_VARS"
+              fi
+            fi
+            if [ -n "$CONSTRUCTED_ENV_VARS" ]; then
+              echo "Setting environment variables: $CONSTRUCTED_ENV_VARS"
+              for env_var in $CONSTRUCTED_ENV_VARS; do
                 export "$env_var"
               done
             fi

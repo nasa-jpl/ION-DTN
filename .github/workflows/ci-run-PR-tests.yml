@@ -38,6 +38,7 @@ jobs:
       needs-tests: ${{ steps.final-needs-tests.outputs.needs_tests }}
       tests-subset: ${{ steps.determine-tests.outputs.tests_to_run }}
       pr-number: ${{ github.event.pull_request.number }}
+      enable_retest_value: ${{ steps.determine-tests.outputs.enable_retest_value }}
     steps:
       - uses: actions/checkout@v6
 
@@ -82,8 +83,19 @@ jobs:
           TESTS=""
 
           IS_QUICK="${{ contains(github.event.pull_request.labels.*.name, 'quick-test') }}"
+          # Check for 'retest' label to enable automatic rerun of failed tests.
+          # When present, ENABLE_RETEST=1 is passed to arc and solaris workflows.
+          IS_RETEST="${{ contains(github.event.pull_request.labels.*.name, 'retest') }}"
           IS_CI_CD="${{ contains(github.event.pull_request.labels.*.name, 'CI/CD') }}"
           IS_TEST_MODS="${{ contains(github.event.pull_request.labels.*.name, 'test-mods') }}"
+
+          # Construct ENABLE_RETEST based on retest label
+          if [ "$IS_RETEST" = "true" ]; then
+            ENABLE_RETEST_VALUE="ENABLE_RETEST=1"
+          else
+            ENABLE_RETEST_VALUE="ENABLE_RETEST=0"
+          fi
+          echo "Constructed ENABLE_RETEST: $ENABLE_RETEST_VALUE"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             TESTS="${{ inputs.tests_to_run }}"
@@ -132,6 +144,7 @@ jobs:
           fi
 
           echo "tests_to_run=$TESTS" >> $GITHUB_OUTPUT
+          echo "enable_retest_value=$ENABLE_RETEST_VALUE" >> $GITHUB_OUTPUT
 
   run-solaris-tests:
     needs: detect-changes
@@ -139,7 +152,7 @@ jobs:
     uses: ./.github/workflows/ci-workflow-solaris.yml
     with:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
-      env_vars: ${{ inputs.env_vars }}
+      env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
     secrets: inherit
 
@@ -149,7 +162,7 @@ jobs:
     uses: ./.github/workflows/ci-workflow-arc.yml
     with:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
-      env_vars: ${{ inputs.env_vars }}
+      env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
       runner_u22: true
       runner_u24: true

@@ -31,6 +31,13 @@ on:
         required: false
         type: string
         default: ""
+      # When true, the runtests script will automatically retry failed tests.
+      # Note: Explicit ENABLE_RETEST in env_vars takes precedence over this input.
+      enable_retest:
+        description: "Enable automatic rerun of failed tests (ENABLE_RETEST). Default: false (no reruns)."
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description:
           "Timeout for build and tests in minutes (default: 90 minutes / 1.5
@@ -67,6 +74,13 @@ on:
         required: false
         type: string
         default: ""
+      # When true, the runtests script will automatically retry failed tests.
+      # Note: Explicit ENABLE_RETEST in env_vars takes precedence over this input.
+      enable_retest:
+        description: "Enable automatic rerun of failed tests (ENABLE_RETEST). Default: false (no reruns)."
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description:
           "Timeout for build and tests in minutes (default: 90 minutes / 1.5
@@ -384,6 +398,19 @@ jobs:
       - name: Run tests
         id: tests
         run: |
+          CONSTRUCTED_ENV_VARS="${{ inputs.env_vars }}"
+          if echo "$CONSTRUCTED_ENV_VARS" | grep -qE '(^|[[:space:]])ENABLE_RETEST='; then
+            echo "ENABLE_RETEST already set in env_vars, honoring explicit value"
+          else
+            if [ "${{ inputs.enable_retest }}" = "true" ]; then
+              CONSTRUCTED_ENV_VARS="ENABLE_RETEST=1 $CONSTRUCTED_ENV_VARS"
+            else
+              CONSTRUCTED_ENV_VARS="ENABLE_RETEST=0 $CONSTRUCTED_ENV_VARS"
+            fi
+          fi
+          CONSTRUCTED_ENV_VARS="$(echo "$CONSTRUCTED_ENV_VARS" | xargs)"
+          echo "Setting environment variables: $CONSTRUCTED_ENV_VARS"
+
           scp .github/ansible/run-tests-in-zone.sh \
             github-runner@${{ matrix.test_batch.vm_hostname }}:~/run-tests-${{ github.run_id }}-${{ matrix.test_batch.job_index }}.sh
 
@@ -393,7 +420,7 @@ jobs:
              '${{ github.run_id }}' \
              '${{ matrix.test_batch.job_index }}' \
              '${{ matrix.test_batch.tests }}' \
-             '${{ inputs.env_vars || '' }}'"
+             '$CONSTRUCTED_ENV_VARS'"
 
       - name: Use Ansible playbook to collect results
         if: always()
