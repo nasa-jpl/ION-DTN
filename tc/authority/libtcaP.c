@@ -13,12 +13,12 @@
 
 static void	_tcaDBName(char *buffer, int buflen, int blocksGroupNbr)
 {
-	isprintf(buffer, sizeof buflen, "tcadb.%d", blocksGroupNbr);
+	isprintf(buffer, buflen, "tcadb.%d", blocksGroupNbr);
 }
 
 static void	_tcaVdbName(char *buffer, int buflen, int blocksGroupNbr)
 {
-	isprintf(buffer, sizeof buflen, "tcavdb.%d", blocksGroupNbr);
+	isprintf(buffer, buflen, "tcavdb.%d", blocksGroupNbr);
 }
 
 Object	getTcaDBObject(int blocksGroupNbr)
