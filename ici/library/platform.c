@@ -2696,12 +2696,26 @@ int _isprintf(char *buffer, int bufSize, char *format, ...)
 	/*
 	 * Fulfill platform(3) man page promise: log on overrun or error.
 	 * We bypass putErrmsg completely to prevent infinite recursion,
-	 * sending the raw string directly to the registered logger.
+	 * sending a highly constrained, safe diagnostic string directly
+	 * to the registered logger.
 	 */
 	if (ret < 0 || ret >= bufSize)
 	{
-		writeMemo("[?] isprintf buffer overrun or encoding "
-			"error.");
+		char diagBuf[64];
+
+		if (ret < 0)
+		{
+			snprintf(diagBuf, sizeof(diagBuf),
+					"[?] isprintf encoding error (code: %d).", ret);
+		}
+		else
+		{
+			snprintf(diagBuf, sizeof(diagBuf),
+					"[?] isprintf overrun: limit %d, requested %d.",
+					bufSize, ret);
+		}
+
+		writeMemo(diagBuf);
 
 		/*
 		 * Protect caller pointer math. If vsnprintf fails with an
