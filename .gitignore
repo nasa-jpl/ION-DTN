@@ -664,6 +664,7 @@ fileclo
 
 # Secrets
 secrets.local.yaml
+.envrc
 
 # helm charts
 Chart.lock

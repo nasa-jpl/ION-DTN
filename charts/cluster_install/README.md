@@ -29,10 +29,33 @@ to a kind Kubernetes cluster.
   - `kind`: Kubernetes IN Docker for local cluster
   - `kubectl`: Kubernetes command-line tool
   - `helm`: Kubernetes package manager
+  - `direnv`: Environment variable manager for local shell integration.
 
-## Configuration File
+## Configuration Files
 
 - **secrets.local.yaml** (required): Image registry credentials and secrets
+- **.envrc** (required for local execution): Manages ARA API endpoints
+  and dynamic plugin paths.
+
+### Setting up `direnv` (.envrc)
+
+To securely manage telemetry to the ARA server and
+dynamically resolve Ansible plugins based on your local Python environment
+without hardcoding them into [`ansible.cfg`](ansible.cfg):
+
+1. Install `direnv` on your control node and
+   hook it into your shell profile (e.g., bash or zsh).
+2. Create a `.envrc` file in the repository root containing:
+
+   ```bash
+   export ARA_API_SERVER="http://127.0.0.1:8000"
+   export ANSIBLE_CALLBACK_PLUGINS="$(python3 -m ara.setup.callback_plugins)"
+   export ANSIBLE_ACTION_PLUGINS="$(python3 -m ara.setup.action_plugins)"
+   export ANSIBLE_LOOKUP_PLUGINS="$(python3 -m ara.setup.lookup_plugins)"
+   ```
+
+3. Run `direnv allow` in the repository root to automatically authorize and
+   export these variables into your local session.
 
 ## Usage
 
