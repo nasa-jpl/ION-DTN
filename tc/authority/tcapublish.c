@@ -384,7 +384,7 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	int		i;
 	Object		authObj;
 	TcaAuthority	auth;
-	char		msgbuf[256];
+	char		msgbuf[384];
 	int		auths;
 	int		fec_x;
 	int		j;
