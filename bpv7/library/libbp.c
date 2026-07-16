@@ -463,7 +463,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		if (sscanf(metaEid->nss, "%lu.%lu.%lu", &allocatorNbr,
 			&nodeNbr, &(metaEid->serviceNbr)) == 3)
 		{
-			metaEid->elementNbr = ((allocatorNbr << 32)
+			metaEid->elementNbr = (((uvast) allocatorNbr << 32)
 				& 0xffffffff00000000) +
 				(nodeNbr & 0x00000000ffffffff);
 			metaEid->eidFormat = EidFormat3Element;
@@ -495,7 +495,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		if (sscanf(metaEid->nss, "%lu.%lu.%lu", &allocatorNbr,
 			&groupNbr, &(metaEid->serviceNbr)) == 3)
 		{
-			metaEid->elementNbr = ((allocatorNbr << 32)
+			metaEid->elementNbr = (((uvast) allocatorNbr << 32)
 				& 0xffffffff00000000) +
 				(groupNbr & 0x00000000ffffffff);
 			metaEid->eidFormat = EidFormat3Element;
