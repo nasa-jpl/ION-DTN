@@ -120,11 +120,12 @@
  * BCB_DEBUGGING #define.
  */
 
-#define BCB_DEBUG(level, format, ...)                              \
-	if (level >= BCB_DEBUG_LVL)                                \
-	{                                                          \
-		_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); \
-		writeMemo(gMsg);                                   \
+#define BCB_DEBUG(level, format, ...)                                    \
+	if (level >= BCB_DEBUG_LVL)                                      \
+	{                                                                \
+		_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN,         \
+				format, __VA_ARGS__);                    \
+		writeMemo(gMsg);                                         \
 	}
 
 #define BCB_DEBUG_PROC(format, ...) \
@@ -181,7 +182,7 @@
 #if (BCB_TEST_LOGGING == 1)
 
 #define BCB_TEST_POINT(event, bundle, blktype) \
-{_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
+{_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
 svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event,\
 (bundle) ? bundle->id.source.ssp.ipn.fqnn      : 0, \
 (bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \

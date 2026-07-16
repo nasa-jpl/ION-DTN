@@ -75,7 +75,7 @@ extern char	gCsiMsg[GMSG_BUFLEN];
 #define CSI_DEBUG(level, format, ...)                                 \
 	if (level >= CSI_DEBUG_LVL)                                   \
 	{                                                             \
-		_isprintf(gCsiMsg, GMSG_BUFLEN, format, __VA_ARGS__); \
+		isprintf(gCsiMsg, GMSG_BUFLEN, format, __VA_ARGS__);  \
 		putErrmsg(gCsiMsg, NULL);                             \
 	}
 

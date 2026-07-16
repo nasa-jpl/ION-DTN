@@ -378,11 +378,13 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 typedef void			(*SignalHandler)(int);
 
 #ifdef TORNADO_2_0_2
+/* Tornado uses older GCC-style variadic macros */
 #define isprintf(buffer, bufsize, format, args...)	\
-oK(_isprintf(buffer, bufsize, format, args))
+oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, format, args))
 #else
-#define isprintf(buffer, bufsize, format, ...)		\
-oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
+/* Strict C99 / C18 / POSIX compliant macro */
+#define isprintf(buffer, bufsize, ...)		\
+oK(_isprintf(__FILE__, __LINE__, buffer, bufsize, __VA_ARGS__))
 #endif
 
 #ifdef FSWSOURCE
@@ -974,7 +976,7 @@ extern int			sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);
 extern uvast			htonv(uvast hostvast);
 extern uvast			ntohv(uvast netvast);
 
-extern int			_isprintf(char *, int, char *, ...);
+extern int			_isprintf(const char *, int, char *, int, const char *, ...);
 extern size_t			istrlen(const char *, size_t);
 extern char			*istrcpy(char *, const char *, size_t);
 extern char			*istrcat(char *, char *, size_t);

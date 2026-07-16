@@ -2658,7 +2658,7 @@ void	printDottedString(unsigned int hostNbr, char *buffer)
 #define	SN_PAD_ZERO		3
 #define	SN_ALT_OUTPUT		4
 
-int _isprintf(char *buffer, int bufSize, char *format, ...)
+int _isprintf(const char *file, int line, char *buffer, int bufSize, const char *format, ...)
 {
 	va_list args;
 	int ret;
@@ -2706,13 +2706,13 @@ int _isprintf(char *buffer, int bufSize, char *format, ...)
 		if (ret < 0)
 		{
 			snprintf(diagBuf, sizeof(diagBuf),
-					"[?] isprintf encoding error (code: %d).", ret);
+				"[?] isprintf encoding error in %s:%d.", file, line);
 		}
 		else
 		{
 			snprintf(diagBuf, sizeof(diagBuf),
-					"[?] isprintf overrun: limit %d, requested %d.",
-					bufSize, ret);
+				"[?] isprintf overrun in %s:%d (lim %d, req %d).",
+				file, line, bufSize, ret);
 		}
 
 		writeMemo(diagBuf);

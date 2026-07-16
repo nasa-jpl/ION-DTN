@@ -339,7 +339,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	int	len;
 
 	putFqn(nbrBuf, rec->fqnn);
-	len = _isprintf(cursor, bytesRemaining, "%s %lu %lu ", nbrBuf,
+	len = _isprintf(__FILE__, __LINE__, cursor, bytesRemaining, "%s %lu %lu ", nbrBuf,
 			rec->assertionTime, rec->effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
@@ -353,7 +353,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	{
 		for (i = 0; i < rec->datLength; i++)
 		{
-			len = _isprintf(cursor, bytesRemaining, "%02x",
+			len = _isprintf(__FILE__, __LINE__, cursor, bytesRemaining, "%02x",
 					rec->datValue[i]);
 			cursor += len;
 			bytesRemaining -= len;
@@ -366,7 +366,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	sdr_read(sdr, acknowledged, rec->acknowledged, auths);
 	for (i = 0; i < auths; i++)
 	{
-		len = _isprintf(cursor, bytesRemaining, "  %d:%d", i,
+		len = _isprintf(__FILE__, __LINE__, cursor, bytesRemaining, "  %d:%d", i,
 				acknowledged[i]);
 		cursor += len;
 		bytesRemaining -= len;

@@ -92,7 +92,7 @@ static int	writeAddPubKeyCmd(time_t effectiveTime, unsigned short
 	}
 
 	putFqn(nbrBuf, getOwnFqnn());
-	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey %s %d %d %d ",
+	len = _isprintf(__FILE__, __LINE__, cmdbuf, sizeof cmdbuf, "a pubkey %s %d %d %d ",
 			nbrBuf, effectiveTime, getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
