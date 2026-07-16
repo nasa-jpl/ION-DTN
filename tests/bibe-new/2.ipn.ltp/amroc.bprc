@@ -15,5 +15,5 @@ a plan ipn:3.0 1000000000
 a planduct ipn:3.0 ltp 3
 a planduct ipn:3.0 bibe ipn:3.67
 r 'ipnadmin amroc.ipnrc'
-#	w 1
+w 1
 s

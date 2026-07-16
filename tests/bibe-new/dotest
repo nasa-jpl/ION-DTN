@@ -1,12 +1,11 @@
-#!/usr/bin/env bash
-trap 'killm f' EXIT
-#
 # Scott Burleigh
-# May 27, 2014
+# July 16, 2026
 #
 # This script tests BIBE encapsulation with BIBE removed from the
-# administrative elements of nodes' application agents.  Four nodes
-# (1, 2, 3, 4) are in series.
+# administrative elements of nodes' application agents, custodial
+# retransmission removed, and segmentation/reassembly added.
+#
+# Four nodes (1, 2, 3, 4) are in series.
 #
 # Node 1 is configured to send everything directly to node 2 via LTP.
 #
@@ -24,9 +23,16 @@ trap 'killm f' EXIT
 # all others directly to 4.
 #
 # We send 4 bundles from 1: to destinations 4, 5, 6, and 7, one bundle each.
-# The bundle destined for 4 should be delivered; bundles destined for nodes
-# 6 and 7 should be received at 4 and abandoned there, while the bundle
-# destined for node 5 should be received and forwarded to oblivion at node 3.
+# The bundle destined for node 5 should be received at node 3 and there
+# forwarded to oblivion.  The bundle destined for 4 should be delivered;
+# bundles destined for nodes 6 and 7 should be received at 4 and abandoned
+# there (as there is no path from node 4 to nonexistent nodes 6 and 7).
+#
+# The payloads of all four bundles are text strings of length 11; the
+# resulting source bundles are of length 20.  The BIBE segmentation
+# threshold is set to 8 so that every BIBE bundle will contain a
+# segment BPDU and reassembly of the source bundles will be required
+# in every case.
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=2
@@ -95,7 +101,8 @@ cd ../1.ipn.ltp
 echo -e "\n\n***Sending one bundle from node 1 to node 4.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
+#bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace4"
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -105,7 +112,8 @@ sleep ${TIMETOWAITFORTESTFINISH}
 echo -e "\n\n***Sending one bundle from node 1 to node 5.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:5.1 ipn:1.0 3600 0.1 "test_trace5" rcv,ct,fwd,dlv,del
+#bptrace ipn:1.1 ipn:5.1 ipn:1.0 3600 0.1 "test_trace5" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:5.1 ipn:1.0 3600 0.1 "test_trace5"
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -115,7 +123,8 @@ sleep ${TIMETOWAITFORTESTFINISH}
 echo -e "\n\n***Sending one bundle from node 1 to node 6.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+#bptrace ipn:1.1 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6"
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -125,7 +134,8 @@ sleep ${TIMETOWAITFORTESTFINISH}
 echo -e "\n\n***Sending one bundle from node 1 to node 7.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:7.1 ipn:1.0 3600 0.1 "test_trace7" rcv,ct,fwd,dlv,del
+#bptrace ipn:1.1 ipn:7.1 ipn:1.0 3600 0.1 "test_trace7" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:7.1 ipn:1.0 3600 0.1 "test_trace7"
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -149,17 +159,17 @@ sleep 1
 
 # Shut down ION processes.
 echo "Stopping ION..."
-#cd ../1.ipn.ltp
-#./ionstop &
-#cd ../2.ipn.ltp
-#./ionstop &
-#cd ../3.ipn.ltp
-#./ionstop &
-#cd ../4.ipn.ltp
-#./ionstop &
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
 
 # Give all four nodes time to shut down, then clean up.
-#sleep 7
+sleep 7
 
 COUNT=`grep "test_trace4" results.txt | wc -l`
 if [ "$COUNT" -ne 1 ]

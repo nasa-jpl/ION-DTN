@@ -123,7 +123,7 @@ endif
 
 LBP = -lbp $(LBSL)
 
-RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibecli bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
 
 ifeq ($(USING_BSL),1)
 RUNTIMES = $(RUNTIMES_BASE)
@@ -383,11 +383,15 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.so
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lm
 		cp brsccla ./bin
 
-#	-	-	BIBE executable	-	-	-	-	-
+#	-	-	BIBE executables	-	-	-	-
 
 bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bibeclo ./bin
+
+bibecli:	bibecli.o $(BPLIBS)
+		$(CC) -o bibecli bibecli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bibecli ./bin
 
 #	-	-	IPND executable	-	-	-	-	-
 

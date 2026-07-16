@@ -2972,7 +2972,8 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("[?] Transaction crashed before destroying bundle (may be normal during ionrestart).", NULL);
+		putErrmsg("[?] Transaction crashed before destroying bundle \
+(may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -3001,7 +3002,8 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("[?] Transaction crashed during hash operations (may be normal during ionrestart).", NULL);
+		putErrmsg("[?] Transaction crashed during hash operations \
+(may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -3064,8 +3066,8 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("[?] Transaction crashed during payload destruction (may be normal during ionrestart).",
-				NULL);
+		putErrmsg("[?] Transaction crashed during payload destruction \
+(may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -3080,11 +3082,13 @@ incomplete bundle.", NULL);
 
 	destroyExtensionBlocks(&bundle);
 
-	/*	Verify transaction still active after extension cleanup.	*/
+	/*	Verify transaction still active after deletion of
+	 *	extension blocks.					*/
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("[?] Transaction crashed during extension cleanup (may be normal during ionrestart).", NULL);
+		putErrmsg("[?] Transaction crashed during extension cleanup \
+(may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -12940,7 +12944,6 @@ int	bpHandleXmitFailure(Object bundleZco)
 	Sdr	sdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
-
 	CHKERR(bundleZco);
 	CHKERR(sdr_begin_xn(sdr));
 	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)

@@ -597,13 +597,17 @@ extern int getpriority(int, id_t);
 #define FIFO_WRITE_MODE         (O_RDWR)
 #define	FDTABLE_SIZE		(getdtablesize())
 
-#ifdef __linux__			/****	Linux			     ****/
+#ifdef __linux__		/****	Linux			     ****/
+
+#include <execinfo.h>
+
+#define	HAVE_BACKTRACE
+#define	HAVE_BACKTRACE_SYMBOLS
 
 #include <malloc.h>
 
 #include <pthread.h>
 int pthread_setname_np(pthread_t thread, const char *name);
-
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES is the default on Linux */

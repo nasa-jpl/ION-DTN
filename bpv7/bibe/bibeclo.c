@@ -264,7 +264,7 @@ int	main(int argc, char *argv[])
 
 			bpduZco = zco_clone(sdr, bundleZco, offset,
 					segmentLength);
-			if (sdr_end_xn(sdr))
+			if (bpduZco == 0)
 			{
 				putErrmsg("Can't clone from source bundle; \
 CLO stopping.", NULL);
@@ -307,17 +307,8 @@ CLO stopping.", NULL);
 			/*	Complete construction of BPDU.		*/
 
 			hdrlen = cursor - buffer;
-			CHKZERO(sdr_begin_xn(sdr));
 			zco_prepend_header(sdr, bpduZco, (char *) buffer,
 					hdrlen);
-			if (sdr_end_xn(sdr))
-			{
-				putErrmsg("Can't prepend header; CLO stopping.",
-						NULL);
-				shutDownClo();
-				remainingSourceLength = 0;
-				continue;
-			}
 
 			/*	Send bundle whose payload is the BPDU,
 			 *	i.e., a ZCO comprising the BPDU message
@@ -350,6 +341,13 @@ CLO stopping.", NULL);
 
 			remainingSourceLength -= segmentLength;
 			offset += segmentLength;
+		}
+
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Encapsulation failed; CLO stopping.", NULL);
+			shutDownClo();
+			continue;
 		}
 
 		/*	Done with segmentation and transmission.	*/

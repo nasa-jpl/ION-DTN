@@ -46,7 +46,6 @@ static int	decodeSegmentHeader(unsigned char **cursor,
 	if (cbor_decode_integer(transferId, CborAny, cursor, unparsedBytes) < 1)
 	{
 		writeMemo("[?] BIBE can't decode BPDU transfer ID.");
-		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
@@ -54,14 +53,12 @@ static int	decodeSegmentHeader(unsigned char **cursor,
 			unparsedBytes) < 1)
 	{
 		writeMemo("[?] BIBE can't decode length of source bundle.");
-		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
 	if (cbor_decode_integer(offset, CborAny, cursor, unparsedBytes) < 1)
 	{
 		writeMemo("[?] BIBE can't decode BPDU segment offset.");
-		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
@@ -178,12 +175,12 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 }
 
 static Object	getTransfer(BpDelivery *dlv, uvast transferId,
-			uvast sourceBundleLength, BibeTransfer *transfer) 
+			uvast sourceBundleLength, Object *transferObj,
+			BibeTransfer *transfer) 
 {
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpdb = getBpConstants();
 	Object		transferElt;
-	Object		obj;
 	char		sourceEid[SDRSTRING_BUFSZ];
 	uvast		bibeTimeLimit;
 	unsigned int	timeLimit;
@@ -194,12 +191,13 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 	 *	the same transfer ID, transfers are distinguished by
 	 *	source endpoint ID.					*/
 
-	obj = 0;			/*	Transfer not found yet.	*/
+	*transferObj = 0;		/*	Transfer not found yet.	*/
 	for (transferElt = sdr_list_last(sdr, bpdb->bibeTransfers); transferElt;
 			transferElt = sdr_list_prev(sdr, transferElt))
 	{
-		obj = sdr_list_data(sdr, transferElt);
-		sdr_stage(sdr, (char *) transfer, obj, sizeof(BibeTransfer));
+		*transferObj = sdr_list_data(sdr, transferElt);
+		sdr_stage(sdr, (char *) transfer, *transferObj,
+				sizeof(BibeTransfer));
 		if (transfer->transferId > transferId)
 		{
 			continue;	/*	Keep looking.		*/
@@ -209,7 +207,7 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 		{
 			/*	New transfer; insert after this one.	*/
 
-			obj = 0;	/*	Indicates "not found."	*/
+			*transferObj = 0;	/*	"Not found."	*/
 			break;
 		}
 
@@ -219,7 +217,7 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 		{
 			/*	Invalid transfer.  Clean up.		*/
 
-			bibeDeleteTransfer(sdr, obj);
+			bibeDeleteTransfer(sdr, *transferObj);
 			sdr_list_delete(sdr, transferElt, NULL, NULL);
 			continue;
 		}
@@ -229,12 +227,12 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 			break;		/*	Found the transfer.	*/
 		}
 
-		obj = 0;		/*	Transfer not found yet.	*/
+		*transferObj = 0;	/*	Transfer not found yet.	*/
 	}
 
 	/*	Finished searching for the cited transfer.		*/
 
-	if (obj)			/*	Found it.		*/
+	if (*transferObj)		/*	Found it.		*/
 	{
 		return transferElt;
 	}
@@ -270,8 +268,8 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 		return -1;
 	}
 
-	obj = sdr_malloc(sdr, sizeof(BibeTransfer));
-	if (obj == 0)
+	*transferObj = sdr_malloc(sdr, sizeof(BibeTransfer));
+	if (*transferObj == 0)
 	{
 		sdr_list_destroy(sdr, transfer->segments, NULL, NULL);
 		sdr_free(sdr, transfer->source);
@@ -281,17 +279,18 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 
 	if (transferElt)		/*	Insert after this one.	*/
 	{
-		transferElt = sdr_list_insert_after(sdr, transferElt, obj);
+		transferElt = sdr_list_insert_after(sdr, transferElt,
+				*transferObj);
 	}
 	else			/*	Insert at end of list.	*/
 	{
 		transferElt = sdr_list_insert_last(sdr, bpdb->bibeTransfers,
-				obj);
+				*transferObj);
 	}
 
 	if (transferElt == 0)
 	{
-		sdr_free(sdr, obj);
+		sdr_free(sdr, *transferObj);
 		sdr_list_destroy(sdr, transfer->segments, NULL, NULL);
 		sdr_free(sdr, transfer->source);
 		putErrmsg("Can't record new transfer.", NULL);
@@ -305,7 +304,7 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 	if (transfer->timelineElt == 0)
 	{
 		sdr_list_delete(sdr, transferElt, NULL, NULL);
-		sdr_free(sdr, obj);
+		sdr_free(sdr, *transferObj);
 		sdr_list_destroy(sdr, transfer->segments, NULL, NULL);
 		sdr_free(sdr, transfer->source);
 		putErrmsg("Can't set reassembly deadline.", NULL);
@@ -314,12 +313,14 @@ static Object	getTransfer(BpDelivery *dlv, uvast transferId,
 
 	/*	New transfer has been noted.				*/
 
-	sdr_write(sdr, obj, (char *) transfer, sizeof(BibeTransfer));
+	sdr_write(sdr, *transferObj, (char *) transfer, sizeof(BibeTransfer));
 	return transferElt;
 }
 
 static int	acquireSourceBundle(Object sourceBundleZco, VInduct *vinduct)
 {
+	AcqWorkArea	*work;
+
 	work = bpGetAcqArea(vinduct);
 	if (work == NULL)
 	{
@@ -354,8 +355,8 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 			uvast offset, uvast segmentLength)
 {
 	Sdr		sdr = getIonsdr();
-	BpDB		*bpdb = getBpConstants();
 	Object		transferElt;
+	Object		transferObj;
 	BibeTransfer	transfer;
 	Object		elt;
 	Object		obj;
@@ -369,7 +370,7 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 
 	CHKERR(sdr_begin_xn(sdr));
 	transferElt = getTransfer(dlv, transferId, sourceBundleLength,
-			&transfer);
+			&transferObj, &transfer);
 	if (transferElt == 0)
 	{
 		oK(sdr_end_xn(sdr));
@@ -425,7 +426,7 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 
 	segment.offset = offset;
 	segment.length = segmentLength;
-	segment.zco = bpduZco;
+	segment.segmentZco = bpduZco;
 	obj = sdr_malloc(sdr, sizeof(BibeSegment));
 	if (obj == 0)
 	{
@@ -434,7 +435,7 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 		return -1;
 	}
 
-	sdr_write(sdr, obj, (char *) segment, sizeof(BibeSegment));
+	sdr_write(sdr, obj, (char *) &segment, sizeof(BibeSegment));
 	if (offsetOfNext == 0)		/*	No successor in list.	*/
 	{
 		elt = sdr_list_insert_last(sdr, transfer.segments, obj);
@@ -475,13 +476,14 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 	/*	Now check to see if transfer is complete.		*/
 
 	transfer.acquiredLength += segmentLength;
-	if (transfer.acquiredLength < totalLength)
+	if (transfer.acquiredLength < transfer.totalLength)
 	{
 		/*	Not all segments of the source bundle
 		 *	have been received yet.  Note progress
 		 *	and wrap up.					*/
 
-		sdr_write(sdr, obj, (char *) &transfer, sizeof(BibeTransfer));
+		sdr_write(sdr, transferObj, (char *) &transfer,
+				sizeof(BibeTransfer));
 		oK(sdr_end_xn(sdr));
 		return 0;
 	}
@@ -519,7 +521,7 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 	}
 
 	zco_bond(sdr, sourceBundleZco);
-	if (acquireSourceBundle(bpduZco, vinduct) < 0)
+	if (acquireSourceBundle(sourceBundleZco, vinduct) < 0)
 	{
 		putErrmsg("Can't acquire reassembled bundle.", NULL);
 		zco_destroy(sdr, sourceBundleZco);
@@ -530,7 +532,7 @@ static int	handleSegment(BpDelivery *dlv, VInduct *vinduct, Object bpduZco,
 	/*	Source bundle has been acquired and dispatched.
 	 *	This transfer is no longer needed.			*/
 
-	bibeDeleteTransfer(sdr, sdr_list_data(sdr, transferElt));
+	bibeDeleteTransfer(sdr, transferObj);
 	sdr_list_delete(sdr, transferElt, NULL, NULL);
 	oK(sdr_end_xn(sdr));
 	return 0;
@@ -544,7 +546,6 @@ static int	handleBpdu(BpDelivery *dlv, VInduct *vinduct)
 	uvast		sourceBundleLength;
 	uvast		offset;
 	uvast		segmentLength;
-	AcqWorkArea	*work;
 
 	/*	The ADU in the dlv structure is the ZCO representation
 	 *	of the *payload* of a bundle sent by BIBE.  As such,

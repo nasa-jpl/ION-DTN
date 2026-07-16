@@ -31,6 +31,8 @@ bibeadmin
 lt-bibeadmin
 bibeclo
 lt-bibeclo
+bibecli
+lt-bibecli
 bpadmin
 lt-bpadmin
 bpcancel
