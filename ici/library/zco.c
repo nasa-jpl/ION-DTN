@@ -286,7 +286,7 @@ static void	zco_reduce_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-isprintf(buf, sizeof buf, "[i] %s file occupancy increased to %f .",
+isprintf(buf, sizeof buf, "[i] %s file occupancy reduced to %f .",
 bookNames[((int) acct)], book->fileOccupancy);
 writeMemo(buf);
 #endif
