@@ -921,7 +921,6 @@ AC_ARG_ENABLE([asan],
       # transitively (#1050).  Append -ldl (and -lpthread defensively) to
       # LIBS so it lands at the end of every link line.
       LIBS="$LIBS -ldl -lpthread"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -fsanitize=address -fno-omit-frame-pointer -g"
       AC_MSG_NOTICE([AddressSanitizer enabled (-fsanitize=address).])
       AC_MSG_NOTICE([  For reliable ASan stacks also pass CFLAGS='-O1 -g' (or -O0);])
       AC_MSG_NOTICE([  the default -O2 inlines frames and makes core backtraces misleading.])
