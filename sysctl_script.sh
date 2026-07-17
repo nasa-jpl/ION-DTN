@@ -44,7 +44,7 @@ else
     echo ""
     echo "If you are running macOS, use the install_macos_sysctl.sh script"
     echo ""
-    echo "If you are running FreeBSD, shmmni, shmseg, shmmns, and semmni should"
+    echo "If you are running FreeBSD, shmmni, shmseg, semmns, and semmni should"
     echo "  be updated through /boot/loader.conf; The other"
     echo "  parameters can be updated using sysctl command or via /etc/sysctl.conf."
 
