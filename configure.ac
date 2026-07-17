@@ -905,7 +905,7 @@ AC_ARG_ENABLE([asan],
   [AS_HELP_STRING([--enable-asan],[Build with AddressSanitizer (-fsanitize=address); for debugging only])],
   [case "${enableval}" in
     yes)
-      AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer -g"
+      AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
       # ASan's extra inlining / flow analysis surfaces flow-sensitive
       # warnings (notably the classic strncpy(dst,src,sizeof(dst)-1)
       # truncation idiom in bpv7/utils/bptracker.c) that the vanilla build
