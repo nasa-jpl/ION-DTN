@@ -954,6 +954,8 @@ typedef struct
 
 extern void			encodeSdnv(Sdnv *, uvast);
 extern int			decodeSdnv(uvast *, unsigned char *);
+extern size_t			decodeSdnvBounded(uvast *, unsigned char *,
+					size_t length);
 
 typedef struct
 {

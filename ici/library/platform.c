@@ -1757,6 +1757,48 @@ int	decodeSdnv(uvast *val, unsigned char *sdnvTxt)
 	}
 }
 
+size_t decodeSdnvBounded(uvast *val, unsigned char *sdnvTxt, size_t length)
+{
+	size_t	       sdnvLength = 0;
+	unsigned char *cursor;
+
+	CHKZERO(val);
+	CHKZERO(sdnvTxt);
+	*val = 0;
+	cursor = sdnvTxt;
+
+	/*
+	 * Identical to decodeSdnv() except that the SDNV must be fully
+	 * contained within the first "length" bytes of the buffer.  Callers
+	 * parsing untrusted, length-delimited input (e.g. bytes received from
+	 * a convergence layer) use this so a truncated SDNV cannot drive an
+	 * out-of-bounds read past the end of the buffer, and so the returned
+	 * length never exceeds the caller's remaining byte count. The return
+	 * value is the SDNV length in bytes (1-10), or 0 if the SDNV is
+	 * truncated within "length" bytes or runs longer than 70 bits.
+	 */
+
+	while (sdnvLength < length)
+	{
+		sdnvLength++;
+		if (sdnvLength > 10)
+		{
+			return 0; /* More than 70 bits. */
+		}
+
+		*val <<= 7;
+		*val |= (*cursor & 0x7f);
+		if (((*cursor) & 0x80) == 0) /* Last SDNV byte. */
+		{
+			return sdnvLength;
+		}
+
+		cursor++;
+	}
+
+	return 0; /* Truncated within "length" bytes. */
+}
+
 void	loadScalar(Scalar *s, signed int i)
 {
 	CHKVOID(s);

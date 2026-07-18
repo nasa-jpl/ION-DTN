@@ -2597,7 +2597,7 @@ static int parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 	uvast		recordsCounter;
 	size_t		payloadLength;
 	size_t		remainingLength;
-	int		sdnvLength;
+	size_t		sdnvLength;
 	char		skipTopic = 0;		/*	Boolean		*/
 	VSap		*vsap = 0;		/*	To hush gcc	*/
 	PsmAddress	elt;
@@ -2636,14 +2636,27 @@ static int parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 
 	/*	Get topic ID			*/
 
-	sdnvLength = decodeSdnv(&topicNum, *cursor);
+	sdnvLength = decodeSdnvBounded(&topicNum, *cursor, *bytesUnparsed);
+	if (sdnvLength < 1)
+	{
+		writeMemo("[?] DTPC: truncated topic ID SDNV.");
+		return -1;
+	}
+
 	*cursor += sdnvLength;
 	*bytesUnparsed -= sdnvLength;
 	parsedBytes += sdnvLength;
 
 	/*	Get number of records in topic	*/
 
-	sdnvLength = decodeSdnv(&recordsCounter, *cursor);
+	sdnvLength = decodeSdnvBounded(&recordsCounter, *cursor,
+			*bytesUnparsed);
+	if (sdnvLength < 1)
+	{
+		writeMemo("[?] DTPC: truncated record-count SDNV.");
+		return -1;
+	}
+
 	*cursor += sdnvLength;
 	*bytesUnparsed -= sdnvLength;
 	parsedBytes += sdnvLength;
@@ -2700,7 +2713,14 @@ static int parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		/*	Get payload length				*/
 
 		uvast decodedLength;
-		sdnvLength = decodeSdnv(&decodedLength, *cursor);
+		sdnvLength = decodeSdnvBounded(&decodedLength, *cursor,
+				*bytesUnparsed);
+		if (sdnvLength < 1)
+		{
+			writeMemo("[?] DTPC: truncated payload-length SDNV.");
+			return -1;
+		}
+
 		*cursor += sdnvLength;
 		*bytesUnparsed -= sdnvLength;
 		parsedBytes += sdnvLength;

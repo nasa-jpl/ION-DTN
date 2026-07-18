@@ -656,6 +656,43 @@ number after extracting the SDNV's value from those octets and storing it
 in I<value>.  Returns 0 if the encoded number value will not fit into an
 unsigned vast integer.
 
+Note that decodeSdnv() is B<unbounded>: it keeps consuming octets until it
+encounters an octet whose high-order bit is clear.  It therefore assumes
+that I<sdnvText> points into a buffer that is known to contain a complete,
+well-formed SDNV.  Do B<not> call decodeSdnv() on untrusted or
+length-delimited input (for example, bytes just received from a
+convergence-layer adapter): a truncated SDNV whose octets all have the
+high-order bit set will drive a read past the end of the buffer.  Use
+decodeSdnvBounded() in that case.
+
+=item size_t decodeSdnvBounded(uvast *value, unsigned char *sdnvText, size_t length)
+
+The bounds-checked counterpart to decodeSdnv(), for use whenever the SDNV
+is read from untrusted or length-delimited input.  I<length> is the number
+of octets remaining in the buffer at I<sdnvText>, i.e., the maximum number
+of octets the function is permitted to read.  The SDNV must be fully
+contained within those first I<length> octets: the function never reads at
+or past I<sdnvText> + I<length>, so a truncated SDNV at the end of the
+buffer cannot drive an out-of-bounds read, and the returned length never
+exceeds I<length>.
+
+On success the function stores the decoded value in I<value> and returns
+the length of the SDNV in octets, a number from 1 through 10.
+
+The function returns 0 to indicate failure, which occurs if the SDNV is
+truncated within the first I<length> octets, or if the encoded value will
+not fit into an unsigned vast integer (i.e., is longer than 70 bits).  In
+both of these cases I<value> is set to 0.  A return value of 0 must always
+be treated as a decode failure: the caller must not advance its parse
+cursor by the return value and must not trust the contents of I<value>.
+The function additionally returns 0 without storing anything if I<value> or
+I<sdnvText> is NULL, or if I<length> is 0.
+
+decodeSdnvBounded() holds no locks and requires no SDR transaction.  It
+reads only the caller-supplied buffer and writes only through I<value>,
+producing no other side effects, so it is re-entrant and thread-safe as
+long as callers operate on distinct buffers.
+
 =back
 
 =head2 ARITHMETIC ON LARGE INTEGERS (SCALARS)

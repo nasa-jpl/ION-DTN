@@ -14,6 +14,8 @@
 #include "rfx.h"
 #include "time.h"
 
+#include <stdint.h>
+
 #ifndef NODE_LIST_SEMKEY
 #define NODE_LIST_SEMKEY	(0xeeee1)
 #endif
@@ -1830,7 +1832,7 @@ int	_extractSdnv(uvast *into, unsigned char **from, int *remnant,
 		return 0;
 	}
 
-	sdnvLength = decodeSdnv(into, *from);
+	sdnvLength = decodeSdnvBounded(into, *from, *remnant);
 	if (sdnvLength < 1)
 	{
 		writeMemoNote("[?] Invalid SDNV at line...", itoa(lineNbr));
@@ -1855,16 +1857,16 @@ int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
 		return 0;
 	}
 
-	sdnvLength = decodeSdnv(&val, *from);
+	sdnvLength = decodeSdnvBounded(&val, *from, *remnant);
 	if (sdnvLength < 1)
 	{
 		writeMemoNote("[?] Invalid SDNV at line...", itoa(lineNbr));
 		return 0;
 	}
 
-	if (val > UINT_MAX)
+	if (val > UINT32_MAX)
 	{
-		writeMemoNote("[?] SDNV value exceeds uint32 at line...",
+		writeMemoNote("[?] SDNV value exceeds uint32_t at line...",
 				itoa(lineNbr));
 		return 0;
 	}
