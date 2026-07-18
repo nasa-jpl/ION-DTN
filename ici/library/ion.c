@@ -452,25 +452,21 @@ void writeMemoToIonLog(char *text)
 	unlockResource(&logFileLock);
 }
 
-/*-------------------------------------------------------
- *  Fatal-signal crash handler (#1047 instrumentation)
- *    - ION daemons install handlers only for SIGTERM, so a SIGSEGV/
- *      SIGBUS/etc. takes the default disposition: it may drop a core,
- *      but nothing writes a stack to ion.log -- the crash is "silent".
- *      (See #1047: ipnfw died mid-transaction with no trace.)
- *    - These handlers write an async-signal-safe backtrace to ion.log
- *      and stderr, then restore the default disposition and re-raise so
- *      a core is still produced when the OS allows it.
- *    - Everything here must be async-signal-safe: no malloc, no stdio,
- *      no locks.  We pre-resolve the log path at install time, then use
- *      open()/write()/backtrace_symbols_fd(), all of which are safe.
- *    - Disabled under AddressSanitizer: ASan installs its own SIGSEGV/
- *      SIGBUS handlers at startup and produces a far more precise report
- *      than backtrace().  Installing ours via sigaction() at attach would
- *      override ASan's handler (we install later) and suppress its report,
- *      which is exactly what masked the real fault during the #1048 ASan
- *      run.  Let ASan own signal handling when built with it.
- *-------------------------------------------------------*/
+/*
+ * Fatal-signal crash handler
+ * - ION daemons install handlers only for SIGTERM, so a SIGSEGV/ SIGBUS/etc.
+ *   takes the default disposition: it may drop a core, but nothing writes a
+ *   stack to ion.log -- the crash is "silent".
+ * - These handlers write an async-signal-safe backtrace to ion.log and stderr,
+ *   then restore the default disposition and re-raise so a core is still
+ *   produced when the OS allows it.
+ * - Everything here must be async-signal-safe: no malloc, no stdio, no locks.
+ *   We pre-resolve the log path at install time, then use
+ *   open()/write()/backtrace_symbols_fd(), all of which are safe.
+ * - Disabled under AddressSanitizer: ASan installs its own SIGSEGV/ SIGBUS
+ *   handlers at startup and produces a far more precise report than
+ *   backtrace().
+ */
 #if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
 		&& !defined(solaris) && !defined(__SANITIZE_ADDRESS__)
 #include <execinfo.h>

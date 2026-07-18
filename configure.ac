@@ -902,9 +902,9 @@ AC_ARG_ENABLE([core-file-needed],
   [CORE_FILE_NEEDED=yes])
 
 #
-# AddressSanitizer build (diagnostics for memory errors, e.g. the silent
-# SIGSEGV in #1047).  Adds -fsanitize=address to both compile and link
-# flags.  Off by default; intended for stress/debug runs, not production.
+# AddressSanitizer build (diagnostics for memory errors).
+# Adds -fsanitize=address to both compile and link flags.
+# Off by default; intended for stress/debug runs, not production.
 # Note: ION's PSM/SDR custom shared-memory allocators are not instrumented,
 # but wild/NULL-pointer dereferences and stack overflow are caught.
 #
@@ -931,11 +931,9 @@ but -fsanitize=address is not supported])])
 
    AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
    AM_LDFLAGS="$AM_LDFLAGS -fsanitize=address"
-   # Under -fsanitize=address ld becomes strict about every reference
-   # being satisfied on the link line; sppcli/sppclo's use of dlsym then
-   # surfaces a latent missing -ldl that the vanilla build resolves
-   # transitively (#1050).  Append -ldl (and -lpthread defensively) to
-   # LIBS so it lands at the end of every link line.
+   # Under -fsanitize=address ld becomes strict about every reference being
+   # satisfied on the link line. Append -ldl (and -lpthread defensively) to
+   # LIBS since dlsym needs it.
    LIBS="$LIBS -ldl -lpthread"
    AC_MSG_NOTICE([AddressSanitizer enabled (-fsanitize=address).])
    AC_MSG_NOTICE([  For reliable ASan stacks also pass CFLAGS='-O1 -g' (or -O0);])
