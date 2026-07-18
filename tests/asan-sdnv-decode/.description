@@ -1,0 +1,1 @@
+AddressSanitizer regression: SDNV decoder must not read past the input buffer (GHSA-85pw-28vw-2jf7).

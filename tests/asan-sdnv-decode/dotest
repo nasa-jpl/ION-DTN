@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# AddressSanitizer regression for GHSA-85pw-28vw-2jf7 (SDNV decoder
+# out-of-bounds read).  Compiles a small harness that feeds a truncated SDNV
+# to _extractSdnv() in an exact-size heap buffer and runs it under ASan.
+#
+#   PASS: the bounded decode stays within the buffer (fixed code).
+#   FAIL: ASan reports a heap-buffer-overflow read (vulnerable code).
+#
+# Meaningful only when ION was built with --enable-asan; otherwise the read
+# inside libici is not instrumented and the test cannot observe the bug, so
+# it skips (exit 2).
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+# Honor $CC; otherwise prefer gcc, then clang, then cc.  Both gcc and clang
+# provide AddressSanitizer, and ION builds on systems without gcc.
+if [ -z "$CC" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: asan-sdnv-decode"
+echo "PURPOSE: Verify SDNV decoding does not read past the input buffer"
+echo "         (GHSA-85pw-28vw-2jf7), under AddressSanitizer."
+echo "########################################"
+
+# ION compiler and linker flags come from pkg-config (a build dependency), so
+# the harness is built with the same ABI-defining flags as ION itself (needed
+# on e.g. FreeBSD).
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+
+# Locate the instrumented libici to check whether this is an ASan build.
+LIBICI=$(find "$LIBDIR"/* -prune -name "libici.so*" 2>/dev/null | head -n1)
+if [ -z "$LIBICI" ]; then
+    echo "SKIP: libici not found in ${LIBDIR:-<unset>}."
+    exit 2
+fi
+
+# Only meaningful on an AddressSanitizer build of ION.
+if ! nm -D "$LIBICI" 2>/dev/null | grep -q "__asan"; then
+    echo "SKIP: ION not built with --enable-asan (libici is not"
+    echo "      AddressSanitizer-instrumented, so the over-read is not"
+    echo "      observable)."
+    exit 2
+fi
+
+BIN=$(mktemp /tmp/sdnv_oob_test.XXXXXX)
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -fsanitize=address -g -O1 $ION_CFLAGS "$HERE/sdnv_oob_test.c" \
+        $ION_LIBS -o "$BIN"; then
+    echo "FAIL: could not compile the ASan harness."
+    rm -f "$BIN"
+    exit 1
+fi
+
+LD_LIBRARY_PATH="$LIBDIR:$LD_LIBRARY_PATH" \
+    ASAN_OPTIONS=detect_leaks=0:abort_on_error=0 "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: SDNV decode stayed within the input buffer."
+    exit 0
+fi
+
+echo "FAIL: AddressSanitizer reported an out-of-bounds read, or the SDNV"
+echo "      decode was incorrect (exit $RETVAL)."
+exit 1
