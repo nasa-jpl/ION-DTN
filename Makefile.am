@@ -41,13 +41,17 @@ AM_CFLAGS += \
 NO_UNUSED_VARIABLE =
 else
 AM_CFLAGS += -Wall \
-	-fPIC -Werror -Wextra \
+	-fPIC -Wextra \
 	-Wstrict-prototypes \
 	-pedantic \
 	-Wshadow \
 	-Wpointer-arith \
 	-Wcast-qual \
 	-Wcast-align
+
+if !USING_GCC_ASAN
+AM_CFLAGS += -Werror
+endif
 
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC

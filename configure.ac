@@ -57,6 +57,13 @@ AM_PROG_CC_C_O           dnl enable “-c -o file.o file.c” portability
 m4_ifdef([AM_PROG_AR],   dnl Automake ≥ 1.12 wants this
           [AM_PROG_AR])  dnl (harmless no-op on older Automake)
 
+using_gcc=no
+AS_IF([test "x$GCC" = "xyes"],
+  [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#ifdef __clang__
+#error
+#endif
+  ]])], [using_gcc=yes], [using_gcc=no])])
 
 dnl =============================================================
 dnl  Prefer ISO C11/C18, fall back to ISO C99  (portable  ≥ Autoconf 2.60)
@@ -923,14 +930,6 @@ but -fsanitize=address is not supported])])
    LDFLAGS="$saved_LDFLAGS"
 
    AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
-   # ASan's extra inlining / flow analysis surfaces flow-sensitive
-   # warnings (notably the classic strncpy(dst,src,sizeof(dst)-1)
-   # truncation idiom in bpv7/utils/bptracker.c) that the vanilla build
-   # does not trip; under ION's default -Werror they become fatal and
-   # block the ASan build (#1050).  Keep them visible but non-fatal so
-   # -Werror still guards genuine warnings everywhere else.
-   AM_CFLAGS="$AM_CFLAGS -Wno-error=stringop-truncation -Wno-error=stringop-overflow"
-   AM_CFLAGS="$AM_CFLAGS -Wno-error=array-bounds -Wno-error=maybe-uninitialized -Wno-error=nonnull-compare"
    AM_LDFLAGS="$AM_LDFLAGS -fsanitize=address"
    # Under -fsanitize=address ld becomes strict about every reference
    # being satisfied on the link line; sppcli/sppclo's use of dlsym then
@@ -943,6 +942,8 @@ but -fsanitize=address is not supported])])
    AC_MSG_NOTICE([  the default -O2 inlines frames and makes core backtraces misleading.])
    AC_MSG_NOTICE([  ION's in-process crash handler is auto-disabled under ASan so])
    AC_MSG_NOTICE([  ASan owns SIGSEGV reporting.])])
+AM_CONDITIONAL([USING_GCC_ASAN],
+  [test "x$using_gcc" = "xyes" && test "x$enable_asan" = "xyes"])
 
 AC_ARG_ENABLE([sysctl-check],
   [AS_HELP_STRING([--disable-sysctl-check],
