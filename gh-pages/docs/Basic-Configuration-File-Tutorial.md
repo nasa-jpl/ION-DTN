@@ -328,9 +328,12 @@ ltp is the convergence-layer protocol name.
 
 1 is the duct name (the outduct identifier, here the remote LTP engine ID).
 
-> **Recommended**: Use `a plan` and `a planduct` in the bprc file for egress
-> plan configuration. The equivalent ipnadmin command (`a plan 1 ltp/1`)
-> is a simplified shortcut retained for backward compatibility.
+> **Recommended**: Configure egress plans with `a plan` and `a planduct`
+> in the bprc file. The equivalent ipnadmin one-liner (`a plan 1 ltp/1`)
+> is a simplified shortcut. For the reasons behind this recommendation
+> — and for what the ipnrc file *should* be used for instead — see
+> [Egress Plans: bprc vs. ipnrc, and What Belongs Where](#egress-plans-bprc-vs-ipnrc-and-what-belongs-where)
+> below.
 
 `s`
 
@@ -352,15 +355,113 @@ a planduct ipn:1.0 ltp 1
 s
 ```
 
+### Egress Plans: bprc vs. ipnrc, and What Belongs Where
+
+An egress plan can be defined in **two** places, using **two different
+syntaxes**. This frequently causes confusion, so it is worth understanding
+exactly how they relate.
+
+**The two syntaxes:**
+
+| | bprc (bpadmin) | ipnrc (ipnadmin) |
+|---|---|---|
+| Create plan | `a plan ipn:19.0 [rate]` | *(combined below)* |
+| Attach duct | `a planduct ipn:19.0 ltp 19` | *(combined below)* |
+| Combined form | *(two commands above)* | `a plan 19 ltp/19 [rate]` |
+| Endpoint / node | full EID `ipn:19.0` (any scheme) | bare node number `19` (ipn only) |
+| Duct expression | two tokens: `ltp 19` | one token, slash form: `ltp/19` |
+
+> **Watch the duct delimiter.** bprc uses two space-separated tokens
+> (`ltp 19`); ipnrc uses a single slash-joined token (`ltp/19`). Copying a
+> duct expression from one file to the other without adjusting the delimiter
+> is a common configuration mistake.
+
+**They configure the same thing.** Both forms create the *same* underlying
+BP egress plan. The ipnrc `a plan` command is simply a shortcut: it
+auto-builds the `ipn:<node>.0` endpoint ID for you, attaches the single
+duct, and starts the plan — all in one line. It is not a different kind of
+plan; it is the bprc plan with less control and less flexibility.
+
+**Why the bprc form is recommended.** The move toward defining egress plans
+in bprc is about *full generality*:
+
+- **Multiple ducts and lifecycle control.** In bprc you can attach several
+  `a planduct` commands to a single plan and then start, stop, block, or
+  unblock ducts independently (`s plan`, `b`/`u`). The ipnrc one-liner is
+  limited to a single duct and starts it implicitly, with no separate
+  stop/block control.
+- **Concepts placed where they belong.** Egress plans and their
+  inducts/outducts are *general Bundle Protocol concepts* — they are not
+  specific to the ipn naming scheme. Keeping them in bprc, alongside the
+  scheme, endpoints, protocols, inducts, and outducts they depend on, means
+  the entire convergence-layer wiring for a node reads coherently in one
+  file.
+- **Scheme-agnostic and wildcard-capable.** bprc plans work for any naming
+  scheme (`ipn:`, `dtn:`, `imc:`) and support wildcarded endpoint names
+  (e.g. `ipn:19.*`). The ipnrc shortcut hardcodes the ipn scheme and a
+  single node number.
+
+**What the ipnrc file is for.** With egress plans in bprc, the ipnrc file
+is best reserved for the functions that are genuinely *specific to the ipn
+naming scheme* — its routing and forwarding directives, which have no bprc
+equivalent:
+
+- `a exit` — a static default route: for a range of destination node
+  numbers that cannot otherwise be routed, forward via a designated "via"
+  node. (See the ipn routing section below.)
+- `a rtovrd` — a routing override that pins traffic (optionally filtered by
+  data label, destination, and source) to a specific neighbor/duct.
+- `a cosovrd` — a class-of-service override (priority, ordinal, QoS flags).
+
+These are scheme-specific forwarding policy, which is why they live with
+ipnadmin rather than bpadmin.
+
+> **An ipnrc file with no `a plan` command is perfectly valid.** In the
+> recommended layout, plans live in bprc and the ipnrc file contains only
+> ipn-scheme routing directives (exits and overrides) — or may be omitted
+> entirely if none are needed. The absence of a plan command in ipnrc does
+> not indicate a misconfiguration.
+
+**Recommended split (two-node example).** Node 1 forwards to neighbor node 2
+over LTP, and uses an exit as a default route for any node in the range
+10–20:
+
+`host1.bprc` — scheme, endpoints, CL protocol, ducts, and the egress plan:
+
+```
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a protocol ltp
+a induct ltp 1 ltpcli
+a outduct ltp 2 ltpclo
+a plan ipn:2.0
+a planduct ipn:2.0 ltp 2
+s
+```
+
+`host1.ipnrc` — only ipn-scheme routing directives (no plan):
+
+```
+a exit 10 20 ipn:2.0
+```
+
 ## IPN Routing Configuration (ipnadmin — Legacy Shortcut)
 
-> **Note**: The `ipnadmin` plan commands shown below are a simplified
+> **Note**: The `ipnadmin` `a plan` command shown below is a simplified
 > shortcut for the more general `bpadmin` plan commands. For new
-> configurations, the recommended approach is to use `a plan` and
-> `a planduct` in the bprc file (see [Egress Plans](#egress-plans-bpadmin)
-> above). The ipnrc approach is retained for backward compatibility.
+> configurations, define egress plans with `a plan` and `a planduct` in the
+> bprc file, and reserve the ipnrc file for ipn-scheme routing directives
+> (`a exit`, `a rtovrd`, `a cosovrd`). See
+> [Egress Plans: bprc vs. ipnrc, and What Belongs Where](#egress-plans-bprc-vs-ipnrc-and-what-belongs-where)
+> above for the rationale. The ipnrc `a plan` shortcut is retained for
+> backward compatibility.
 
-This file defines egress plans — routing rules that specify which outducts to use for forwarding bundles to neighboring nodes. Since we only have one outduct, for forwarding bundles to one place (the local node), we only have one egress plan.
+For this simple loopback example the ipnrc file defines a single egress plan
+— a routing rule specifying which outduct to use for forwarding bundles to a
+neighboring node. Since we have only one outduct, forwarding bundles to one
+place (the local node), we have only one egress plan.
 
 `a plan 1 ltp/1 `
 
