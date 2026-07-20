@@ -908,7 +908,21 @@ AC_ARG_ENABLE([asan],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-asan])])],
   [enable_asan=no])
 AS_IF([test "x$enable_asan" = xyes],
-  [AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
+  [AC_MSG_CHECKING([if $CC accepts -fsanitize=address])
+   saved_CFLAGS="$CFLAGS"
+   saved_LDFLAGS="$LDFLAGS"
+   CFLAGS="$CFLAGS -fsanitize=address"
+   LDFLAGS="$LDFLAGS -fsanitize=address"
+   AC_LINK_IFELSE(
+     [AC_LANG_PROGRAM([], [])],
+     [AC_MSG_RESULT([yes])],
+     [AC_MSG_RESULT([no])
+      AC_MSG_ERROR([--enable-asan requested, \
+but -fsanitize=address is not supported])])
+   CFLAGS="$saved_CFLAGS"
+   LDFLAGS="$saved_LDFLAGS"
+
+   AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
    # ASan's extra inlining / flow analysis surfaces flow-sensitive
    # warnings (notably the classic strncpy(dst,src,sizeof(dst)-1)
    # truncation idiom in bpv7/utils/bptracker.c) that the vanilla build
