@@ -903,33 +903,32 @@ AC_ARG_ENABLE([core-file-needed],
 #
 AC_ARG_ENABLE([asan],
   [AS_HELP_STRING([--enable-asan],[Build with AddressSanitizer (-fsanitize=address); for debugging only])],
-  [case "${enableval}" in
-    yes)
-      AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
-      # ASan's extra inlining / flow analysis surfaces flow-sensitive
-      # warnings (notably the classic strncpy(dst,src,sizeof(dst)-1)
-      # truncation idiom in bpv7/utils/bptracker.c) that the vanilla build
-      # does not trip; under ION's default -Werror they become fatal and
-      # block the ASan build (#1050).  Keep them visible but non-fatal so
-      # -Werror still guards genuine warnings everywhere else.
-      AM_CFLAGS="$AM_CFLAGS -Wno-error=stringop-truncation -Wno-error=stringop-overflow"
-      AM_CFLAGS="$AM_CFLAGS -Wno-error=array-bounds -Wno-error=maybe-uninitialized -Wno-error=nonnull-compare"
-      AM_LDFLAGS="$AM_LDFLAGS -fsanitize=address"
-      # Under -fsanitize=address ld becomes strict about every reference
-      # being satisfied on the link line; sppcli/sppclo's use of dlsym then
-      # surfaces a latent missing -ldl that the vanilla build resolves
-      # transitively (#1050).  Append -ldl (and -lpthread defensively) to
-      # LIBS so it lands at the end of every link line.
-      LIBS="$LIBS -ldl -lpthread"
-      AC_MSG_NOTICE([AddressSanitizer enabled (-fsanitize=address).])
-      AC_MSG_NOTICE([  For reliable ASan stacks also pass CFLAGS='-O1 -g' (or -O0);])
-      AC_MSG_NOTICE([  the default -O2 inlines frames and makes core backtraces misleading.])
-      AC_MSG_NOTICE([  ION's in-process crash handler is auto-disabled under ASan so])
-      AC_MSG_NOTICE([  ASan owns SIGSEGV reporting.]);;
-    no) ;;
-    *) AC_MSG_ERROR([bad value ${enableval} for --enable-asan]);;
-  esac],
-  [])
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-asan])])],
+  [enable_asan=no])
+AS_IF([test "x$enable_asan" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer"
+   # ASan's extra inlining / flow analysis surfaces flow-sensitive
+   # warnings (notably the classic strncpy(dst,src,sizeof(dst)-1)
+   # truncation idiom in bpv7/utils/bptracker.c) that the vanilla build
+   # does not trip; under ION's default -Werror they become fatal and
+   # block the ASan build (#1050).  Keep them visible but non-fatal so
+   # -Werror still guards genuine warnings everywhere else.
+   AM_CFLAGS="$AM_CFLAGS -Wno-error=stringop-truncation -Wno-error=stringop-overflow"
+   AM_CFLAGS="$AM_CFLAGS -Wno-error=array-bounds -Wno-error=maybe-uninitialized -Wno-error=nonnull-compare"
+   AM_LDFLAGS="$AM_LDFLAGS -fsanitize=address"
+   # Under -fsanitize=address ld becomes strict about every reference
+   # being satisfied on the link line; sppcli/sppclo's use of dlsym then
+   # surfaces a latent missing -ldl that the vanilla build resolves
+   # transitively (#1050).  Append -ldl (and -lpthread defensively) to
+   # LIBS so it lands at the end of every link line.
+   LIBS="$LIBS -ldl -lpthread"
+   AC_MSG_NOTICE([AddressSanitizer enabled (-fsanitize=address).])
+   AC_MSG_NOTICE([  For reliable ASan stacks also pass CFLAGS='-O1 -g' (or -O0);])
+   AC_MSG_NOTICE([  the default -O2 inlines frames and makes core backtraces misleading.])
+   AC_MSG_NOTICE([  ION's in-process crash handler is auto-disabled under ASan so])
+   AC_MSG_NOTICE([  ASan owns SIGSEGV reporting.])])
 
 AC_ARG_ENABLE([sysctl-check],
   [AS_HELP_STRING([--disable-sysctl-check],
