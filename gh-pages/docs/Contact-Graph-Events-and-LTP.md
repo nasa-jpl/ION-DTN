@@ -4,6 +4,8 @@
 
 This document describes how ION's contact graph system manages communication opportunities and how these events interact with the Licklider Transmission Protocol (LTP) layer. Understanding this interaction is critical for implementing advanced features like adjacent contacts and dynamic rate management.
 
+The contact graph serves two distinct roles. This page covers **rate control** — how contacts drive transmission rate through `rfxclock` into LTP. Its other role is **routing**: using the contact graph to select each bundle's next-hop neighbor. Routing is a separate concern that sits *above* rate control — see [Bundle Forwarding Architecture](./Bundle-Forwarding-Architecture.md).
+
 ## Fundamental Assumptions
 
 The ION contact graph operates under two fundamental assumptions:
