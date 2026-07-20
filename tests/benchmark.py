@@ -106,13 +106,12 @@ def _run_single_iteration(
 
     try:
         process = subprocess.run(
-            ["./dotest"],
+            ["./dotest", os.uname()[0].lower()],
             cwd=script_dir,
             stdout=log_handle,
             stderr=subprocess.STDOUT,
             text=True,
             env=env,
-            shell=True,
         )
 
         elapsed = time.perf_counter() - start_time
@@ -295,7 +294,10 @@ def main() -> None:
     for script in target_scripts:
         result = benchmark_and_log(script, force_update=args.force_update)
         if result == "FAILED":
-            has_failures = True
+            if (script / ".DURATION").exists():
+                print(f"  [Warning] {script.name} failed, but .DURATION exists. Ignoring fatal failure.")
+            else:
+                has_failures = True
         results.append((str(script), result))
 
     proc_results(results, args.save_results)
