@@ -9,7 +9,6 @@ SUBDIRS= .
 DIST_SUBDIRS= .
 
 AM_CFLAGS += \
-	-g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
