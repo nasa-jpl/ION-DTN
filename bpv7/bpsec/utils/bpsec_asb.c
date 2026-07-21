@@ -530,7 +530,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned int     unparsedBytes = 0;
 	BpsecInboundASB *asb;
 
-	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) blk, (uaddr) wk);
 
 
 	/* Step 0: Sanity Checks. */
