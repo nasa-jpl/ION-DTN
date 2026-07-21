@@ -276,7 +276,6 @@ extern unsigned long long sdr_drop_count(Sdr sdr);
 /*		Low-level SDR I/O functions.				*/
 
 typedef uaddr		SdrAddress;
-#define	Address		SdrAddress
 
 /*
  * Both SdrObjects and SdrAddresses are absolute offsets from the start of an
@@ -292,7 +291,14 @@ typedef uaddr		SdrAddress;
  */
 
 typedef uaddr		SdrObject;
-#define	Object		SdrObject
+
+#ifdef ION_USE_LEGACY_ALIASES
+/*
+ * Do not use these. They are deprecated and will be removed eventually.
+ */
+typedef SdrAddress Address;
+typedef SdrObject Object;
+#endif
 
 extern void	 *sdr_pointer(Sdr sdr, SdrAddress address);
 extern SdrAddress sdr_address(Sdr sdr, void *pointer);

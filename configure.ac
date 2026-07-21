@@ -447,6 +447,16 @@ AS_IF([test "x$enable_high_speed" = xyes],
    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_HIGH_SPEED"])
 AM_CONDITIONAL([ENABLE_HIGH_SPEED], [test "x$enable_high_speed" = xyes])
 
+AC_ARG_ENABLE([legacy-aliases],
+  [AS_HELP_STRING([--disable-legacy-aliases], [Disable deprecated aliases])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-legacy-aliases])])],
+  [enable_legacy_aliases=yes])
+AS_IF([test "x$enable_legacy_aliases" != xno],
+  [AM_CPPFLAGS="$AM_CPPFLAGS -DION_USE_LEGACY_ALIASES"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DION_USE_LEGACY_ALIASES"])
+
 #
 # allow the user running configure to enable LTP UDP multisend (sendmmsg batching)
 #
@@ -1233,6 +1243,7 @@ AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname g
 
 #Write AM_* flag variables
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
+AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AC_SUBST([PKG_CONFIG_CFLAGS])
