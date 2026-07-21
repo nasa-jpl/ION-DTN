@@ -35,7 +35,7 @@ typedef vast	(*SdaDelimiterFn)(unsigned int clientId,
 
 typedef int	(*SdaHandlerFn)(uvast sourceEngineId,
 			unsigned int clientId,
-			Object clientServiceData);	/*	ZCO	*/
+			SdrObject clientServiceData); /* ZCO */
 		/*	An SDA handler function applies application
 		 *	processing to the client service data unit
 		 *	for client "clientID" that is identified by
@@ -46,7 +46,7 @@ typedef int	(*SdaHandlerFn)(uvast sourceEngineId,
 
 extern int	sda_send(uvast destinationEngineId,
 			unsigned int clientId,
-			Object clientServiceData);
+			SdrObject clientServiceData);
 		/*	clientServiceData must be a "zero-copy object"
 		 *	reference as returned by ionCreateZco().  Note
 		 *	that SDA will privately make and destroy its

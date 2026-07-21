@@ -174,12 +174,12 @@ extern "C" {
 
 typedef struct
 {
-	Object ctrls;
-	Object macdefs;
-	Object rpttpls;
-	Object rules;
-	Object vars;
-	Object descObj; /**> The pointer to the store object in the SDR. */
+	SdrObject ctrls;
+	SdrObject macdefs;
+	SdrObject rpttpls;
+	SdrObject rules;
+	SdrObject vars;
+	SdrObject descObj; /**> The pointer to the store object in the SDR. */
 } db_store_t;
 
 
@@ -213,11 +213,11 @@ typedef struct
  */
 typedef struct
 {
-	Object itemObj;     /**> Serialized object in an SDR. */
+	SdrObject itemObj;     /**> Serialized object in an SDR. */
 	uint32_t itemSize;  /**> Size of object in itemObj.   */
 
 	/* Below is not kept in the SDR. */
-	Object descObj;     /**> This descriptor in SDR.      */
+	SdrObject descObj;     /**> This descriptor in SDR.      */
 } db_desc_t;
 
 
@@ -237,10 +237,10 @@ extern db_store_t  gDB;
 
 
 
-int  db_forget(db_desc_t *desc, Object list);
+int  db_forget(db_desc_t *desc, SdrObject list);
 
 
-int  db_persist(blob_t *blob, db_desc_t *desc, Object list);
+int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list);
 
 int  db_persist_ctrl(void* item);
 int  db_persist_macdef(void* item);
@@ -255,7 +255,7 @@ void db_destroy(void);
 int  db_init(char *name, void (*adm_init_cb)(void));
 
 
-int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb);
+int vdb_obj_init(SdrObject sdr_list, vdb_init_cb_fn init_cb);
 
 int vdb_db_init_ctrl(blob_t *data, db_desc_t desc);
 

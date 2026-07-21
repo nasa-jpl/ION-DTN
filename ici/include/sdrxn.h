@@ -294,8 +294,8 @@ typedef uaddr		SdrAddress;
 typedef uaddr		SdrObject;
 #define	Object		SdrObject
 
-extern void		*sdr_pointer(Sdr sdr, Address address);
-extern Address		sdr_address(Sdr sdr, void *pointer);
+extern void	 *sdr_pointer(Sdr sdr, SdrAddress address);
+extern SdrAddress sdr_address(Sdr sdr, void *pointer);
 
 #ifndef HEAP_PTRS
 #define	HEAP_PTRS	0
@@ -317,8 +317,8 @@ extern Address		sdr_address(Sdr sdr, void *pointer);
 
 #define sdr_write(sdr, into, from, size) \
 Sdr_write(__FILE__, __LINE__, sdr, into, from, size)
-extern void		Sdr_write(const char *file, int line,
-				Sdr sdr, Address into, char *from, size_t size);
+extern void Sdr_write(const char *file, int line, Sdr sdr, SdrAddress into,
+		char *from, size_t size);
 
 #define sdr_poke(sdr, address, variable) \
 Sdr_write(__FILE__, __LINE__, sdr, address, \
@@ -328,8 +328,7 @@ Sdr_write(__FILE__, __LINE__, sdr, address, \
 Sdr_write(__FILE__, __LINE__, sdr, sdr_address(sdr, pointer), \
 (char *) &variable, sizeof variable)
 
-extern void		sdr_read(Sdr sdr, char *into, Address from,
-				size_t size);
+extern void sdr_read(Sdr sdr, char *into, SdrAddress from, size_t size);
 
 #define sdr_peek(sdr, variable, address) \
 sdr_read(sdr, (char *) &variable, address, sizeof variable)

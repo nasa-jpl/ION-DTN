@@ -21,11 +21,11 @@ static void	_tcaVdbName(char *buffer, int buflen, int blocksGroupNbr)
 	isprintf(buffer, buflen, "tcavdb.%d", blocksGroupNbr);
 }
 
-Object	getTcaDBObject(int blocksGroupNbr)
+SdrObject getTcaDBObject(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
 	char	dbname[32];
-	Object	obj;
+	SdrObject obj;
 
 	_tcaDBName(dbname, sizeof dbname, blocksGroupNbr);
 	CHKERR(sdr_begin_xn(sdr));
@@ -102,9 +102,9 @@ int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 {
 	Sdr		sdr;
 	char		dbname[32];
-	Object		dbobj;
+	SdrObject	dbobj;
 	TcaDB		db;
-	Object		authObj;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 	int		i;
 

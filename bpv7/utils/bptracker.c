@@ -13,8 +13,8 @@ static int BPTRACKER_DEBUG = 0;
 
 /*	Enhanced tracking with simple queue status */
 typedef struct {
-	Object bundleObj;	    /* ION bundle object reference */
-	Object trackingElt;	    /* SDR list element for tracking */
+	SdrObject bundleObj;	    /* ION bundle object reference */
+	SdrObject trackingElt;	    /* SDR list element for tracking */
 	char   destEid[64];	    /* Destination endpoint ID */
 	char   sourceEid[64];	    /* Source endpoint ID from bundle */
 	time_t sendTime;	    /* When bundle was sent */
@@ -52,7 +52,7 @@ typedef struct {
 typedef struct {
 	BpSAP  sap;		 /* Bundle Protocol SAP for sending */
 	BpSAP  reportSap;	 /* SAP for receiving status reports */
-	Object trackedBundles;	 /* SDR list of TrackedBundle objects */
+	SdrObject trackedBundles;	 /* SDR list of TrackedBundle objects */
 	int    totalSent;	 /* Total bundles sent */
 	int    totalTransmitted; /* Total bundles transmitted (not released) */
 	int    totalCompleted;	 /* Total bundles manually released */
@@ -183,8 +183,8 @@ void getSimpleQueueStatus(TrackedBundle *tbundle, char *buffer, size_t bufSize)
 int suspendBundle(BundleTracker *tracker, int bundleId)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
-	Object tbundleObj;
+	SdrObject elt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	int found = 0;
 
@@ -246,8 +246,8 @@ int suspendBundle(BundleTracker *tracker, int bundleId)
 int resumeBundle(BundleTracker *tracker, int bundleId)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
-	Object tbundleObj;
+	SdrObject elt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	int found = 0;
 
@@ -310,8 +310,8 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
 int releaseBundle(BundleTracker *tracker, int bundleId)
 {
 	Sdr sdr = getIonsdr();
-	Object elt, nextElt;
-	Object tbundleObj;
+	SdrObject elt, nextElt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	int found = 0;
 
@@ -378,8 +378,8 @@ int releaseBundle(BundleTracker *tracker, int bundleId)
 void releaseAllBundles(BundleTracker *tracker)
 {
 	Sdr sdr = getIonsdr();
-	Object elt, nextElt;
-	Object tbundleObj;
+	SdrObject elt, nextElt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	int released = 0;
 
@@ -427,10 +427,10 @@ void releaseAllBundles(BundleTracker *tracker)
 }
 
 /*	Create a payload of specified size	*/
-Object createPayload(int payloadSize)
+SdrObject createPayload(int payloadSize)
 {
 	Sdr sdr = getIonsdr();
-	Object payloadObj;
+	SdrObject payloadObj;
 	char *buffer;
 	int i;
 
@@ -481,13 +481,14 @@ Object createPayload(int payloadSize)
 }
 
 /*	Send a bundle with enhanced tracking	*/
-int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bundleId)
+int sendTrackedBundle(BundleTracker *tracker, SdrObject adu, int lifespan,
+		int bundleId)
 {
 	Sdr sdr = getIonsdr();
-	Object bundleObj;
+	SdrObject bundleObj;
 	TrackedBundle tbundle;
-	Object tbundleObj;
-	Object trackingElt;
+	SdrObject tbundleObj;
+	SdrObject trackingElt;
 	Bundle bundle;
 	char *sourceEidString = NULL;
 
@@ -622,8 +623,8 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
 int checkBundleStatus(BundleTracker *tracker)
 {
 	Sdr sdr = getIonsdr();
-	Object elt, nextElt;
-	Object tbundleObj;
+	SdrObject elt, nextElt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	Bundle bundle;
 	int bundlesActive = 0;
@@ -744,8 +745,8 @@ int checkBundleStatus(BundleTracker *tracker)
 void listActiveBundles(BundleTracker *tracker)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
-	Object tbundleObj;
+	SdrObject elt;
+	SdrObject tbundleObj;
 	TrackedBundle tbundle;
 	time_t currentTime = time(NULL);
 	int totalCount = 0;
@@ -1132,7 +1133,7 @@ static int cmdSend(BundleTracker *tracker, char *args)
 {
 	char destEid[256];
 	int payloadSize;
-	Object adu;
+	SdrObject adu;
 	int parsed;
 
 	/* Try parsing with both destination and size first */
@@ -1183,7 +1184,7 @@ static int cmdSend(BundleTracker *tracker, char *args)
 
 	/* Send bundle with status report flags */
 	Sdr sdr = getIonsdr();
-	Object bundleObj;
+	SdrObject bundleObj;
 	BpAncillaryData ancillaryData = { 0 };
 
 	/* Set report-to EID if status reports are enabled */
@@ -1244,7 +1245,7 @@ static int cmdSend(BundleTracker *tracker, char *args)
 		sourceEidString, bundle.id.creationTime.msec, bundle.id.creationTime.count);
 
 	/* Create tracking bundle object */
-	Object tbundleObj = sdr_malloc(sdr, sizeof(TrackedBundle));
+	SdrObject tbundleObj = sdr_malloc(sdr, sizeof(TrackedBundle));
 	if (tbundleObj == 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -1303,7 +1304,7 @@ static int cmdSend(BundleTracker *tracker, char *args)
 	}
 
 	/* Add to tracking list */
-	Object trackingElt = sdr_list_insert_last(sdr, tracker->trackedBundles, tbundleObj);
+	SdrObject trackingElt = sdr_list_insert_last(sdr, tracker->trackedBundles, tbundleObj);
 	if (trackingElt == 0)
 	{
 		sdr_cancel_xn(sdr);

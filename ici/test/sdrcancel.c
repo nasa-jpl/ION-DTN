@@ -36,7 +36,7 @@ int	main(int argc, char **argv)
 	(void)argc; (void)argv;
 #endif
 	Sdr	sdr;
-	Object	scratch;
+	SdrObject scratch;
 	char	buf[SCRATCH_SIZE];
 
 	if (ionAttach() < 0)

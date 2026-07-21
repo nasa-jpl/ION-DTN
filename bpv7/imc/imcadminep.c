@@ -21,8 +21,8 @@ static int	briefNewNode(uvast fqnn)
 	PsmAddress	vschemeElt;
 	char		destEid[32];
 	Lyst		ownGroups;
-	Object		elt;
-	Object		groupAddr;
+	SdrObject	elt;
+	SdrObject	groupAddr;
 	ImcGroup	group;
 	int		bufsize;
 	unsigned char	*buffer;
@@ -31,8 +31,8 @@ static int	briefNewNode(uvast fqnn)
 	LystElt		elt2;
 	uvast		fqgn;
 	int		aduLength;
-	Object		aduObj;
-	Object		aduZco;
+	SdrObject	aduObj;
+	SdrObject	aduZco;
 
 	putFqn(nbrBuf, getOwnFqnn());
 	isprintf(ownEid, sizeof(ownEid), "ipn:%s.0", nbrBuf);
@@ -121,7 +121,7 @@ static int	briefNewNode(uvast fqnn)
 	MRELEASE(buffer);
 	aduZco = ionCreateZco(ZcoSdrSource, aduObj, 0, aduLength,
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (aduZco == 0 || aduZco == (Object) ERROR)
+	if (aduZco == 0 || aduZco == (SdrObject) ERROR)
 	{
 		putErrmsg("Failed creating saga message ZCO.", NULL);
 		return 0;
@@ -153,12 +153,12 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	MetaEid		metaEid;
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
-	Object		groupAddr;
-	Object		groupElt;
+	SdrObject	groupAddr;
+	SdrObject	groupElt;
 	ImcGroup	group;
-	Object		elt;
+	SdrObject	elt;
 	uvast		fqnn;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	int		sourceRegionIdx;
 	uint32_t	sourceRegionNbr;

@@ -45,24 +45,24 @@ int	main(void)
 	LtpVdb			*vdb;
 	ReqAttendant		attendant;
 	char			*buffer;
-	Object			elt;
-	Object			delivObj;
+	SdrObject		elt;
+	SdrObject		delivObj;
 	LtpDeliverable		deliv;
 	LtpVclient		*client;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
 	LtpVImportSession	*vsession;
-	Object			sessionObj;
+	SdrObject		sessionObj;
 	LtpImportSession	sessionBuf;
 	vast			heapSpaceNeeded = 0;
 	vast			fileSpaceNeeded = 0;
-	Object			currentElt;
+	SdrObject		currentElt;
 	unsigned int		clientSvcId;
 	uvast			sourceEngineId;
 	unsigned int		sessionNbr;
 	ReqTicket		ticket;
-	Object			svcDataObject;
-	Object			extentObj;
+	SdrObject		svcDataObject;
+	SdrObject		extentObj;
 
 	if (ltpInit(0) < 0)
 	{
@@ -280,7 +280,7 @@ int	main(void)
 		svcDataObject = zco_create(sdr, 0, 0, 0, 0, ZcoInbound);
 		switch (svcDataObject)
 		{
-		case (Object) ERROR:
+		case (SdrObject) ERROR:
 		case 0:
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create service data object.", NULL);
@@ -348,7 +348,7 @@ int	main(void)
 					ZcoSdrSource, extentObj, 0,
 					0 - sessionBuf.heapBufferBytes))
 			{
-			case (Object) ERROR:
+			case (SdrObject) ERROR:
 			case 0:
 				sdr_cancel_xn(sdr);
 				putErrmsg("Can't append ZCO extent.", NULL);
@@ -369,7 +369,7 @@ int	main(void)
 					ZcoFileSource, sessionBuf.blockFileRef,
 					0, 0 - sessionBuf.blockFileSize))
 			{
-			case (Object) ERROR:
+			case (SdrObject) ERROR:
 			case 0:
 				sdr_cancel_xn(sdr);
 				putErrmsg("Can't append ZCO extent.", NULL);

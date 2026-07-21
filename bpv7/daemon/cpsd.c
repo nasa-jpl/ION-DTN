@@ -392,13 +392,13 @@ int	main(void)
 	PsmAddress	velt;
 	VEndpoint	*vpoint;
 	Sdr		sdr;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	uaddr		start = 1;
 	BpSAP		sap;
 	pthread_t	handlerThread;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 	CpsNotice	notice;
 	unsigned char	buffer[128];
 	unsigned char	*cursor;

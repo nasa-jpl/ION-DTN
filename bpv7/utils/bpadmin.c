@@ -435,10 +435,10 @@ static void	deleteCbrAccept(int tokenCount, char **tokens)
 	}
 }
 
-static void	printCbrAcceptList(Sdr sdr, Object list, char *label)
+static void printCbrAcceptList(Sdr sdr, SdrObject list, char *label)
 {
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	if (list == 0 || sdr_list_length(sdr, list) == 0)
@@ -463,7 +463,7 @@ static void	printCbrAcceptList(Sdr sdr, Object list, char *label)
 static void	listCbrAccept(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	list;
+	SdrObject list;
 
 	(void) tokenCount;
 	(void) tokens;
@@ -519,9 +519,9 @@ static void	deleteCustodyReq(int tokenCount, char **tokens)
 static void	listCustodyReq(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	list;
-	Object	elt;
-	Object	obj;
+	SdrObject list;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	(void) tokenCount;
@@ -553,9 +553,9 @@ static void	listCustodyReq(int tokenCount, char **tokens)
 static void	listCrsLog(int tokenCount, char **tokens)
 {
 	Sdr			sdr = getIonsdr();
-	Object			list;
-	Object			elt;
-	Object			recObj;
+	SdrObject		list;
+	SdrObject		elt;
+	SdrObject		recObj;
 	ReceivedCrsRecord	rec;
 	char			eidBuf[SDRSTRING_BUFSZ];
 	char			timeBuf[32];
@@ -1437,7 +1437,7 @@ static void	printProtocol(ClProtocol *protocol)
 static void	infoProtocol(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	ClProtocol	clpbuf;
 
 	if (tokenCount != 3)
@@ -1749,7 +1749,7 @@ static void	listProtocols(int tokenCount, char **tokens)
 	(void)tokens;
 
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(ClProtocol, clp);
 
 	if (tokenCount != 2)
@@ -1790,7 +1790,7 @@ static void	listInducts(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	clpbuf;
-	Object		elt;
+	SdrObject	elt;
 
 	switch (tokenCount)
 	{
@@ -1848,7 +1848,7 @@ static void	listOutducts(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	clpbuf;
-	Object		elt;
+	SdrObject	elt;
 
 	switch (tokenCount)
 	{
@@ -2061,7 +2061,7 @@ static void	executeGateway(int tokenCount, char **tokens)
 static void	manageHeapmax(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpdbObj = getBpDbObject();
+	SdrObject	bpdbObj = getBpDbObject();
 	BpDB		bpdb;
 	unsigned int	heapmax;
 
@@ -2091,7 +2091,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 static void	managePrimaryCrc(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpdbObj = getBpDbObject();
+	SdrObject	bpdbObj = getBpDbObject();
 	BpDB		bpdb;
 	BpCrcType	crcType;
 
@@ -2121,7 +2121,7 @@ static void	managePrimaryCrc(int tokenCount, char **tokens)
 static void	managePayloadCrc(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpdbObj = getBpDbObject();
+	SdrObject	bpdbObj = getBpDbObject();
 	BpDB		bpdb;
 	BpCrcType	crcType;
 
@@ -2152,7 +2152,7 @@ static void	managePayloadCrc(int tokenCount, char **tokens)
 static void	manageMaxcount(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpdbObj = getBpDbObject();
+	SdrObject	bpdbObj = getBpDbObject();
 	BpDB		bpdb;
 	unsigned int	maxcount;
 
@@ -2177,7 +2177,7 @@ static void	manageMaxcount(int tokenCount, char **tokens)
 static void	manageBSL(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bpdbObj = getBpDbObject();
+	SdrObject bpdbObj = getBpDbObject();
 	char	*localEid;
 	char	*keyFile;
 	char	*policyFile;
@@ -2511,7 +2511,7 @@ static void	noteWatchValue(void)
 {
 	BpVdb	*vdb = getBpVdb();
 	Sdr	sdr = getIonsdr();
-	Object	dbObj = getBpDbObject();
+	SdrObject dbObj = getBpDbObject();
 	BpDB	db;
 
 	if (vdb != NULL && dbObj != 0)

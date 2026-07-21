@@ -39,14 +39,14 @@ extern void	bibeChange(char *peerEid, unsigned int fwdLatency,
 
 extern void	bibeDelete(char *peerEid);
 
-extern void	bibeFind(char *peerEid, Object *addr, Object *elt);
+extern void	bibeFind(char *peerEid, SdrObject *addr, SdrObject *elt);
 
 extern int	bibeHandleBpdu(BpDelivery *dlv);
 
 extern int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes);
 
-extern int	bibeCtRetry(Bundle *bundle, Object bundleAddr);
+extern int	bibeCtRetry(Bundle *bundle, SdrObject bundleAddr);
 
 extern void	bibeCtCancel(Bundle *bundle);
 

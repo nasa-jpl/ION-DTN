@@ -2485,7 +2485,7 @@ Garbage Collection: Automatic space reclamation when objects are freed
 
 Named Object Storage: Objects can be cataloged by name for easy retrieval
 Type Management: Associates type information with stored objects
-Persistent References: Objects referenced by `Object` handles (addresses)
+Persistent References: Objects referenced by `SdrObject` handles (addresses)
 
 ### Key SDR structures:
 

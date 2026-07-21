@@ -43,7 +43,7 @@ extern int	bssp_engine_is_started(void);
 
 extern int	bssp_send(uvast destinationEngineId,
 			unsigned int clientId,
-			Object clientServiceData,
+			SdrObject clientServiceData,
 			int inOrder,
 			BsspSessionId *sessionId);
 
@@ -81,7 +81,7 @@ extern int	bssp_get_notice(unsigned int clientId,
 			BsspSessionId *sessionId,
 			unsigned char *reasonCode,
 			unsigned int *dataLength,
-			Object *data);
+			SdrObject *data);
 		/*	The value returned in *data is always a zero-
 		 *	copy object; use the zco_* functions defined
 		 *	in "zco.h" to retrieve the content of that
@@ -99,7 +99,7 @@ extern int	bssp_get_notice(unsigned int clientId,
 
 extern void	bssp_interrupt(unsigned int clientId);
 
-extern void	bssp_release_data(Object data);
+extern void	bssp_release_data(SdrObject data);
 
 extern void	bssp_close(unsigned int clientId);
 

@@ -35,9 +35,9 @@ static int estimateLength(OutAdu *outAdu, uvast *returnedLength);
 
 /*      *       *       Helpful utility functions       *       *       */
 
-static Object   _dtpcdbObject(Object *newDbObj)
+static SdrObject _dtpcdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -74,12 +74,12 @@ static char	*_dtpcvdbName(void)
 	return "dtpcvdb";
 }
 
-int	raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb)
+int raiseProfile(Sdr sdr, SdrObject sdrElt, DtpcVdb *vdb)
 {
 	PsmAddress	elt;
 	PsmAddress	addr;
 	Profile		*vprofile;
-	Object		profileObj;
+	SdrObject	profileObj;
 			OBJ_POINTER(Profile, profile);
 	PsmPartition	wm = getIonwm();
 
@@ -108,7 +108,7 @@ int	raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb)
 
 }
 
-int	raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID)
+int raiseVSap(Sdr sdr, SdrObject elt, DtpcVdb *vdb, unsigned int topicID)
 {
 	PsmPartition	wm = getIonwm();
 	VSap		*vsap;
@@ -148,7 +148,7 @@ static DtpcVdb  *_dtpcvdb(char **name)
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	Sdr		sdr;
-	Object		sdrElt;
+	SdrObject	sdrElt;
 	unsigned int	topicID;
 
 	sdr = getIonsdr();
@@ -266,7 +266,7 @@ static char	*_dtpcdbName(void)
 int	dtpcInit(void)
 {
 	Sdr		sdr;
-	Object		dtpcdbObject;
+	SdrObject	dtpcdbObject;
 	DtpcDB		dtpcdbBuf;
 	char		*dtpcvdbName = _dtpcvdbName();
 
@@ -337,7 +337,7 @@ int	dtpcInit(void)
 	return 0;	/*	DTPC service is available.	*/
 }
 
-Object	getDtpcDbObject(void)
+SdrObject getDtpcDbObject(void)
 {
 	return _dtpcdbObject(NULL);
 }
@@ -538,7 +538,7 @@ responding to SIGTERM, sending SIGKILL");
 
 int	dtpcAttach(void)
 {
-	Object		dtpcdbObject = _dtpcdbObject(NULL);
+	SdrObject	dtpcdbObject = _dtpcdbObject(NULL);
 	DtpcVdb		*dtpcvdb = _dtpcvdb(NULL);
 	Sdr		sdr;
 	char		*dtpcvdbName = _dtpcvdbName();
@@ -586,8 +586,8 @@ int	dtpcAttach(void)
 
 }
 
-int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
-		Object *outAduObj, Object *outAduElt)
+int initOutAdu(Profile *profile, SdrObject outAggrAddr, SdrObject outAggrElt,
+		SdrObject *outAduObj, SdrObject *outAduElt)
 {
 	Sdr		sdr = getIonsdr();
 	OutAggregator	outAggr;
@@ -634,15 +634,14 @@ int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
 	return 0;
 }
 
-static Object	insertToTopic(unsigned int topicID, Object outAduObj,
-			Object outAduElt, Object recordObj,
-			unsigned int lifespan, PayloadRecord *newRecord,
-			DtpcSAP sap)
+static SdrObject insertToTopic(unsigned int topicID, SdrObject outAduObj,
+		SdrObject outAduElt, SdrObject recordObj, unsigned int lifespan,
+		PayloadRecord *newRecord, DtpcSAP sap)
 {
 	OutAdu		outAdu;
 	Topic		topicBuf;
-	Object		topicAddr;
-	Object		elt;
+	SdrObject	topicAddr;
+	SdrObject	elt;
 	Sdr		sdr = getIonsdr();
 	time_t		currentTime;
 	uvast		recordLength;
@@ -652,7 +651,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	for (elt = sdr_list_first(sdr, outAdu.topics); elt;
 		elt = sdr_list_next(sdr, elt))
 	{
-		topicAddr = (Object) sdr_list_data(sdr, elt);
+		topicAddr = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &topicBuf, topicAddr, sizeof(Topic));
 		if (topicBuf.topicID == topicID)
 		{
@@ -728,8 +727,8 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 static int estimateLength(OutAdu *outAdu, uvast *returnedLength)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt1;
-	Object	elt2;
+	SdrObject elt1;
+	SdrObject elt2;
 	OBJ_POINTER(Topic, topic);
 	OBJ_POINTER(PayloadRecord, record);
 	uvast	recordLength;
@@ -782,20 +781,20 @@ static Profile	*findProfileByNumber(unsigned int profNum)
 }
 
 int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
-		unsigned int topicID, Object item, size_t length)
+		unsigned int topicID, SdrObject item, size_t length)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	Sdr		sdr = getIonsdr();
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	PayloadRecord	record;
-	Object		recordObj;
+	SdrObject	recordObj;
 	OutAdu		outAdu;
-	Object		outAduObj;
-	Object		outAduElt;
+	SdrObject	outAduObj;
+	SdrObject	outAduElt;
 	OutAggregator	outAggr;
-	Object		outAggrAddr;
+	SdrObject	outAggrAddr;
 	Profile		*vprofile;
-	Object		sdrElt;
+	SdrObject	sdrElt;
 	char		eidBuf[SDRSTRING_BUFSZ];
 	Sdnv		lengthSdnv;
 	uvast		totalLength;
@@ -836,7 +835,7 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	for (sdrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
 			sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
 	{
-		outAggrAddr = (Object) sdr_list_data(sdr, sdrElt);
+		outAggrAddr = (SdrObject) sdr_list_data(sdr, sdrElt);
 		sdr_stage(sdr, (char *) &outAggr, outAggrAddr,
 			sizeof(OutAggregator));
 		if (sdr_string_read(sdr, eidBuf, outAggr.dstEid) < 0)
@@ -972,12 +971,12 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	return 1;
 }
 
-static Object	insertDtpcTimelineEvent(DtpcEvent *newEvent)
+static SdrObject insertDtpcTimelineEvent(DtpcEvent *newEvent)
 {
 	Sdr		sdr = getIonsdr();
 	DtpcDB		*dtpcConstants = _dtpcConstants();
-	Address		addr;
-	Object		elt;
+	SdrAddress	addr;
+	SdrObject	elt;
 	OBJ_POINTER(DtpcEvent, event);
 
 	CHKZERO(ionLocked());
@@ -1003,7 +1002,7 @@ static Object	insertDtpcTimelineEvent(DtpcEvent *newEvent)
 	return sdr_list_insert_first(sdr, dtpcConstants->events, addr);
 }
 
-int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
+int createAdu(Profile *profile, SdrObject outAduObj, SdrObject outAduElt)
 {
 	OutAdu			outAdu;
 	Sdr			sdr = getIonsdr();
@@ -1017,11 +1016,11 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	uvast			payloadDataLength;
 	unsigned char		*buffer;
 	unsigned char		*cursor;
-	Object			topicElt;
-	Object			payloadRecElt;
-	Object 			addr;
-	Object			zco;
-	Object			extent;
+	SdrObject		topicElt;
+	SdrObject		payloadRecElt;
+	SdrObject 		addr;
+	SdrObject		zco;
+	SdrObject		extent;
 	OBJ_POINTER(Topic, topic);
 	OBJ_POINTER(PayloadRecord, payloadRec);
 
@@ -1067,7 +1066,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength,
 			profile->classOfService, profile->ancillaryData.ordinal,
 			ZcoOutbound, NULL);
-	if (zco == 0 || zco == (Object) ERROR)
+	if (zco == 0 || zco == (SdrObject) ERROR)
 	{
 		putErrmsg("Can't create aggregated ZCO.", NULL);
 		return -1;
@@ -1112,7 +1111,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr, 0,
 				extentLength, profile->classOfService,
 				profile->ancillaryData.ordinal, NULL);
-		if (extent == 0 || extent == (Object) ERROR)
+		if (extent == 0 || extent == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			return -1;
@@ -1147,7 +1146,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 					0, payloadRec->length.length,
 					profile->classOfService,
 					profile->ancillaryData.ordinal, NULL);
-			if (extent == 0 || extent == (Object) ERROR)
+			if (extent == 0 || extent == (SdrObject) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -1158,7 +1157,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 					payloadDataLength,
 					profile->classOfService,
 					profile->ancillaryData.ordinal, NULL);
-			if (extent == 0 || extent == (Object) ERROR)
+			if (extent == 0 || extent == (SdrObject) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -1188,19 +1187,19 @@ int	sendAdu(BpSAP sap)
 	Sdr		sdr = getIonsdr();
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	DtpcVdb		*vdb = getDtpcVdb();
-	Object		sdrElt;
-	Object		outAduObj;
+	SdrObject	sdrElt;
+	SdrObject	outAduObj;
 	OutAdu		outAdu;
 			OBJ_POINTER(OutAggregator, outAggr);
-	Object		zco;
+	SdrObject	zco;
 	Profile		*profile;
 	DtpcEvent	event;
 	int		secondsConsumed;
 	int		nominalRtt;
 	int		lifetime;
 	time_t		currentTime;
-	Object		bundleElt;
-	Object		outAduElt;
+	SdrObject	bundleElt;
+	SdrObject	outAduElt;
 	char		reportToEid[SDRSTRING_BUFSZ];
 	char		dstEid[SDRSTRING_BUFSZ];
 
@@ -1380,7 +1379,7 @@ int	sendAdu(BpSAP sap)
 	return 0;
 }
 
-static void	deleteEltObjContent(Sdr sdr, Object elt, void *arg)
+static void deleteEltObjContent(Sdr sdr, SdrObject elt, void *arg)
 {
 	/* Parameter intentionally unused. */
 	(void)arg;
@@ -1388,10 +1387,10 @@ static void	deleteEltObjContent(Sdr sdr, Object elt, void *arg)
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
-void	deleteAdu(Sdr sdr, Object aduElt)
+void deleteAdu(Sdr sdr, SdrObject aduElt)
 {
-	Object		aduObj;
-	Object		elt;
+	SdrObject	aduObj;
+	SdrObject	elt;
 			OBJ_POINTER(OutAdu, adu);
 			OBJ_POINTER(Topic, topic);
 
@@ -1432,13 +1431,13 @@ void	deleteAdu(Sdr sdr, Object aduElt)
 	sdr_list_delete(sdr, aduElt, NULL, NULL);
 }
 
-int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
+int resendAdu(Sdr sdr, SdrObject aduElt, time_t currentTime)
 {
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	DtpcVdb		*vdb = getDtpcVdb();
 	char		aduIsQueued = 0;	/*	Boolean		*/
-	Object          aduObj;
-	Object		elt;
+	SdrObject       aduObj;
+	SdrObject	elt;
 	OutAdu		adu;
 	DtpcEvent	newEvent;
 			OBJ_POINTER(OutAggregator, outAggr);
@@ -1549,7 +1548,7 @@ unsigned int     dtpcGetProfile(unsigned int maxRtx, size_t aggrSizeLimit,
 	DtpcVdb		*vdb = getDtpcVdb();
 	PsmPartition	wm = getIonwm();
 	Profile		*profile = NULL;
-	Object		elt;
+	SdrObject	elt;
 	char		repToEid[SDRSTRING_BUFSZ];
 
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock memory	*/
@@ -1651,8 +1650,8 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*vprofile;
 	Profile		profile;
-	Object		addr;
-	Object		elt2;
+	SdrObject	addr;
+	SdrObject	elt2;
 	int		priority = 0;
 	int		srrFlags = 0;
 
@@ -1750,8 +1749,8 @@ int	removeProfile(unsigned int profileID)
 	DtpcVdb		*vdb = getDtpcVdb();
 	PsmAddress	vprofileAddr;
 	PsmAddress	elt;
-	Object		sdrElt;
-	Object		profileAddr;
+	SdrObject	sdrElt;
+	SdrObject	profileAddr;
 	Profile		profile;
 	Profile		*vprofile;
 
@@ -1837,12 +1836,12 @@ int	removeProfile(unsigned int profileID)
  *	by this placeholder.						*/
 
 #if 0
-static int	resetInAggregator(Sdr sdr, Object aggrElt)
+static int resetInAggregator(Sdr sdr, SdrObject aggrElt)
 {
 	InAggregator	inAggr;
-	Object		inAggrObj;
-	Object		elt;
-	Object		aduElt;
+	SdrObject	inAggrObj;
+	SdrObject	elt;
+	SdrObject	aduElt;
 			OBJ_POINTER(InAdu, inAdu);
 
 	inAggrObj = sdr_list_data(sdr, aggrElt);
@@ -1883,12 +1882,12 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 }
 #endif
 
-static int	insertAtPlaceholder(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
-			Object aggrElt, InAggregator *inAggr, Object phElt)
+static int insertAtPlaceholder(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+		SdrObject aggrElt, InAggregator *inAggr, SdrObject phElt)
 {
-	Object	inAduObj;
-	InAdu	inAdu;
-	Object	sdrElt;
+	SdrObject inAduObj;
+	InAdu	  inAdu;
+	SdrObject sdrElt;
 		OBJ_POINTER(InAdu, nextAdu);
 	Scalar	tempScalar;
 	int	result = 0;
@@ -1951,12 +1950,12 @@ static int	insertAtPlaceholder(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	return 1;
 }
 
-static int	handleNextExpected(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
-			Object aggrElt, InAggregator *inAggr)
+static int handleNextExpected(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+		SdrObject aggrElt, InAggregator *inAggr)
 {
-	Object	aduElt;
-	Object	inAduObj;
-	InAdu	inAdu;
+	SdrObject aduElt;
+	SdrObject inAduObj;
+	InAdu	  inAdu;
 
 	/*	If the aggregator's inAdus list is not empty, the
 	 *	first element of the list must be the placeholder
@@ -2009,14 +2008,14 @@ static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
 	return deletionTime;
 }
 
-static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
-			Profile *profile, Object aggrElt, InAggregator *inAggr,
-			Scalar lastSeqNum)
+static int insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+		Profile *profile, SdrObject aggrElt, InAggregator *inAggr,
+		Scalar lastSeqNum)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
-	Object		inAduObj;
+	SdrObject	inAduObj;
 	InAdu		inAdu;
-	Object		aduElt;
+	SdrObject	aduElt;
 	DtpcEvent	event;
 
 	/* Parameter intentionally unused. */
@@ -2091,18 +2090,18 @@ static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	return 1;
 }
 
-static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
-			Profile *profile, Object aggrElt, InAggregator *inAggr)
+static int handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+		Profile *profile, SdrObject aggrElt, InAggregator *inAggr)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
-	Object		aduElt;
-	Object		sdrElt;
+	SdrObject	aduElt;
+	SdrObject	sdrElt;
 	InAdu		inAdu;
-	Object		inAduObj = 0;		/*	To hush gcc	*/
+	SdrObject	inAduObj = 0;		/*	To hush gcc	*/
 	DtpcEvent	event;
 	Scalar		lastSeqNum;
 	int		result;
-	Object		newAduElt;
+	SdrObject	newAduElt;
 			OBJ_POINTER(InAdu, nextAdu);
 	Scalar		tempScalar;
 
@@ -2331,8 +2330,8 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 	Profile		*profile;
 	unsigned int	maxRtx;
 	char		bogusEid[32];
-	Object		aggrElt;
-	Object		inAggrObj;
+	SdrObject	aggrElt;
+	SdrObject	inAggrObj;
 	InAggregator	inAggr;
 	char		srcEid[SDRSTRING_BUFSZ];
 	char		bogusReportToEid[SDRSTRING_BUFSZ];
@@ -2582,9 +2581,9 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 	return result;
 }
 
-void	deletePlaceholder(Sdr sdr, Object aduElt)
+void deletePlaceholder(Sdr sdr, SdrObject aduElt)
 {
-	Object	aduObj;
+	SdrObject aduObj;
 		OBJ_POINTER(InAdu, adu);
 
 	aduObj = sdr_list_data(sdr, aduElt);
@@ -2615,9 +2614,9 @@ static int parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 	VSap		*vsap = 0;		/*	To hush gcc	*/
 	PsmAddress	elt;
 	PsmPartition	wm = getIonwm();
-	Object		payloadObj = 0;		/*	To hush gcc	*/
-	Object		dlvPayloadObj;
-	Address		addr = 0;		/*	To hush gcc	*/
+	SdrObject	payloadObj = 0;		/*	To hush gcc	*/
+	SdrObject	dlvPayloadObj;
+	SdrAddress	addr = 0;		/*	To hush gcc	*/
 	DlvPayload	dlvPayload;
 
 	buffer = (*cursor + *bytesUnparsed) - buflen;
@@ -2851,10 +2850,10 @@ int	parseInAdus(Sdr sdr)
 {
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	InAggregator	inAggr;
-	Object		aggrElt;
-	Object		aggrObj;
-	Object		aduElt;
-	Object		aduObj;
+	SdrObject	aggrElt;
+	SdrObject	aggrObj;
+	SdrObject	aduElt;
+	SdrObject	aduObj;
 	uvast		remainingBytes;	 /* Length of ZCO source data extents */
 	size_t		bytesUnparsed;	 /* Remaining bytes in buffer */
 	vast		bytesReceived;	 /* Intermediary for zco_receive_source */
@@ -3012,8 +3011,8 @@ int	handleAck(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 	VScheme		*vscheme;
 	PsmAddress	elt;
 	char		nbrBuf[FQN_MAX_LENGTH];
-	Object		aggrElt;
-	Object		aduElt;
+	SdrObject	aggrElt;
+	SdrObject	aduElt;
 	char		dstEid[SDRSTRING_BUFSZ];
 	char		srcEid[64];
 			OBJ_POINTER(OutAggregator, outAggr);
@@ -3120,9 +3119,9 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 	int		extentLength;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
-	Object		addr;
-	Object		ackZco;
-	Object		newBundle;
+	SdrObject	addr;
+	SdrObject	ackZco;
+	SdrObject	newBundle;
 	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*profile;
@@ -3205,7 +3204,7 @@ send ACK.");
 
 	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, priority,
 			ancillaryData.ordinal, ZcoOutbound, NULL);
-	if (ackZco == 0 || ackZco == (Object) ERROR)
+	if (ackZco == 0 || ackZco == (SdrObject) ERROR)
 	{
 		putErrmsg("Can't create ack ZCO.", NULL);
 		sdr_cancel_xn(sdr);

@@ -373,8 +373,8 @@ int iif_register_node(iif_t *iif, eid_t eid)
 
 int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 {
-	Object extent = 0;
-	Object newBundle = 0;
+	SdrObject extent = 0;
+	SdrObject newBundle = 0;
 	blob_t *data = NULL;
 
 	AMP_DEBUG_ENTRY("iif_send","("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
@@ -434,9 +434,9 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	}
 
 	/* Step 3 - Create ZCO.*/
-	Object content = ionCreateZco(ZcoSdrSource, extent, 0, data->length, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+	SdrObject content = ionCreateZco(ZcoSdrSource, extent, 0, data->length, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 
-	if(content == 0 || content == (Object) ERROR)
+	if(content == 0 || content == (SdrObject) ERROR)
 	{
 		blob_release(data, 1);
 		AMP_DEBUG_ERR("iif_send", "Zero-Copy Object creation failed.", NULL);

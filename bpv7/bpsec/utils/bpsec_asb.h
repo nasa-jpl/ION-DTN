@@ -174,7 +174,7 @@ typedef struct
 typedef struct
 {
 	uvast  scTargetId; /* The target block within the bundle.     */
-	Object scIndTargetResults;  /* sdr_list of security individual results. */
+	SdrObject scIndTargetResults; /* sdr_list of security individual results. */
 } BpsecOutboundTargetResult;
 
 
@@ -205,9 +205,9 @@ typedef struct
 	uint16_t   scId;           /* The BPSec Security Context Identifier.     */
 	uint32_t   scFlags;        /* BPSec Security Context Flags.              */
 
-	Object     scParms;        /* (sci_val) Security Context Parms. */
+	SdrObject scParms;   /* (sci_val) Security Context Parms. */
 
-	Object     scResults;      /* (BpsecOutboundResult) sdr_list of results  */
+	SdrObject scResults; /* (BpsecOutboundResult) sdr_list of results  */
 } BpsecOutboundASB;
 
 
@@ -231,11 +231,11 @@ void                          bpsec_asb_inboundTargetResultRelease(LystElt item,
 BpsecInboundTargetResult      *bpsec_asb_inboundTargetResultCreate(uvast tgt_id, int memIdx);
 void bpsec_asb_inboundTargetResultRemove(LystElt tgtResultElt, LystElt secBlkElt);
 
-Object                        bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size);
+SdrObject                     bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size);
 void                          bpsec_asb_outboundAsbDelete(Sdr sdr, BpsecOutboundASB *asb); // Consider calling this Clear and not Delete.
-void                          bpsec_asb_outboundAsbDeleteObj(Sdr sdr, Object obj);
-void                          bpsec_asb_outboundTargetResultsRelease(Sdr sdr, Object eltData, void *arg);
-void                          bpsec_asb_outboundTargetResultDelete(Sdr sdr, Object result);
+void                          bpsec_asb_outboundAsbDeleteObj(Sdr sdr, SdrObject obj);
+void                          bpsec_asb_outboundTargetResultsRelease(Sdr sdr, SdrObject eltData, void *arg);
+void                          bpsec_asb_outboundTargetResultDelete(Sdr sdr, SdrObject result);
 int                           bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk); // bpsec_copyAsb
 uint8_t                       *bpsec_asb_outboundAsbSerialize(uint32_t *length, BpsecOutboundASB *blk);// bpsec_serializeASB
 int                           bpsec_asb_outboundParmsWrite(Sdr sdr, BpsecOutboundASB *asb, Lyst parms);

@@ -49,12 +49,12 @@ static void	shutDown(int signum)	/*	Commands tcarecv termination.	*/
 	state->running = 0;
 }
 
-static unsigned short	fetchRecord(Object recordsList, uvast fqnn,
-				time_t effectiveTime, Object *recordElt,
-				Object *nextRecordElt)
+static unsigned short fetchRecord(SdrObject recordsList, uvast fqnn,
+		time_t effectiveTime, SdrObject *recordElt,
+		SdrObject *nextRecordElt)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	TcaRecord	record;
 
 	CHKERR(recordsList);
@@ -106,7 +106,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast fqnn,
 	return 0;			/*	Not found.		*/
 }
 
-static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
+static int acquireRecord(Sdr sdr, TcaDB *db, char *src, SdrObject adu)
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
@@ -117,14 +117,14 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 	int		len;
 	char		buffer[TC_MAX_REC];
 	char		*cursor = buffer;
-	Object		clientElt;
+	SdrObject	clientElt;
 	uvast		client;
 	int		auths;
 	char		*acknowledged;
 	TcaRecord	record;
-	Object		recordElt;
-	Object		nextRecordElt;
-	Object		obj;
+	SdrObject	recordElt;
+	SdrObject	nextRecordElt;
+	SdrObject	obj;
 
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
@@ -280,7 +280,7 @@ int	main(int argc, char *argv[])
 	char		ownEid[32];
 	TcarecvState	state = { NULL, 1 };
 	Sdr		sdr;
-	Object		dbobj;
+	SdrObject	dbobj;
 	TcaDB		db;
 	BpDelivery	dlv;
 

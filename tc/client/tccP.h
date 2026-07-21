@@ -33,7 +33,7 @@ typedef struct
 typedef struct
 {
 	int		sourceAuthNum;
-	Object		text;			/*	ZCO (an adu)	*/
+	SdrObject	text; /* ZCO (an adu) */
 } TccBlock;
 
 typedef struct
@@ -48,13 +48,13 @@ typedef struct
 	unsigned char	hash[32];		/*	Key field 2.	*/
 	size_t		blksize;		/*	Key field 3.	*/
 	unsigned int	sharesAnnounced;
-	Object		shares;		/*	sdr_list of TccShares	*/
+	SdrObject	shares;			/* sdr_list of TccShares */
 } TccBulletin;
 
 typedef struct
 {
 	size_t		length;
-	Object		data;
+	SdrObject	data;
 } TccContent;
 
 typedef struct
@@ -105,14 +105,14 @@ typedef struct
 	int		fec_M;
 	int		fec_N;
 	int		fec_Q;
-	Object		authorities;	/*	SDR list: TccAuthority	*/
-	Object		bulletins;	/*	SDR list: TccBulletin	*/
-	Object		contents;	/*	SDR list: TccContent	*/
+	SdrObject	authorities; /* SDR list: TccAuthority */
+	SdrObject	bulletins;   /* SDR list: TccBulletin */
+	SdrObject	contents;    /* SDR list: TccContent */
 } TccDB;
 
 typedef struct
 {
-	Object		dbs;		/*	SDR list: TccDB		*/
+	SdrObject dbs; /* SDR list: TccDB */
 } TccMDB;
 
 typedef struct
@@ -132,7 +132,7 @@ extern int		tccStart(int blocksGroupNbr);
 extern int		tccIsStarted(int blocksGroupNbr);
 extern void		tccStop(int blocksGroupNbr);
 extern int		tccAttach(int blocksGroupNbr);
-extern Object		getTccDBObj(int blocksGroupNbr);
+extern SdrObject	getTccDBObj(int blocksGroupNbr);
 extern TccVdb		*getTccVdb(int blocksGroupNbr);
 
 #ifdef __cplusplus

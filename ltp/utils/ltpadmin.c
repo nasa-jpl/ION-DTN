@@ -670,7 +670,7 @@ static void	listSpans(int tokenCount, char **tokens)
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmPartition	ionwm = getIonwm();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 			OBJ_POINTER(LtpDB, ltpdb);
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[128];
@@ -728,7 +728,7 @@ static void	executeList(int tokenCount, char **tokens)
 static void	manageHeapmax(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	LtpDB		ltpdb;
 	unsigned int	heapmax;
 	uvast		parsed_heapmax;
@@ -769,7 +769,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 static void	manageScreening(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	ltpdbobj = getLtpDbObject();
+	SdrObject ltpdbobj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newEnforceSchedule;
 
@@ -823,7 +823,7 @@ static void	manageScreening(int tokenCount, char **tokens)
 static void	manageOwnqtime(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
+	SdrObject ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newOwnQtime;
 	char	errMsg[256];
@@ -861,7 +861,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 static void	manageMaxBER(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -919,7 +919,7 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 static void	manageMaxRetries(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -989,7 +989,7 @@ explicit mode");
 static void	manageMaxSegLossRate(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -1044,7 +1044,7 @@ static void	manageMaxSegLossRate(int tokenCount, char **tokens)
 static void	manageMaxRetriesXmit(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -1114,7 +1114,7 @@ explicit mode");
 static void	manageMaxRetriesRecv(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -1178,7 +1178,7 @@ static void	manageMaxRetriesRecv(int tokenCount, char **tokens)
 static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -1233,7 +1233,7 @@ static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
 static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -1711,7 +1711,7 @@ static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 static void	manageMaxBacklog(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	LtpDB		ltpdb;
 	unsigned int	maxBacklog;
 

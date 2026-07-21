@@ -17,9 +17,9 @@
 
 /*	*	*	Module-Level Variables	*	*	*	*/
 
-static Object	_cbrDbObject(Object *newObj)
+static SdrObject _cbrDbObject(SdrObject *newObj)
 {
-	static Object	cbrDbObj = 0;
+	static SdrObject cbrDbObj = 0;
 
 	if (newObj)
 	{
@@ -34,7 +34,7 @@ static CbrDb	*_cbrConstants(void)
 	static CbrDb	cbrBuf;
 	static CbrDb	*cbrConstants = NULL;
 	Sdr		sdr;
-	Object		cbrDbObj;
+	SdrObject	cbrDbObj;
 
 	if (cbrConstants == NULL)
 	{
@@ -55,7 +55,7 @@ static CbrDb	*_cbrConstants(void)
 	return cbrConstants;
 }
 
-Object	getCbrDbObject(void)
+SdrObject getCbrDbObject(void)
 {
 	return _cbrDbObject(NULL);
 }
@@ -69,7 +69,7 @@ CbrDb	*getCbrConstants(void)
 
 int	cbr_initialize(Sdr sdr)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -146,7 +146,7 @@ void	cbr_shutdown(Sdr sdr)
 int	cbr_attach(void)
 {
 	Sdr	sdr;
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 
 	sdr = getIonsdr();
 	if (sdr == NULL)
@@ -167,7 +167,7 @@ int	cbr_attach(void)
 		return -1;
 	}
 
-	if (cbrDbObj == (Object) -1)
+	if (cbrDbObj == (SdrObject) -1)
 	{
 		putErrmsg("Can't search for CBR database.", NULL);
 		return -1;
@@ -183,7 +183,7 @@ int	cbr_configure(Sdr sdr, unsigned int crsAggregateLimit,
 		unsigned int ccsAggregateLimit,
 		unsigned int aggregateTimeoutSec)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -216,7 +216,7 @@ int	cbr_getCrebExplicitEid(void)
 
 int	cbr_setCrebExplicitEid(Sdr sdr, int enable)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -238,7 +238,7 @@ int	cbr_setCrebExplicitEid(Sdr sdr, int enable)
 
 int	cbr_getCrebReportTo(Sdr sdr, char *buf, size_t bufLen)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -256,7 +256,7 @@ int	cbr_getCrebReportTo(Sdr sdr, char *buf, size_t bufLen)
 
 int	cbr_setCrebReportTo(Sdr sdr, const char *eid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -299,7 +299,7 @@ uvast	cbr_getCounterMaxValue(void)
 
 int	cbr_setCounterMaxValue(Sdr sdr, uvast maxValue)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -331,7 +331,7 @@ int	cbr_setCounterMaxValue(Sdr sdr, uvast maxValue)
 int	cbr_configureRetransmission(Sdr sdr, int strategy,
 		unsigned int intervalSec, unsigned int maxRetransmissions)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -365,7 +365,7 @@ int	cbr_getConfig(Sdr sdr, unsigned int *crsAggregateLimit,
 		unsigned int *ccsAggregateLimit,
 		unsigned int *aggregateTimeoutSec)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrBuf;
 
 	CHKERR(sdr);
@@ -428,7 +428,7 @@ int	cbr_getRetransmissionConfig(Sdr sdr, int *strategy,
 int	cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
 {
 	CbrDb	cbrDb;
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 
 	CHKERR(stats);
 	CHKERR(sdr);
@@ -464,7 +464,7 @@ int	cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
 int	cbr_resetStatistics(Sdr sdr)
 {
 	CbrDb		*cbrConstants;
-	Object		cbrDbObj;
+	SdrObject	 cbrDbObj;
 
 	cbrConstants = _cbrConstants();
 	CHKERR(cbrConstants);
@@ -517,7 +517,7 @@ int	cbr_getStatusReportMode(Sdr sdr)
 
 int	cbr_setStatusReportMode(Sdr sdr, int mode)
 {
-	Object		bpDbObj;
+	SdrObject	bpDbObj;
 	BpDB		bpDb;
 
 	CHKERR(mode >= BP_SR_MODE_TRADITIONAL && mode <= BP_SR_MODE_NONE);
@@ -547,7 +547,7 @@ int	cbr_setStatusReportMode(Sdr sdr, int mode)
 
 int	cbr_getCustodyMode(Sdr sdr)
 {
-	Object	bpDbObj;
+	SdrObject bpDbObj;
 	BpDB	bpDb;
 
 	bpDbObj = getBpDbObject();
@@ -576,7 +576,7 @@ int	cbr_getCustodyMode(Sdr sdr)
 
 int	cbr_setCustodyMode(Sdr sdr, int mode)
 {
-	Object		bpDbObj;
+	SdrObject	bpDbObj;
 	BpDB		bpDb;
 
 	CHKERR(mode >= BP_CUSTODY_NONE && mode <= BP_CUSTODY_ORANGEBOOK);
@@ -604,12 +604,12 @@ int	cbr_setCustodyMode(Sdr sdr, int mode)
 
 /*	*	*	Sequence Counter Functions	*	*	*/
 
-Object	cbr_findSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+SdrObject cbr_findSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 		uvast seqId, int forCustody)
 {
 	CbrDb	*cbrConstants;
-	Object	elt;
-	Object	counterObj;
+	SdrObject	 elt;
+	SdrObject	 counterObj;
 	BundleSeqCounter counter;
 	char	srcEidBuf[MAX_EID_LEN];
 	char	destEidBuf[MAX_EID_LEN];
@@ -673,13 +673,13 @@ Object	cbr_findSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 	return 0;	/*	Not found				*/
 }
 
-Object	cbr_createSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+SdrObject cbr_createSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 		uvast seqId, int forCustody)
 {
 	CbrDb		*cbrConstants;
 	BundleSeqCounter counter;
-	Object		counterObj;
-	Object		elt;
+	SdrObject	 counterObj;
+	SdrObject	 elt;
 
 	cbrConstants = _cbrConstants();
 	CHKZERO(cbrConstants);
@@ -720,10 +720,10 @@ Object	cbr_createSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 	return elt;
 }
 
-Object	cbr_getSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+SdrObject cbr_getSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 		uvast seqId, int forCustody)
 {
-	Object	elt;
+	SdrObject elt;
 
 	CHKZERO(sdr);
 	CHKZERO(sourceEid);
@@ -748,7 +748,7 @@ Object	cbr_getSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 		uvast seqId, int forCustody, uvast *seqNum)
 {
-	Object		counterObj;
+	SdrObject	 counterObj;
 	BundleSeqCounter counter;
 	uvast		allocatedSeqNum;
 	int		ownTransaction = 0;
@@ -823,7 +823,7 @@ int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 
 /*	*	*	Range Compression Functions	*	*	*/
 
-int	cbr_extendSequenceEntry(Sdr sdr, Object entryObj,
+int cbr_extendSequenceEntry(Sdr sdr, SdrObject entryObj,
 		BundleSequenceEntry *entry, uvast seqNum)
 {
 	uvast	expectedNext;
@@ -863,12 +863,12 @@ int	cbr_extendSequenceEntry(Sdr sdr, Object entryObj,
 	}
 }
 
-int	cbr_convertToRangeArray(Sdr sdr, Object entryObj,
+int cbr_convertToRangeArray(Sdr sdr, SdrObject entryObj,
 		BundleSequenceEntry *entry, uvast currentLen,
 		uvast gap, uvast newLen)
 {
-	Object	rangeArray;
-	Object	lenObj;
+	SdrObject rangeArray;
+	SdrObject lenObj;
 	uvast	lenBuf;
 
 	rangeArray = sdr_list_create(sdr);
@@ -921,12 +921,12 @@ int	cbr_convertToRangeArray(Sdr sdr, Object entryObj,
 	return 1;
 }
 
-int	cbr_extendRangeArray(Sdr sdr, Object rangeArray,
+int cbr_extendRangeArray(Sdr sdr, SdrObject rangeArray,
 		uvast seqNumStart, uvast seqNum)
 {
-	Object	elt;
-	Object	lastElt = 0;
-	Object	lenObj;
+	SdrObject elt;
+	SdrObject lastElt = 0;
+	SdrObject lenObj;
 	uvast	position = seqNumStart;
 	uvast	lenBuf;
 	int	included = 1;
@@ -1292,13 +1292,13 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 
 /*	*	*	Signal Management Functions	*	*	*/
 
-Object	cbr_findOrCreatePendingSignal(Sdr sdr, char *destEid,
+SdrObject cbr_findOrCreatePendingSignal(Sdr sdr, char *destEid,
 		int signalType, int statusOrDispCode)
 {
 	CbrDb		*cbrConstants;
-	Object		signalList;
-	Object		elt;
-	Object		signalObj;
+	SdrObject	signalList;
+	SdrObject	elt;
+	SdrObject	signalObj;
 	PendingSignal	signal;
 	char		destEidBuf[MAX_EID_LEN];
 
@@ -1372,13 +1372,13 @@ Object	cbr_findOrCreatePendingSignal(Sdr sdr, char *destEid,
 	return elt;
 }
 
-int	cbr_addToSignalSequences(Sdr sdr, Object signalElt,
+int cbr_addToSignalSequences(Sdr sdr, SdrObject signalElt,
 		char *sourceEid, uvast seqId, uvast seqNum)
 {
-	Object			signalObj;
+	SdrObject		signalObj;
 	PendingSignal		signal;
-	Object			seqElt;
-	Object			entryObj;
+	SdrObject		seqElt;
+	SdrObject		entryObj;
 	BundleSequenceEntry	entry;
 	char			srcEidBuf[MAX_EID_LEN];
 	int			extended;
@@ -1454,8 +1454,8 @@ int	cbr_addToSignalSequences(Sdr sdr, Object signalElt,
 int	cbr_flushSignals(Sdr sdr, int signalType)
 {
 	CbrDb	*cbrConstants;
-	Object	elt;
-	Object	nextElt;
+	SdrObject elt;
+	SdrObject nextElt;
 	int	count = 0;
 	int	result;
 
@@ -1518,7 +1518,7 @@ int	cbr_flushSignals(Sdr sdr, int signalType)
 static void	cbr_liveAggregateConfig(Sdr sdr, unsigned int *crsLimit,
 			unsigned int *ccsLimit, unsigned int *timeoutSec)
 {
-	Object	cbrDbObj = _cbrDbObject(NULL);
+	SdrObject cbrDbObj = _cbrDbObject(NULL);
 	CbrDb	cbrBuf;
 
 	if (cbrDbObj == 0)
@@ -1548,11 +1548,11 @@ int	cbr_processTimeouts(Sdr sdr)
 	CbrDb		*cbrConstants;
 	unsigned int	timeoutSec;
 	time_t		now;
-	Object		elt;
-	Object		nextElt;
-	Object		signalObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	signalObj;
 	PendingSignal	signal;
-	Object		cbObj;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 	int		count = 0;
 
@@ -1673,9 +1673,9 @@ int	cbr_processTimeouts(Sdr sdr)
 	return count;
 }
 
-int	cbr_doRetransmit(Sdr sdr, CustodyBundle *cb, Object cbElt)
+int cbr_doRetransmit(Sdr sdr, CustodyBundle *cb, SdrObject cbElt)
 {
-	Object	cbObj;
+	SdrObject cbObj;
 
 	CHKERR(cb);
 	CHKERR(cbElt);
@@ -1702,22 +1702,22 @@ int	cbr_doRetransmit(Sdr sdr, CustodyBundle *cb, Object cbElt)
 /*	Maximum buffer size for CRS/CCS encoding.			*/
 #define CBR_MAX_SIGNAL_SIZE	8192
 
-int	cbr_encodeCrs(Sdr sdr, Object signalElt, unsigned char *buffer,
+int cbr_encodeCrs(Sdr sdr, SdrObject signalElt, unsigned char *buffer,
 		size_t buflen)
 {
-	Object			signalObj;
+	SdrObject		signalObj;
 	PendingSignal		signal;
 	unsigned char		*cursor = buffer;
 	uvast			uvtemp;
-	Object			seqElt;
-	Object			entryObj;
+	SdrObject		seqElt;
+	SdrObject		entryObj;
 	BundleSequenceEntry	entry;
 	char			srcEidBuf[MAX_EID_LEN];
 	char			destEidBuf[MAX_EID_LEN];
 	int			seqBytes;
 	uvast			*rangeData = NULL;
 	int			rangeCount = 0;
-	Object			rangeElt;
+	SdrObject		rangeElt;
 	int			i;
 
 	(void) buflen;		/*	Reserved for future use.	*/
@@ -1781,7 +1781,7 @@ int	cbr_encodeCrs(Sdr sdr, Object signalElt, unsigned char *buffer,
 					rangeElt;
 					rangeElt = sdr_list_next(sdr, rangeElt))
 			{
-				Object	lenObj = sdr_list_data(sdr, rangeElt);
+				SdrObject lenObj = sdr_list_data(sdr, rangeElt);
 
 				sdr_read(sdr, (char *) &rangeData[i], lenObj,
 						sizeof(uvast));
@@ -1817,21 +1817,21 @@ int	cbr_encodeCrs(Sdr sdr, Object signalElt, unsigned char *buffer,
 	return cursor - buffer;
 }
 
-int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
+int cbr_encodeCcs(Sdr sdr, SdrObject signalElt, unsigned char *buffer,
 		size_t buflen)
 {
-	Object			signalObj;
+	SdrObject		signalObj;
 	PendingSignal		signal;
 	unsigned char		*cursor = buffer;
 	uvast			uvtemp;
-	Object			seqElt;
-	Object			entryObj;
+	SdrObject		seqElt;
+	SdrObject		entryObj;
 	BundleSequenceEntry	entry;
 	char			destEidBuf[MAX_EID_LEN];
 	int			seqBytes;
 	uvast			*rangeData = NULL;
 	int			rangeCount = 0;
-	Object			rangeElt;
+	SdrObject		rangeElt;
 	int			i;
 
 	(void) buflen;		/*	Reserved for future use.	*/
@@ -1902,7 +1902,7 @@ int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
 					rangeElt;
 					rangeElt = sdr_list_next(sdr, rangeElt))
 			{
-				Object	lenObj = sdr_list_data(sdr, rangeElt);
+				SdrObject lenObj = sdr_list_data(sdr, rangeElt);
 
 				sdr_read(sdr, (char *) &rangeData[i], lenObj,
 						sizeof(uvast));
@@ -1938,12 +1938,12 @@ int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
 	return cursor - buffer;
 }
 
-static void	cleanupSignal(Sdr sdr, Object signalElt)
+static void cleanupSignal(Sdr sdr, SdrObject signalElt)
 {
-	Object			signalObj;
+	SdrObject		signalObj;
 	PendingSignal		signal;
-	Object			seqElt;
-	Object			entryObj;
+	SdrObject		seqElt;
+	SdrObject		entryObj;
 	BundleSequenceEntry	entry;
 
 	signalObj = sdr_list_data(sdr, signalElt);
@@ -1959,8 +1959,8 @@ static void	cleanupSignal(Sdr sdr, Object signalElt)
 		/*	Free range array if present			*/
 		if (entry.rangeArray != 0)
 		{
-			Object	rangeElt;
-			Object	nextRangeElt;
+			SdrObject rangeElt;
+			SdrObject nextRangeElt;
 
 			for (rangeElt = sdr_list_first(sdr, entry.rangeArray);
 					rangeElt; rangeElt = nextRangeElt)
@@ -1985,14 +1985,14 @@ static void	cleanupSignal(Sdr sdr, Object signalElt)
 	sdr_list_delete(sdr, signalElt, NULL, NULL);
 }
 
-int	cbr_transmitSignal(Sdr sdr, Object signalElt)
+int cbr_transmitSignal(Sdr sdr, SdrObject signalElt)
 {
-	Object			signalObj;
+	SdrObject		signalObj;
 	PendingSignal		signal;
 	char			destEidBuf[MAX_EID_LEN];
 	unsigned char		*buffer;
 	int			buflen;
-	Object			payloadZco;
+	SdrObject		payloadZco;
 	BpAncillaryData		ancillary = { 0 };
 	int			result;
 
@@ -2040,7 +2040,7 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 			0, buflen, ZcoOutbound);
 	MRELEASE(buffer);
 
-	if (payloadZco == 0 || payloadZco == (Object) ERROR)
+	if (payloadZco == 0 || payloadZco == (SdrObject) ERROR)
 	{
 		putErrmsg("Can't create ZCO for CBR signal.", NULL);
 		return -1;
@@ -2059,7 +2059,7 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 	}
 	else
 	{
-		Object	cbrDbObj = getCbrDbObject();
+		SdrObject cbrDbObj = getCbrDbObject();
 
 		writeMemoNote(signal.signalType == CBR_SIGNAL_CRS ?
 				"[i] CBR CRS transmitted to" :
@@ -2108,10 +2108,10 @@ int	cbr_reportStatus(Sdr sdr, Bundle *bundle, int statusReason,
 	char		*sourceEid = NULL;
 	uvast		seqId;
 	uvast		seqNum;
-	Object		signalElt;
+	SdrObject	signalElt;
 	unsigned int	crsAggregateLimit;
 	PendingSignal	signal;
-	Object		signalObj;
+	SdrObject	signalObj;
 	int		mustFreeReportTo = 0;
 	int		mustFreeSource = 0;
 
@@ -2286,12 +2286,12 @@ int	cbr_reportStatus(Sdr sdr, Bundle *bundle, int statusReason,
  *
  * @return	SDR list element of CustodyBundle, 0 if not found
  */
-Object	cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
+SdrObject cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNum)
 {
 	CbrDb		*cbrConstants;
-	Object		elt;
-	Object		cbObj;
+	SdrObject	elt;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 	char		eidBuf[MAX_EID_LEN];
 
@@ -2336,13 +2336,13 @@ Object	cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
  *
  * @return	SDR list element of new CustodyBundle, 0 on error
  */
-Object	cbr_trackCustodyBundle(Sdr sdr, Object bundleObj, char *destEid,
+SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
 		char *sourceEid, uvast seqId, uvast seqNum)
 {
 	CbrDb		*cbrConstants;
 	CustodyBundle	cb;
-	Object		cbObj;
-	Object		elt;
+	SdrObject	cbObj;
+	SdrObject	elt;
 
 	cbrConstants = getCbrConstants();
 	if (cbrConstants == NULL)
@@ -2410,7 +2410,7 @@ Object	cbr_trackCustodyBundle(Sdr sdr, Object bundleObj, char *destEid,
 
 void	cbr_noteCustodyOriginated(Sdr sdr)
 {
-	Object	cbrDbObj = getCbrDbObject();
+	SdrObject cbrDbObj = getCbrDbObject();
 
 	if (cbrDbObj)
 	{
@@ -2425,9 +2425,9 @@ void	cbr_noteCustodyOriginated(Sdr sdr)
 /**
  * Remove a bundle from custody tracking.
  */
-void	cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt)
+void cbr_untrackCustodyBundle(Sdr sdr, SdrObject custodyElt)
 {
-	Object		cbObj;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 
 	if (custodyElt == 0)
@@ -2466,12 +2466,12 @@ void	cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt)
  * received, cbr_releaseCustody clears detained and removes the custody
  * entry before calling bpDestroyBundle.
  */
-void	cbr_untrackBundleByObj(Sdr sdr, Object bundleObj)
+void cbr_untrackBundleByObj(Sdr sdr, SdrObject bundleObj)
 {
 	CbrDb		*cbrConstants;
-	Object		elt;
-	Object		nextElt;
-	Object		cbObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 
 	if (bundleObj == 0)
@@ -2513,7 +2513,7 @@ void	cbr_untrackBundleByObj(Sdr sdr, Object bundleObj)
 static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 			uvast seqId, uvast seqNum, int disposition)
 {
-	Object		signalElt;
+	SdrObject	signalElt;
 	CbrDb		*cbrConstants;
 	PendingSignal	signal;
 	unsigned int	ccsAggregateLimit;
@@ -2575,10 +2575,10 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 
 /*	*	Custody Acceptance Whitelist	*	*	*	*/
 
-static int	acceptListContains(Sdr sdr, Object list, const char *eid)
+static int acceptListContains(Sdr sdr, SdrObject list, const char *eid)
 {
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	if (list == 0 || sdr_list_length(sdr, list) == 0)
@@ -2603,7 +2603,7 @@ static int	acceptListContains(Sdr sdr, Object list, const char *eid)
 int	cbr_isCustodyAccepted(Sdr sdr, const char *custodianEid,
 		const char *sourceEid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
 
 	CHKZERO(sdr);
@@ -2632,9 +2632,9 @@ int	cbr_isCustodyAccepted(Sdr sdr, const char *custodianEid,
 	return 1;
 }
 
-Object	cbr_getCustodyAcceptList(Sdr sdr, int forCustodian)
+SdrObject cbr_getCustodyAcceptList(Sdr sdr, int forCustodian)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
 
 	cbrDbObj = getCbrDbObject();
@@ -2650,11 +2650,11 @@ Object	cbr_getCustodyAcceptList(Sdr sdr, int forCustodian)
 
 int	cbr_addCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
 {
-	Object	cbrDbObj;
+	SdrObject	cbrDbObj;
 	CbrDb	cbrDb;
-	Object	list;
-	Object	elt;
-	Object	obj;
+	SdrObject	list;
+	SdrObject	elt;
+	SdrObject	obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	CHKERR(sdr);
@@ -2701,11 +2701,11 @@ int	cbr_addCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
 
 int	cbr_removeCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
-	Object	list;
-	Object	elt;
-	Object	obj;
+	SdrObject list;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	CHKERR(sdr);
@@ -2744,10 +2744,10 @@ int	cbr_removeCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
 
 int	cbr_isCustodyRequired(Sdr sdr, const char *destEid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	CHKZERO(sdr);
@@ -2779,9 +2779,9 @@ int	cbr_isCustodyRequired(Sdr sdr, const char *destEid)
 	return 0;
 }
 
-Object	cbr_getCustodyReqList(Sdr sdr)
+SdrObject cbr_getCustodyReqList(Sdr sdr)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
 
 	cbrDbObj = getCbrDbObject();
@@ -2796,10 +2796,10 @@ Object	cbr_getCustodyReqList(Sdr sdr)
 
 int	cbr_addCustodyReq(Sdr sdr, const char *eid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	CHKERR(sdr);
@@ -2845,10 +2845,10 @@ int	cbr_addCustodyReq(Sdr sdr, const char *eid)
 
 int	cbr_removeCustodyReq(Sdr sdr, const char *eid)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	char	buf[SDRSTRING_BUFSZ];
 
 	CHKERR(sdr);
@@ -2881,7 +2881,7 @@ int	cbr_removeCustodyReq(Sdr sdr, const char *eid)
 	return 0;
 }
 
-int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
+int cbr_acceptCustody(Sdr sdr, Bundle *bundle, SdrObject bundleAddr,
 		CtebBlk *cteb)
 {
 	VScheme		*vscheme;
@@ -2946,7 +2946,7 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 	 *	Must use a transaction since queueCcs may have
 	 *	committed its own transaction already.			*/
 	{
-		Object	cbrDbObj = getCbrDbObject();
+		SdrObject cbrDbObj = getCbrDbObject();
 
 		if (cbrDbObj)
 		{
@@ -3004,9 +3004,9 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNumStart, uvast length)
 {
 	uvast		i;
-	Object		custodyElt;
+	SdrObject	custodyElt;
 	CustodyBundle	cb;
-	Object		cbObj;
+	SdrObject	cbObj;
 
 	/*	Release custody for each bundle in the range.		*/
 	for (i = 0; i < length; i++)
@@ -3015,7 +3015,7 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 				seqNumStart + i);
 		if (custodyElt != 0)
 		{
-			Object	cbrDbObj = getCbrDbObject();
+			SdrObject cbrDbObj = getCbrDbObject();
 
 			/*	Get custody bundle data before untracking.	*/
 			cbObj = sdr_list_data(sdr, custodyElt);
@@ -3081,12 +3081,12 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length,
 	char			*seqDestEid;
 	uvast			i;
 	uvast			bundleCount;
-	Object			cbrDbObj;
+	SdrObject		cbrDbObj;
 	CbrDb			cbrDb;
 	ReceivedCrsRecord	rec;
-	Object			recObj;
-	Object			firstElt;
-	Object			firstObj;
+	SdrObject		recObj;
+	SdrObject		firstElt;
+	SdrObject		firstObj;
 	ReceivedCrsRecord	oldest;
 
 	/*	CRS content format (after stripping admin record header):
@@ -3262,7 +3262,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length,
 
 int	cbr_setCrsHistoryMax(Sdr sdr, unsigned int max)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
 
 	CHKERR(sdr);
@@ -3283,9 +3283,9 @@ int	cbr_setCrsHistoryMax(Sdr sdr, unsigned int max)
 	return 0;
 }
 
-Object	cbr_getCrsHistoryList(Sdr sdr)
+SdrObject cbr_getCrsHistoryList(Sdr sdr)
 {
-	Object	cbrDbObj;
+	SdrObject cbrDbObj;
 	CbrDb	cbrDb;
 
 	cbrDbObj = getCbrDbObject();
@@ -3469,7 +3469,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 				/*	Increment CCS accept recv counter. */
 				{
-					Object	cbrDbObj = getCbrDbObject();
+					SdrObject cbrDbObj = getCbrDbObject();
 
 					if (cbrDbObj)
 					{
@@ -3494,7 +3494,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 				/*	Increment CCS refuse recv counter. */
 				{
-					Object	cbrDbObj = getCbrDbObject();
+					SdrObject cbrDbObj = getCbrDbObject();
 
 					if (cbrDbObj)
 					{
@@ -3514,8 +3514,8 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 				if (cbrConstants->retransmitStrategy
 						== CBR_RETX_SIGNAL)
 				{
-					Object		custodyElt;
-					CustodyBundle	retxCb;
+					SdrObject     custodyElt;
+					CustodyBundle retxCb;
 
 					if (rangeArray == NULL)
 					{
@@ -3645,8 +3645,8 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 int	cbr_retransmitBundle(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNum)
 {
-	Object		custodyElt;
-	Object		cbObj;
+	SdrObject	custodyElt;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 	int		result;
 
@@ -3702,9 +3702,9 @@ int	cbr_retransmitBundle(Sdr sdr, char *sourceEid, uvast seqId,
 int	cbr_retransmitAllCustody(Sdr sdr, char *destEid)
 {
 	CbrDb		*cbrConstants;
-	Object		elt;
-	Object		nextElt;
-	Object		cbObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 	char		eidBuf[MAX_EID_LEN];
 	int		count = 0;
@@ -3777,8 +3777,8 @@ int	cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback,
 		void *userData)
 {
 	CbrDb		*cbrConstants;
-	Object		elt;
-	Object		cbObj;
+	SdrObject	elt;
+	SdrObject	cbObj;
 	CustodyBundle	cb;
 	CbrCustodyInfo	info;
 	char		destEidBuf[MAX_EID_LEN];
@@ -3827,7 +3827,7 @@ int	cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback,
 int	cbr_getCustodyStatus(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNum)
 {
-	Object		custodyElt;
+	SdrObject	custodyElt;
 	int		startedXn = 0;
 
 	CHKERR(sdr);

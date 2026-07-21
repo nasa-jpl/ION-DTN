@@ -2500,7 +2500,7 @@ unsigned long long	sdr_drop_count(Sdr sdrv)
 	return sdrv->sdr->dropStats.totalDrops;
 }
 
-void	*sdr_pointer(Sdr sdrv, Address address)
+void *sdr_pointer(Sdr sdrv, SdrAddress address)
 {
 	CHKNULL(sdrv);
 	if ((sdrv->sdr->configFlags & SDR_IN_DRAM) == 0 || address <= 0)
@@ -2511,7 +2511,7 @@ void	*sdr_pointer(Sdr sdrv, Address address)
 	return (void *) (sdrv->dssm + address);
 }
 
-Address	sdr_address(Sdr sdrv, void *pointer)
+SdrAddress sdr_address(Sdr sdrv, void *pointer)
 {
 	char	*ptr;
 
@@ -2522,29 +2522,29 @@ Address	sdr_address(Sdr sdrv, void *pointer)
 		return 0;
 	}
 
-	return (Address) (ptr - sdrv->dssm);
+	return (SdrAddress) (ptr - sdrv->dssm);
 }
 
 /*	*	Low-level I/O functions		*	*	*	*/
 
 #ifdef NO_SDRMGT
 
-Object	_sdrzalloc(Sdr sdrv, size_t nbytes)
+SdrObject _sdrzalloc(Sdr sdrv, size_t nbytes)
 {
 	return 0;
 }
 
-Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
+SdrObject _sdrmalloc(Sdr sdrv, size_t nbytes)
 {
 	return 0;
 }
 
-void	_sdrfree(Sdr sdrv, Object, PutSrc);
+void _sdrfree(Sdr sdrv, SdrObject, PutSrc);
 {
 	return;
 }
 
-int	sdrBoundaryViolated(SdrView *sdrv, Address offset, size_t length)
+int sdrBoundaryViolated(SdrView *sdrv, SdrAddress offset, size_t length)
 {
 	return 0;
 }
@@ -2592,7 +2592,7 @@ SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d", sdr->name,
 	return length;
 }
 
-void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
+void _sdrput(const char *file, int line, Sdr sdrv, SdrAddress into, char *from,
 		size_t length, PutSrc src)
 {
 	SdrState	*sdr;
@@ -2765,7 +2765,7 @@ entry.", NULL);
 	sdr->modified = 1;
 }
 
-void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
+void Sdr_write(const char *file, int line, Sdr sdrv, SdrAddress into,
 		char *from, size_t length)
 {
 	if (!(sdr_in_xn(sdrv)))
@@ -2778,7 +2778,7 @@ void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
 	_sdrput(file, line, sdrv, into, from, length, UserPut);
 }
 
-void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
+void _sdrfetch(Sdr sdrv, char *into, SdrAddress from, size_t length)
 {
 	SdrState	*sdr;
 	ssize_t		bytesRead; /* Added for safe read() check. */
@@ -2839,7 +2839,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 #endif
 }
 
-void	sdr_read(Sdr sdrv, char *into, Address from, size_t length)
+void sdr_read(Sdr sdrv, char *into, SdrAddress from, size_t length)
 {
 	_sdrfetch(sdrv, into, from, length);
 }

@@ -102,7 +102,7 @@ void bpinspect_data_get_queue_state(Bundle *bundle, char *queueState, int maxLen
 {
 	Sdr		sdr;
 	BpDB		*bpConstants;
-	Object		queue;
+	SdrObject	queue;
 
 	if (bundle == NULL || queueState == NULL || maxLen <= 0)
 	{
@@ -169,7 +169,8 @@ int bpinspect_data_time_remaining(time_t expirationTime)
 /*
  * Populate cache entry from Bundle object
  */
-static int populate_cache_entry(Sdr sdr, Object bundleObj, BundleCacheEntry *entry)
+static int populate_cache_entry(Sdr sdr, SdrObject bundleObj,
+		BundleCacheEntry *entry)
 {
 	Bundle	bundle;
 	char	*eid;
@@ -246,8 +247,8 @@ int bpinspect_data_refresh(BundleListState *state)
 {
 	Sdr		sdr;
 	BpDB		*bpConstants;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 	BpEvent		event;
 	int		bundleCount = 0;
 

@@ -85,7 +85,7 @@ Returns:
 - -1 if the callback needs to call off the segment processing
 */
 typedef int	(*OutboundOnHeaderExtensionSerializationCallback)
-			(Object fieldObj, LtpXmitSeg *segment, char **cursor);
+			(SdrObject fieldObj, LtpXmitSeg *segment, char **cursor);
 /*
 This is the definition of callback function which will be called to serialize
 LTP trailer extensions to an outbound segment.
@@ -100,7 +100,7 @@ Returns:
 - -1 if the callback needs to call off the segment processing
 */
 typedef int	(*OutboundOnTrailerExtensionSerializationCallback)
-			(Object fieldObj, LtpXmitSeg *segment, char **cursor);
+			(SdrObject fieldObj, LtpXmitSeg *segment, char **cursor);
 
 /*****************************************************************************
  *                                DATA STRUCTURES                            *
@@ -130,7 +130,7 @@ typedef struct
 {
 	char		tag;
 	unsigned int	length;
-	Object		value;
+	SdrObject	value;
 } LtpExtensionOutbound;
 
 /*
@@ -182,7 +182,7 @@ extern int	ltpei_record_extensions(LtpPdu *pdu, Lyst headerExtensions,
 			Lyst trailerExtensions);
 extern void	ltpei_discard_extensions(Lyst extensions);
 
-extern void	ltpei_destroy_extension(Sdr, Object, void *);
+extern void	ltpei_destroy_extension(Sdr, SdrObject, void *);
 
 /*
 This function is used to find the ExtensionDef based on the tag.

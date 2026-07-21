@@ -159,7 +159,7 @@ static int	attachToTca(void)
 static void	manageCompileTime(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	time_t	newCompileTime;
 	TcaDB	db;
 
@@ -189,7 +189,7 @@ static void	manageCompileTime(int tokenCount, char **tokens)
 static void	manageInterval(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	TcaDB	db;
 	int	newInterval;
 
@@ -219,7 +219,7 @@ static void	manageInterval(int tokenCount, char **tokens)
 static void	manageGrace(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	TcaDB	db;
 	int	newGrace;
 
@@ -249,7 +249,7 @@ static void	manageGrace(int tokenCount, char **tokens)
 static void	manageHijack(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	TcaDB	db;
 	int	newHijacked;
 
@@ -308,13 +308,13 @@ static void	executeManage(int tokenCount, char **tokens)
 static void	executeEnable(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	int		idx;
 	int		i;
 	uvast		fqnn;
 	TcaDB		db;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 
 	if (tokenCount < 3)
@@ -376,12 +376,12 @@ static void	executeEnable(int tokenCount, char **tokens)
 static void	executeDisable(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	int		idx;
 	int		i;
 	TcaDB		db;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 
 	if (tokenCount < 2)
@@ -427,10 +427,10 @@ static void	executeDisable(int tokenCount, char **tokens)
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	uvast		fqnn;
 	TcaDB		db;
-	Object		elt;
+	SdrObject	elt;
 	uvast		client;
 
 	if (tokenCount < 2)
@@ -497,10 +497,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 static void	executeDelete(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	uvast		fqnn;
 	TcaDB		db;
-	Object		elt;
+	SdrObject	elt;
 	uvast		client;
 
 	if (tokenCount < 2)
@@ -555,9 +555,9 @@ static void	executeDelete(int tokenCount, char **tokens)
 static void	executeList(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	TcaDB		db;
-	Object		elt;
+	SdrObject	elt;
 	uvast		client;
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[32];
@@ -596,14 +596,14 @@ static void	executeList(int tokenCount, char **tokens)
 static void	executeInfo(void)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj;
+	SdrObject	dbobj;
 	TcaDB		db;
 	char		buffer[256];
 	char		current[TIMESTAMPBUFSZ];
 	char		next[TIMESTAMPBUFSZ];
 	int		i;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 	char		nbrBuf[FQN_MAX_LENGTH];
 

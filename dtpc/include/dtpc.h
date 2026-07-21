@@ -29,11 +29,11 @@ extern "C" {
 
 typedef struct
 {
-	Object          	payload;
+	SdrObject       	payload;
 	Sdnv            	length;
 } PayloadRecord;
 
-typedef int			(*DtpcElisionFn) (Object recordsList);
+typedef int (*DtpcElisionFn)(SdrObject recordsList);
 
 typedef struct dtpcsap_st	*DtpcSAP;
 
@@ -50,7 +50,7 @@ typedef struct
 	DtpcIndResult result;
 	char	     *srcEid;
 	size_t	      length;
-	Object	      item;
+	SdrObject     item;
 } DtpcDelivery;
 
 /*      *       *       DTPC initilization       *       *       *	*/
@@ -79,7 +79,7 @@ extern int      dtpc_send(unsigned int profileID,
 			BpCustodySwitch custodySwitch,
 			char *reportToEid,
 			int classOfService,
-			Object item,
+			SdrObject item,
 			size_t length);
 
 extern int      dtpc_receive(DtpcSAP sap,

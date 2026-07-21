@@ -129,7 +129,7 @@ int	main(int argc, char **argv)
 	unsigned char	endOfBlock;
 	unsigned int	dataOffset;
 	unsigned int	dataLength;
-	Object		data;
+	SdrObject	data;
 	char		buffer[255];
 
 	if (clientId < 1)

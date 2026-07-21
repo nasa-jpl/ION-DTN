@@ -86,11 +86,11 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		randomAduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
-	Object		pilotAduString;
-	Object		fileRef;
+	SdrObject	pilotAduString;
+	SdrObject	fileRef;
 	ReqAttendant	attendant;
-	Object		bundleZco;
-	Object		newBundle;
+	SdrObject	bundleZco;
+	SdrObject	newBundle;
 	double		bytesSent = 0.0;
 	struct timeval	startTime;
 	BpDelivery	dlv;
@@ -253,7 +253,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0,
 			sdr_string_length(sdr, pilotAduString),
 			BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("bpdriver can't create pilot ADU.", NULL);
 		bp_close(sap);
@@ -335,7 +335,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
-		if (bundleZco == 0 || bundleZco == (Object) ERROR)
+		if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 		{
 			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;

@@ -45,7 +45,7 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			unsigned int aggrTimeLimit, int lifespan,
 			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
-			int classOfService, Object item, size_t length)
+			int classOfService, SdrObject item, size_t length)
 {
 	unsigned int	topicID;
 
@@ -266,8 +266,8 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 {
 	Sdr		sdr = getIonsdr();
 	VSap		*vsap;
-	Object		dlvElt;
-	Object		dlvObj;
+	SdrObject	dlvElt;
+	SdrObject	dlvObj;
 			OBJ_POINTER(DlvPayload, payload);
 	static TimerParms	timerParms;
 	pthread_t	timerThread;

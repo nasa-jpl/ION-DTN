@@ -139,12 +139,12 @@ static int run_sendfile(char *ownEid, char *destEid, char *fileName,
 	BpCustodySwitch custodySwitch = NoCustodyRequested;
 	BpSAP       sap = NULL;
 	Sdr         sdr = NULL;
-	Object      fileRef = 0;
+	SdrObject   fileRef = 0;
 	struct stat statbuf;
 	size_t      aduLength = 0;
-	Object      bundleZco;
+	SdrObject   bundleZco;
 	char        progressText[300] = {0};
-	Object      newBundle;
+	SdrObject   newBundle;
 	size_t      readResult = 0;
 
 	/* Initialize file handle early for safe cleanup */
@@ -419,7 +419,7 @@ static int run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("[!] sendfile error: can't create ZCO.", NULL);
 	}

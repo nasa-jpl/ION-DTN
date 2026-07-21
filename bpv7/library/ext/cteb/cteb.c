@@ -64,7 +64,7 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	uvast		seqNum;
 	char		*sourceEidStr;
 	char		*destEidStr;
-	Object		scratchAddr;
+	SdrObject	scratchAddr;
 
 	/*	Check if Orange Book custody mode is active.
 	 *	CTEB should only be attached when:
@@ -270,7 +270,7 @@ int	cteb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
 {
 	Sdr		sdr = getIonsdr();
 	CtebScratchpad	*ramScratch;
-	Object		scratchAddr;
+	SdrObject	scratchAddr;
 
 	if (ramBlk->object == NULL || ramBlk->size == 0)
 	{
@@ -303,7 +303,7 @@ int	cteb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr		sdr = getIonsdr();
 	CtebScratchpad	scratch;
-	Object		newScratchAddr;
+	SdrObject	newScratchAddr;
 
 	if (oldBlk->object == 0)
 	{
@@ -346,7 +346,7 @@ int	cteb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 static int	sendCustodyCrsIfRequested(Sdr sdr, Bundle *bundle,
 			int statusCode, unsigned char flagBit)
 {
-	Object		crebElt;
+	SdrObject	crebElt;
 	ExtensionBlock	crebBlk;
 	uvast		seqId;
 	uvast		seqNum;
@@ -411,7 +411,7 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	CtebBlk		ctebData;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		bundleAddr = (Object) ctxt;	/* From forwardBundle */
+	SdrObject	bundleAddr = (SdrObject) ctxt; /* From forwardBundle */
 
 	if (blk->object == 0)
 	{

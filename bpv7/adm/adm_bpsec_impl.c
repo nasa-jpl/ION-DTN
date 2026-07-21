@@ -234,8 +234,8 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 	 */
 /* TODO EJB
 	Sdr sdr = getIonsdr();
-	Object listObj = 0;
-	Object	elt = 0;
+	SdrObject listObj = 0;
+	SdrObject elt = 0;
 	OBJ_POINTER(BPsecBibRule, rule);
 	char strBuffer[SDRSTRING_BUFSZ];
 	tnvc_t *cur_row = NULL;
@@ -316,8 +316,8 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	 */
 /* TODO EJB
 	Sdr sdr = getIonsdr();
-	Object listObj = 0;
-	Object	elt = 0;
+	SdrObject listObj = 0;
+	SdrObject elt = 0;
 	OBJ_POINTER(BPsecBcbRule, rule);
 	char strBuffer[SDRSTRING_BUFSZ];
 	tnvc_t *cur_row = NULL;
@@ -1980,8 +1980,8 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 	if(get_bib_prof_by_name(cs) != NULL)
 	{
-		Object addr;
-		Object elt;
+		SdrObject addr;
+		SdrObject elt;
 
 		/ * Step 3: Check to see if key exists. * /
 		sec_findKey(key, &addr, &elt);
@@ -2099,8 +2099,8 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 	if(get_bcb_prof_by_name(cs) != NULL)
 	{
-		Object addr;
-		Object elt;
+		SdrObject addr;
+		SdrObject elt;
 
 		/ * Step 3: Check to see if key exists. * /
 		sec_findKey(key, &addr, &elt);

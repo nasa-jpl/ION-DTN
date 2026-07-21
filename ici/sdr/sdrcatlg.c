@@ -29,12 +29,12 @@ typedef struct
 {
 	char		name[MAX_SDR_NAME + 1];
 	int		type;
-	Object		object;
+	SdrObject	object;
 } CatalogueEntry;
 
 /*	*	*	Object catalogue management functions	*	*/
 
-static int	compareCatalogueEntries(Sdr sdrv, Address entryAddr, void *arg)
+static int compareCatalogueEntries(Sdr sdrv, SdrAddress entryAddr, void *arg)
 {
 	CatalogueEntry	oldEntry;
 	CatalogueEntry	*newEntry = (CatalogueEntry *) arg;
@@ -44,13 +44,13 @@ static int	compareCatalogueEntries(Sdr sdrv, Address entryAddr, void *arg)
 }
 
 void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
-		Object object)
+		SdrObject object)
 {
 	SdrMap		*map = _mapImage(sdrv);
-	Object		catalogue;
+	SdrObject	catalogue;
 	CatalogueEntry	entry;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 	int		result;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -84,8 +84,8 @@ void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
 	for (elt = sdr_list_first(sdrv, catalogue); elt;
 			elt = sdr_list_next(sdrv, elt))
 	{
-		addr = (Object) sdr_list_data(sdrv, elt);
-		result = compareCatalogueEntries(sdrv, (Address) addr, &entry);
+		addr = (SdrObject) sdr_list_data(sdrv, elt);
+		result = compareCatalogueEntries(sdrv, (SdrAddress) addr, &entry);
 		if (result == 0)
 		{
 			_putErrmsg(file, line, "item is already in catalog",
@@ -109,11 +109,11 @@ void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
 		return;
 	}
 
-	sdrPut((Address) addr, entry);
+	sdrPut((SdrAddress) addr, entry);
 	if (elt)
 	{
 		if (Sdr_list_insert_before(file, line, sdrv, elt,
-					(Address) addr) == 0)
+				    (SdrAddress) addr) == 0)
 		{
 			oK(_iEnd(file, line, name));
 			return;
@@ -122,7 +122,7 @@ void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
 	else
 	{
 		if (Sdr_list_insert_last(file, line, sdrv, catalogue,
-					(Address) addr) == 0)
+				    (SdrAddress) addr) == 0)
 		{
 			oK(_iEnd(file, line, name));
 			return;
@@ -130,11 +130,11 @@ void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
 	}
 }
 
-static Object	catlgLookup(Sdr sdrv, char *name)
+static SdrObject catlgLookup(Sdr sdrv, char *name)
 {
 	SdrMap		*map = _mapImage(sdrv);
 	CatalogueEntry	entry;
-	Object		catalogue;
+	SdrObject	catalogue;
 
 	XNCHKZERO(!(name == NULL || strlen(name) > MAX_SDR_NAME));
 	istrcpy(entry.name, name, sizeof entry.name);
@@ -148,9 +148,9 @@ static Object	catlgLookup(Sdr sdrv, char *name)
 			compareCatalogueEntries, &entry);
 }
 
-Object	sdr_find(Sdr sdrv, char *name, int *type)
+SdrObject sdr_find(Sdr sdrv, char *name, int *type)
 {
-	Object		elt;
+	SdrObject	elt;
 	CatalogueEntry	entry;
 
 	CHKZERO(sdrFetchSafe(sdrv));
@@ -171,7 +171,7 @@ Object	sdr_find(Sdr sdrv, char *name, int *type)
 
 void	Sdr_uncatlg(const char *file, int line, Sdr sdrv, char *name)
 {
-	Object	elt;
+	SdrObject elt;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -182,17 +182,17 @@ void	Sdr_uncatlg(const char *file, int line, Sdr sdrv, char *name)
 	elt = catlgLookup(sdrv, name);
 	if (elt)
 	{
-		sdrFree((Object) sdr_list_data(sdrv, elt));
+		sdrFree((SdrObject) sdr_list_data(sdrv, elt));
 		Sdr_list_delete(file, line, sdrv, elt, NULL, NULL);
 	}
 }
 
-Object	sdr_read_catlg(Sdr sdrv, char *name, int *type, Object *object,
-		Object prev_elt)
+SdrObject sdr_read_catlg(Sdr sdrv, char *name, int *type, SdrObject *object,
+		SdrObject prev_elt)
 {
 	SdrMap		*map = _mapImage(sdrv);
-	Object		catalogue;
-	Object		elt;
+	SdrObject	catalogue;
+	SdrObject	elt;
 	CatalogueEntry	entry;
 
 	CHKZERO(sdrFetchSafe(sdrv));

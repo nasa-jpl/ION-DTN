@@ -228,7 +228,7 @@ int bpsec_itscbcb_parmsGet(sc_state *state,    csi_cipherparms_t *parms,
  * @retval -1 - Failure
  *****************************************************************************/
 
-int bpsec_itscbcb_compute(Object *dataObj, uint32_t chunkSize,       uint32_t suite,
+int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t suite,
                          csi_val_t sesKey, csi_cipherparms_t *parms, uint8_t function)
 {
 	Sdr sdr = getIonsdr();
@@ -237,9 +237,9 @@ int bpsec_itscbcb_compute(Object *dataObj, uint32_t chunkSize,       uint32_t su
 	uint32_t  bytesRemaining = 0;
 	ZcoReader dataReader;
 	uint8_t   *context = NULL;
-	// Object    cipherBuffer = 0;
+	// SdrObject cipherBuffer = 0;
 	int32_t   result = 0;
-	Object    cipherZco = 0;
+	SdrObject cipherZco = 0;
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(dataObj);
@@ -486,7 +486,7 @@ int bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle, Bpse
  * @retval NULL  - There was a processing error.
  *****************************************************************************/
 
-uint8_t *bpsec_itscbib_compute(Object dataObj, sc_value *key_value, csi_svcid_t svc)
+uint8_t *bpsec_itscbib_compute(SdrObject dataObj, sc_value *key_value, csi_svcid_t svc)
 {
 	Sdr sdr = getIonsdr();
 	char *dataBuffer = NULL;
@@ -619,7 +619,7 @@ uint8_t *bpsec_itscbib_compute(Object dataObj, sc_value *key_value, csi_svcid_t 
 
 int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult)
 {
-	Object targetZco = 0;
+	SdrObject targetZco = 0;
 	int length = 0;
 	uint8_t *csi_ctx = NULL;
 	sc_value key_value;
@@ -734,7 +734,7 @@ int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOu
 
 int bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, BpsecInboundTargetResult *tgtResult)
 {
-	Object targetZco = 0;
+	SdrObject targetZco = 0;
 	int length = 0;
 	int result = 0;
 	sc_value *assertedDigest;

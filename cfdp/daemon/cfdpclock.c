@@ -41,11 +41,11 @@ static void	shutDown(int signum)	/*	Stops cfdpclock.	*/
 static int	scanInFdus(Sdr sdr, time_t currentTime)
 {
 	CfdpDB		*cfdpConstants;
-	Object		entityElt;
+	SdrObject	entityElt;
 			OBJ_POINTER(Entity, entity);
-	Object		elt;
-	Object		nextElt;
-	Object		fduObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	fduObj;
 			OBJ_POINTER(InFdu, fdu);
 	CfdpHandler	handler;
 
@@ -129,10 +129,10 @@ reached.", NULL);
 	return 0;
 }
 
-static int	handleFinishOverdue(Sdr sdr, Object fduObj)
+static int handleFinishOverdue(Sdr sdr, SdrObject fduObj)
 {
 	OutFdu		fdu;
-	Object		fpObj;
+	SdrObject	fpObj;
 	CfdpEvent	event;
 
 	sdr_stage(sdr, (char *) &fdu, fduObj, sizeof(OutFdu));
@@ -169,11 +169,11 @@ static int	handleFinishOverdue(Sdr sdr, Object fduObj)
 static int	scanFinsPending(Sdr sdr, time_t currentTime)
 {
 	CfdpDB	*cfdpConstants;
-	Object	elt;
-	Object	nextElt;
-	Object	fpObj;
+	SdrObject elt;
+	SdrObject nextElt;
+	SdrObject fpObj;
 		OBJ_POINTER(FinishPending, fp);
-	Object	fduObj;
+	SdrObject fduObj;
 
 	cfdpConstants = getCfdpConstants();
 	CHKERR(sdr_begin_xn(sdr));	/*	Lock database.		*/
@@ -206,14 +206,14 @@ static int	scanFinsPending(Sdr sdr, time_t currentTime)
 	return 0;
 }
 
-static int	noteFinishPending(Sdr sdr, OutFdu *fdu, Object fduObj,
+static int noteFinishPending(Sdr sdr, OutFdu *fdu, SdrObject fduObj,
 			time_t currentTime)
 {
 	CfdpDB		*db = getCfdpConstants();
 	FinishPending	newFP;
-	Object		elt;
+	SdrObject	elt;
 			OBJ_POINTER(FinishPending, fp);
-	Object		obj;
+	SdrObject	obj;
 
 	newFP.deadline = currentTime + fdu->closureLatency;
 	newFP.fdu = fduObj;
@@ -307,9 +307,9 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 static int	scanOutFdus(Sdr sdr, time_t currentTime)
 {
 	CfdpDB	*cfdpConstants;
-	Object	elt;
-	Object	nextElt;
-	Object	fduObj;
+	SdrObject elt;
+	SdrObject nextElt;
+	SdrObject fduObj;
 	OutFdu	fdu;
 
 	cfdpConstants = getCfdpConstants();

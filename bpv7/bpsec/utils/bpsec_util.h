@@ -207,7 +207,7 @@ typedef struct {
 	union {
 		void *heap_ptr;
 		PsmAddress psm_addr;
-		Object sdr_obj;
+		SdrObject sdr_obj;
 	} ref;
 } BpsecResource;
 
@@ -226,7 +226,7 @@ typedef struct {
 
  /* --- BPSec Transaction Memory Arena --- */
 void       bpsec_ctx_init(BpsecTxContext *ctx, Sdr sdr, PsmPartition wm);
-Object     bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size);
+SdrObject  bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size);
 PsmAddress bpsec_ctx_psm_zalloc(BpsecTxContext *ctx, size_t size);
 void* bpsec_ctx_mbuftake(BpsecTxContext *ctx, size_t size);
 void       bpsec_ctx_abort(BpsecTxContext *ctx);
@@ -242,33 +242,33 @@ void       bpsec_ctx_commit(BpsecTxContext *ctx);
 //TODO: Fix function names to all confirm to naming conventions.
 
 int           bpsec_util_EIDCopy(EndpointId *toEID, EndpointId *fromEID);
-extern int    bpsec_util_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, Object *zcoOut);
-extern int    bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, Object *zcoOut);
+extern int    bpsec_util_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, SdrObject *zcoOut);
+extern int    bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, SdrObject *zcoOut);
 int bpsec_util_eidIsLocalCheck(EndpointId eid);
 
 extern int      bpsec_util_destIsLocalCheck(Bundle *bundle);
 extern char     *bpsec_util_localAdminEIDGet(char *eid);
-extern void     bpsec_util_outboundItemGet(uint8_t itemNeeded, Object items, Object *tvp);
+extern void     bpsec_util_outboundItemGet(uint8_t itemNeeded, SdrObject items, SdrObject *tvp);
 extern int      bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
-		Object *resultZco, Object *acqFileRef,
+		SdrObject *resultZco, SdrObject *acqFileRef,
 		char *fname, char *bytes, uvast length);
-Object        bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType);
+SdrObject	bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType);
 
 unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length);
 
 void bpsec_util_inboundBlkClear(AcqExtBlock *blk);
 void bpsec_util_outboundBlkRelease(ExtensionBlock *blk);
 
-int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco);
+int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, SdrObject *zco);
 
 sc_value bpsec_util_keyRetrieve(char *keyName);
 
 int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *context, csi_blocksize_t *blocksize,
-                                 ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, uint8_t function);
+                                 ZcoReader *dataReader, uvast outputBufLen, SdrObject *outputZco, uint8_t function);
 
 
 int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksize_t *blocksize,
-		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
+		ZcoReader *dataReader, uvast outputBufLen, SdrObject *outputZco, char *filename,
 		uint8_t function);
 
 /** Instrumentation support functions (needed by NM agent's BPSec ADM) */
@@ -286,10 +286,10 @@ LystElt bpsec_util_findInboundTarget(AcqWorkArea *work, int blockNumber, LystElt
 
 int bpsec_util_checkSop(BpBlockType target, BpBlockType sec);
 int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition wm, PsmAddress parms,
-                                      BpBlockType sopType, int tgtBlkNum, Object *bibBlk, Object *secBlk);
+                                      BpBlockType sopType, int tgtBlkNum, SdrObject *bibBlk, SdrObject *secBlk);
 
 
-Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms);
+SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms);
 
 
 int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);

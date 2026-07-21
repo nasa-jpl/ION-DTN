@@ -249,7 +249,7 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	ktparms;
 	pthread_t		keepaliveThread;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;

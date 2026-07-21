@@ -44,10 +44,10 @@ db_store_t  gDB;
 
 
 
-int  db_forget(db_desc_t *desc, Object list)
+int  db_forget(db_desc_t *desc, SdrObject list)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
+	SdrObject elt;
 
 	CHKERR(desc);
 	CHKERR(list != 0);
@@ -153,7 +153,7 @@ int  db_read_objs(char *name)
  * desc    : The db descriptor holding where this should live
  * list    : The SDR list holding the item descriptor (at *descrObj).
  */
-int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
+int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list)
 {
 	Sdr sdr = getIonsdr();
 
@@ -303,10 +303,10 @@ int  db_persist_var(void* item)
  * Initialize VDB list from a list in the SDR.
  */
 
-int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb)
+int vdb_obj_init(SdrObject sdr_list, vdb_init_cb_fn init_cb)
 {
-	Object elt;
-	Object descObj;
+	SdrObject elt;
+	SdrObject descObj;
 	db_desc_t cur_desc;
 	blob_t *data;
 	uint32_t num = 0;

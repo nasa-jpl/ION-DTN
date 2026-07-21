@@ -28,8 +28,8 @@ int	sendBytesBySPP(int length,unsigned char *buffer, struct SppConfig *sppcfg, s
 	return bytesWritten;
 }
 
-int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
-			unsigned char *buffer, struct SppConfig *sppcfg)
+int sendBundleBySPP(unsigned int bundleLength, SdrObject bundleZco,
+		unsigned char *buffer, struct SppConfig *sppcfg)
 {
 	Sdr	  sdr;
 	ZcoReader reader;

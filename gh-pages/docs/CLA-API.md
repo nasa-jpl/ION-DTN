@@ -15,10 +15,8 @@ ION currently provides several CLAs, including LTP, TCP, UDP, and STCP. However,
 Function Prototype
 
 ```c
-extern int bpDequeue(VOutduct *vduct,
-					Object *outboundZco,
-					BpAncillaryData *ancillaryData,
-					int stewardship);
+extern int bpDequeue(VOutduct *vduct, SdrObject *outboundZco,
+                BpAncillaryData *ancillaryData, int stewardship);
 ```
 
 This function is invoked by a
@@ -103,7 +101,7 @@ Return Values
 Function Prototype
 
 ```c
-extern int		bpHandleXmitSuccess(Object zco);
+extern int bpHandleXmitSuccess(SdrObject zco);
 ```
 
 This function is invoked by a
@@ -128,7 +126,7 @@ Return Values
 Function Prototype
 
 ```c
-extern int bpHandleXmitFailure(Object zco);
+extern int bpHandleXmitFailure(SdrObject zco);
 ```
 
 This function is invoked by a
@@ -324,8 +322,7 @@ if the return code had been 1.
 ### bpLoadAcq (suitable for certain CLA types)
 
 ```c
-extern int		bpLoadAcq(	AcqWorkArea *workArea,
-					Object zco);
+extern int bpLoadAcq(AcqWorkArea *workArea, SdrObject zco);
 ```
 This function continues the acquisition
 of a bundle as initiated by an

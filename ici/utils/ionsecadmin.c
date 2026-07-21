@@ -344,7 +344,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
-static void	printKey(Object keyAddr)
+static void printKey(SdrObject keyAddr)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(SecKey, key);
@@ -356,7 +356,7 @@ static void	printKey(Object keyAddr)
 	printText(buf);
 }
 
-static void	printPubKey(Object keyAddr)
+static void printPubKey(SdrObject keyAddr)
 {
 	Sdr		sdr = getIonsdr();
 			OBJ_POINTER(PublicKey, key);
@@ -405,8 +405,8 @@ length %d data %s", fqnBuf, effectiveTime, assertionTime, key->length,
 static void	executeInfo(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		addr;
-	Object		elt;
+	SdrObject	addr;
+	SdrObject	elt;
 	uvast		fqnn;
 	time_t		effectiveTime;
 	uvast		parsed_uvast;
@@ -480,10 +480,10 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(SecDB, db);
-	Object	elt;
-	Object	obj;
+	Sdr	  sdr = getIonsdr();
+	SdrObject elt;
+	SdrObject obj;
+	OBJ_POINTER(SecDB, db);
 
 	if (tokenCount < 2)
 	{

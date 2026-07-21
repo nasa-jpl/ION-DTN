@@ -41,7 +41,7 @@ static vast	getLengthOfItem(unsigned int clientId, unsigned char *buffer,
 }
 
 static int	handleItem(uvast sourceEngineId, unsigned int clientId,
-			Object clientServiceData)
+			SdrObject clientServiceData)
 {
 	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
@@ -82,8 +82,8 @@ static void	*sendItems(void *parm)
 	Sdr			sdr;
 	char			buffer[MAX_LINE_LEN + 1];
 	int			length;
-	Object			extent;
-	Object			item = 0;
+	SdrObject		extent;
+	SdrObject		item = 0;
 
 	snooze(3);	/*	Let sda_run get started.		*/
 	sdr = getIonsdr();
@@ -112,7 +112,7 @@ static void	*sendItems(void *parm)
 
 		item = ionCreateZco(ZcoSdrSource, extent, 0, length, 0, 0,
 				ZcoOutbound, &(stp->attendant));
-		if (item == 0 || item == (Object) ERROR)
+		if (item == 0 || item == (SdrObject) ERROR)
 		{
 			putErrmsg("Service data item zco create failed.", NULL);
 			sda_interrupt();

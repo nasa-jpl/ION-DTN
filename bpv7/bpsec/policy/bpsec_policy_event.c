@@ -324,7 +324,7 @@ char *bslevt_get_name(BpSecEventId eventId)
  * @retval The number of bytes written into the serialized buffer.
  *****************************************************************************/
 
-Address bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left)
+SdrAddress bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left)
 {
 	return bsl_bufwrite(cursor, event, sizeof(BpSecEvent), bytes_left);
 }
@@ -344,7 +344,7 @@ Address bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left)
  * @retval The number of bytes read from the serialized buffer.
  *****************************************************************************/
 
-Address bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left)
+SdrAddress bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left)
 {
 	return bsl_bufread(event, cursor, sizeof(BpSecEvent), bytes_left);
 }

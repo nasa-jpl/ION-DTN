@@ -77,7 +77,7 @@ typedef struct
 {
 	uvast		firstFqnn;		/*	in range	*/
 	uvast		lastFqnn;		/*	in range	*/
-	Object		eid;			/*	Send via.	*/
+	SdrObject	eid;			/*	Send via.	*/
 } IpnExit;
 
 /*	Overrides linked to data labels as provided in ECOS extension
@@ -99,7 +99,7 @@ typedef struct
 
 	/*	neighbor = -1 indicates "no routing override"		*/
 	uvast		neighborFqnn;
-	Object		ductExpression;		/*	sdrstring	*/
+	SdrObject	ductExpression; /* sdrstring */
 
 	/*	QoS override stuff.					*/
 
@@ -111,12 +111,12 @@ typedef struct
 
 typedef struct
 {
-	Object		exits;			/*	SDR list	*/
-	Object		overrides;		/*	SDR list	*/
+	SdrObject exits;     /* SDR list */
+	SdrObject overrides; /* SDR list */
 } IpnDB;
 
 extern int		ipnInit(void);
-extern Object		getIpnDbObject(void);
+extern SdrObject	getIpnDbObject(void);
 extern IpnDB		*getIpnConstants(void);
 
 extern int		ipn_setOvrd(unsigned int dataLabel,
@@ -135,11 +135,11 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 extern int		ipn_lookupOvrd(unsigned int dataLabel,
 				uvast destFqnn,
 				uvast sourceFqnn,
-				Object *ovrdAddr);
+				SdrObject *ovrdAddr);
 
 extern void		ipn_findExit(uvast firstFqnn,
 				uvast lastFqnn,
-				Object *exitAddr, Object *elt);
+				SdrObject *exitAddr, SdrObject *elt);
 
 extern int		ipn_addExit(uvast firstFqnn,
 				uvast lastFqnn, char *viaEid);
@@ -154,8 +154,7 @@ extern int		ipn_lookupExit(uvast fqnn, char *eid);
  *	in BP.  But convenience functions for the ipn scheme are
  *	provided here.							*/
 
-extern void		ipn_findPlan(uvast fqnn, Object *planAddr,
-				Object *elt);
+extern void ipn_findPlan(uvast fqnn, SdrObject *planAddr, SdrObject *elt);
 
 extern int		ipn_addPlan(uvast fqnn, unsigned int nominalRate);
 extern int		ipn_addPlanDuct(uvast fqnn, char *ductExpression);

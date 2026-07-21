@@ -242,7 +242,7 @@ typedef struct
 typedef struct
 {
 	uint32_t	regionNbr;
-	Object		contacts;	/*	SDR list: IonContact	*/
+	SdrObject	contacts; /* SDR list: IonContact */
 } IonRegion;
 
 typedef struct
@@ -285,14 +285,14 @@ typedef struct
 {
 	uvast		ownFqnn;
 	IonRegion	regions[2];	/*	Home, outer.		*/
-	Object		rolodex;	/*	SDR list: RegionMember	*/
-	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
-	Object		ranges;		/*	SDR list: IonRange	*/
+	SdrObject	rolodex;	/* SDR list: RegionMember */
+	SdrObject	cpsNotices;	/* SDR list: CpsNotice */
+	SdrObject	ranges;		/* SDR list: IonRange */
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
-	Object		alarmScript;	/*	Congestion alarm.	*/
+	SdrObject	alarmScript;	/* Congestion alarm. */
 	time_t		horizon;	/*	On congestion forecast.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
 	int		maxClockError;	/*	In seconds.		*/
@@ -399,7 +399,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	owlt;		/*	Current, in seconds.	*/
-	Object		rangeElt;	/*	In iondb->ranges.	*/
+	SdrObject	rangeElt;	/* In iondb->ranges. */
 } IonRXref;
 
 typedef struct
@@ -419,7 +419,7 @@ typedef struct
 	time_t		startRecv;	/*	Computed when inserted.	*/
 	time_t		stopRecv;	/*	Computed when inserted.	*/
 	time_t		purgeTime;	/*	Computed when inserted.	*/
-	Object		contactElt;	/*	In iondb->contacts.	*/
+	SdrObject	contactElt;	/* In iondb->contacts. */
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 	PsmAddress	citations;	/*	SM list of SmList elts.	*/
 } IonCXref;
@@ -571,28 +571,28 @@ extern int		ionRequestZcoSpace(ZcoAcct acct,
 					ReqTicket *ticket);
 extern int		ionSpaceAwarded(ReqTicket ticket);
 extern void		ionShred(	ReqTicket ticket);
-extern Object		ionCreateZco(	ZcoMedium source,
-					Object location,
+extern SdrObject	ionCreateZco(ZcoMedium source,
+					SdrObject location,
 					vast offset,
 					vast length,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
 					ZcoAcct acct,
 					ReqAttendant *attendant);
-extern vast		ionAppendZcoExtent(Object zco,
+extern vast		ionAppendZcoExtent(SdrObject zco,
 					ZcoMedium source,
-					Object location,
+					SdrObject location,
 					vast offset,
 					vast length,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
 					ReqAttendant *attendant);
-extern int		ionSendZcoByTCP(int *sock, Object zco, char *buffer,
+extern int		ionSendZcoByTCP(int *sock, SdrObject zco, char *buffer,
 					int buflen);
 
 extern const char	*getIonVersionNbr(void);
 extern Sdr		getIonsdr(void);
-extern Object		getIonDbObject(void);
+extern SdrObject	getIonDbObject(void);
 extern PsmPartition	getIonwm(void);
 extern int		getIonMemoryMgr(void);
 extern IonVdb		*getIonVdb(void);

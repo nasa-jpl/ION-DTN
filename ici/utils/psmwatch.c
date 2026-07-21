@@ -536,7 +536,7 @@ int main(int argc, char **argv)
 	double	percentThreshold;
 	int	argIdx;
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 	size_t	traceShmSize = 0;
 	int	parsed_int;

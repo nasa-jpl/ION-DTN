@@ -75,9 +75,9 @@ int	main(int argc, char **argv)
 	BptestState	state;
 	Sdr		sdr;
 	char		dataToSend[ADU_LEN];
-	Object		bundleZco;
-	Object		newBundle;
-	Object		extent;
+	SdrObject	bundleZco;
+	SdrObject	newBundle;
+	SdrObject	extent;
 	BpDelivery	dlv;
 	ZcoReader	reader;
 	char		sourceEid[1024];
@@ -189,7 +189,7 @@ int	main(int argc, char **argv)
 
 		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesToEcho,
 			BP_STD_PRIORITY, 0, ZcoOutbound, &state.attendant);
-		if (bundleZco == 0 || bundleZco == (Object) ERROR)
+		if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
 			break;		/*	Out of main loop.	*/

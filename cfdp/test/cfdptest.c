@@ -751,7 +751,7 @@ static int listTransactions(void)
 {
 	Sdr sdr = getIonsdr();
 	CfdpDB *db;
-	Object elt, obj;
+	SdrObject elt, obj;
 	OutFdu outFdu;
 	InFdu inFdu;
 	Entity entity;
@@ -805,7 +805,7 @@ static int listTransactions(void)
 	/* List inbound transactions from all entities */
 	for (elt = sdr_list_first(sdr, db->entities); elt;
 			elt = sdr_list_next(sdr, elt)) {
-		Object inElt, inObj;
+		SdrObject inElt, inObj;
 		char destFileName[256];
 
 		obj = sdr_list_data(sdr, elt);

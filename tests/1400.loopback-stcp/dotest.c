@@ -15,9 +15,9 @@ static char testLine[] = "Loopback bundle over ION";
 int main(int argc, char **argv)
 {
 	Sdr sdr;
-	Object txExtent;
-	Object txBundleZco;
-	Object txNewBundle;
+	SdrObject txExtent;
+	SdrObject txBundleZco;
+	SdrObject txNewBundle;
 	BpDelivery rxDlv;
 	int rxContentLength;
 	ZcoReader rxReader;

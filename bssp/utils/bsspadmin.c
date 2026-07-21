@@ -525,7 +525,7 @@ static void	listSpans(int tokenCount, char **tokens)
 	Sdr		sdr = getIonsdr();
 	BsspVdb		*vdb = getBsspVdb();
 	PsmPartition	ionwm = getIonwm();
-	Object		bsspdbObj = getBsspDbObject();
+	SdrObject	bsspdbObj = getBsspDbObject();
 			OBJ_POINTER(BsspDB, bsspdb);
 	char		buffer[128];
 	PsmAddress	elt;
@@ -580,11 +580,11 @@ static void	executeList(int tokenCount, char **tokens)
 
 static void	manageOwnqtime(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	bsspdbObj = getBsspDbObject();
-	BsspDB	bsspdb;
-	int	newOwnQtime;
-	char	errMsg[256];
+	Sdr	  sdr = getIonsdr();
+	SdrObject bsspdbObj = getBsspDbObject();
+	BsspDB	  bsspdb;
+	int	  newOwnQtime;
+	char	  errMsg[256];
 
 	if (tokenCount != 3)
 	{

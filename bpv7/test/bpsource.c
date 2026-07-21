@@ -89,10 +89,10 @@ int	main(int argc, char **argv)
 	Sdr		sdr;
 	char		line[256];
 	int		lineLength;
-	Object		extent;
-	Object		bundleZco;
+	SdrObject	extent;
+	SdrObject	bundleZco;
 	ReqAttendant	attendant;
-	Object		newBundle;
+	SdrObject	newBundle;
 	int		fd;
 
 	if (arg2)
@@ -172,7 +172,7 @@ int	main(int argc, char **argv)
 
 		bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
 				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
-		if (bundleZco == 0 || bundleZco == (Object) ERROR)
+		if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			bp_detach();
@@ -245,7 +245,7 @@ int	main(int argc, char **argv)
 			bundleZco = ionCreateZco(ZcoSdrSource, extent,
 					0, lineLength, BP_STD_PRIORITY, 0,
 					ZcoOutbound, &attendant);
-			if (bundleZco == 0 || bundleZco == (Object) ERROR)
+			if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				break;

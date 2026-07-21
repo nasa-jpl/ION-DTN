@@ -6,10 +6,10 @@ sdrstring - Simple Data Recorder string functions
 
     #include "sdr.h"
 
-    Object sdr_string_create(Sdr sdr, char *from);
-    Object sdr_string_dup(Sdr sdr, Object from);
-    int sdr_string_length(Sdr sdr, Object string);
-    int sdr_string_read(Sdr sdr, char *into, Object string);
+    SdrObject sdr_string_create(Sdr sdr, char *from);
+    SdrObject sdr_string_dup(Sdr sdr, SdrObject from);
+    int sdr_string_length(Sdr sdr, SdrObject string);
+    int sdr_string_read(Sdr sdr, char *into, SdrObject string);
 
 =head1 DESCRIPTION
 
@@ -23,7 +23,7 @@ instead of these functions.
 
 =over 4
 
-=item Object sdr_string_create(Sdr sdr, char *from)
+=item SdrObject sdr_string_create(Sdr sdr, char *from)
 
 Creates a "self-delimited string" in the heap of the
 indicated SDR, allocating the required space and copying the
@@ -33,7 +33,7 @@ it does, or if insufficient SDR space is available, 0
 is returned.  Otherwise the address of the newly created SDR
 string object is returned.  To destroy, just use sdr_free().
 
-=item Object sdr_string_dup(Sdr sdr, Object from)
+=item SdrObject sdr_string_dup(Sdr sdr, SdrObject from)
 
 Creates a duplicate of the SDR string whose address is
 I<from>, allocating the required space and copying the
@@ -42,12 +42,12 @@ available, 0 is returned.  Otherwise the address of the newly
 created copy of the original SDR string object is returned.  To
 destroy, use sdr_free().
 
-=item int sdr_string_length(Sdr sdr, Object string)
+=item int sdr_string_length(Sdr sdr, SdrObject string)
 
 Returns the length of the indicated self-delimited string (as would
 be returned by strlen()), or -1 on any error.
 
-=item int sdr_string_read(Sdr sdr, char *into, Object string)
+=item int sdr_string_read(Sdr sdr, char *into, SdrObject string)
 
 Retrieves the content of the indicated self-delimited string into
 memory as a standard C string (NULL terminated).  Length of I<into>

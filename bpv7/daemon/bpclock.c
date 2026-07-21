@@ -46,10 +46,10 @@ static void	shutDown(int signum)
 	oK(_running(&stop));	/*	Terminates bpclock.		*/
 }
 
-static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
+static int dispatchEvents(Sdr sdr, SdrObject events, time_t currentTime)
 {
-	Object	elt;
-	Object	eventObj;
+	SdrObject elt;
+	SdrObject eventObj;
 		OBJ_POINTER(BpEvent, event);
 	int	result;
 
@@ -297,8 +297,8 @@ static int	flushOutduct(DuctRef *dr)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	int		flushCount;
-	Object		elt;
-	Object		bundleObj;
+	SdrObject	elt;
+	SdrObject	bundleObj;
 	Bundle		bundle;
 
 	/*	Any bundle previously enqueued for transmission via
@@ -470,8 +470,8 @@ static int	flushOutducts(Sdr sdr, time_t currentTime)
 	return 0;
 }
 
-static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
-			time_t *previousFlush)
+static int flushLimbo(Sdr sdr, SdrObject limboList, time_t currentTime,
+		time_t *previousFlush)
 {
 	int	bundlesToFlush;
 	int	batchesNeeded;
@@ -479,8 +479,8 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	int	batchesAvbl;
 	int	bundlesFlushed;
 	int	flushCount;
-	Object	elt;
-	Object	nextElt;
+	SdrObject elt;
+	SdrObject nextElt;
 
 	/*	We don't want this feature to slow down the operation
 	 *	of the node, so we limit it.  We flush at most once

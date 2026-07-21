@@ -30,13 +30,13 @@ typedef struct
 	uvast		fqgn;
 	long		secUntilDelete;	/*	Default is -1.		*/
 	int		isMember;	/*	Boolean: local node	*/
-	Object		members;	/*	SDR list of FQNNs	*/
+	SdrObject	members;	/* SDR list of FQNNs */
 	int		count[2];	/*	Passageway's counts	*/
 } ImcGroup;
 
 typedef struct
 {
-	Object		groups;		/*	SDR list of ImcGroups	*/
+	SdrObject groups; /* SDR list of ImcGroups */
 } ImcDB;
 
 typedef struct
@@ -46,10 +46,10 @@ typedef struct
 } ImcPetition;
 
 extern int		imcInit(void);
-extern Object		getImcDbObject(void);
+extern SdrObject	getImcDbObject(void);
 extern ImcDB		*getImcConstants(void);
 
-extern void		imcFindGroup(uvast fqgn, Object *addr, Object *eltp);
+extern void imcFindGroup(uvast fqgn, SdrObject *addr, SdrObject *eltp);
 
 extern int		imcHandleBriefing(BpDelivery *dlv,
 				unsigned char *cursor,

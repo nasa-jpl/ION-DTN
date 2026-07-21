@@ -66,7 +66,7 @@ int sendBytesByUDP(int *bundleSocket, char *from, int length,
 }
 
 int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
-		unsigned int bundleLength, Object bundleZco,
+		unsigned int bundleLength, SdrObject bundleZco,
 		unsigned char *buffer)
 {
 	Sdr       sdr;
@@ -423,8 +423,8 @@ void cleanupUdpClaSocket(UdpClaSocket *claSock)
 }
 
 int sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
-		int *bundleSocket, unsigned int bundleLength, Object bundleZco,
-		unsigned char *buffer)
+		int *bundleSocket, unsigned int bundleLength,
+		SdrObject bundleZco, unsigned char *buffer)
 {
 	Sdr       sdr;
 	ZcoReader reader;

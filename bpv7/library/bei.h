@@ -85,8 +85,8 @@ typedef struct
 	 * 	does not wait until transmission to serialize block. 	*/
 
 	unsigned int	size;		/**	Size of scratchpad obj.	*/
-	Object		object;		/**	Opaque scratchpad.	*/
-	Object		bytes;		/**	Array in SDR heap.	*/
+	SdrObject	object;		/**	Opaque scratchpad.	*/
+	SdrObject	bytes;		/**	Array in SDR heap.	*/
 
 	/*	Internally significant data for block production.	*/
 
@@ -174,8 +174,8 @@ typedef struct
 
 /*	Functions that operate on outbound extension blocks		*/
 
-extern Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
-			Bundle *bundle);
+extern SdrObject attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
+		Bundle *bundle);
 /**
  * \par Function Name: copyExtensionBlock
  * \par Purpose:
@@ -187,7 +187,7 @@ extern Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
  */
 
 extern int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle);
-void		deleteExtensionBlock(Object elt, int *lengthsTotal);
+void		deleteExtensionBlock(SdrObject elt, int *lengthsTotal);
 void		destroyExtensionBlocks(Bundle *bundle);
 
 /**
@@ -198,9 +198,9 @@ void		destroyExtensionBlocks(Bundle *bundle);
  * \param[in]  type    - The block identifier desired.
  * \param[in]  tag     - An annotation indicating the role of the block.
  */
-extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
-extern Object   getExtensionBlockObj(Bundle *bundle, unsigned char blockNum);
-extern Object	getExtensionBlock(Bundle *bundle, unsigned char nbr);
+extern SdrObject findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
+extern SdrObject getExtensionBlockObj(Bundle *bundle, unsigned char blockNum);
+extern SdrObject getExtensionBlock(Bundle *bundle, unsigned char nbr);
 
 extern int	patchExtensionBlocks(Bundle *bundle);
 extern int	processExtensionBlocks(Bundle *bundle, int fnIdx,

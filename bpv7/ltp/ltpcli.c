@@ -33,8 +33,8 @@ typedef struct
 	ion_atomic_t	running;
 } ltpcli_ReceiverThreadParms;
 
-static int	acquireRedBundles(AcqWorkArea *work, Object zco,
-			uvast senderEngineNbr)
+static int acquireRedBundles(AcqWorkArea *work, SdrObject zco,
+		uvast senderEngineNbr)
 {
 	/* Parameter intentionally unused. */
 	(void)senderEngineNbr;
@@ -62,7 +62,7 @@ static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 
 static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 			unsigned char endOfBlock, unsigned int offset,
-			unsigned int length, Object zco, unsigned int *buflen,
+			unsigned int length, SdrObject zco, unsigned int *buflen,
 			char **buffer)
 {
 	Sdr			sdr = getIonsdr();
@@ -252,7 +252,7 @@ static void	*handleNotices(void *parm)
 	unsigned char		endOfBlock;
 	unsigned int		dataOffset;
 	unsigned int		dataLength;
-	Object			data;		/*	ZCO reference.	*/
+	SdrObject		data; /* ZCO reference. */
 	unsigned int		greenBuflen = 0;
 	char			*greenBuffer = NULL;
 

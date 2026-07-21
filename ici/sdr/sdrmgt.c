@@ -46,7 +46,7 @@
  * (expressed as an integer 1 through SMALL_SIZES: the total block
  * size minus overhead, divided by WORD_SIZE).  When the block is in
  * use, the leading bytes all contain 0xff.  When the block is free,
- * the leading bytes contain the low-order bytes of the Address of
+ * the leading bytes contain the low-order bytes of the SdrAddress of
  * the next free block, which must be an integral multiple of
  * WORD_SIZE; the high-order byte of that address is zero, which
  * implies that the maximum size of a small pool on a 32-bit machine
@@ -64,12 +64,12 @@ typedef struct
  * SAME SIZE, a leading overhead area and a trailing overhead area.
  * The first word of the leading overhead contains the size of the
  * block's user data.  The first word of the trailing overhead
- * contains the Address of the leading overhead.  When the block
+ * contains the SdrAddress of the leading overhead.  When the block
  * is in use, the second word of the leading overhead and the
  * second word of the trailing overhead both contain LARGE_IN_USE;
  * when the block is free, the second word of the leading overhead
- * contains the Address of the next free block and the second word
- * of the trailing overhead contains the Address of the preceding
+ * contains the SdrAddress of the next free block and the second word
+ * of the trailing overhead contains the SdrAddress of the preceding
  * free block.
  *
  * To ensure correct alignment of the trailing overhead area, the
@@ -79,15 +79,15 @@ typedef struct
 
 typedef struct
 {
-	size_t	userDataSize;		/*	in bytes, not words	*/
-	Address	next;			/*	(BigOhd1)		*/
-} BigOhd1;				/*	leading overhead	*/
+	size_t	   userDataSize; /* in bytes, not words */
+	SdrAddress next;	 /* (BigOhd1) */
+} BigOhd1;			 /* leading overhead */
 
 typedef struct
 {
-	Address	start;			/*	(of block's BigOhd1)	*/
-	Address	prev;			/*	(BigOhd1)		*/
-} BigOhd2;				/*	trailing overhead	*/
+	SdrAddress start;		    /* (of block's BigOhd1) */
+	SdrAddress prev;		    /* (BigOhd1) */
+} BigOhd2;				    /* trailing overhead */
 
 #define	LG_OHD_SIZE	(1 << LARGE_ORDER1)	/*	double word	*/
 #define	LARGE_BLOCK_OHD	(2 * LG_OHD_SIZE)
@@ -105,11 +105,11 @@ typedef union
 
 /*		Space management utility functions.			*/
 
-static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
+static ObjectScale scaleOf(Sdr sdrv, SdrAddress addr, Ohd *ohd)
 {
 	SdrMap	*map;
-	Address	leader;
-	Address	trailer;
+	SdrAddress leader;
+	SdrAddress trailer;
 	BigOhd2	trailing;
 
 	/*	Small objects are visible only within the SDR library
@@ -212,8 +212,7 @@ static int	extentArrayReserve(ExtentArray *arr, size_t needed)
  *	(with *idx set to the position at which a new extent with that
  *	'from' would be inserted to keep the array sorted).		*/
 
-static int	extentArrayFind(const ExtentArray *arr, Address addr,
-			size_t *idx)
+static int extentArrayFind(const ExtentArray *arr, SdrAddress addr, size_t *idx)
 {
 	size_t		lo = 0;
 	size_t		hi = arr->count;
@@ -247,8 +246,8 @@ static int	extentArrayFind(const ExtentArray *arr, Address addr,
  *	existing extent with this 'from' (e.g. via extentArrayFind).
  *	Returns 0 on success, -1 on allocation failure.			*/
 
-static int	extentArrayInsertAt(ExtentArray *arr, size_t idx,
-			Address from, Address to)
+static int extentArrayInsertAt(ExtentArray *arr, size_t idx, SdrAddress from,
+		SdrAddress to)
 {
 	if (extentArrayReserve(arr, arr->count + 1) < 0)
 	{
@@ -283,8 +282,8 @@ static void	extentArrayRemoveAt(ExtentArray *arr, size_t idx)
  *	0 otherwise.  Extents are non-overlapping and sorted by 'from',
  *	so the only candidate is the largest extent with from <= addr.	*/
 
-static int	extentArrayContains(const ExtentArray *arr, Address from,
-			size_t length)
+static int extentArrayContains(const ExtentArray *arr, SdrAddress from,
+		size_t length)
 {
 	size_t		idx;
 	const ObjectExtent	*e;
@@ -311,7 +310,7 @@ static int	extentArrayContains(const ExtentArray *arr, Address from,
 	return (e->from <= from && e->to >= from + length);
 }
 
-static int	noteKnownObject(Sdr sdrv, Address from, Address to)
+static int noteKnownObject(Sdr sdrv, SdrAddress from, SdrAddress to)
 {
 	ExtentArray	*arr = &sdrv->knownObjects;
 	size_t		idx;
@@ -324,11 +323,11 @@ static int	noteKnownObject(Sdr sdrv, Address from, Address to)
 	return extentArrayInsertAt(arr, idx, from, to);
 }
 
-void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
+void sdr_stage(Sdr sdrv, char *into, SdrObject from, size_t length)
 {
 	SdrState	*sdr;
-	Address		addr = (Address) from;
-	Address		to;
+	SdrAddress	addr = (SdrAddress) from;
+	SdrAddress	to;
 	Ohd		ohd;
 
 	if (into != NULL && length > 0)
@@ -540,18 +539,18 @@ void	joinTrace(Sdr sdrv, const char *sourceFileName, int lineNbr)
 
 /*	*	*	Space management functions	*	*	*/
 
-Object	_sdrzalloc(Sdr sdrv, size_t nbytes)
+SdrObject _sdrzalloc(Sdr sdrv, size_t nbytes)
 {
 	int		i;
-	Address		ohdAddress;
-	Address		newFirst;
+	SdrAddress	ohdAddress;
+	SdrAddress	newFirst;
 	SmallOhd	ohd;
 	size_t		userDataWords;
 	SdrMap		*map;
 	size_t		newFreeBlocks;
 	size_t		increment;
-	Object		result;
-	Address		newEnd;
+	SdrObject	result;
+	SdrAddress	newEnd;
 	size_t		newUnassigned;
 
 	CHKZERO(sdrv);
@@ -586,7 +585,7 @@ Object	_sdrzalloc(Sdr sdrv, size_t nbytes)
 		patchMap(smallPoolFree[i].firstFreeBlock, newFirst);
 		ohd.next = SMALL_IN_USE + userDataWords;
 		sdrPatch(ohdAddress, ohd);
-		result = (Object) (ohdAddress + SMALL_BLOCK_OHD);
+		result = (SdrObject) (ohdAddress + SMALL_BLOCK_OHD);
 #ifdef SDR_TRACE
 		sptrace_log_alloc(sdrv->trace, result, nbytes,
 				sdrv->currentSourceFileName,
@@ -615,7 +614,7 @@ Object	_sdrzalloc(Sdr sdrv, size_t nbytes)
 	patchMap(unassignedSpace, newUnassigned);
 	ohd.next = SMALL_IN_USE + userDataWords;
 	sdrPatch(ohdAddress, ohd);
-	result = (Object) (ohdAddress + SMALL_BLOCK_OHD);
+	result = (SdrObject) (ohdAddress + SMALL_BLOCK_OHD);
 #ifdef SDR_TRACE
 	sptrace_log_alloc(sdrv->trace, result, nbytes,
 			sdrv->currentSourceFileName,
@@ -641,7 +640,7 @@ static int	computeBucket(unsigned int userDataSize)
 	return bucket;
 }
 
-static void	insertFreeBlock(Sdr sdrv, Address leader, Address trailer)
+static void insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 {
 	SdrMap	*map = _mapImage(sdrv);
 	BigOhd1	leading;
@@ -649,9 +648,9 @@ static void	insertFreeBlock(Sdr sdrv, Address leader, Address trailer)
 	int	bucket;
 	size_t	newFreeBlocks;
 	size_t	newFreeBytes;
-	Address	nextLeader;
+	SdrAddress nextLeader;
 	BigOhd1	nextLeading;
-	Address	nextTrailer;
+	SdrAddress nextTrailer;
 	BigOhd2	nextTrailing;
 
 	sdrFetch(leading, leader);
@@ -684,19 +683,19 @@ static void	insertFreeBlock(Sdr sdrv, Address leader, Address trailer)
 	patchMap(largePoolFree[bucket].firstFreeBlock, leader);
 }
 
-static void	removeFromBucket(Sdr sdrv, int bucket, Address leader,
-				Address trailer)
+static void removeFromBucket(Sdr sdrv, int bucket, SdrAddress leader,
+		SdrAddress trailer)
 {
 	SdrMap	*map = _mapImage(sdrv);
 	BigOhd1	leading;
 	BigOhd2	trailing;
 	size_t	newFreeBlocks;
 	size_t	newFreeBytes;
-	Address	nextLeader;
+	SdrAddress nextLeader;
 	BigOhd1	nextLeading;
-	Address	nextTrailer;
+	SdrAddress nextTrailer;
 	BigOhd2	nextTrailing;
-	Address	prevLeader;
+	SdrAddress prevLeader;
 	BigOhd1	prevLeading;
 
 	sdrFetch(leading, leader);
@@ -741,21 +740,21 @@ void	sdr_set_search_limit(Sdr sdrv, unsigned int newLimit)
 	patchMap(largePoolSearchLimit, newLimit);
 }
 
-static Object	mallocLarge(Sdr sdrv, size_t nbytes)
+static SdrObject mallocLarge(Sdr sdrv, size_t nbytes)
 {
 	SdrMap		*map;
 	int		bucket;
 	unsigned int	searchLimit;
-	Address		leader = 0;
+	SdrAddress	leader = 0;
 	BigOhd1		leading;
-	Address		trailer;
+	SdrAddress	trailer;
 	BigOhd2		trailing;
-	Address		newStart;
+	SdrAddress	newStart;
 	size_t		newUnassigned;
 	size_t		increment;
-	Address		newLeader;
+	SdrAddress	newLeader;
 	BigOhd1		newLeading;
-	Address		newTrailer;
+	SdrAddress	newTrailer;
 	BigOhd2		newTrailing;
 	size_t		surplus;
 	int		bucketForSurplus;
@@ -847,7 +846,7 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 				trailing.start = leader;
 				trailing.prev = LARGE_IN_USE;
 				sdrPatch(trailer, trailing);
-				return (Object) (leader + LG_OHD_SIZE);
+				return (SdrObject) (leader + LG_OHD_SIZE);
 			}
 
 			/*	Can't allocate from unassigned space.	*/
@@ -874,7 +873,7 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 	surplus = leading.userDataSize - nbytes;
 	if (surplus < MIN_LARGE_BLOCK)
 	{
-		return (Object) (leader + LG_OHD_SIZE);
+		return (SdrObject) (leader + LG_OHD_SIZE);
 	}
 
 	bucketForSurplus = computeBucket(surplus);
@@ -911,14 +910,14 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 		insertFreeBlock(sdrv, newLeader, trailer);
 	}
 
-	return (Object) (leader + LG_OHD_SIZE);
+	return (SdrObject) (leader + LG_OHD_SIZE);
 }
 
-Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
+SdrObject _sdrmalloc(Sdr sdrv, size_t nbytes)
 {
 	SdrState	*sdr = sdrv->sdr;
-	Object		object;
-	Address		addr;
+	SdrObject	object;
+	SdrAddress	addr;
 	Ohd		ohd;
 
 	CHKZERO(sdrv);
@@ -950,7 +949,7 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 		if (sdr->configFlags & SDR_BOUNDED)
 		{
 			memset((char *) &ohd, 0, sizeof(Ohd));
-			addr = (Address) object;
+			addr = (SdrAddress) object;
 			oK(scaleOf(sdrv, addr, &ohd));
 			if (noteKnownObject(sdrv, addr,
 				addr + ohd.leading.userDataSize) < 0)
@@ -971,7 +970,7 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 	return object;
 }
 
-Object	Sdr_malloc(const char *file, int line, Sdr sdrv, size_t nbytes)
+SdrObject Sdr_malloc(const char *file, int line, Sdr sdrv, size_t nbytes)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -983,10 +982,9 @@ Object	Sdr_malloc(const char *file, int line, Sdr sdrv, size_t nbytes)
 	return _sdrmalloc(sdrv, nbytes);
 }
 
-Object	Sdr_insert(const char *file, int line, Sdr sdrv, char *from,
-		size_t size)
+SdrObject Sdr_insert(const char *file, int line, Sdr sdrv, char *from, size_t size)
 {
-	Object	obj;
+	SdrObject obj;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -998,29 +996,30 @@ Object	Sdr_insert(const char *file, int line, Sdr sdrv, char *from,
 	obj = _sdrmalloc(sdrv, size);
 	if (obj)
 	{
-		_sdrput(file, line, sdrv, (Address) obj, from, size, SystemPut);
+		_sdrput(file, line, sdrv, (SdrAddress) obj, from, size,
+				SystemPut);
 	}
 
 	return obj;
 }
 
-static void	freeLarge(Sdr sdrv, Address addr)
+static void freeLarge(Sdr sdrv, SdrAddress addr)
 {
 	SdrMap	*map = _mapImage(sdrv);
-	Address	leader;
+	SdrAddress leader;
 	BigOhd1	leading;
-	Address	trailer;
+	SdrAddress trailer;
 	BigOhd2	trailing;
-	Address	endOfLargePool;
-	Address	startOfLargePool;
-	Address	nextLeader;
+	SdrAddress endOfLargePool;
+	SdrAddress startOfLargePool;
+	SdrAddress nextLeader;
 	BigOhd1	nextLeading;
-	Address	nextTrailer;
+	SdrAddress nextTrailer;
 	int	bucket;
 	BigOhd2	nextTrailing;
-	Address	prevTrailer;
+	SdrAddress prevTrailer;
 	BigOhd2	prevTrailing;
-	Address	prevLeader;
+	SdrAddress prevLeader;
 	BigOhd1	prevLeading;
 
 	leader = addr - LG_OHD_SIZE;
@@ -1092,12 +1091,12 @@ static void	freeLarge(Sdr sdrv, Address addr)
 	insertFreeBlock(sdrv, leader, trailer);
 }
 
-void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
+void _sdrfree(Sdr sdrv, SdrObject object, PutSrc src)
 {
 	SdrState	*sdr;
 	SdrMap		*map = _mapImage(sdrv);
-	Address		addr = (Address) object;
-	Address		block;
+	SdrAddress	addr = (SdrAddress) object;
+	SdrAddress	block;
 	Ohd		ohd;
 	size_t		userDataWords;		/*	Block size.	*/
 	int		i;			/*	Bucket index #.	*/
@@ -1198,7 +1197,7 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 			isprintf(msg, sizeof msg,
 				"[?] sdr_free invalid object: addr="
 				ADDR_FIELDSPEC " src=%d caller=%s:%d",
-				(Address)addr, (int)src,
+				(SdrAddress) addr, (int) src,
 				sdrv->currentSourceFileName ?
 					sdrv->currentSourceFileName : "?",
 				sdrv->currentSourceFileLine);
@@ -1216,7 +1215,7 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 #endif
 }
 
-void	Sdr_free(const char *file, int line, Sdr sdrv, Object object)
+void Sdr_free(const char *file, int line, Sdr sdrv, SdrObject object)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -1230,15 +1229,15 @@ void	Sdr_free(const char *file, int line, Sdr sdrv, Object object)
 
 /*	*	Space management utility functions	*	*	*/
 
-int	sdrBoundaryViolated(Sdr sdrv, Address from, size_t length)
+int sdrBoundaryViolated(Sdr sdrv, SdrAddress from, size_t length)
 {
 	return extentArrayContains(&sdrv->knownObjects, from, length)
 			? 0 : 1;
 }
 
-size_t	sdr_object_length(Sdr sdrv, Object object)
+size_t sdr_object_length(Sdr sdrv, SdrObject object)
 {
-	Address	addr = (Address) object;
+	SdrAddress addr = (SdrAddress) object;
 	Ohd	ohd;
 
 	CHKERR(sdrv);
@@ -1275,7 +1274,7 @@ size_t	sdr_unused(Sdr sdrv)
 static size_t	largestFreeLargeBlock(Sdr sdrv, SdrMap *map)
 {
 	int	bucket;
-	Address	leader;
+	SdrAddress leader;
 	BigOhd1	leading;
 	size_t	maxSize = 0;
 

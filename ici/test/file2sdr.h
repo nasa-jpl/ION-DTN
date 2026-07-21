@@ -11,9 +11,9 @@
 
 typedef struct
 {
-	int	cycleNbr;
-	int	lineCount;	/*	Number of lines read from file.	*/
-	Object	lines;		/*	Lines read, not yet written.	*/
+	int	  cycleNbr;
+	int	  lineCount; /* Number of lines read from file. */
+	SdrObject lines;     /* Lines read, not yet written. */
 } Cycle;
 
 #define TEST_WM_SIZE	(1000000)

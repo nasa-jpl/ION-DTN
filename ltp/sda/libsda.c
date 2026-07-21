@@ -40,11 +40,11 @@ static void	handleQuit(int signum)
 }
 
 int	sda_send(uvast destinationEngineId, unsigned int clientSvcId,
-		Object clientServiceData)
+		SdrObject clientServiceData)
 {
 	Sdr		sdr = getIonsdr();
 	Sdnv		sdnvBuf;
-	Object		sdaZco;
+	SdrObject	sdaZco;
 	LtpSessionId	sessionId;
 
 	CHKERR(destinationEngineId);
@@ -54,7 +54,7 @@ int	sda_send(uvast destinationEngineId, unsigned int clientSvcId,
 	CHKERR(sdr_begin_xn(sdr));
 	sdaZco = zco_clone(sdr, clientServiceData, 0,
 			zco_source_data_length(sdr, clientServiceData));
-	if (sdaZco != (Object) ERROR && sdaZco != 0)
+	if (sdaZco != (SdrObject) ERROR && sdaZco != 0)
 	{
 		oK(zco_prepend_header(sdr, sdaZco, (char *) sdnvBuf.text,
 				sdnvBuf.length));
@@ -87,7 +87,7 @@ int	sda_send(uvast destinationEngineId, unsigned int clientSvcId,
 }
 
 static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
-			Object zco, uvast senderEngineNbr)
+			SdrObject zco, uvast senderEngineNbr)
 {
 	Sdr		sdr = getIonsdr();
 	uvast		bytesHandled = 0;
@@ -97,7 +97,7 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 	int		offset;
 	uvast		clientId;
 	vast		itemLength;
-	Object		itemZco;
+	SdrObject	itemZco;
 
 	zco_start_receiving(zco, &reader);
 	while (1)
@@ -196,7 +196,7 @@ int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler)
 	unsigned char	endOfBlock;
 	unsigned int	dataOffset;
 	unsigned int	dataLength;
-	Object		data;
+	SdrObject	data;
 
 	if (ltp_attach() < 0)
 	{

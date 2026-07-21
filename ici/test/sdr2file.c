@@ -42,14 +42,14 @@ static int	run_sdr2file(int configFlags)
 	char		sdrName[256];
 	Sdr		sdr;
 	sm_SemId	semaphore;
-	Object		cycleList;
-	Object		cycleListElt;
-	Object		cycleObj;
+	SdrObject	cycleList;
+	SdrObject	cycleListElt;
+	SdrObject	cycleObj;
 	Cycle		currentCycle;
 	char		fileName[256];
 	int		outputFile;
-	Object		lineListElt;
-	Object		lineObj;	/*	An SDR string.		*/
+	SdrObject	lineListElt;
+	SdrObject	lineObj; /* An SDR string. */
 	char		line[SDRSTRING_BUFSZ];
 #if 0
 char		*region = NULL;

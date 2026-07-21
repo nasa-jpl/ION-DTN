@@ -125,7 +125,7 @@ tbl_t *dtn_ion_ltpadmin_tblt_spans(ari_t *id)
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmPartition	ionwm = getIonwm();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	OBJ_POINTER(LtpDB, ltpdb);
 	PsmAddress	elt;
 	LtpVspan	*vspan;
@@ -230,7 +230,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_heap(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	 */
 
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	LtpDB		ltpdb;
 	int success;
 	unsigned int heapmax = adm_get_parm_uint(parms, 0, &success);
@@ -283,7 +283,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_max_ber(eid_t *def_mgr, tnvc_t *parms, int8_
 	 */
 
 	Sdr		sdr = getIonsdr();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
@@ -348,7 +348,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_own_queue_time(eid_t *def_mgr, tnvc_t *parms
 	 */
 
 	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
+	SdrObject ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int newOwnQtime;
 	int success;
@@ -603,7 +603,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_watch_set(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 
 	int success;
 	Sdr	sdr = getIonsdr();
-	Object	dbObj = getLtpDbObject();
+	SdrObject dbObj = getLtpDbObject();
 	LtpDB	db;
 	char *name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	LtpVdb	*vdb = getLtpVdb();

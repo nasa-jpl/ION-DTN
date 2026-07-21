@@ -46,7 +46,7 @@ int	ltpei_add_xmit_header_extension(LtpXmitSeg *segment, char tag,
 	Sdr 			sdr = getIonsdr();
 	Sdnv			sdnv;
 	LtpExtensionOutbound	extension;
-	Object			addr;
+	SdrObject		addr;
 
 	CHKERR(segment);
 	CHKERR(ionLocked());
@@ -97,7 +97,7 @@ int	ltpei_add_xmit_trailer_extension(LtpXmitSeg *segment, char tag,
 	Sdr 			sdr = getIonsdr();
 	Sdnv			sdnv;
 	LtpExtensionOutbound	extension;
-	Object			addr;
+	SdrObject		addr;
 
 	CHKERR(segment);
 	CHKERR(ionLocked());
@@ -220,9 +220,9 @@ void	ltpei_discard_extensions(Lyst extsList)
 	lyst_destroy(extsList);
 }
 
-void	ltpei_destroy_extension(Sdr sdr, Object elt, void *arg)
+void ltpei_destroy_extension(Sdr sdr, SdrObject elt, void *arg)
 {
-	Object			addr;
+	SdrObject		addr;
 	LtpExtensionOutbound	ext;
 
 	/* Parameter intentionally unused. */

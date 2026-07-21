@@ -331,8 +331,8 @@ static void	printPlan(BpPlan *plan)
 	char	*action = "none";
 	char	viaEid[SDRSTRING_BUFSZ];
 	char	*spec = "none";
-	Object	ductElt;
-	Object	outductElt;
+	SdrObject ductElt;
+	SdrObject outductElt;
 	Outduct	outduct;
 	char	buffer[1024];
 
@@ -363,9 +363,9 @@ static void	printPlan(BpPlan *plan)
 static void	infoPlan(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	planAddr;
+	SdrObject planAddr;
 		OBJ_POINTER(BpPlan, plan);
-	Object	elt;
+	SdrObject elt;
 
 	if (tokenCount != 3)
 	{
@@ -408,7 +408,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 static void	listPlans(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(BpPlan, plan);
 
 	CHKVOID(sdr_begin_xn(sdr));

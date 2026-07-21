@@ -374,7 +374,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	offset += bytes_read;
 	{
 		Sdr		sdr = getIonsdr();
-		Object		iondbObj = getIonDbObject();
+		SdrObject	iondbObj = getIonDbObject();
 		IonDB		iondb;
 		size_t		maxContentLen;
 

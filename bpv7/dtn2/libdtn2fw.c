@@ -23,7 +23,7 @@ int	dtn2Init(void)
 	return 0;	/*	No additional database needed.		*/
 }
 
-void	dtn2_findPlan(char *nodeName, Object *planAddr, Object *eltp)
+void dtn2_findPlan(char *nodeName, SdrObject *planAddr, SdrObject *eltp)
 {
 	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN + 1];

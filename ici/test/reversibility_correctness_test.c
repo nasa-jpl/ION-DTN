@@ -37,7 +37,7 @@
 
 typedef struct
 {
-	Object	addr;
+	SdrObject addr;
 	size_t	size;
 	char	pattern;	/*	Fill byte for verification.	*/
 } TestObj;
@@ -188,8 +188,8 @@ static int	verifyApiReads(Sdr sdr)
 static int	destructiveXn(Sdr sdr)
 {
 	char	scratch[LARGE_OBJ_SIZE];
-	Object	tmpSmall;
-	Object	tmpLarge;
+	SdrObject tmpSmall;
+	SdrObject tmpLarge;
 
 	CHKERR(sdr_begin_xn(sdr));
 

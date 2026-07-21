@@ -20,7 +20,7 @@
 int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 {
 	Sdr		sdr;
-	Object		bundleObj;
+	SdrObject	bundleObj;
 	BpTimestamp	creationTime;
 	Bundle		bundle;
 	int		destroyResult;
@@ -496,8 +496,8 @@ void bpinspect_ops_print_bundle(const BundleCacheEntry *entry, int verbose)
 		/* Show extension block types */
 		if (sdr_list_length(sdr, bundle.extensions) > 0)
 		{
-			Object		elt;
-			Object		blkAddr;
+			SdrObject	elt;
+			SdrObject	blkAddr;
 			ExtensionBlock	blk;
 			int		i = 0;
 

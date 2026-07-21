@@ -130,7 +130,7 @@ ExtensionSpec	*findExtensionSpec(BpBlockType type, char tag)
  *                OPERATIONS ON OUTBOUND EXTENSION BLOCKS                     *
  ******************************************************************************/
 
-static int	insertExtensionBlock(ExtensionBlock *newBlk, Object blkAddr,
+static int	insertExtensionBlock(ExtensionBlock *newBlk, SdrObject blkAddr,
 			Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
@@ -151,8 +151,8 @@ static unsigned char	selectBlkNumber(Bundle *bundle)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned char	maxBlkNumber = 1;	/*	Payload.	*/
-	Object		elt;
-	Object		blkObj;
+	SdrObject	elt;
+	SdrObject	blkObj;
 			OBJ_POINTER(ExtensionBlock, blk);
 	unsigned char	usedNumbers[256];
 	int		candidate;
@@ -206,10 +206,10 @@ static unsigned char	selectBlkNumber(Bundle *bundle)
 	return 0;
 }
 
-Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
+SdrObject attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
 		Bundle *bundle)
 {
-	Object	blkAddr;
+	SdrObject blkAddr;
 	int	additionalOverhead;
 
 	CHKERR(blk);
@@ -247,10 +247,10 @@ numbers 2-255 are in use.", NULL);
 int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		blkAddr;
+	SdrObject	elt;
+	SdrObject	blkAddr;
 			OBJ_POINTER(ExtensionBlock, oldBlk);
-	Object		newBlkAddr;
+	SdrObject	newBlkAddr;
 	ExtensionBlock	newBlk;
 	char		*buf = NULL;
 	unsigned int	buflen = 0;
@@ -344,10 +344,10 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 	return 0;
 }
 
-void	deleteExtensionBlock(Object elt, int *lengthsTotal)
+void deleteExtensionBlock(SdrObject elt, int *lengthsTotal)
 {
 	Sdr		sdr = getIonsdr();
-	Object		blkAddr;
+	SdrObject	blkAddr;
 			OBJ_POINTER(ExtensionBlock, blk);
 	ExtensionDef	*def;
 
@@ -403,7 +403,7 @@ void	deleteExtensionBlock(Object elt, int *lengthsTotal)
 void	destroyExtensionBlocks(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 
 	CHKVOID(bundle);
 	if (bundle->extensions == 0)
@@ -448,11 +448,11 @@ void	destroyExtensionBlocks(Bundle *bundle)
 	sdr_list_destroy(sdr, bundle->extensions, NULL, NULL);
 }
 
-Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
+SdrObject findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKZERO(bundle);
@@ -472,11 +472,11 @@ Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
 
 // TODO: Rename? THis is the same as findExtensionBlockByNumber?
 // TODO Rename this getExtensionBlockElt
-Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
+SdrObject getExtensionBlock(Bundle *bundle, unsigned char nbr)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 	OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKZERO(bundle);
@@ -494,11 +494,11 @@ Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
 	return 0;
 }
 
-Object getExtensionBlockObj(Bundle *bundle, unsigned char blockNum)
+SdrObject getExtensionBlockObj(Bundle *bundle, unsigned char blockNum)
 {
 	Sdr	bpSdr = getIonsdr();
-	Object	elt = 0;
-	Object	addr = 0;
+	SdrObject elt = 0;
+	SdrObject addr = 0;
 	OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKZERO(bundle);
@@ -601,9 +601,9 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 {
 	Sdr			sdr = getIonsdr();
 	int			oldDbOverhead;
-	Object			elt;
-	Object			nextElt;
-	Object			blkAddr;
+	SdrObject		elt;
+	SdrObject		nextElt;
+	SdrObject		blkAddr;
 	ExtensionBlock		blk;
 	ExtensionDef		*def;
 	BpExtBlkProcessFn	processExtension;
@@ -1143,7 +1143,7 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 	ExtensionBlock	newBlk;
 	int		headerLength;
 	ExtensionDef	*def;
-	Object		newBlkAddr;
+	SdrObject	newBlkAddr;
 	int		additionalOverhead;
 
 	CHKERR(work);

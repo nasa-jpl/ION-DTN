@@ -78,7 +78,7 @@ static void	*sendBundles(void *parm)
 	char			*procName = "brsscla";
 	char			*buffer;
 	Sdr			sdr;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;
@@ -154,8 +154,8 @@ static int	reforwardStrandedBundles(void)
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = getBpConstants();
-	Object	elt;
-	Object	nextElt;
+	SdrObject elt;
+	SdrObject nextElt;
 
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, bpConstants->limboQueue); elt;

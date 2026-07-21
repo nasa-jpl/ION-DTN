@@ -208,7 +208,7 @@ tnv_t *dtn_bp_agent_get_last_reset_time(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 	Sdr sdr = getIonsdr();
-	Object dbobj = getBpDbObject();
+	SdrObject dbobj = getBpDbObject();
 	BpDB db;
 
 	// TODO Check return call for sdr_begin_xn

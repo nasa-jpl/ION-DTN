@@ -30,9 +30,9 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	BpSAP		sap;
 	Sdr		sdr;
 	unsigned int	i = 0;
-	Object		bundlePayload;
-	Object		bundleZco;
-	Object		newBundle;
+	SdrObject	bundlePayload;
+	SdrObject	bundleZco;
+	SdrObject	newBundle;
 
 	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/
 
@@ -102,7 +102,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0,
 				sizeof(framePayload), priority,
 				ancillaryData.ordinal, ZcoOutbound, NULL);
-		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
+		if (sdr_end_xn(sdr) < 0 || bundleZco == (SdrObject) ERROR
 		|| bundleZco == 0)
 		{
 			bp_close(sap);

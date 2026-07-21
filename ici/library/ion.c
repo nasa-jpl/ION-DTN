@@ -66,9 +66,9 @@ static Sdr	_ionsdr(Sdr *newSdr)
 	return sdr;
 }
 
-static Object	_iondbObject(Object *newDbObj)
+static SdrObject _iondbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -83,7 +83,7 @@ static IonDB	*_ionConstants(void)
 	static IonDB	buf;
 	static IonDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -848,7 +848,7 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 {
 	char		wdname[256];
 	Sdr		ionsdr;
-	Object		iondbObject;
+	SdrObject	iondbObject;
 	IonDB		iondbBuf;
 	double		limit;
 	sm_WmParms	ionwmParms;
@@ -1140,7 +1140,7 @@ void	ionRaiseVdb(void)				/*	For ionrestart.	*/
 int	ionAttach(void)
 {
 	Sdr		ionsdr = _ionsdr(NULL);
-	Object		iondbObject = _iondbObject(NULL);
+	SdrObject	iondbObject = _iondbObject(NULL);
 	PsmPartition	ionwm = _ionwm(NULL);
 	IonVdb		*ionvdb = _ionvdb(NULL);
 	char		*wdname;
@@ -1291,7 +1291,7 @@ void	ionDetach(void)
 		oK(_ionwm(&reset));
 
 		/* 	reset ION database object 	*/
-		Object	obj = 0;
+		SdrObject obj = 0;
 		oK(_iondbObject(&obj));
 
 		/* reset ION volatile database */
@@ -1361,7 +1361,7 @@ void	ionEject(void)
 void	ionTerminate(int shutdown)
 {
 	Sdr		sdr = _ionsdr(NULL);
-	Object		obj = 0;
+	SdrObject	obj = 0;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = NULL;
 
@@ -1429,7 +1429,7 @@ void	putFqn(char *toBuffer, uvast fqn)
 int	ionPickRegion(uint32_t regionNbr)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 	int	i;
 
@@ -1461,14 +1461,14 @@ int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 	 *	is preferred.						*/
 
 	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	uint32_t	localHomeRegion;
 	uint32_t	localOuterRegion;
 	RegionMember	nodeA;
 	RegionMember	nodeB;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 			OBJ_POINTER(RegionMember, member);
 
 	CHKERR(regionNbr);
@@ -1569,7 +1569,7 @@ Sdr	getIonsdr(void)
 	return _ionsdr(NULL);
 }
 
-Object	getIonDbObject(void)
+SdrObject getIonDbObject(void)
 {
 	return _iondbObject(NULL);
 }
@@ -1616,7 +1616,7 @@ uvast	getOwnFqnn(void)
 int	ionClockIsSynchronized(void)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
+	SdrObject iondbObject = _iondbObject(NULL);
 	IonDB	iondbBuf;
 
 	sdr_read(ionsdr, (char *) &iondbBuf, iondbObject, sizeof(IonDB));
@@ -1657,7 +1657,7 @@ void	stopIonMemTrace(int verbose)
 int	setDeltaFromUTC(int newDelta)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
-	Object	iondbObject = _iondbObject(NULL);
+	SdrObject iondbObject = _iondbObject(NULL);
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	IonDB	iondb;
 
@@ -2588,7 +2588,7 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
 }
 
-Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
+SdrObject ionCreateZco(ZcoMedium source, SdrObject location, vast offset,
 		vast length, unsigned char coarsePriority,
 		unsigned char finePriority, ZcoAcct acct,
 		ReqAttendant *attendant)
@@ -2599,7 +2599,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
 	ReqTicket	ticket;
-	Object		zco;
+	SdrObject	zco;
 
 	CHKERR(vdb);
 	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
@@ -2607,10 +2607,10 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	{
 		oK(sdr_begin_xn(sdr));
 		zco = zco_create(sdr, source, 0, 0, 0, acct);
-		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
+		if (sdr_end_xn(sdr) < 0 || zco == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
-			return ((Object) ERROR);
+			return ((SdrObject) ERROR);
 		}
 
 		return zco;
@@ -2644,7 +2644,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 	default:
 		putErrmsg("Invalid ZCO source type.", itoa((int) source));
-		return ((Object) ERROR);
+		return ((SdrObject) ERROR);
 	}
 
 	if (ionRequestZcoSpace(acct, fileSpaceNeeded, bulkSpaceNeeded,
@@ -2652,7 +2652,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 			attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed on ionRequest.", NULL);
-		return ((Object) ERROR);
+		return ((SdrObject) ERROR);
 	}
 
 	if (!(ionSpaceAwarded(ticket)))
@@ -2671,7 +2671,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		{
 			putErrmsg("ionCreateZco can't take semaphore.", NULL);
 			ionShred(ticket);	/*	Cancel request.	*/
-			return ((Object) ERROR);
+			return ((SdrObject) ERROR);
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
@@ -2689,18 +2689,18 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 	oK(sdr_begin_xn(sdr));
 	zco = zco_create(sdr, source, location, offset, 0 - length, acct);
-	if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR || zco == 0)
+	if (sdr_end_xn(sdr) < 0 || zco == (SdrObject) ERROR || zco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		ionShred(ticket);		/*	Cancel request.	*/
-		return ((Object) ERROR);
+		return ((SdrObject) ERROR);
 	}
 
 	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return zco;
 }
 
-vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
+vast ionAppendZcoExtent(SdrObject zco, ZcoMedium source, SdrObject location,
 		vast offset, vast length, unsigned char coarsePriority,
 		unsigned char finePriority, ReqAttendant *attendant)
 {
@@ -2797,7 +2797,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	return result;
 }
 
-int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
+int ionSendZcoByTCP(int *sock, SdrObject zco, char *buffer, int buflen)
 {
 	Sdr		sdr = getIonsdr();
 	int		totalBytesSent = 0;
@@ -2859,7 +2859,7 @@ int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
 void	ionRegisterPsmwatchPid(int pid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -2875,7 +2875,7 @@ void	ionRegisterPsmwatchPid(int pid)
 void	ionRegisterSdrwatchPid(int pid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -2891,7 +2891,7 @@ void	ionRegisterSdrwatchPid(int pid)
 int	ionSetMemProtect(int heapPct, int wmPct)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonVdb	*vdb = getIonVdb();
 	IonDB	iondb;
 	char	buffer[128];

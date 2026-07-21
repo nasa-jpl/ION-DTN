@@ -20,9 +20,9 @@
 
 /*	*	*	Globals used for IPN scheme service.	*	*/
 
-static Object	_ipndbObject(Object *newDbObj)
+static SdrObject _ipndbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -37,7 +37,7 @@ static IpnDB	*_ipnConstants(void)
 	static IpnDB	buf;
 	static IpnDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -71,7 +71,7 @@ static IpnDB	*_ipnConstants(void)
 int	ipnInit(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	ipndbObject;
+	SdrObject ipndbObject;
 	IpnDB	ipndbBuf;
 
 	/*	Recover the IPN database, creating it if necessary.	*/
@@ -116,7 +116,7 @@ int	ipnInit(void)
 	return 0;
 }
 
-Object	getIpnDbObject(void)
+SdrObject getIpnDbObject(void)
 {
 	return _ipndbObject(NULL);
 }
@@ -126,7 +126,7 @@ IpnDB	*getIpnConstants(void)
 	return _ipnConstants();
 }
 
-void	ipn_findPlan(uvast fqnn, Object *planAddr, Object *eltp)
+void ipn_findPlan(uvast fqnn, SdrObject *planAddr, SdrObject *eltp)
 {
 	Sdr		sdr = getIonsdr();
 	char		nbrBuf[FQN_MAX_LENGTH];
@@ -259,12 +259,12 @@ int	ipn_removePlan(uvast fqnn)
 	return removePlan(eid);
 }
 
-static Object	locateOvrd(unsigned int dataLabel, uvast destFqnn,
-			uvast sourceFqnn, Object *nextOvrd)
+static SdrObject locateOvrd(unsigned int dataLabel, uvast destFqnn,
+		uvast sourceFqnn, SdrObject *nextOvrd)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		ovrdAddr;
+	SdrObject	elt;
+	SdrObject	ovrdAddr;
 	IpnOverride	ovrd;
 
 	/*	This function locates the IpnOverride for the
@@ -326,10 +326,10 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 		unsigned char ordinal, unsigned char qosFlags)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		nextElt;
+	SdrObject	elt;
+	SdrObject	nextElt;
 	IpnOverride	ovrd;
-	Object		addr;
+	SdrObject	addr;
 
 	if (dataLabel == 0)
 	{
@@ -392,7 +392,7 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 		}
 	}
 
-	addr = (Object) sdr_list_data(sdr, elt);
+	addr = (SdrObject) sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &ovrd, addr, sizeof(IpnOverride));
 	if (neighborFqnn != (uvast) -2)
 	{
@@ -451,10 +451,10 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 }
 
 int	ipn_lookupOvrd(unsigned int dataLabel, uvast destFqnn,
-		uvast sourceFqnn, Object *addr)
+		uvast sourceFqnn, SdrObject *addr)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IpnOverride, ovrd);
 
 	/*	This function determines the applicable egress plan
@@ -522,13 +522,12 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destFqnn,
 	return 1;
 }
 
-static Object	locateExit(uvast firstFqnn, uvast lastFqnn,
-			Object *nextExit)
+static SdrObject locateExit(uvast firstFqnn, uvast lastFqnn, SdrObject *nextExit)
 {
 	Sdr	sdr = getIonsdr();
 	int	targetSize;
 	int	exitSize;
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IpnExit, exit);
 
 	/*	This function locates the IpnExit for the specified
@@ -573,11 +572,11 @@ static Object	locateExit(uvast firstFqnn, uvast lastFqnn,
 	return 0;
 }
 
-void	ipn_findExit(uvast firstFqnn, uvast lastFqnn, Object *exitAddr,
-		Object *eltp)
+void ipn_findExit(uvast firstFqnn, uvast lastFqnn, SdrObject *exitAddr,
+		SdrObject *eltp)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 
 	/*	This function finds the IpnExit for the specified
 	 *	node range, if any.					*/
@@ -610,9 +609,9 @@ void	ipn_findExit(uvast firstFqnn, uvast lastFqnn, Object *exitAddr,
 int	ipn_addExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	nextExit;
+	SdrObject nextExit;
 	IpnExit	exit;
-	Object	addr;
+	SdrObject addr;
 
 	CHKERR(viaEid);
 	if (firstFqnn == 0)
@@ -675,8 +674,8 @@ int	ipn_addExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 	IpnExit	exit;
 
 	CHKERR(viaEid);
@@ -697,7 +696,7 @@ int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 
 	/*	All parameters validated, okay to update the exit.	*/
 
-	addr = (Object) sdr_list_data(sdr, elt);
+	addr = (SdrObject) sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &exit, addr, sizeof(IpnExit));
 	sdr_free(sdr, exit.eid);
 	exit.eid = sdr_string_create(sdr, viaEid);
@@ -714,8 +713,8 @@ int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(IpnExit, exit);
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -727,7 +726,7 @@ int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 		return 0;
 	}
 
-	addr = (Object) sdr_list_data(sdr, elt);
+	addr = (SdrObject) sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, IpnExit, exit, addr);
 
 	/*	All parameters validated, okay to remove the exit.	*/
@@ -747,8 +746,8 @@ int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 int	ipn_lookupExit(uvast fqnn, char *eid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 	IpnExit	exit;
 
 	/*	This function determines the applicable egress plan

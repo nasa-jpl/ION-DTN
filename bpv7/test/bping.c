@@ -332,10 +332,10 @@ s(future!)\n", contentLength, respSrcEid, respcount,
 }
 
 /* Makes a new bundle Object.  The payload is a unique identifier. */
-static Object bping_new_ping(void)
+static SdrObject bping_new_ping(void)
 {
-	Object  bundleZco;
-	Object  bundleMessage;
+	SdrObject  bundleZco;
+	SdrObject  bundleMessage;
 	struct timeval tvNow;
 	char    pingPayload[BPING_PAYLOAD_MAX_LEN];
 	int     pingPayloadLen;
@@ -381,7 +381,7 @@ static Object bping_new_ping(void)
 	/* Craft the bundle object */
 	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0,
 			payloadSize, priority, 0, ZcoOutbound, NULL);
-	if(bundleZco == 0 || bundleZco == (Object) ERROR)
+	if(bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("bping can't create bundle ZCO", NULL);
 		fprintf(stderr, "bping can't create bundle ZCO.\n");
@@ -392,7 +392,7 @@ static Object bping_new_ping(void)
 
 static void *sendRequests(void *x)
 {
-	Object  bundleZco;
+	SdrObject  bundleZco;
 
 	/* Parameter intentionally unused. */
 	(void)x;

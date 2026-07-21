@@ -1808,7 +1808,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	unsigned int	owlt;
 	unsigned int	owltMargin;
 	time_t		acqTime;
-	Object		contactObj;
+	SdrObject	contactObj;
 	IonContact	contactBuf;
 	int		priority;
 	time_t		effectiveStartTime;
@@ -2185,7 +2185,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	time_t		pbat;
 	LystElt		candidateElt;

@@ -23,9 +23,9 @@
 
 /*	*	*	Helpful utility functions	*	*	*/
 
-static Object	_cfdpdbObject(Object *newDbObj)
+static SdrObject _cfdpdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -40,7 +40,7 @@ static CfdpDB	*_cfdpConstants(void)
 	static CfdpDB	buf;
 	static CfdpDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -311,7 +311,7 @@ void	addToChecksum(unsigned char octet, vast *offset,
 int	getReqNbr(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbObj = getCfdpDbObject();
+	SdrObject dbObj = getCfdpDbObject();
 	CfdpDB	db;
 
 	CHKERR(ionLocked());
@@ -488,7 +488,7 @@ static char	*_cfdpdbName(void)
 int	cfdpInit(void)
 {
 	Sdr		sdr;
-	Object		cfdpdbObject;
+	SdrObject	cfdpdbObject;
 	IonDB		iondb;
 	CfdpDB		cfdpdbBuf;
 	int		i;
@@ -663,7 +663,7 @@ void	cfdpRaiseVdb(void)
 	}
 }
 
-Object	getCfdpDbObject(void)
+SdrObject getCfdpDbObject(void)
 {
 	return _cfdpdbObject(NULL);
 }
@@ -682,7 +682,7 @@ int _cfdpStart(char *utaCmd)
 {
 	Sdr	 sdr = getIonsdr();
 	CfdpVdb *cfdpvdb = _cfdpvdb(NULL);
-	Object	 cfdpdbobj = getCfdpDbObject();
+	SdrObject cfdpdbobj = getCfdpDbObject();
 	CfdpDB	 cfdpdb;
 	int	 startBpcpd = 0;
 	char	*actualUtaCmd = utaCmd;
@@ -896,9 +896,9 @@ to SIGTERM, sending SIGKILL",
 int	cfdpHasActiveTransactions(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbobj = getCfdpDbObject();
+	SdrObject dbobj = getCfdpDbObject();
 	CfdpDB	db;
-	Object	elt;
+	SdrObject elt;
 	Entity	entity;
 	int	active = 0;
 
@@ -939,7 +939,7 @@ int	cfdpHasActiveTransactions(void)
 
 int	cfdpAttach(void)
 {
-	Object		cfdpdbObject = _cfdpdbObject(NULL);
+	SdrObject	cfdpdbObject = _cfdpdbObject(NULL);
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	Sdr		sdr;
 	char		*cfdpvdbName = _cfdpvdbName();
@@ -997,10 +997,10 @@ void	cfdpDetach(void)
 	return;
 }
 
-MetadataList	createMetadataList(Object log)
+MetadataList createMetadataList(SdrObject log)
 {
 	Sdr	sdr = getIonsdr();
-	Object	list;
+	SdrObject list;
 
 	/*	Create new list of metadata objects, reference it at
 	 *	the end of the database's list of metadata lists, and
@@ -1027,8 +1027,8 @@ MetadataList	createMetadataList(Object log)
 void	destroyUsrmsgList(MetadataList *list)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	obj;
 	MsgToUser	usrmsg;
 
 	CHKVOID(list);
@@ -1060,8 +1060,8 @@ void	destroyUsrmsgList(MetadataList *list)
 void	destroyFsreqList(MetadataList *list)
 {
 	Sdr			sdr = getIonsdr();
-	Object			elt;
-	Object			obj;
+	SdrObject		elt;
+	SdrObject		obj;
 	FilestoreRequest	fsreq;
 
 	CHKVOID(list);
@@ -1096,11 +1096,11 @@ void	destroyFsreqList(MetadataList *list)
 	*list = 0;
 }
 
-void	destroyFsrespList(Object *list)
+void destroyFsrespList(SdrObject *list)
 {
 	Sdr			sdr = getIonsdr();
-	Object			elt;
-	Object			obj;
+	SdrObject		elt;
+	SdrObject		obj;
 	FilestoreResponse	fsresp;
 
 	CHKVOID(list);
@@ -1144,7 +1144,7 @@ void	cfdpScrub(void)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpDB		*cfdpConstants = _cfdpConstants();
-	Object		elt;
+	SdrObject	elt;
 	MetadataList	list;
 
 	CHKVOID(ionLocked());
@@ -1173,13 +1173,13 @@ void	cfdpScrub(void)
 	}
 }
 
-int	addFsResp(Object list, CfdpAction action, int status,
+int addFsResp(SdrObject list, CfdpAction action, int status,
 		char *firstFileName, char *secondFileName, char *message)
 {
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
 	FilestoreResponse	fsresp;
-	Object			addr;
+	SdrObject		addr;
 
 	CHKERR(list);
 	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
@@ -1226,12 +1226,12 @@ int	addFsResp(Object list, CfdpAction action, int status,
 
 /*	*	CFDP entity management functions	*	*	*/
 
-static Object	locateEntity(uvast entityId, Object *nextEntity)
+static SdrObject locateEntity(uvast entityId, SdrObject *nextEntity)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*db = _cfdpConstants();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 	Entity	entity;
 
 	if (nextEntity) *nextEntity = 0;	/*	Default.	*/
@@ -1257,11 +1257,11 @@ static Object	locateEntity(uvast entityId, Object *nextEntity)
 	return 0;
 }
 
-Object	findEntity(uvast entityId, Entity *entity)
+SdrObject findEntity(uvast entityId, Entity *entity)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 
 	CHKZERO(entity);
 	elt = locateEntity(entityId, NULL);
@@ -1289,14 +1289,14 @@ int	ckTypeOkay(unsigned int ckType)
 	}
 }
 
-Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
+SdrObject addEntity(uvast entityId, char *protocolName, char *endpointName,
 		unsigned int rtt, unsigned int inCkType, unsigned int outCkType)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*db = _cfdpConstants();
-	Object	elt;
-	Object	nextElt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject nextElt;
+	SdrObject entityObj;
 	Entity	entity;
 
 	elt = locateEntity(entityId, &nextElt);
@@ -1375,8 +1375,8 @@ int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
 		unsigned int rtt, unsigned int inCkType, unsigned int outCkType)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 	Entity	entity;
 
 	elt = locateEntity(entityId, NULL);
@@ -1443,8 +1443,8 @@ int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
 int	removeEntity(uvast entityId)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 	Entity	entity;
 
 	elt = locateEntity(entityId, NULL);
@@ -1471,13 +1471,13 @@ int	removeEntity(uvast entityId)
 
 /*	*	CFDP transaction mgt and access functions	*	*/
 
-Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
-		Object *fduElt)
+SdrObject findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
+		SdrObject *fduElt)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*cfdpConstants = _cfdpConstants();
-	Object	elt;
-	Object	fduObj;
+	SdrObject elt;
+	SdrObject fduObj;
 
 	CHKZERO(transactionId);
 	CHKZERO(fduBuf);
@@ -1499,11 +1499,11 @@ Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 	return 0;
 }
 
-static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
-			InFdu *fdubuf, Object *fduElt)
+static SdrObject createInFdu(CfdpTransactionId *transactionId, Entity *entity,
+		InFdu *fdubuf, SdrObject *fduElt)
 {
 	Sdr		sdr = getIonsdr();
-	Object		fduObj;
+	SdrObject	fduObj;
 	CfdpDB		cfdpdb;
 
 	memset((char *) fdubuf, 0, sizeof(InFdu));
@@ -1530,16 +1530,16 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	return fduObj;
 }
 
-Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
-		Object *fduElt, int createIfNotFound)
+SdrObject findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
+		SdrObject *fduElt, int createIfNotFound)
 {
 	uvast	sourceEntityId;
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 	Entity	entity;
 	int	foundIt;
-	Object	fduObj;
+	SdrObject fduObj;
 
 	CHKZERO(transactionId);
 	CHKZERO(fduBuf);
@@ -1612,8 +1612,8 @@ int	suspendOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 			int reqNbr)
 {
 	OutFdu		fduBuf;
-	Object		fduObj;
-	Object		fduElt;
+	SdrObject	fduObj;
+	SdrObject	fduElt;
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 
@@ -1647,8 +1647,8 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 			int reqNbr)
 {
 	OutFdu		fduBuf;
-	Object		fduObj;
-	Object		fduElt;
+	SdrObject	fduObj;
+	SdrObject	fduElt;
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 
@@ -1690,11 +1690,11 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 	return event.reqNbr;
 }
 
-void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
+void destroyOutFdu(OutFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 		OBJ_POINTER(FileDataPdu, pdu);
 
 	CHKVOID(fdu);
@@ -1750,8 +1750,8 @@ static int	abandonOutFdu(CfdpTransactionId *transactionId,
 {
 	Sdr		sdr = getIonsdr();
 	OutFdu		fduBuf;
-	Object		fduObj;
-	Object		fduElt;
+	SdrObject	fduObj;
+	SdrObject	fduElt;
 	CfdpEvent	event;
 
 	fduObj = findOutFdu(transactionId, &fduBuf, &fduElt);
@@ -1778,12 +1778,12 @@ static int	abandonOutFdu(CfdpTransactionId *transactionId,
 	return event.reqNbr;
 }
 
-void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
+void destroyInFdu(InFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 		OBJ_POINTER(MsgToUser, msg);
 		OBJ_POINTER(FilestoreRequest, req);
 
@@ -1892,8 +1892,8 @@ static int	abandonInFdu(CfdpTransactionId *transactionId,
 			CfdpCondition condition)
 {
 	InFdu		fduBuf;
-	Object		fduObj;
-	Object		fduElt;
+	SdrObject	fduObj;
+	SdrObject	fduElt;
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 	char		fileName[256];
@@ -2238,13 +2238,13 @@ static int	executeFilestoreRequests(InFdu *fdu,
 			MetadataList filestoreResponses)
 {
 	Sdr			sdr = getIonsdr();
-	Object			elt;
+	SdrObject		elt;
 				OBJ_POINTER(FilestoreRequest, req);
 	char			firstFileNameBuf[256];
 	char			*firstFileName;
 	char			secondFileNameBuf[256];
 	char			*secondFileName;
-	Object			addr;
+	SdrObject		addr;
 	FilestoreResponse	resp;
 	char			msgBuf[256];
 	int			reqAborted = 0;
@@ -2596,8 +2596,8 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 	unsigned int		fpduLength = 0;
 	CfdpCondition		condition;
 	size_t			length;
-	Object			elt;
-	Object			obj;
+	SdrObject		elt;
+	SdrObject		obj;
 				OBJ_POINTER(FilestoreResponse, resp);
 	int			firstFileNameLen;
 	char			firstFileName[256];
@@ -2800,7 +2800,7 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 	return 0;
 }
 
-int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
+int completeInFdu(InFdu *fduBuf, SdrObject fduObj, SdrObject fduElt,
 		CfdpCondition condition, int reqNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -3002,9 +3002,9 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
-	Object	eventObj;
+	SdrObject eventObj;
 	CfdpDB	cfdpdb;
-	Object	elt;
+	SdrObject elt;
 
 	CHKERR(ionLocked());
 	CHKERR(event);
@@ -3070,10 +3070,10 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 {
 	Sdr		sdr = getIonsdr();
 	CfdpDB		cfdpdb;
-	Object		fduObj;
+	SdrObject	fduObj;
 	InFdu		inFdu;
 	OutFdu		outFdu;
-	Object		fduElt;
+	SdrObject	fduElt;
 	CfdpEvent	event;
 	char fileName[256] = "unknown";
 
@@ -3214,11 +3214,11 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 
 /*	*	*	PDU issuance functions	*	*	*	*/
 
-static Object	selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
+static SdrObject selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 
 	for (elt = sdr_list_first(sdr, cfdpdb->outboundFdus); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -3237,20 +3237,20 @@ static Object	selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
 	return 0;
 }
 
-static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
+static int selectFduPdu(OutFdu *fdu, SdrObject *pdu, int *pduIsFileData,
 			int *haveMetadata)
 {
 	Sdr		sdr = getIonsdr();
 	vast		length;
-	Object		elt;
-	Object		pduObj;
+	SdrObject	elt;
+	SdrObject	pduObj;
 			OBJ_POINTER(FileDataPdu, seg);
 	unsigned int	headerLength;
 	unsigned char	headerBuf[72];
 	unsigned char	*headerCursor;
 	uvast		largeOffset;
 	unsigned int	smallOffset;
-	Object		header;
+	SdrObject	header;
 
 	if (fdu->metadataPdu)
 	{
@@ -3263,7 +3263,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
-		case (Object) ERROR:
+		case (SdrObject) ERROR:
 		case 0:
 			putErrmsg("Can't create Metadata PDU ZCO.", NULL);
 			return -1;
@@ -3354,7 +3354,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 					0 - length, ZcoOutbound);
 			switch (*pdu)
 			{
-			case (Object) ERROR:
+			case (SdrObject) ERROR:
 			case 0:
 				putErrmsg("Can't create data PDU ZCO.", NULL);
 				return -1;
@@ -3393,7 +3393,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			ZcoOutbound);
 	switch (*pdu)
 	{
-	case (Object) ERROR:
+	case (SdrObject) ERROR:
 	case 0:
 		putErrmsg("Can't create EOF PDU ZCO.", NULL);
 		return -1;
@@ -3407,13 +3407,13 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 	return 0;
 }
 
-static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
+static int selectOutPdu(CfdpDB *db, SdrObject *pdu, SdrObject *fdu,
 			OutFdu *fduBuffer, FinishPdu *fpdu, int *direction,
 			int *pduIsFileData, int *haveMetadata)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	vast	length;
 
 	elt = sdr_list_first(sdr, db->finishPdus);
@@ -3430,7 +3430,7 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
-		case (Object) ERROR:
+		case (SdrObject) ERROR:
 		case 0:
 			putErrmsg("Can't create Finish PDU ZCO.", NULL);
 			return -1;
@@ -3463,14 +3463,14 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 	return 0;
 }
 
-int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
+int cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		int *direction)
 {
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB			cfdpdb;
 	ReqTicket		ticket;
-	Object			fdu = 0;
+	SdrObject		fdu = 0;
 	int			pduIsFileData = 0;	/*	Boolean.*/
 	int			haveMetadata = 0;	/*	Boolean.*/
 	int			recordStructure = 0;	/*	Boolean.*/
@@ -3730,7 +3730,7 @@ static int	parseFilestoreResponseTLV(CfdpEvent *event,
 	int			secondNameLength;
 	char			filestoreMsgBuf[256];
 	int			filestoreMsgLength;
-	Object			respObj;
+	SdrObject		respObj;
 
 	if (length < 1)				/*	Malformed.	*/
 	{
@@ -3937,7 +3937,7 @@ static int	parseFinishPduTLV(CfdpEvent *event, unsigned char **cursor,
 }
 
 static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
-			OutFdu *fdu, Object fduObj)
+			OutFdu *fdu, SdrObject fduObj)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
@@ -3993,7 +3993,7 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 	return 0;
 }
 
-static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
+static int checkInFduComplete(InFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 {
 #if CFDPDEBUG
 	/* comment out handler to quiet compiler
@@ -4145,7 +4145,7 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 }
 
 static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
-			InFdu *fdu, Object fduObj, Object fduElt, int largeFile,
+			InFdu *fdu, SdrObject fduObj, SdrObject fduElt, int largeFile,
 			int recordStructure, int haveMetadata)
 {
 	PsmPartition	wm = getIonwm();
@@ -4158,11 +4158,11 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB		cfdpdb;
-	Object		elt = 0;
-	Object		addr;
+	SdrObject	elt = 0;
+	SdrObject	addr;
 	CfdpExtent	extent;
 	uvast		extentEnd = 0;
-	Object		nextElt = 0;
+	SdrObject	nextElt = 0;
 	int			segmentTrailsLastExtentWithGap = 1;
 	uvast		bytesToSkip = 0;
 	char		stringBuf[256];
@@ -4174,7 +4174,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	PsmUsageSummary	usage;
 	char		*fillBuf;
 	uvast		fillSize;
-	Object		nextAddr;
+	SdrObject	nextAddr;
 	CfdpExtent	nextExtent;
 	uvast		bytesToWrite;
 	uvast		nextExtentEnd;
@@ -4706,7 +4706,7 @@ static int	parseFilestoreRequestTLV(InFdu *fdu, unsigned char **cursor,
 	int			firstNameLength;
 	char			secondNameBuf[256];
 	int			secondNameLength;
-	Object			reqObj;
+	SdrObject		reqObj;
 
 	if (length < 2)				/*	Malformed.	*/
 	{
@@ -4821,7 +4821,7 @@ static int	parseMessageToUserTLV(InFdu *fdu, unsigned char **cursor,
 {
 	MsgToUser	msg;
 	Sdr		sdr = getIonsdr();
-	Object		msgObj;
+	SdrObject	msgObj;
 
 	if (length == 0)	/*	Null message.			*/
 	{
@@ -4996,7 +4996,7 @@ static int	parseTLV(InFdu *fdu, unsigned char **cursor,
 }
 
 static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
-			InFdu *fdu, Object fduObj, Object fduElt, int largeFile)
+			InFdu *fdu, SdrObject fduObj, SdrObject fduElt, int largeFile)
 {
 	int		sizeFieldLength;
 	int		minPduSize;
@@ -5111,7 +5111,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 }
 
 static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
-			InFdu *fdu, Object fduObj, Object fduElt, int largeFile)
+			InFdu *fdu, SdrObject fduObj, SdrObject fduElt, int largeFile)
 {
 	int		sizeFieldLength;
 	int		minPduSize;
@@ -5388,10 +5388,10 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	unsigned short		computedCRC;
 	CfdpTransactionId	transactionId;
 	CfdpHandler		handler;
-	Object			fduObj;
+	SdrObject		fduObj;
 	InFdu			fduBuf;
 	OutFdu			outFduBuf;
-	Object			fduElt;
+	SdrObject		fduElt;
 	int			directiveCode;
 	int			result;
 

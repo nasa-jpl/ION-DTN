@@ -271,7 +271,7 @@ recording of the bundle in the ION database.
 Deletes this block from the bundle after the bundle has been recorded in the
 ION database.
 
-=item Object findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
+=item SdrObject findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
 
 On success, returns the address of the ExtensionBlock in I<bundle> for the
 indicated I<type> and tag values.  If no such extension block exists, returns

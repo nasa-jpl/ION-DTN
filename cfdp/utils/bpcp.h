@@ -80,7 +80,7 @@ enum wait_status
 /*Message to user object*/
 typedef struct
 {
-	Object	      text;   /* Text of Message */
+	SdrObject     text;   /* Text of Message */
 	unsigned char length; /* Message Length */
 } MsgToUser;
 

@@ -206,7 +206,7 @@ typedef struct {
  */
 typedef struct {
 	time_t		receivedAt;	/* Wall-clock time of reception */
-	Object		senderEid;	/* SDR string (0 if sender unknown) */
+	SdrObject	senderEid;	/* SDR string (0 if sender unknown) */
 	int		statusCode;	/* CBR_STATUS_* value */
 	uvast		bundleCount;	/* Sum of bundleLen per entry;
 					   range-array entries counted as 1 */
@@ -285,8 +285,8 @@ extern int		cbr_allocateSeqNum(Sdr sdr, char *sourceEid,
  * @param forCustody	0 for status reporting, 1 for custody
  * @return		SDR Object of BundleSeqCounter, 0 on error
  */
-extern Object		cbr_getSeqCounter(Sdr sdr, char *sourceEid,
-				char *destEid, uvast seqId, int forCustody);
+extern SdrObject cbr_getSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+		uvast seqId, int forCustody);
 
 /*	Status Reporting (CRS)						*/
 
@@ -314,8 +314,8 @@ extern int		cbr_reportStatus(Sdr sdr, Bundle *bundle,
  * Both dimensions must pass for custody to be accepted.
  */
 
-/** Returns the SDR list Object for the given whitelist dimension. */
-extern Object		cbr_getCustodyAcceptList(Sdr sdr, int forCustodian);
+/** Returns the SDR list SdrObject for the given whitelist dimension. */
+extern SdrObject cbr_getCustodyAcceptList(Sdr sdr, int forCustodian);
 
 extern int		cbr_addCustodyAccept(Sdr sdr, int forCustodian,
 					const char *eid);
@@ -340,8 +340,8 @@ extern int		cbr_isCustodyAccepted(Sdr sdr,
  */
 extern int		cbr_isCustodyRequired(Sdr sdr, const char *destEid);
 
-/** Returns the SDR list Object for the custody-request destination list. */
-extern Object		cbr_getCustodyReqList(Sdr sdr);
+/** Returns the SDR list SdrObject for the custody-request destination list. */
+extern SdrObject cbr_getCustodyReqList(Sdr sdr);
 
 extern int		cbr_addCustodyReq(Sdr sdr, const char *eid);
 extern int		cbr_removeCustodyReq(Sdr sdr, const char *eid);
@@ -356,8 +356,8 @@ extern int		cbr_removeCustodyReq(Sdr sdr, const char *eid);
  * @param cteb		CTEB block data
  * @return		0 on success, -1 on error
  */
-extern int		cbr_acceptCustody(Sdr sdr, Bundle *bundle,
-				Object bundleAddr, CtebBlk *cteb);
+extern int cbr_acceptCustody(Sdr sdr, Bundle *bundle, SdrObject bundleAddr,
+		CtebBlk *cteb);
 
 /**
  * Refuse custody of a bundle.
@@ -426,14 +426,14 @@ extern int		cbr_handleCrs(Sdr sdr, unsigned char *adminRecord,
 /*	CRS History							*/
 
 /**
- * Return the SDR list Object for the CRS reception history log.
+ * Return the SDR list SdrObject for the CRS reception history log.
  * Caller walks the list (each element is a ReceivedCrsRecord in SDR) and
  * prints or processes entries.  Must be called inside a transaction.
  *
  * @param sdr		SDR handle
- * @return		SDR list Object, or 0 on error
+ * @return		SDR list SdrObject, or 0 on error
  */
-extern Object		cbr_getCrsHistoryList(Sdr sdr);
+extern SdrObject cbr_getCrsHistoryList(Sdr sdr);
 
 /**
  * Set the maximum number of entries in the CRS reception history log.

@@ -86,7 +86,7 @@ typedef enum
 
 typedef struct
 {
-	Object	zco;
+	SdrObject zco;
 	int	trackFileOffset;		/*	Boolean control	*/
 	vast	headersLengthCopied;		/*	within extents	*/
 	vast	sourceLengthCopied;		/*	within extents	*/
@@ -109,7 +109,7 @@ extern void	zco_unregister_callback(void);
 			/*	Removes the currently registered
 			 *	ZCO-space-available callback.		*/
 
-extern Object	zco_create_file_ref(Sdr sdr,
+extern SdrObject	zco_create_file_ref(Sdr sdr,
 				char *pathName,
 				char *cleanupScript,
 				ZcoAcct acct);
@@ -129,7 +129,7 @@ extern Object	zco_create_file_ref(Sdr sdr,
 			 *	on any error.				*/
 
 extern int	zco_revise_file_ref(Sdr sdr,
-				Object fileRef,
+				SdrObject fileRef,
 				char *pathName,
 				char *cleanupScript);
 			/*	Changes the pathName and cleanupScript
@@ -139,7 +139,7 @@ extern int	zco_revise_file_ref(Sdr sdr,
 			 *	on success, -1 on any error.		*/
 
 extern char	*zco_file_ref_path(Sdr sdr,
-				Object fileRef,
+				SdrObject fileRef,
 				char *buffer,
 				int buflen);
 			/*	Returns the NULL-terminated pathName
@@ -149,7 +149,7 @@ extern char	*zco_file_ref_path(Sdr sdr,
 			 *	Returns NULL on any error.		*/
 
 extern int	zco_file_ref_xmit_eof(Sdr sdr,
-				Object fileRef);
+				SdrObject fileRef);
 			/*	Returns 1 if the last octet of the
 			 *	referenced file (as determined at the
 			 *	time the file reference object was
@@ -158,14 +158,14 @@ extern int	zco_file_ref_xmit_eof(Sdr sdr,
 			 *	turned on.  Otherwise returns zero.	*/
 
 extern void	zco_destroy_file_ref(Sdr sdr,
-				Object fileRef);
+				SdrObject fileRef);
 			/*	If file reference is no longer in use
 			 *	(no longer referenced by any ZCO) then
 			 *	it is destroyed immediately.  Otherwise
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
-extern Object	zco_create_bulk_ref(Sdr sdr,
+extern SdrObject	zco_create_bulk_ref(Sdr sdr,
 				unsigned long item,
 				vast length,
 				ZcoAcct acct);
@@ -180,15 +180,15 @@ extern Object	zco_create_bulk_ref(Sdr sdr,
 			 *	object on success, 0 on any error.	*/
 
 extern void	zco_destroy_bulk_ref(Sdr sdr,
-				Object bulkRef);
+				SdrObject bulkRef);
 			/*	If bulk reference is no longer in use
 			 *	(no longer referenced by any ZCO) then
 			 *	it is destroyed immediately.  Otherwise
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
-extern Object	zco_create_obj_ref(Sdr sdr,
-				Object object,
+extern SdrObject	zco_create_obj_ref(Sdr sdr,
+				SdrObject object,
 				vast length,
 				ZcoAcct acct);
 			/*	The referenced object is automatically
@@ -202,7 +202,7 @@ extern Object	zco_create_obj_ref(Sdr sdr,
 			 *	object on success, 0 on any error.	*/
 
 extern void	zco_destroy_obj_ref(Sdr sdr,
-				Object objRef);
+				SdrObject objRef);
 			/*	If object reference is no longer in use
 			 *	(no longer referenced by any ZCO) then
 			 *	it is destroyed immediately.  Otherwise
@@ -302,7 +302,7 @@ extern int	zco_extent_too_large(Sdr sdr,
 			 *	Returns 0 otherwise.			*/
 
 extern void	zco_get_aggregate_length(Sdr sdr,
-				Object location,
+				SdrObject location,
 				vast offset,
 				vast length,
 				vast *fileSpaceOccupied,
@@ -319,9 +319,9 @@ extern void	zco_get_aggregate_length(Sdr sdr,
 			 *	+ length isn't the end of an extent,
 			 *	returns -1 in all "Occupied" fields.	*/
 
-extern Object	zco_create(	Sdr sdr,
+extern SdrObject	zco_create(Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
-				Object firstExtentLocation,
+				SdrObject firstExtentLocation,
 				vast firstExtentOffset,
 				vast firstExtentLength,
 				ZcoAcct acct);
@@ -363,12 +363,12 @@ extern Object	zco_create(	Sdr sdr,
 			 *	currently too little available ZCO
 			 *	space in the indicated account to
 			 *	accommodate the proposed first
-			 *	extent, ((Object) -1) on any error.	*/
+			 *	extent, ((SdrObject) -1) on any error.	*/
 
 extern vast	zco_append_extent(Sdr sdr,
-				Object zco,
+				SdrObject zco,
 				ZcoMedium sourceMedium,
-				Object location,
+				SdrObject location,
 				vast offset,
 				vast length);
 			/*	Both location and length must be non-
@@ -388,23 +388,23 @@ extern vast	zco_append_extent(Sdr sdr,
 			 *	extent, -1 on any error.		*/
 
 extern int	zco_prepend_header(Sdr sdr,
-				Object zco,
+				SdrObject zco,
 				char *header,
 				vast length);
 
 extern void	zco_discard_first_header(Sdr sdr,
-				Object zco);
+				SdrObject zco);
 
 extern int	zco_append_trailer(Sdr sdr,
-				Object zco,
+				SdrObject zco,
 				char *trailer,
 				vast length);
 
 extern void	zco_discard_last_trailer(Sdr sdr,
-				Object zco);
+				SdrObject zco);
 
-extern Object	zco_header_text(Sdr sdr,
-				Object zco,
+extern SdrObject	zco_header_text(Sdr sdr,
+				SdrObject zco,
 				int skip,
 				vast *length);
 			/*	Skips over the first "skip" headers
@@ -413,8 +413,8 @@ extern Object	zco_header_text(Sdr sdr,
 			 *	placing the length of that text in
 			 *	*length.  Returns 0 on any error.	*/
 
-extern Object	zco_trailer_text(Sdr sdr,
-				Object zco,
+extern SdrObject	zco_trailer_text(Sdr sdr,
+				SdrObject zco,
 				int skip,
 				vast *length);
 			/*	Skips over the first "skip" trailers
@@ -424,7 +424,7 @@ extern Object	zco_trailer_text(Sdr sdr,
 			 *	*length.  Returns 0 on any error.	*/
 
 extern void	zco_destroy(	Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Explicitly destroys the indicated ZCO.
 			 *	This reduces the reference counts for
 			 *	all files and SDR objects referenced
@@ -434,7 +434,7 @@ extern void	zco_destroy(	Sdr sdr,
 			 *	reference counts drop to zero.		*/
 
 extern int	zco_bond(	Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Converts all headers and trailers to
 			 *	source data extents.  Use this function
 			 *	to prevent header and trailer data
@@ -442,7 +442,7 @@ extern int	zco_bond(	Sdr sdr,
 			 *	cloned.					*/
 
 extern int	zco_revise(	Sdr sdr,
-				Object zco,
+				SdrObject zco,
 				vast offset,
 				char *buffer,
 				vast length);
@@ -451,8 +451,8 @@ extern int	zco_revise(	Sdr sdr,
 			 *	indicated ZCO at the indicated offset.
 			 *	Return 0 on success, -1 on any error.	*/
 
-extern Object	zco_clone(	Sdr sdr,
-				Object zco,
+extern SdrObject	zco_clone(	Sdr sdr,
+				SdrObject zco,
 				vast offset,
 				vast length);
 			/*	Creates a new ZCO that is a copy of a
@@ -468,11 +468,11 @@ extern Object	zco_clone(	Sdr sdr,
 			 *	file and SDR source data objects
 			 *	referenced by those extents.  Returns
 			 *	the SDR location of the new ZCO on
-			 *	success, ((Object) -1) on any error.	*/
+			 *	success, ((SdrObject) -1) on any error.	*/
 
 extern vast	zco_clone_source_data(Sdr sdr,
-				Object toZco,
-				Object fromZco,
+				SdrObject toZco,
+				SdrObject fromZco,
 				vast offset,
 				vast length);
 			/*	Same as zco_clone except that the
@@ -483,24 +483,24 @@ extern vast	zco_clone_source_data(Sdr sdr,
 			 *	any error.				*/
 
 extern vast	zco_length(	Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Returns length of entire zero-copy
 			 *	object, including all headers and
 			 *	trailers and all source data extents.	*/
 
 extern vast	zco_source_data_length(Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Returns current presumptive length of
 			 *	this ZCO's encapsulated source data.	*/
 
 extern ZcoAcct	zco_acct(	Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Returns an indicator as to whether
 			 *	this ZCO is inbound or outbound.	*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 
-extern void	zco_start_transmitting(Object zco,
+extern void	zco_start_transmitting(SdrObject zco,
 				ZcoReader *reader);
 			/*	Used by underlying protocol layer to
 			 *	start extraction of outbound ZCO bytes
@@ -537,7 +537,7 @@ extern vast	zco_transmit(	Sdr sdr,
 			 *	this ZCO.  Returns the number of bytes
 			 *	copied, or -1 on any error.		*/
 
-extern void	zco_start_receiving(Object zco,
+extern void	zco_start_receiving(SdrObject zco,
 				ZcoReader *reader);
 			/*	Used by overlying protocol layer to
 			 *	start extraction of inbound ZCO bytes
@@ -564,7 +564,7 @@ extern vast	zco_receive_headers(Sdr sdr,
 			 *	copied, or -1 on any error.		*/
 
 extern void	zco_delimit_source(Sdr sdr,
-				Object zco,
+				SdrObject zco,
 				vast offset,
 				vast length);
 			/*	Sets the computed offset and length
@@ -600,7 +600,7 @@ extern vast	zco_receive_trailers(Sdr sdr,
 			 *	copied, or -1 on any error.		*/
 
 extern void	zco_strip(	Sdr sdr,
-				Object zco);
+				SdrObject zco);
 			/*	Deletes all source data extents that
 			 *	contain only header or trailer data,
 			 *	adjusts offsets and/or lengths of

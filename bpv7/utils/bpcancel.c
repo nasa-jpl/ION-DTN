@@ -30,7 +30,7 @@ int     main(int argc, char **argv)
 #endif
 	Sdr             sdr;
 	BpTimestamp     creationTime;
-	Object          bundleObj;
+	SdrObject       bundleObj;
 	int             parsed_int;
 	uvast           parsed_uvast;
 	char            errMsg[256];

@@ -211,7 +211,8 @@ void scratchExtensionBlock(ExtensionBlock *blk)
 Deletes this block from the bundle after the bundle has been recorded in the ION database.
 
 ```c
-Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned char tag1, unsigned char tag2, unsigned char tag3)
+SdrObject findExtensionBlock(Bundle *bundle, unsigned int type,
+                unsigned char tag1, unsigned char tag2, unsigned char tag3)
 ```
 
 On success, returns the address of the ExtensionBlock in bundle for the indicated type and tag values. If no such extension block exists, returns zero.
@@ -288,14 +289,14 @@ ION uses two distinct memory regions:
 // WRONG: Using working memory for persistent storage
 int myOffer(ExtensionBlock *blk, Bundle *bundle) {
     MyData *data = (MyData *)MTAKE(sizeof(MyData));  // WRONG!
-    blk->object = (Object)data;
+    blk->object = (SdrObject)data;
     return 0;
 }
 
 // CORRECT: Use database heap for persistent storage
 int myOffer(ExtensionBlock *blk, Bundle *bundle) {
     Sdr sdr = getIonsdr();
-    Object dataObj = sdr_malloc(sdr, sizeof(MyData));
+    SdrObject dataObj = sdr_malloc(sdr, sizeof(MyData));
     if (dataObj == 0) return -1;
 
     MyData data;
@@ -361,7 +362,7 @@ static uvast g_sequenceNum = 0;
 int timestampOffer(ExtensionBlock *blk, Bundle *bundle)
 {
     Sdr sdr = getIonsdr();
-    Object dataObj;
+    SdrObject dataObj;
     TimestampData data;
 
     // Populate timestamp data
@@ -408,7 +409,7 @@ void timestampRelease(ExtensionBlock *blk)
 int timestampCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
     Sdr sdr = getIonsdr();
-    Object newObj;
+    SdrObject newObj;
 
     if (oldBlk->object == 0) {
         newBlk->object = 0;
@@ -453,7 +454,7 @@ int timestampAcquire(AcqExtBlock *acqBlk, AcqWorkArea *work)
     memcpy(data, acqBlk->bytes + (acqBlk->length - acqBlk->dataLength),
            sizeof(TimestampData));
 
-    acqBlk->object = (Object)data;
+    acqBlk->object = (SdrObject)data;
     acqBlk->size = sizeof(TimestampData);
 
     return 1;  // Successfully parsed
@@ -472,7 +473,7 @@ void timestampClear(AcqExtBlock *acqBlk)
 int timestampRecord(ExtensionBlock *blk, AcqExtBlock *acqBlk)
 {
     Sdr sdr = getIonsdr();
-    Object dataObj;
+    SdrObject dataObj;
 
     if (acqBlk->object == 0) {
         blk->object = 0;
@@ -592,7 +593,7 @@ Always use SDR transactions when manipulating database memory:
 int myOffer(ExtensionBlock *blk, Bundle *bundle)
 {
     Sdr sdr = getIonsdr();
-    Object obj;
+    SdrObject obj;
 
     CHKZERO(sdr_begin_xn(sdr));
 

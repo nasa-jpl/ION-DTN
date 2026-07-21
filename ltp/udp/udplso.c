@@ -391,7 +391,7 @@ int	main(int argc, char *argv[])
 	int			       hdrSize = UDP_IPV4_HDR_SIZE;
 	char			       quit = '\0';
 #ifdef UDP_MULTISEND
-	Object		spanObj;
+	SdrObject	spanObj;
 	LtpSpan		spanBuf;
 	unsigned int	batchLimit;
 	char	       *buffers;

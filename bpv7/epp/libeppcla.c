@@ -29,7 +29,7 @@ int	sendBytesByEPP(unsigned char *buffer, size_t length,
 	return bytesWritten;
 }
 
-int	sendBundleByEPP(unsigned int bundleLength, Object bundleZco,
+int sendBundleByEPP(unsigned int bundleLength, SdrObject bundleZco,
 		unsigned char *buffer, struct EppConfig *eppcfg)
 {
 	Sdr	  sdr;

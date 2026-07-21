@@ -314,7 +314,7 @@ C++ code does not receive the `ion_atomic_*` / `ion_ipc_atomic_*` accessor macro
     #include "bp.h"
 
     std::atomic<std::uint64_t> appBundleCount{0};  // your atomic
-    Object                     newBundle;           // ION type
+    SdrObject                  newBundle;          // ION type
 
     void on_bundle_sent() {
         appBundleCount.fetch_add(1, std::memory_order_relaxed);

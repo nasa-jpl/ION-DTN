@@ -124,8 +124,8 @@ tbl_t *dtn_ion_ionsecadmin_tblt_ltp_rx_rules(ari_t *id)
 	Sdr	sdr = getIonsdr();
 	OBJ_POINTER(SecDB, db);
 	OBJ_POINTER(LtpRecvAuthRule, rule);
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	tnvc_t  *cur_row = NULL;
 
 	GET_OBJ_POINTER(sdr, SecDB, db, getSecDbObject());
@@ -183,8 +183,8 @@ tbl_t *dtn_ion_ionsecadmin_tblt_ltp_tx_rules(ari_t *id)
 	Sdr	sdr = getIonsdr();
 	OBJ_POINTER(SecDB, db);
 	OBJ_POINTER(LtpXmitAuthRule, rule);
-	Object	elt;
-	Object	obj;
+	SdrObject elt;
+	SdrObject obj;
 	tnvc_t  *cur_row = NULL;
 
 	GET_OBJ_POINTER(sdr, SecDB, db, getSecDbObject());

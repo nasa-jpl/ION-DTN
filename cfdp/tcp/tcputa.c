@@ -303,7 +303,7 @@ static int	connectToPeerEntity(uvast destinationEntityNbr,
 	}
 }
 
-static int	deletePdu(Object pduZco)
+static int deletePdu(SdrObject pduZco)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -337,7 +337,7 @@ int	main(void)
 	pthread_t		rxThread;
 	int			haveRxThread = 0;
 	Sdr			sdr;
-	Object			pduZco;
+	SdrObject		pduZco;
 	OutFdu			fduBuffer;
 	FinishPdu		fpdu;
 	int			direction;

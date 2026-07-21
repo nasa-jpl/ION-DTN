@@ -39,18 +39,18 @@ extern "C" {
 
 #define sdr_catlg(sdr, name, type, object) \
 Sdr_catlg(__FILE__, __LINE__, sdr, name, type, object)
-extern void		Sdr_catlg(const char *file, int line,
-				Sdr sdr, char *name, int type, Object object);
+extern void Sdr_catlg(const char *file, int line, Sdr sdr, char *name, int type,
+		SdrObject object);
 
-extern Object		sdr_find(Sdr sdr, char *name, int *type);
+extern SdrObject sdr_find(Sdr sdr, char *name, int *type);
 
 #define sdr_uncatlg(sdr, name) \
 Sdr_uncatlg(__FILE__, __LINE__, sdr, name)
 extern void		Sdr_uncatlg(const char *file, int line,
 				Sdr sdr, char *name);
 
-extern Object		sdr_read_catlg(Sdr sdr, char *name, int *type,
-				Object *object, Object previous_entry);
+extern SdrObject sdr_read_catlg(Sdr sdr, char *name, int *type,
+		SdrObject *object, SdrObject previous_entry);
 			/*	Returns address of catalogue entry, a
 				list element; content of entry is
 				copied into name, type, object.  The

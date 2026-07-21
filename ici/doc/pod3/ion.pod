@@ -187,7 +187,9 @@ reception) ionShred() the ticket for a service request will be interpreted as
 refusal of the reserved ZCO space, resulting in that space being made
 available for use by other tasks.
 
-=item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ZcoAcct acct, ReqAttendant *attendant)
+=item SdrObject ionCreateZco(ZcoMedium source, SdrObject location, vast offset,
+vast length, unsigned char coarsePriority, unsigned char finePriority,
+ZcoAcct acct, ReqAttendant *attendant)
 
 This function provides a "blocking" implementation of admission control in
 ION.  Like zco_create(), it constructs a zero-copy object (see zco(3)) that
@@ -201,19 +203,21 @@ then pending on the semaphore in I<attendant> as necessary before creating
 the ZCO.  ionCreateZco() returns when either (a) space has become
 available and the ZCO has been created, in which case the location of
 the ZCO is returned, or (b) the function has failed (in which case
-((Object) -1) is returned), or (c) either I<attendant> was null and sufficient
+((SdrObject) -1) is returned), or (c) either I<attendant> was null and sufficient
 space for the first extent of the ZCO was not immediately available or else
 the function was interrupted by ionPauseAttendant() before space for the
 ZCO became available (in which case 0 is returned).
 
-=item vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant)
+=item vast ionAppendZcoExtent(SdrObject zco, ZcoMedium source,
+SdrObject location, vast offset, vast length, unsigned char coarsePriority,
+unsigned char finePriority, ReqAttendant *attendant)
 
 Similar to ionCreateZco() except that instead of creating a new ZCO it appends
 an additional extent to an existing ZCO.  Returns -1 on failure, 0 on
 interruption by ionPauseAttendant() or if I<attendant> was NULL and sufficient
 space for the extent was not immediately available, I<length> on success.
 
-=item int ionSendZcoByTcp(int *sock, Object zco, char *buffer, int buflen)
+=item int ionSendZcoByTcp(int *sock, SdrObject zco, char *buffer, int buflen)
 
 Transmits the content of zero-copy object I<zco> to the TCP socket
 identified by I<*sock>.  Transmits in chunks of size I<buflen> or less,
@@ -228,7 +232,7 @@ Returns the name of the ION version installed on the local machine.
 Returns a pointer to the SDR management object, previously acquired by calling
 ionAttach(), or zero on any error.
 
-=item Object getIonDbObject(void)
+=item SdrObject getIonDbObject(void)
 
 Returns the SDR heap address of the node's non-volatile ION database.
 

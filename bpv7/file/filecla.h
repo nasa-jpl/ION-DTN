@@ -131,7 +131,7 @@ struct FileCliConfig {
 
 extern int	sendBytesByFile(unsigned char *buffer, size_t length,
 			struct FileCloConfig *cfg);
-extern int	sendBundleByFile(unsigned int bundleLength, Object bundleZco,
+extern int	sendBundleByFile(unsigned int bundleLength, SdrObject bundleZco,
 			unsigned char *buffer, struct FileCloConfig *cfg);
 
 #ifdef __cplusplus

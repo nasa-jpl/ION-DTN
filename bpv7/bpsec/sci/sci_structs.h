@@ -181,7 +181,7 @@ typedef struct
 	union {
 		PsmAddress asAddr;
 		void	  *asPtr;
-		Object	   asSdr;
+		SdrObject  asSdr;
 	} scRawValue; /** Value data.    Actual (not CBOE encoded)       */
 } sc_value;
 

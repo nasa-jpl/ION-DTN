@@ -35,8 +35,8 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 		unsigned char qosFlags, unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bclaAddr;
-	Object		bclaElt;
+	SdrObject	bclaAddr;
+	SdrObject	bclaElt;
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
@@ -110,8 +110,8 @@ void	bibeChange(char *peerEid, unsigned int fwdLatency,
 		unsigned char qosFlags, unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bclaAddr;
-	Object		bclaElt;
+	SdrObject	bclaAddr;
+	SdrObject	bclaElt;
 	Bcla		bcla;
 
 	bibeFind(peerEid, &bclaAddr, &bclaElt);
@@ -152,11 +152,11 @@ void	bibeChange(char *peerEid, unsigned int fwdLatency,
 void	bibeDelete(char *peerEid)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bclaAddr;
-	Object	bclaElt;
+	SdrObject bclaAddr;
+	SdrObject bclaElt;
 	Bcla	bcla;
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 	Bpdu	bpdu;
 
 	bibeFind(peerEid, &bclaAddr, &bclaElt);
@@ -203,15 +203,15 @@ void	bibeDelete(char *peerEid)
 	}
 }
 
-void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
+void bibeFind(char *peerEid, SdrObject *bclaAddr, SdrObject *bclaElt)
 {
 	Sdr		sdr = getIonsdr();
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 			OBJ_POINTER(Bcla, bcla);
 	char		dest[SDRSTRING_BUFSZ];
 
@@ -256,8 +256,8 @@ void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 	sdr_exit_xn(sdr);
 }
 
-static int	stripBpduHeader(Object bpduZco, unsigned int *xmitId,
-			time_t *deadline)
+static int stripBpduHeader(SdrObject bpduZco, unsigned int *xmitId,
+		time_t *deadline)
 {
 	Sdr		sdr = getIonsdr();
 	vast		bpduLength;
@@ -354,17 +354,17 @@ static int	stripBpduHeader(Object bpduZco, unsigned int *xmitId,
 	return 1;
 }
 
-static int	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
-			time_t deadline)
+static int handleCustodyTransfer(SdrObject bclaObj, unsigned int xmitId,
+		time_t deadline)
 {
 	Sdr		sdr = getIonsdr();
 	Bcla		bcla;
 	CtSignal	*signal;
-	Object		elt;
-	Object		sequenceAddr = 0;
+	SdrObject	elt;
+	SdrObject	sequenceAddr = 0;
 	CtSequence	sequence;
-	Object		elt2;
-	Object		sequenceAddr2;
+	SdrObject	elt2;
+	SdrObject	sequenceAddr2;
 	CtSequence	sequence2;
 
 	if ((getBpVdb())->watching & WATCH_w)
@@ -519,11 +519,11 @@ static int	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 int	bibeHandleBpdu(BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpduZco;
+	SdrObject	bpduZco;
 	unsigned int	xmitId;
 	time_t		deadline;
-	Object		bclaObj;
-	Object		bclaElt;
+	SdrObject	bclaObj;
+	SdrObject	bclaElt;
 	VInduct		*vinduct;
 	PsmAddress	vinductElt;
 	AcqWorkArea	*work;
@@ -619,7 +619,7 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 static void	noteCustodyRefused(Bpdu *bpdu)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bundleAddr;
+	SdrObject bundleAddr;
 	Bundle	bundle;
 
 	CHKVOID(bpdu);
@@ -640,17 +640,17 @@ int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bclaObj;
-	Object		bclaElt;
+	SdrObject	bclaObj;
+	SdrObject	bclaElt;
 	Bcla		bcla;
 	uvast		uvtemp;
 	int		reasonCode;
 	int		sequenceCount;
 	unsigned int	xmitId;
 	unsigned int	seqLength;
-	Object		elt;
-	Object		nextElt;
-	Object		bpduObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	bpduObj;
 	Bpdu		bpdu;
 
 	bibeFind(dlv->bundleSourceEid, &bclaObj, &bclaElt);

@@ -190,7 +190,7 @@ int	main(int argc, char *argv[])
 	Outduct		outduct;
 	ClProtocol	protocol;
 	int		running = 1;
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	BpAncillaryData	ancillaryData;
 	BsspSessionId	sessionId;
 	unsigned char	*buffer;

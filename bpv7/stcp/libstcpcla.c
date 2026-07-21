@@ -176,7 +176,7 @@ void	closeStcpOutductSocket(int *ductSocket)
 	}
 }
 
-static int	handleStcpFailure(Object bundleZco)
+static int handleStcpFailure(SdrObject bundleZco)
 {
 	/*	Make sure the bundle isn't dropped on the floor.	*/
 
@@ -198,7 +198,7 @@ static int	handleStcpFailure(Object bundleZco)
 
 int	sendBundleByStcp(char *protocolName, char *ductName,
 		int *sock, unsigned int bundleLength,
-		Object bundleZco, char *buffer)
+		SdrObject bundleZco, char *buffer)
 {
 	unsigned int	preamble;
 

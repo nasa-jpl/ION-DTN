@@ -22,7 +22,7 @@ extern "C" {
 /* Bundle cache entry - stores key metadata for filtering and display */
 typedef struct
 {
-	Object		bundleObj;		/* SDR address of Bundle */
+	SdrObject	bundleObj;		/* SDR address of Bundle */
 	char		source[MAX_EID_LEN];	/* Source EID */
 	char		dest[MAX_EID_LEN];	/* Destination EID */
 	uvast		creationMsec;		/* Creation timestamp (msec) */

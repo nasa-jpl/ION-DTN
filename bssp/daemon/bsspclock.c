@@ -40,10 +40,10 @@ static void	shutDown(int signum)
 	oK(_running(&stop));	/*	Terminates bsspclock.		*/
 }
 
-static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
+static int dispatchEvents(Sdr sdr, SdrObject events, time_t currentTime)
 {
-	Object		elt;
-	Object		eventObj;
+	SdrObject	elt;
+	SdrObject	eventObj;
 	BsspEvent	event;
 	int		result;
 

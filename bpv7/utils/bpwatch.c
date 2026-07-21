@@ -183,8 +183,8 @@ static void	displaySummary(Sdr sdr, BpDB *bpdb)
 	/*	Delivery: aggregate from all endpoints.			*/
 
 	{
-		Object		schemeElt;
-		Object		endpointElt;
+		SdrObject	schemeElt;
+		SdrObject	endpointElt;
 		Scheme		scheme;
 		Endpoint	endpoint;
 		EndpointStats	epStats;
@@ -244,8 +244,8 @@ static void	displaySummary(Sdr sdr, BpDB *bpdb)
 
 static void	displayPlanStats(Sdr sdr, BpDB *bpdb)
 {
-	Object	planElt;
-	Object	planObj;
+	SdrObject planElt;
+	SdrObject planObj;
 	BpPlan	plan;
 	char	buffer[256];
 	int	bulkLen;
@@ -316,8 +316,8 @@ static void	displayPlanStats(Sdr sdr, BpDB *bpdb)
 static void	displayEndpointStats(Sdr sdr, BpDB *bpdb,
 			const char *filterNss)
 {
-	Object		schemeElt;
-	Object		endpointElt;
+	SdrObject	schemeElt;
+	SdrObject	endpointElt;
 	Scheme		scheme;
 	Endpoint	endpoint;
 	EndpointStats	epStats;
@@ -416,7 +416,7 @@ static void	displayEndpointStats(Sdr sdr, BpDB *bpdb,
 static int	runBpWatch(int mode, const char *filter, int interval)
 {
 	Sdr		sdr;
-	Object		bpDbObject;
+	SdrObject	bpDbObject;
 	BpDB		bpdb;
 	char		buffer[256];
 	char		timestamp[TIMESTAMPBUFSZ];

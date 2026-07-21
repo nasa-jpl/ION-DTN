@@ -357,7 +357,7 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	Sdr		sdr = getIonsdr();
 	MsgToUser	usrmsg;
-	Object		addr;
+	SdrObject	addr;
 
 	CHKERR(list);
 	CHKERR(text);
@@ -405,8 +405,8 @@ int	cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)
 int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 	MsgToUser	usrmsg;
 
 	CHKERR(list);
@@ -453,7 +453,7 @@ int	cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 	return 0;
 }
 
-void	cfdp_destroy_usrmsg_list(Object *list)
+void cfdp_destroy_usrmsg_list(SdrObject *list)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -477,7 +477,7 @@ int	cfdp_add_fsreq(MetadataList list, CfdpAction action,
 	CfdpDB			*cfdpConstants = getCfdpConstants();
 	Sdr			sdr = getIonsdr();
 	FilestoreRequest	fsreq;
-	Object			addr;
+	SdrObject		addr;
 
 	CHKERR(list);
 	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
@@ -525,8 +525,8 @@ int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
 		char *firstFileNameBuf, char *secondFileNameBuf)
 {
 	Sdr			sdr = getIonsdr();
-	Object			elt;
-	Object			addr;
+	SdrObject		elt;
+	SdrObject		addr;
 	FilestoreRequest	fsreq;
 
 	CHKERR(list);
@@ -581,7 +581,7 @@ int	cfdp_get_fsreq(MetadataList *list, CfdpAction *action,
 	return 0;
 }
 
-void	cfdp_destroy_fsreq_list(Object *list)
+void cfdp_destroy_fsreq_list(SdrObject *list)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -599,8 +599,8 @@ int	cfdp_get_fsresp(MetadataList *list, CfdpAction *action,
 		char *messageBuf)
 {
 	Sdr			sdr = getIonsdr();
-	Object			elt;
-	Object			addr;
+	SdrObject		elt;
+	SdrObject		addr;
 	FilestoreResponse	fsresp;
 
 	CHKERR(list);
@@ -665,7 +665,7 @@ int	cfdp_get_fsresp(MetadataList *list, CfdpAction *action,
 	return 0;
 }
 
-void	cfdp_destroy_fsresp_list(Object *list)
+void cfdp_destroy_fsresp_list(SdrObject *list)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -736,9 +736,9 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	size_t			length;
 	int			i;
 	CfdpHandler		*override;
-	Object			elt;
-	Object			nextElt;
-	Object			obj;
+	SdrObject		elt;
+	SdrObject		nextElt;
+	SdrObject		obj;
 				OBJ_POINTER(FilestoreRequest, req);
 				OBJ_POINTER(MsgToUser, msg);
 	int			firstFileNameLen;
@@ -1138,11 +1138,11 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 {
 	CfdpVdb		*vdb = getCfdpVdb();
 	Sdr		sdr = getIonsdr();
-	Object		dbObj = getCfdpDbObject();
+	SdrObject	dbObj = getCfdpDbObject();
 	OutFdu		fdu;
 	uvast		destinationEntityId;
 	CfdpDB		db;
-	Object		elt;
+	SdrObject	elt;
 			OBJ_POINTER(Entity, entity);
 	CfdpHandler	handler;
 	char		sourceFileBuf[MAXPATHLEN + 1];
@@ -1152,11 +1152,11 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	vast		progress;
 	int		recordLength;
 	unsigned int	checksum = 0;
-	Object		pduObj;
+	SdrObject	pduObj;
 	FileDataPdu	pdu;
 	int		lengthRemaining;
 	char		metadataBuffer[255];
-	Object		fduObj;
+	SdrObject	fduObj;
 	CfdpEvent	event;
 	int		metadataFnRet;
 	off_t	currentOffset;
@@ -1667,8 +1667,8 @@ int	cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers,
 		unsigned int flowLabelLength, unsigned char *flowLabel,
-		unsigned int closureLatency, Object messagesToUser,
-		Object filestoreRequests, CfdpTransactionId *transactionId)
+		unsigned int closureLatency, SdrObject messagesToUser,
+		SdrObject filestoreRequests, CfdpTransactionId *transactionId)
 {
 	return createFDU(destinationEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, metadataFn,
@@ -1682,9 +1682,9 @@ int	cfdp_cancel(CfdpTransactionId *transactionId)
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*db = getCfdpConstants();
 	int	reqNbr;
-	Object	fduObj;
+	SdrObject fduObj;
 	InFdu	fduBuf;
-	Object	fduElt;
+	SdrObject fduElt;
 
 	CHKERR(transactionId);
 	CHKERR(transactionId->sourceEntityNbr.length);
@@ -1774,9 +1774,9 @@ static int	resumeOutFdu(CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
-	Object		fduObj;
+	SdrObject	fduObj;
 	OutFdu		fduBuf;
-	Object		fduElt;
+	SdrObject	fduElt;
 	CfdpEvent	event;
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -1834,9 +1834,9 @@ int	cfdp_resume(CfdpTransactionId *transactionId)
 static int	reportOnOutFdu(CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
-	Object		fduObj;
+	SdrObject	fduObj;
 	OutFdu		fduBuf;
-	Object		fduElt;
+	SdrObject	fduElt;
 	CfdpEvent	event;
 	char		reportBuffer[256];
 
@@ -1877,9 +1877,9 @@ UVAST_FIELDSPEC "  progress " UVAST_FIELDSPEC, (unsigned int) fduBuf.state,
 static int	reportOnInFdu(CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
-	Object		fduObj;
+	SdrObject	fduObj;
 	InFdu		fduBuf;
-	Object		fduElt;
+	SdrObject	fduElt;
 	CfdpEvent	event;
 	char		reportBuffer[256];
 
@@ -1942,7 +1942,7 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 int	cfdp_set_throttle(uvast bitsPerSecond)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdbBuf;
 	CfdpVdb	*vdb;
 	char	memo[128];
@@ -1995,7 +1995,7 @@ int	cfdp_set_throttle(uvast bitsPerSecond)
 int	cfdp_get_throttle(uvast *bitsPerSecond)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdbBuf;
 
 	if (cfdpdbObj == 0 || bitsPerSecond == NULL)
@@ -2028,10 +2028,10 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
 	CfdpDB		*db = getCfdpConstants();
-	Object		elt;
-	Object		eventAddr;
+	SdrObject	elt;
+	SdrObject	eventAddr;
 	CfdpEvent	event;
-	Object		msgAddr;
+	SdrObject	msgAddr;
 			OBJ_POINTER(MsgToUser, msg);
 	char		textBuffer[256];
 	char		*content;
@@ -2367,9 +2367,9 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 {
 	Sdr		sdr = getIonsdr();
 	CfdpDB		*cfdpdb = getCfdpConstants();
-	Object		fduObj;
+	SdrObject	fduObj;
 	InFdu		fduBuf;
-	Object		fduElt;
+	SdrObject	fduElt;
 	char		fileName[256];
 	int		fd;
 	unsigned int	truncatedOffset;
@@ -2430,10 +2430,10 @@ int	cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount,
 {
 	Sdr		sdr = getIonsdr();
 	CfdpDB		*cfdpdb = getCfdpConstants();
-	Object		fduObj;
+	SdrObject	fduObj;
 	InFdu		fduBuf;
-	Object		fduElt;
-	Object		elt;
+	SdrObject	fduElt;
+	SdrObject	elt;
 	CfdpExtent	extent;
 	unsigned int	i;
 	CfdpExtent	*eptr;

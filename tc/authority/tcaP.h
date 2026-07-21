@@ -23,7 +23,7 @@ typedef struct
 {
 	uvast		fqnn;
 	time_t		effectiveTime;
-	Object		acknowledged;		/*	array of char	*/
+	SdrObject	acknowledged; /* array of char */
 	time_t		assertionTime;
 	unsigned short	datLength;
 	unsigned char	datValue[TC_MAX_DATLEN];
@@ -83,10 +83,10 @@ typedef struct
 	int		fec_N;
 	int		fec_Q;
 	int		ownAuthIdx;	/*	Own position in list.	*/
-	Object		authorities;	/*	SDR list: TcaAuthority	*/
-	Object		validClients;	/*	SDR list: node FQNNs	*/
-	Object		currentRecords;	/*	SDR list: TcaRecord	*/
-	Object		pendingRecords;	/*	SDR list: TcaRecord	*/
+	SdrObject	authorities;	/*	SDR list: TcaAuthority */
+	SdrObject	validClients;	/*	SDR list: node FQNNs */
+	SdrObject	currentRecords; /*	SDR list: TcaRecord */
+	SdrObject	pendingRecords; /*	SDR list: TcaRecord */
 } TcaDB;
 
 typedef struct
@@ -102,7 +102,7 @@ extern int		tcaStart(int blocksGroupNbr);
 extern int		tcaIsStarted(int blocksGroupNbr);
 extern void		tcaStop(int blocksGroupNbr);
 extern int		tcaAttach(int blocksGroupNbr);
-extern Object		getTcaDBObject(int blocksGroupNbr);
+extern SdrObject	getTcaDBObject(int blocksGroupNbr);
 extern TcaVdb		*getTcaVdb(int blocksGroupNbr);
 
 #ifdef __cplusplus

@@ -94,7 +94,7 @@ Returns:
 - 0 if the callback does not need to call off the segment processing
 - -1 if the callback needs to call off the segment processing
 */
-extern int	serializeAuthTrailerExtensionField(Object fieldObj,
+extern int	serializeAuthTrailerExtensionField(SdrObject fieldObj,
 			LtpXmitSeg *segment, char** cursor);
 
 #endif /* LTPAUTH_H */

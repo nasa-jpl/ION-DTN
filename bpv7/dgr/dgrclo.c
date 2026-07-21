@@ -47,7 +47,7 @@ static void	*sendBundles(void *parm)
 	Sdr			sdr;
 	Outduct			outduct;
 	int			threadRunning = 1;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	BpAncillaryData		ancillaryData;
 	int			failedTransmissions = 0;
 	ZcoReader		reader;
@@ -201,7 +201,7 @@ static void	*receiveSegments(void *parm)
 	unsigned int		fromHostNbr;
 	int			length;
 	int			errnbr;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	buffer = MTAKE(DGRCLA_BUFSZ);
@@ -246,8 +246,8 @@ static void	*receiveSegments(void *parm)
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
 						ZcoOutbound);
-					if (sdr_end_xn(sdr) < 0
-					|| bundleZco == (Object) ERROR)
+					if (sdr_end_xn(sdr) < 0 ||
+							bundleZco == (SdrObject) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
@@ -286,8 +286,8 @@ success.", NULL);
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
 						ZcoOutbound);
-					if (sdr_end_xn(sdr) < 0
-					|| bundleZco == (Object) ERROR)
+					if (sdr_end_xn(sdr) < 0 ||
+							bundleZco == (SdrObject) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);

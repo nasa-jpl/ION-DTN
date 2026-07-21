@@ -49,9 +49,9 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
+static int getBpInstrDb(BpsecInstrDB *result, SdrObject *addr)
 {
-	static Object dbObj = 0;
+	static SdrObject dbObj = 0;
 	Sdr sdr = getIonsdr();
 	bpsec_instr_misc_t misc;
 
@@ -124,14 +124,14 @@ static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int	bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result,
-			Object *sdrElt, Object *sdrData)
+static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result,
+		SdrObject *sdrElt, SdrObject *sdrData)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
-	Object elt;
-	Object data;
-	Object dbObj;
+	SdrObject elt;
+	SdrObject data;
+	SdrObject dbObj;
 	CHKERR(result);
 	CHKERR(sdrElt);
 
@@ -213,8 +213,8 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 {
 	Sdr sdr = getIonsdr();
 	bpsec_src_instr_t instr;
-	Object sdrElt = 0;
-	Object sdrData = 0;
+	SdrObject sdrElt = 0;
+	SdrObject sdrData = 0;
 
 	/*
 	 * TODO: Currently the instrumentation API uses the same SDR as
@@ -232,7 +232,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 	if((bpsec_instr_get_src(src, &instr, &sdrElt, &sdrData)) == ERROR)
 	{
 		BpsecInstrDB result;
-		Object dbObj;
+		SdrObject dbObj;
 
 		if(getBpInstrDb(&result, &dbObj) == ERROR)
 		{
@@ -359,10 +359,10 @@ void bpsec_instr_cleanup(void)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_clear_src(Object sdrElt)
+void bpsec_instr_clear_src(SdrObject sdrElt)
 {
 	Sdr sdr = getIonsdr();
-	Object sdrData = 0;
+	SdrObject sdrData = 0;
 
 	if(sdrElt == 0)
 	{
@@ -407,7 +407,7 @@ int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
-	Object dbObj;
+	SdrObject dbObj;
 
 	CHKERR(result);
 
@@ -449,8 +449,8 @@ int bpsec_instr_clear(void)
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB result;
 	bpsec_instr_misc_t tmp;
-	Object sdrElt;
-	Object dbObj;
+	SdrObject sdrElt;
+	SdrObject dbObj;
 
 	if(getBpInstrDb(&result, &dbObj) == ERROR)
 	{
@@ -503,8 +503,8 @@ int bpsec_instr_clear(void)
 int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
-	Object sdrElt = 0;
-	Object sdrData = 0;
+	SdrObject sdrElt = 0;
+	SdrObject sdrData = 0;
 	CHKERR(result);
 
 	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
@@ -565,8 +565,8 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
 int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
-	Object sdrElt = 0;
-	Object sdrData = 0;
+	SdrObject sdrElt = 0;
+	SdrObject sdrData = 0;
 	CHKERR(result);
 
 	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
@@ -626,8 +626,8 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
 int bpsec_instr_get_src_update(char *src_id, time_t *result)
 {
 	bpsec_src_instr_t src;
-	Object sdrElt = 0;
-	Object sdrData = 0;
+	SdrObject sdrElt = 0;
+	SdrObject sdrData = 0;
 
 	CHKERR(result);
 
@@ -671,9 +671,9 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 	bpsec_instr_misc_t misc;
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
-	Object elt;
-	Object addr;
-	Object dbObj;
+	SdrObject elt;
+	SdrObject addr;
+	SdrObject dbObj;
 
 	CHKERR(result);
 
@@ -774,9 +774,9 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 	bpsec_instr_misc_t misc;
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
-	Object elt;
-	Object addr;
-	Object dbObj;
+	SdrObject elt;
+	SdrObject addr;
+	SdrObject dbObj;
 
 	CHKERR(result);
 
@@ -875,9 +875,9 @@ int  bpsec_instr_get_tot_update(time_t *result)
 	bpsec_src_instr_t src;
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
-	Object elt;
-	Object addr;
-	Object dbObj;
+	SdrObject elt;
+	SdrObject addr;
+	SdrObject dbObj;
 
 	CHKERR(result);
 
@@ -1045,10 +1045,10 @@ char * bpsec_instr_get_srcnames(void)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB result;
-	Object addr = 0;
-	Object data = 0;
+	SdrObject addr = 0;
+	SdrObject data = 0;
 	bpsec_src_instr_t tmp;
-	Object sdrElt = 0;
+	SdrObject sdrElt = 0;
 	uint32_t num = 0;
 	uint32_t total_size = 0;
 	char *names = NULL;
@@ -1130,7 +1130,7 @@ bytes", total_size);
 int bpsec_instr_init(void)
 {
 	BpsecInstrDB tmp;
-	Object dbObj;
+	SdrObject dbObj;
 
 	return getBpInstrDb(&tmp, &dbObj);
 }
@@ -1177,8 +1177,8 @@ void bpsec_instr_reset(void)
 void bpsec_instr_reset_src(char *src_id)
 {
 	bpsec_src_instr_t src;
-	Object sdrElt = 0;
-	Object sdrData = 0;
+	SdrObject sdrElt = 0;
+	SdrObject sdrData = 0;
 
 	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
@@ -1270,7 +1270,7 @@ database.", NULL);
 }
 
 
-static bpsec_src_instr_t *bpsec_instr_get_src(char *eid, Object *addr)
+static bpsec_src_instr_t *bpsec_instr_get_src(char *eid, SdrObject *addr)
 {
 	PsmAddress elt;
 	PsmPartition bpwm = getIonwm();
@@ -1339,8 +1339,8 @@ int bpsec_instr_init()
 	Sdr sdr = getIonsdr();
 	BpsecInstrVdb *instr_vdb = getBpInstrDb();
 	BpsecInstrDB instr_db;
-	Object dbObj;
-	Object elt;
+	SdrObject dbObj;
+	SdrObject elt;
 	bpsec_src_instr_t* cur_src;
 	bpsec_src_instr_t* tmp_src;
 	PsmAddress	addr;

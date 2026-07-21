@@ -53,15 +53,15 @@ void name_adm_init_agent(void);
  * +---------------------------------------------------------------------------------------------+
  */
 /*   START CUSTOM FUNCTIONS HERE */
-//static void	printBspBabRule(Object ruleAddr);
-//static void	printBspBibRule(Object ruleAddr);
-//static void printBspBcbRule(Object ruleAddr);
-//static void	printLtpRecvAuthRule(Object ruleAddr);
-//static void	printLtpXmitAuthRule(Object ruleAddr);
+// static void printBspBabRule(SdrObject ruleAddr);
+// static void printBspBibRule(SdrObject ruleAddr);
+// static void printBspBcbRule(SdrObject ruleAddr);
+// static void printLtpRecvAuthRule(SdrObject ruleAddr);
+// static void printLtpXmitAuthRule(SdrObject ruleAddr);
 
 /*	*	Functions for managing security information.		*/
 
-extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
+extern void	sec_findKey(char *keyName, SdrObject *keyAddr, SdrObject *eltp);
 extern int	sec_addKey(char *keyName, char *fileName, int keyLen);
 extern int	sec_updateKey(char *keyName, char *fileName, int keyLen);
 extern int	sec_removeKey(char *keyName);

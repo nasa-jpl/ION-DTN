@@ -28,28 +28,27 @@ extern "C" {
 
 #define sdr_table_create(sdr, rowSize, rowCount) \
 Sdr_table_create(__FILE__, __LINE__, sdr, rowSize, rowCount)
-extern Object		Sdr_table_create(const char *file, int line,
-				Sdr sdr, int rowSize, int rowCount);
+extern SdrObject Sdr_table_create(const char *file, int line, Sdr sdr,
+		int rowSize, int rowCount);
 
-extern Address		sdr_table_user_data(Sdr sdr, Object table);
+extern SdrAddress sdr_table_user_data(Sdr sdr, SdrObject table);
 
 #define sdr_table_user_data_set(sdr, table, userData) \
 Sdr_table_user_data_set(__FILE__, __LINE__, sdr, table, userData)
-extern void		Sdr_table_user_data_set(const char *file, int line,
-				Sdr sdr, Object table, Address userData);
+extern void Sdr_table_user_data_set(const char *file, int line, Sdr sdr,
+		SdrObject table, SdrAddress userData);
 
-extern void		sdr_table_dimensions(Sdr sdr, Object table,
-				int *rowSize, int *rowCount);
+extern void sdr_table_dimensions(Sdr sdr, SdrObject table, int *rowSize,
+		int *rowCount);
 
-extern void		sdr_table_stage(Sdr sdr, Object table);
+extern void sdr_table_stage(Sdr sdr, SdrObject table);
 
-extern Address		sdr_table_row(Sdr sdr, Object table,
-				unsigned int rowNbr);
+extern SdrAddress sdr_table_row(Sdr sdr, SdrObject table, unsigned int rowNbr);
 
 #define sdr_table_destroy(sdr, table) \
 Sdr_table_destroy(__FILE__, __LINE__, sdr, table)
-extern void		Sdr_table_destroy(const char *file, int line,
-				Sdr sdr, Object table);
+extern void Sdr_table_destroy(const char *file, int line, Sdr sdr,
+		SdrObject table);
 #ifdef __cplusplus
 }
 #endif

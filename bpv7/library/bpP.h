@@ -186,7 +186,7 @@ typedef struct
 typedef struct
 {
 	vast		length;		/*	initial length of ZCO	*/
-	Object		content;	/*	a ZCO reference in SDR	*/
+	SdrObject	content;	/*	a ZCO reference in SDR	*/
 	BpCrcType	crcType;
 } Payload;
 
@@ -301,7 +301,7 @@ typedef struct
 
 	/*	Stuff in the IPN Multicast extension block.		*/
 
-	Object		destinations;	/*	SDR list of FQNNs.	*/
+	SdrObject	destinations;	/*	SDR list of FQNNs.	*/
 
 	/*	Stuff in Payload block.					*/
 
@@ -313,7 +313,7 @@ typedef struct
 	 *	"length" values of all ExtensionBlocks in the extensions
 	 *	list.							*/
 
-	Object		extensions;
+	SdrObject	extensions;
 	int		extensionsLength;	/*	Concatenated.	*/
 	int		lastBlkNumber;
 
@@ -334,7 +334,7 @@ typedef struct
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
-	Object		stations;	/*	Stack of EIDs (route).	*/
+	SdrObject	stations;	/*	Stack of EIDs (route).	*/
 	uvast		ovrdNeighbor;	/*	FQNN.			*/
 
 	/*	Stuff for opportunistic forwarding.  A "copy" is the
@@ -352,23 +352,23 @@ typedef struct
 
 	/*	Database navigation stuff (back-references).		*/
 
-	Object		hashEntry;	/*	Entry in bundles hash.	*/
+	SdrObject	hashEntry;	/*	Entry in bundles hash.	*/
 
-	Object		timelineElt;	/*	TTL expire list ref.	*/
-	Object		overdueElt;	/*	Xmit overdue ref.	*/
-	Object		transitElt;	/*	Transit queue ref.	*/
-	Object		fwdQueueElt;	/*	Scheme's queue ref.	*/
-	Object		fragmentElt;	/*	Incomplete's list ref.	*/
-	Object		dlvQueueElt;	/*	Endpoint's queue ref.	*/
-	Object		trackingElts;	/*	List of app. list refs.	*/
+	SdrObject	timelineElt;	/*	TTL expire list ref.	*/
+	SdrObject	overdueElt;	/*	Xmit overdue ref.	*/
+	SdrObject	transitElt;	/*	Transit queue ref.	*/
+	SdrObject	fwdQueueElt;	/*	Scheme's queue ref.	*/
+	SdrObject	fragmentElt;	/*	Incomplete's list ref.	*/
+	SdrObject	dlvQueueElt;	/*	Endpoint's queue ref.	*/
+	SdrObject	trackingElts;	/*	List of app. list refs.	*/
 
-	Object		incompleteElt;	/*	Ref. to Incomplete.	*/
+	SdrObject	incompleteElt;	/*	Ref. to Incomplete.	*/
 
 	/*	Transmission queue (or limbo list) stuff.		*/
 
-	Object		planXmitElt;	/*	Issuance queue ref.	*/
-	Object		ductXmitElt;	/*	Transmission queue ref.	*/
-	Object		proxNodeEid;	/*	An SDR string.		*/
+	SdrObject	planXmitElt;	/*	Issuance queue ref.	*/
+	SdrObject	ductXmitElt;	/*	Transmission queue ref.	*/
+	SdrObject	proxNodeEid;	/*	An SDR string.		*/
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
@@ -376,7 +376,7 @@ typedef struct
 
 typedef struct
 {
-	Object		fragments;	/*	SDR list		*/
+	SdrObject fragments; /* SDR list */
 
 	/*	Each element of the fragments list is a Bundle object;
 	 *	the list is in ascending fragment offset order.  When
@@ -404,11 +404,11 @@ typedef struct
 {
 	char		nss[MAX_NSS_LEN + 1];
 	BpRecvRule	recvRule;
-	Object		recvScript;	/*	SDR string		*/
-	Object		incompletes;	/*	SDR list of Incompletes	*/
-	Object		deliveryQueue;	/*	SDR list of Bundles	*/
-	Object		scheme;		/*	back-reference		*/
-	Object		stats;		/*	EndpointStats address.	*/
+	SdrObject	recvScript;	/*	SDR string		*/
+	SdrObject	incompletes;	/*	SDR list of Incompletes	*/
+	SdrObject	deliveryQueue;	/*	SDR list of Bundles	*/
+	SdrObject	scheme;		/*	back-reference		*/
+	SdrObject	stats;		/*	EndpointStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 } Endpoint;
 
@@ -429,8 +429,8 @@ typedef struct
 
 typedef struct
 {
-	Object		endpointElt;	/*	Reference to Endpoint.	*/
-	Object		stats;		/*	EndpointStats address.	*/
+	SdrObject	endpointElt;	/*	Reference to Endpoint.	*/
+	SdrObject	stats;		/*	EndpointStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	char		nss[MAX_NSS_LEN + 1];
 	int		appPid;		/*	Consumes dlv notices.	*/
@@ -463,7 +463,7 @@ typedef struct
 
 typedef struct
 {
-	Object		outboundBundles;/*	SDR list.		*/
+	SdrObject	outboundBundles; /* SDR list. */
 	int		totalBytesSent;
 	int		svcFactor;
 } Outflow;
@@ -483,7 +483,7 @@ typedef struct
 typedef struct
 {
 	Scalar		backlog;
-	Object		lastForOrdinal;	/*	SDR list element.	*/
+	SdrObject	lastForOrdinal; /* SDR list element. */
 } OrdinalState;
 
 typedef struct
@@ -499,7 +499,7 @@ typedef struct
 	 *	EID is given here and the rest of the structure is
 	 *	unused.							*/
 
-	Object		viaEid;		/*	An sdrstring.		*/
+	SdrObject	viaEid;		/*	An sdrstring.		*/
 
 	/*	Otherwise, viaEid is zero and the plan for bundles
 	 *	destined for this neighbor is to transmit them using
@@ -507,23 +507,23 @@ typedef struct
 
 	unsigned int	nominalRate;	/*	Bytes per second.	*/
 	int		blocked;	/*	Boolean			*/
-	Object		stats;		/*	PlanStats address.	*/
+	SdrObject	stats;		/*	PlanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
-	Object		bulkQueue;	/*	SDR list of Bundles	*/
+	SdrObject	bulkQueue;	/*	SDR list of Bundles	*/
 	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
-	Object		stdQueue;	/*	SDR list of Bundles	*/
+	SdrObject	stdQueue;	/*	SDR list of Bundles	*/
 	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
-	Object		urgentQueue;	/*	SDR list of Bundles	*/
+	SdrObject	urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	Object		ducts;		/*	SDR list: outduct elts.	*/
-	Object		context;	/*	For duct selection.	*/
+	SdrObject	ducts;		/*	SDR list: outduct elts.	*/
+	SdrObject	context;	/*	For duct selection.	*/
 } BpPlan;
 
 typedef struct
 {
-	Object		planElt;	/*	Reference to BpPlan.	*/
-	Object		stats;		/*	PlanStats address.	*/
+	SdrObject	planElt;	/*	Reference to BpPlan.	*/
+	SdrObject	stats;		/*	PlanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	char		neighborEid[MAX_EID_LEN];
 	uvast		neighborFqnn;	/*	If neighborEid is ipn.	*/
@@ -538,9 +538,9 @@ typedef struct
 typedef struct
 {
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
-	Object		cliCmd;		/*	For starting the CLI.	*/
-	Object		protocol;	/*	back-reference		*/
-	Object		stats;		/*	InductStats address.	*/
+	SdrObject	cliCmd;		/*	For starting the CLI.	*/
+	SdrObject	protocol;	/*	back-reference		*/
+	SdrObject	stats;		/*	InductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 } Induct;
 
@@ -558,8 +558,8 @@ typedef struct
 
 typedef struct
 {
-	Object		inductElt;	/*	Reference to Induct.	*/
-	Object		stats;		/*	InductStats address.	*/
+	SdrObject	inductElt;	/*	Reference to Induct.	*/
+	SdrObject	stats;		/*	InductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -571,9 +571,9 @@ typedef struct
 
 typedef struct
 {
-	Object		planDuctListElt;/*	Assigned BpPlan.	*/
+	SdrObject	planDuctListElt;/*	Assigned BpPlan.	*/
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
-	Object		cloCmd;		/*	For starting the CLO.	*/
+	SdrObject	cloCmd;		/*	For starting the CLO.	*/
 
 	/*	Outducts are created automatically in at least two
 	 *	cases.  In neighbor discovery, the eureka library
@@ -588,14 +588,14 @@ typedef struct
 	 *	number.							*/
 
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
-	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
-	Object		context;	/*	For duct selection.	*/
-	Object		protocol;	/*	back-reference		*/
+	SdrObject	xmitBuffer;	/*	SDR list of (1) ZCO.	*/
+	SdrObject	context;	/*	For duct selection.	*/
+	SdrObject	protocol;	/*	back-reference		*/
 } Outduct;
 
 typedef struct
 {
-	Object		outductElt;	/*	Reference to Outduct.	*/
+	SdrObject	outductElt;	/*	Reference to Outduct.	*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		hasThread;	/*	Boolean.		*/
@@ -666,36 +666,36 @@ typedef struct
 {
 	BpEventType	type;
 	time_t		time;		/*	as from time(2)		*/
-	Object		ref;		/*	Bundle, etc.		*/
+	SdrObject	ref;		/*	Bundle, etc.		*/
 } BpEvent;
 
 typedef struct
 {
-	Object		bundleObj;	/*	0 if count > 1.		*/
+	SdrObject	bundleObj;	/*	0 if count > 1.		*/
 	unsigned int	count;
-	Object		stewardObj;	/*	Steward copy if count > 1.	*/
+	SdrObject	stewardObj;	/*	Steward copy if count > 1.	*/
 } BundleSet;
 
 typedef struct
 {
-	Object		schemes;	/*	SDR list of Schemes	*/
-	Object		plans;		/*	SDR list of BpPlans	*/
-	Object		protocols;	/*	SDR list of ClProtocols	*/
-	Object		inducts;	/*	SDR list of Inducts	*/
-	Object		outducts;	/*	SDR list of Outducts	*/
-	Object		saga[2];	/*	SDR lists of Encounters	*/
-	Object		timeline;	/*	SDR list of BpEvents	*/
-	Object		bundles;	/*	SDR hash of BundleSets	*/
-	Object		inboundBundles;	/*	SDR list of ZCOs	*/
+	SdrObject	schemes;	/*	SDR list of Schemes	*/
+	SdrObject	plans;		/*	SDR list of BpPlans	*/
+	SdrObject	protocols;	/*	SDR list of ClProtocols	*/
+	SdrObject	inducts;	/*	SDR list of Inducts	*/
+	SdrObject	outducts;	/*	SDR list of Outducts	*/
+	SdrObject	saga[2];	/*	SDR lists of Encounters	*/
+	SdrObject	timeline;	/*	SDR list of BpEvents	*/
+	SdrObject	bundles;	/*	SDR hash of BundleSets	*/
+	SdrObject	inboundBundles;	/*	SDR list of ZCOs	*/
 
 	/*	The Transit queue is a list of received in-transit
 	 *	Bundles that are awaiting presentation to forwarder
 	 *	daemons, so that they can be enqueued for transmission.	*/
 
-	Object		transit;	/*	SDR list of Bundles	*/
-	Object		limboQueue;	/*	SDR list of Bundles	*/
-	Object		clockCmd; 	/*	For starting bpclock.	*/
-	Object		transitCmd; 	/*	For starting bptransit.	*/
+	SdrObject	transit;	/*	SDR list of Bundles	*/
+	SdrObject	limboQueue;	/*	SDR list of Bundles	*/
+	SdrObject	clockCmd; 	/*	For starting bpclock.	*/
+	SdrObject	transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;	/*	Bytes of ZCO.		*/
 	int		watching;	/*	Activity watch switch.	*/
 	BpCrcType	sourcePrimaryCrcType;  /* CRC for Primary Block	*/
@@ -710,9 +710,9 @@ typedef struct
 #if USING_BSL
 	/*	BPSec library configuration parameters			*/
 
-	Object		bslLocalEid;	/*	SDR string: EID.	*/
-	Object		bslKeyFile;	/*	SDR string: pathname.	*/
-	Object		bslPolicyFile;	/*	SDR string: pathname.	*/
+	SdrObject	bslLocalEid;	/*	SDR string: EID.	*/
+	SdrObject	bslKeyFile;	/*	SDR string: pathname.	*/
+	SdrObject	bslPolicyFile;	/*	SDR string: pathname.	*/
 #endif
 	/*	Network management instrumentation			*/
 
@@ -724,12 +724,12 @@ typedef struct
 	vast		totalBundlesFragmented;
 	vast		currentFragmentsProduced;
 	vast		totalFragmentsProduced;
-	Object		sourceStats;	/*	BpCosStats address.	*/
-	Object		recvStats;	/*	BpCosStats address.	*/
-	Object		discardStats;	/*	BpCosStats address.	*/
-	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		delStats;	/*	BpDelStats address.	*/
-	Object		dbStats;	/*	BpDbStats address.	*/
+	SdrObject	sourceStats;	/*	BpCosStats address.	*/
+	SdrObject	recvStats;	/*	BpCosStats address.	*/
+	SdrObject	discardStats;	/*	BpCosStats address.	*/
+	SdrObject	xmitStats;	/*	BpCosStats address.	*/
+	SdrObject	delStats;	/*	BpDelStats address.	*/
+	SdrObject	dbStats;	/*	BpDbStats address.	*/
 
 	/*	Compressed Bundle Reporting (CBR) configuration		*/
 
@@ -807,12 +807,12 @@ typedef struct
 
 typedef struct
 {
-	Object		sourceStats;	/*	BpCosStats address.	*/
-	Object		recvStats;	/*	BpCosStats address.	*/
-	Object		discardStats;	/*	BpCosStats address.	*/
-	Object		xmitStats;	/*	BpCosStats address.	*/
-	Object		delStats;	/*	BpDelStats address.	*/
-	Object		dbStats;	/*	BpDbStats address.	*/
+	SdrObject	sourceStats;	/*	BpCosStats address.	*/
+	SdrObject	recvStats;	/*	BpCosStats address.	*/
+	SdrObject	discardStats;	/*	BpCosStats address.	*/
+	SdrObject	xmitStats;	/*	BpCosStats address.	*/
+	SdrObject	delStats;	/*	BpDelStats address.	*/
+	SdrObject	dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 
 	/*	Batched statistics delta counters.			*/
@@ -855,7 +855,7 @@ typedef struct
 
 	/*	Per-bundle state variables.				*/
 
-	Object		rawBundle;
+	SdrObject	rawBundle;
 	Bundle		bundle;
 	int		headerLength;	/*	All pre-payload blocks.	*/
 	int		preambleLength;	/*	Adds payload's header.	*/
@@ -871,9 +871,9 @@ typedef struct
 
 	int		allAuthentic;	/*	Boolean.		*/
 	EndpointId	senderEid;
-	Object		acqFileRef;
-	Object		zco;		/*	Concatenated bundles.	*/
-	Object		zcoElt;		/*	Retention in BpDB.	*/
+	SdrObject	acqFileRef;
+	SdrObject	zco;		/*	Concatenated bundles.	*/
+	SdrObject	zcoElt;		/*	Retention in BpDB.	*/
 	int		zcoLength;
 	int		zcoBytesConsumed;
 	ZcoReader	reader;
@@ -893,8 +893,8 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 					unsigned char srrFlags,
 					int ackRequested,
 					BpAncillaryData *ancillaryData,
-					Object adu,
-					Object *newBundle,
+					SdrObject adu,
+					SdrObject *newBundle,
 					int bundleIsAdmin);
 			/*	This function creates a new bundle
 			 *	and queues it for forwarding by the
@@ -918,9 +918,7 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 			 *	Otherwise (permanent system failure)
 			 *	returns -1.				*/
 
-extern int		bpAbandon(	Object bundleObj,
-					Bundle *bundle,
-					int reason);
+extern int bpAbandon(SdrObject bundleObj, Bundle *bundle, int reason);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	cannot accept for forwarding.  It
@@ -937,7 +935,7 @@ extern int		bpAbandon(	Object bundleObj,
 
 extern int		bpClone(	Bundle *originalBundle,
 					Bundle *newBundleBuffer,
-					Object *newBundleObj,
+					SdrObject *newBundleObj,
 					unsigned int offset,
 					unsigned int length);
 			/*	The function creates a copy of part
@@ -959,8 +957,7 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	payload.  Returns 0 on success,
 			 *	-1 on any failure.			*/
 
-extern int		bpAccept(	Object bundleObj,
-					Bundle *bundle);
+extern int bpAccept(SdrObject bundleObj, Bundle *bundle);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	can accept for forwarding, whether
@@ -976,18 +973,15 @@ extern int		bpAccept(	Object bundleObj,
 			 *	only once.  Returns 0 on success, -1
 			 *	on any failure.				*/
 
-extern int		bpFragment(	Bundle *bundle, Object bundleObj,
-					Object *queueElt, size_t fragmentLength,
-					Bundle *bundle1, Object *bundle1Obj,
-					Bundle *bundle2, Object *bundle2Obj);
+extern int bpFragment(Bundle *bundle, SdrObject bundleObj, SdrObject *queueElt,
+		size_t fragmentLength, Bundle *bundle1, SdrObject *bundle1Obj,
+		Bundle *bundle2, SdrObject *bundle2Obj);
 			/*	This function creates two fragmentary
 			 *	bundles from one original bundle and
 			 *	destroys the original bundle.  Returns
 			 *	0 on success, -1 on any failure.	*/
 
-extern int		bpEnqueue(	VPlan *vplan,
-					Bundle *bundle,
-					Object bundleObj);
+extern int bpEnqueue(VPlan *vplan, Bundle *bundle, SdrObject bundleObj);
 			/*	This function is invoked by a forwarder
 			 *	to enqueue a bundle for transmission
 			 *	according to a defined egress plan.
@@ -1005,7 +999,7 @@ extern int		bpEnqueue(	VPlan *vplan,
 			 *	failure.				*/
 
 extern int		bpDequeue(	VOutduct *vduct,
-					Object *outboundZco,
+					SdrObject *outboundZco,
 					BpAncillaryData *ancillaryData,
 					int stewardship);
 			/*	This function is invoked by a
@@ -1083,7 +1077,7 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
-extern int		bpHandleXmitSuccess(Object zco);
+extern int bpHandleXmitSuccess(SdrObject zco);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of convergence-
@@ -1099,7 +1093,7 @@ extern int		bpHandleXmitSuccess(Object zco);
 			 *	handled, 0 if bundle had already
 			 *	been destroyed, -1 on system failure.	*/
 
-extern int		bpHandleXmitFailure(Object zco);
+extern int bpHandleXmitFailure(SdrObject zco);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of a convergence-
@@ -1112,7 +1106,7 @@ extern int		bpHandleXmitFailure(Object zco);
 			 *	handled, 0 if bundle had already
 			 *	been destroyed, -1 on system failure.	*/
 
-extern int		bpReforwardBundle(Object bundleToReforward);
+extern int bpReforwardBundle(SdrObject bundleToReforward);
 			/*	bpReforwardBundle aborts the current
 			 *	outduct queuing for the bundle and
 			 *	queues it for re-forwarding, possibly
@@ -1159,8 +1153,7 @@ extern int		bpBeginAcq(	AcqWorkArea *workArea,
 			 *	Returns 0 on success, -1 on any
 			 *	failure.				*/
 
-extern int		bpLoadAcq(	AcqWorkArea *workArea,
-					Object zco);
+extern int bpLoadAcq(AcqWorkArea *workArea, SdrObject zco);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1277,7 +1270,7 @@ extern int		bpEndAcq(	AcqWorkArea *workArea);
 			 *	cycle of bundle acquisition just as
 			 *	if the return code had been 1.		*/
 
-extern int		bpDestroyBundle(Object bundleToDestroy,
+extern int		bpDestroyBundle(SdrObject bundleToDestroy,
 					int unconditional);
 			/*	bpDestroyBundle destroys the bundle,
 			 *	provided all retention constraints
@@ -1308,7 +1301,7 @@ extern void		bpStop(void);
 extern int		bpAttach(void);
 extern void		bpDetach(void);
 
-extern Object		getBpDbObject(void);
+extern SdrObject	getBpDbObject(void);
 extern BpDB		*getBpConstants(void);
 extern BpVdb		*getBpVdb(void);
 
@@ -1365,7 +1358,7 @@ extern int		computeZcoCrc(BpCrcType crcType,
 				uvast *computedCrc,
 				uvast *extractedCrc);
 
-extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
+extern int		startBpTask(SdrObject cmd, SdrObject cmdparms, int *pid);
 
 extern void		noteStateStats(int stateIdx, Bundle *bundle);
 extern void		clearAllStateStats(void);
@@ -1416,13 +1409,13 @@ extern int		bpBlockPlan(char *eid);
 extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
-extern int		attachPlanDuct(char *eid, Object outductElt);
-extern int		detachPlanDuct(Object outductElt);
+extern int		attachPlanDuct(char *eid, SdrObject outductElt);
+extern int		detachPlanDuct(SdrObject outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 
-extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
+extern void		fetchProtocol(char *name, ClProtocol *clp, SdrObject *elt);
 extern int		addProtocol(char *name, int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
@@ -1449,25 +1442,25 @@ extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
 
-extern Object		insertBpTimelineEvent(BpEvent *newEvent);
-extern void		destroyBpTimelineEvent(Object timelineElt);
+extern SdrObject	insertBpTimelineEvent(BpEvent *newEvent);
+extern void		destroyBpTimelineEvent(SdrObject timelineElt);
 
-extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
+extern int		decodeBundle(Sdr sdr, SdrObject zco, unsigned char *buf,
 				Bundle *image);
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
-				Object *bundleAddr);
-extern int		retrieveSerializedBundle(Object bundleZco, Object *obj);
+				SdrObject *bundleAddr);
+extern int		retrieveSerializedBundle(SdrObject bundleZco, SdrObject *obj);
 
-extern int		forwardBundle(Object bundleObj, Bundle *bundle,
+extern int		forwardBundle(SdrObject bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Object xmitElt, BpPlan *plan,
+extern int		reverseEnqueue(SdrObject xmitElt, BpPlan *plan,
 				int sendToLimbo);
 
-extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
-extern int		releaseFromLimbo(Object xmitElt, int resume);
+extern int		enqueueToLimbo(Bundle *bundle, SdrObject bundleObj);
+extern int		releaseFromLimbo(SdrObject xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle);
 extern int		parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,

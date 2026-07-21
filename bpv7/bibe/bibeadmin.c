@@ -379,8 +379,8 @@ qosFlags: %c  data label: %u  count: " UVAST_FIELDSPEC, peerEid,
 static void	infoBcla(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		obj;
-	Object		elt;
+	SdrObject	obj;
+	SdrObject	elt;
 	Bcla		bcla;
 
 	if (tokenCount != 3)
@@ -427,7 +427,7 @@ static void	listBclas(int tokenCount, char **tokens)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	Object		elt;
+	SdrObject	elt;
 	Bcla		bcla;
 
 	/* Parameter intentionally unused. */
@@ -476,7 +476,7 @@ static void	noteWatchValue(void)
 {
 	BpVdb	*vdb = getBpVdb();
 	Sdr	sdr = getIonsdr();
-	Object	dbObj = getBpDbObject();
+	SdrObject	dbObj = getBpDbObject();
 	BpDB	db;
 
 	if (vdb != NULL && dbObj != 0)

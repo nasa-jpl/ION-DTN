@@ -33,7 +33,7 @@ typedef struct
 } ReceiverThreadParms;
 
 int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
-			unsigned int length, Object zco,
+			unsigned int length, SdrObject zco,
 			unsigned int *buflen, char **buffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -121,7 +121,7 @@ static void	*handleNotices(void *parm)
 	BsspSessionId		sessionId;
 	unsigned char		reasonCode;
 	unsigned int		dataLength;
-	Object			data;		/*	ZCO reference.	*/
+	SdrObject		data; /* ZCO reference. */
 	unsigned int		buflen = 0;
 	char			*buffer = NULL;
 

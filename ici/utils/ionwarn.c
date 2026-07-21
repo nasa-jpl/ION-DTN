@@ -117,7 +117,7 @@ int	checkForCongestion(void)
 {
 	time_t		forecastTime;
 	Sdr		sdr;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	PsmPartition	ionwm;
 	int		ionMemIdx;

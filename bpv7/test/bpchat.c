@@ -26,8 +26,8 @@ const char usage[] =
 static pthread_t    sendLinesThread;
 static void *       sendLines(void *args)
 {
-	Object          bundleZco, bundlePayload;
-	Object          newBundle;   /* We never use but bp_send requires it. */
+	SdrObject       bundleZco, bundlePayload;
+	SdrObject       newBundle; /* We never use but bp_send requires it. */
 	int             lineLength = 0;
 	char            lineBuffer[1024];
 
@@ -67,7 +67,7 @@ static void *       sendLines(void *args)
 
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0,
 			lineLength, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-		if(bundleZco == 0 || bundleZco == (Object) ERROR) {
+		if(bundleZco == 0 || bundleZco == (SdrObject) ERROR) {
 			pthread_mutex_unlock(&sdrmutex);
 			bp_close(sap);
 			putErrmsg("bpchat can't create bundle ZCO.", NULL);

@@ -543,7 +543,7 @@ void	clearMetaEid(MetaEid *metaEid)
 int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 {
 	Sdr		sdr;
-	Object		obj;
+	SdrObject	obj;
 	PsmPartition	wm;
 	PsmAddress	addr;
 	int		nssLength;
@@ -1473,10 +1473,11 @@ int	eidMatchesPattern(EidPattern *eidp, EndpointId *eid)
 
 /*	*	*	Operations on bundles	*	*	*	*/
 
-int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		int classOfService, BpCustodySwitch custodySwitch,
 		unsigned char srrFlags, int ackRequested,
-		BpAncillaryData *ancillaryData, Object adu, Object *bundleObj)
+		BpAncillaryData *ancillaryData, SdrObject adu,
+		SdrObject *bundleObj)
 {
 	BpAncillaryData	defaultAncillaryData = {0};
 	MetaEid		*sourceMetaEid;
@@ -1562,7 +1563,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 			ancillaryData, adu, bundleObj, 0);
 }
 
-int	bp_track(Object bundleObj, Object trackingElt)
+int bp_track(SdrObject bundleObj, SdrObject trackingElt)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
@@ -1587,11 +1588,11 @@ int	bp_track(Object bundleObj, Object trackingElt)
 	return 0;
 }
 
-void	bp_untrack(Object bundleObj, Object trackingElt)
+void bp_untrack(SdrObject bundleObj, SdrObject trackingElt)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
-	Object	elt;
+	SdrObject elt;
 
 	CHKVOID(bundleObj && trackingElt);
 	CHKVOID(sdr_begin_xn(sdr));
@@ -1624,7 +1625,7 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 	}
 }
 
-int	bp_memo(Object bundleObj, unsigned int interval)
+int bp_memo(SdrObject bundleObj, unsigned int interval)
 {
 	/* Parameter intentionally unused. */
 	(void)bundleObj;
@@ -1633,12 +1634,12 @@ int	bp_memo(Object bundleObj, unsigned int interval)
 	return 0;
 }
 
-int	bp_suspend(Object bundleObj)
+int bp_suspend(SdrObject bundleObj)
 {
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
-	Object		queue;
-	Object		planObj;
+	SdrObject	queue;
+	SdrObject	planObj;
 	BpPlan		plan;
 #if BPDEBUG
 	char		*eidString;
@@ -1748,7 +1749,7 @@ int	bp_suspend(Object bundleObj)
 	return 0;
 }
 
-int	bp_resume(Object bundleObj)
+int bp_resume(SdrObject bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;
@@ -1805,7 +1806,7 @@ int	bp_resume(Object bundleObj)
 	return 0;
 }
 
-int	bp_cancel(Object bundleObj)
+int bp_cancel(SdrObject bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -1827,7 +1828,7 @@ int	bp_cancel(Object bundleObj)
 	return 0;
 }
 
-int	bp_release(Object bundleObj)
+int bp_release(SdrObject bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;
@@ -1902,8 +1903,8 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	Sdr		sdr = getIonsdr();
 	VEndpoint	*vpoint;
 			OBJ_POINTER(Endpoint, endpoint);
-	Object		dlvElt;
-	Object		bundleAddr;
+	SdrObject	dlvElt;
+	SdrObject	bundleAddr;
 	Bundle		bundle;
 	static TimerParms	timerParms;
 	pthread_t	timerThread;
@@ -2388,7 +2389,7 @@ void bp_list_endpoints(void)
 	PsmAddress   endpointElt;
 	VScheme      *vscheme;
 	VEndpoint    *vpoint;
-	Object       endpointObj;
+	SdrObject    endpointObj;
 	Endpoint     endpoint;
 	Scheme       schemeBuf;
 	char         buffer[2048];
@@ -2475,8 +2476,8 @@ void bp_list_protocols(void)
 {
 	Sdr        sdr = getIonsdr();
 	BpDB       *bpConstants = getBpConstants();
-	Object     elt;
-	Object     protocolObj;
+	SdrObject  elt;
+	SdrObject  protocolObj;
 	ClProtocol protocol;
 	char       buffer[2048];
 	int        protocolCount = 0;

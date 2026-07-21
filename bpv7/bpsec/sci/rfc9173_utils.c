@@ -254,8 +254,8 @@ uint8_t *bpsec_rfc9173utl_outExtBlkDataGet(Bundle *bundle, uint8_t blkNbr, int *
 {
 	ExtensionBlock blk;
 	Sdr    sdr = getIonsdr();
-	Object blkElt;
-	Object blkObj = 0;
+	SdrObject blkElt;
+	SdrObject blkObj = 0;
 	uint8_t *result = NULL;
 	uint8_t *data = NULL;
 
@@ -378,8 +378,8 @@ int bpsec_rfc9173utl_outBlkHdrSerialize(Bundle *bundle, uint8_t blkNbr, uint8_t 
 	 */
 	if(blkNbr != PayloadBlk)
 	{
-		Sdr    sdr = getIonsdr();
-		Object blkObj = 0;
+		Sdr	  sdr = getIonsdr();
+		SdrObject blkObj = 0;
 
 		/*
 		 * Step 2.1: Canonicalize the extension block header.
@@ -704,16 +704,16 @@ uint16_t bpsec_rfc9173utl_intParmGet(sc_state *state, int id, uint16_t defVal)
 	{
 		/* =========================================================================
 		 * ARCHITECTURE WARNING (Big-Endian / SPARC Compatibility)
-		 * - The underlying memory for 'scRawValue.asPtr' is always allocated as a 
-		 * full 8-byte 'uvast', even for smaller 16-bit policy parameters. 
-		 * - On strictly Big-Endian architectures (like Solaris SPARC), the actual 
-		 * 16-bit integer payload resides at the END of this 8-byte block. 
-		 * If we cast the pointer directly to (uint16_t*) and dereference it, 
-		 * the CPU will read the first two bytes of the 8-byte block, which are 
+		 * - The underlying memory for 'scRawValue.asPtr' is always allocated as a
+		 * full 8-byte 'uvast', even for smaller 16-bit policy parameters.
+		 * - On strictly Big-Endian architectures (like Solaris SPARC), the actual
+		 * 16-bit integer payload resides at the END of this 8-byte block.
+		 * If we cast the pointer directly to (uint16_t*) and dereference it,
+		 * the CPU will read the first two bytes of the 8-byte block, which are
 		 * just leading zeroes. This causes the parameter to incorrectly evaluate to 0.
-		 * - To safely extract the value, we MUST first cast the pointer to (uvast*) 
-		 * to load the entire 8-byte word into a 64-bit CPU register. Then, we cast 
-		 * the result down to (uint16_t) to safely truncate the 6 bytes of leading 
+		 * - To safely extract the value, we MUST first cast the pointer to (uvast*)
+		 * to load the entire 8-byte word into a 64-bit CPU register. Then, we cast
+		 * the result down to (uint16_t) to safely truncate the 6 bytes of leading
 		 * zeroes and capture the true payload. DO NOT simplify this cast.
 		 * ========================================================================= */
 		uvast *ptr = (uvast*) tmp->scRawValue.asPtr;

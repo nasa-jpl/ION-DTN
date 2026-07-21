@@ -46,20 +46,18 @@ typedef enum
 
 typedef struct
 {
-	Object	     text; /* Not NULL-terminated. */
+	SdrObject    text; /* Not NULL-terminated. */
 	unsigned int textLength;
 } BpString;
 
 typedef struct
 {
-	Object		dstEid;		/*	SDR string		*/
-	unsigned int	profileID;
-	Scalar		aduCounter;
-	Object		outAdus;	/*	SDR list of outAdus	*/
-	Object		queuedAdus;	/* SDR list of queued bundles	*/
-	Object		inProgressAduElt;	/*	0 if no outADU
-						 *	aggregation
-						 *	in progress	*/
+	SdrObject    dstEid;	       /* SDR string */
+	unsigned int profileID;
+	Scalar	     aduCounter;
+	SdrObject    outAdus;	       /* SDR list of outAdus */
+	SdrObject    queuedAdus;       /* SDR list of queued bundles */
+	SdrObject    inProgressAduElt; /* 0 if no outADU aggregation in progress */
 } OutAggregator;
 
 typedef struct
@@ -71,47 +69,47 @@ typedef struct
 
 	/*	Database navigation stuff	*/
 
-	Object		aggregatedZCO;	/* ZCO Ref.			*/
-	Object		bundleObj;	/* Bundle object		*/
-	Object		outAggrElt;	/* Ref. to OutboundAggregator	*/
-	Object		topics;		/* SDR list of Topics		*/
-	Object		rtxEventElt;	/* Ref. to retransmission event	*/
-	Object		delEventElt;	/* Ref. to deletion event	*/
-	uvast		aggrLength;	/* Sum of payload-record lengths */
+	SdrObject aggregatedZCO; /* ZCO Ref. */
+	SdrObject bundleObj;	 /* Bundle object */
+	SdrObject outAggrElt;	 /* Ref. to OutboundAggregator */
+	SdrObject topics;	 /* SDR list of Topics */
+	SdrObject rtxEventElt;	 /* Ref. to retransmission event */
+	SdrObject delEventElt;	 /* Ref. to deletion event */
+	uvast	  aggrLength;	 /* Sum of payload-record lengths */
 } OutAdu;
 
 typedef struct
 {
 	unsigned int	topicID;
-	Object		payloadRecords;	/* SDR list of PayloadRecords	*/
-	Object		outAduElt;	/* Ref. to OutAdu - not used	*/
+	SdrObject	payloadRecords; /* SDR list of PayloadRecords */
+	SdrObject	outAduElt;	/* Ref. to OutAdu - not used */
 } Topic;
 
 typedef struct
 {
 	DtpcEventType	type;
 	time_t		scheduledTime;
-	Object		aduElt;
+	SdrObject	aduElt;
 } DtpcEvent;
 
 typedef struct
 {
-	Object		srcEid;		/* SDR string			*/
+	SdrObject	srcEid;		/* SDR string */
 	unsigned int	profileID;
 	Scalar		nextExpected;	/* Next expected seqNum		*/
 	Scalar		resetSeqNum;	/* Last received seqNum in
 					   reset range.			*/
 	time_t		resetTimestamp;	/* Expiration time of
 					   resetSeqNum			*/
-	Object		inAdus;		/* SDR list of InAdus		*/
+	SdrObject	inAdus;		/* SDR list of InAdus */
 } InAggregator;
 
 typedef struct
 {
-	Scalar seqNum;
-	Object aggregatedZCO; /* ZCO Ref. */
-	Object inAggrElt;     /* Ref. to InboundAggretor */
-	Object gapEventElt;   /* Ref. to gap deletion event */
+	Scalar	  seqNum;
+	SdrObject aggregatedZCO; /* ZCO Ref. */
+	SdrObject inAggrElt;	 /* Ref. to InboundAggretor */
+	SdrObject gapEventElt;	 /* Ref. to gap deletion event */
 } InAdu;
 
 typedef struct
@@ -119,7 +117,7 @@ typedef struct
 	unsigned int	topicID;
 	int		appPid;
 	sm_SemId	semaphore;
-	Object		dlvQueue;	/* SDR list of PayloadRecords */
+	SdrObject	dlvQueue; /* SDR list of PayloadRecords */
 } VSap;
 
 typedef struct dtpcsap_st
@@ -132,13 +130,13 @@ typedef struct dtpcsap_st
 
 typedef struct
 {
-	Object		outAggregators;	/* SDR list OutboundAggregators	*/
-	Object		inAggregators;	/* SDR list InboundAggregators	*/
-	Object		events;		/* SDR list dtpcEvents		*/
-	Object		profiles;	/* SDR list Profiles		*/
-	Object		queues;		/* SDR list topic delivery queues
-					 * identified by list USER DATA	*/
-	Object		outboundAdus;	/* SDR list: OutAdus		*/
+	SdrObject outAggregators; /* SDR list OutboundAggregators */
+	SdrObject inAggregators;  /* SDR list InboundAggregators */
+	SdrObject events;	  /* SDR list dtpcEvents */
+	SdrObject profiles;	  /* SDR list Profiles */
+	/* SDR list topic delivery queues identified by list USER DATA */
+	SdrObject queues;
+	SdrObject outboundAdus;	  /* SDR list: OutAdus */
 } DtpcDB;
 
 typedef struct
@@ -151,7 +149,7 @@ typedef struct
 	BpAncillaryData ancillaryData;
 	int		srrFlags;
 	BpCustodySwitch custodySwitch;
-	Object		reportToEid; /* SDR String */
+	SdrObject	reportToEid; /* SDR String */
 	int		classOfService;
 } Profile;
 
@@ -171,9 +169,9 @@ typedef struct
 
 typedef struct
 {
-	Object		srcEid;		/*	SDR string		*/
+	SdrObject	srcEid;		/* SDR string */
 	size_t		length;
-	Object		content;
+	SdrObject	content;
 } DlvPayload;
 
 extern int		dtpcInit(void);
@@ -191,20 +189,20 @@ extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 				BpCustodySwitch custodySwitch,
 				char *reportToEid,
 				int classOfService);
-extern int		raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb);
-extern int		raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb,
+extern int		raiseProfile(Sdr sdr, SdrObject sdrElt, DtpcVdb *vdb);
+extern int		raiseVSap(Sdr sdr, SdrObject elt, DtpcVdb *vdb,
 				unsigned int topicID);
-extern int		initOutAdu(Profile *profile, Object outAggrAddr,
-				Object outAggrElt, Object *outAduObj,
-				Object *outAduElt);
+extern int		initOutAdu(Profile *profile, SdrObject outAggrAddr,
+				SdrObject outAggrElt, SdrObject *outAduObj,
+				SdrObject *outAduElt);
 extern int		insertRecord (DtpcSAP sap, char *dstEid,
 				unsigned int profileID, unsigned int topicID,
-				Object adu, size_t length);
-extern int		createAdu(Profile *profile, Object outAduObj,
-				Object outAduElt);
+				SdrObject adu, size_t length);
+extern int		createAdu(Profile *profile, SdrObject outAduObj,
+				SdrObject outAduElt);
 extern int		sendAdu(BpSAP sap);
-extern void		deleteAdu(Sdr sdr, Object aduElt);
-extern int		resendAdu(Sdr sdr, Object aduElt, time_t currentTime);
+extern void		deleteAdu(Sdr sdr, SdrObject aduElt);
+extern int		resendAdu(Sdr sdr, SdrObject aduElt, time_t currentTime);
 extern int		addProfile(unsigned int profileID,
 				unsigned int maxRtx,
 				size_t aggrSizeLimit,
@@ -214,14 +212,14 @@ extern int		addProfile(unsigned int profileID,
 				char* reportToEid,
 				char *flags);
 extern int		removeProfile(unsigned int profileID);
-extern Object		getDtpcDbObject(void);
+extern SdrObject		getDtpcDbObject(void);
 extern DtpcDB		*getDtpcConstants(void);
 extern DtpcVdb		*getDtpcVdb(void);
 extern int		handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv,
 				unsigned int profNum, Scalar seqNum);
 extern int		handleAck(Sdr sdr, BpDelivery *dlv,
 				unsigned int profNum, Scalar seqNum);
-extern void		deletePlaceholder(Sdr sdr, Object aduElt);
+extern void		deletePlaceholder(Sdr sdr, SdrObject aduElt);
 extern int		parseInAdus(Sdr sdr);
 extern int		sendAck(BpSAP sap, unsigned int profileID,
 				Scalar seqNum, BpDelivery *dlv);

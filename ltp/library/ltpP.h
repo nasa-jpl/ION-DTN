@@ -172,8 +172,8 @@ typedef struct
 	 *	are simply processed in the course of handling the
 	 *	PDUs and are immediately discarded.			*/
 
-	Object			headerExtensions;/*	SDR list.	*/
-	Object			trailerExtensions;/*	SDR list.	*/
+	SdrObject headerExtensions;  /* SDR list. */
+	SdrObject trailerExtensions; /* SDR list. */
 
 	/*	Fields used for multiple segment classes.		*/
 
@@ -187,13 +187,13 @@ typedef struct
 	unsigned int		clientSvcId;	/*	Destination.	*/
 	unsigned int		offset;		/*	Within block.	*/
 	unsigned int		length;		/*	Of block data.	*/
-	Object			block;	/*	Session svcDataObjects.	*/
+	SdrObject		block;		/*	Session svcDataObjects.	*/
 
 	/*	Fields for report segments.				*/
 
 	unsigned int		upperBound;
 	unsigned int		lowerBound;
-	Object			receptionClaims;/*	SDR list.	*/
+	SdrObject		receptionClaims; /* SDR list. */
 
 	/*	Fields for management segments.				*/
 
@@ -224,8 +224,8 @@ typedef enum
 typedef struct
 {
 	unsigned int	acqOffset;	/*	Within acquisition ZCO.	*/
-	Object		sessionObj;
-	Object		sessionListElt;
+	SdrObject	sessionObj;
+	SdrObject	sessionListElt;
 	LtpSegmentClass	segmentClass;
 	LtpPdu		pdu;
 } LtpRecvSeg;
@@ -248,10 +248,10 @@ typedef struct
 {
 	unsigned int	sessionNbr;
 	uvast		remoteEngineId;
-	Object		queueListElt;
-	Object		ckptListElt;	/*	For checkpoints only.	*/
-	Object		sessionObj;	/*	For codes 1-3, 14 only.	*/
-	Object		sessionListElt;	/*	For data segments only.	*/
+	SdrObject	queueListElt;
+	SdrObject	ckptListElt;	/* For checkpoints only. */
+	SdrObject	sessionObj;	/* For codes 1-3, 14 only. */
+	SdrObject	sessionListElt; /* For data segments only. */
 	LtpSegmentClass	segmentClass;
 	LtpPdu		pdu;
 } LtpXmitSeg;
@@ -262,7 +262,7 @@ typedef struct
 {
 	unsigned int	offset;
 	unsigned int	length;
-	Object		sessionListElt;
+	SdrObject	sessionListElt;
 } LtpSegmentRef;
 
 /*	While the LTP specification permits a single report to
@@ -286,8 +286,8 @@ typedef struct
 	unsigned char	finalRptAcked;	/*	Boolean.		*/
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
-	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	SdrObject	redSegments;	/*	SDR list of LtpRecvSegs	*/
+	SdrObject	rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	unsigned int	nextRptSerialNbr;
 	unsigned int	finalRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
@@ -296,19 +296,19 @@ typedef struct
 	/*	Acqusition buffers: heap and/or file.			*/
 
 	uvast		heapBufferSize;
-	Object		heapBufferObj;
+	SdrObject	heapBufferObj;
 	uvast		heapBufferBytes;
 	char		fileBufferPath[256];
-	Object		blockFileRef;
+	SdrObject	blockFileRef;
 	uvast		blockFileSize;
 
 	/*	Backward reference.					*/
 
-	Object		span;		/*	Reception span.		*/
+	SdrObject span; /* Reception span. */
 
 	/*	Inactivity timeout event (for stale session cleanup).	*/
 
-	Object		inactivityEvent;/*	SDR addr of LtpEvent.	*/
+	SdrObject inactivityEvent; /* SDR addr of LtpEvent. */
 } LtpImportSession;
 
 /*	The volatile import session object encapsulates the current
@@ -321,7 +321,7 @@ typedef struct
 typedef struct
 {
 	unsigned int	sessionNbr;	/*	ID of ImportSession.	*/
-	Object		sessionElt;	/*	Ref. to ImportSession.	*/
+	SdrObject	sessionElt;	/*	Ref. to ImportSession.	*/
 	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
 } LtpVImportSession;
 
@@ -346,7 +346,7 @@ typedef struct
 typedef struct
 {
 	unsigned int	serialNbr;
-	Object		sessionListElt;
+	SdrObject	sessionListElt;
 } LtpCkpt;
 
 /*	Export session state flag values.				*/
@@ -356,7 +356,7 @@ typedef struct
 
 typedef struct
 {
-	Object		span;		/*	Transmission span.	*/
+	SdrObject	span;		/*	Transmission span.	*/
 	unsigned int	sessionNbr;	/*	Assigned by self.	*/
 	Sdnv		sessionNbrSdnv;
 	unsigned int	clientSvcId;
@@ -366,11 +366,11 @@ typedef struct
 	int		stateFlags;
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
-	Object		claims;		/*	reception claims list	*/
+	SdrObject	svcDataObjects;	/*	SDR list of ZCOs	*/
+	SdrObject	claims;		/*	reception claims list	*/
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
-	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
-	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
+	SdrObject	checkpoints;	/*	SDR list of LtpCkpts	*/
+	SdrObject	rsSerialNbrs;	/*	SDR list of serial nbrs	*/
 	unsigned int	prevCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
@@ -378,8 +378,8 @@ typedef struct
 	 *	ExportSession cancellation prior to transmission of
 	 *	the segments.						*/
 
-	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
-	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
+	SdrObject redSegments;	 /* SDR list of LtpXmitSegs */
+	SdrObject greenSegments; /* SDR list of LtpXmitSegs */
 } LtpExportSession;
 
 typedef struct
@@ -392,10 +392,10 @@ typedef struct
 #if CLOSED_EXPORTS_ENABLED
 typedef struct
 {
-	Object		span;		/*	sending span address	*/
+	SdrObject	span;		/*	sending span address	*/
 	unsigned int	sessionNbr;	/*	identifies session	*/
 	int		responseLimit;	/*	Defense against DOS.	*/
-	Object		timeout;	/*	timeline event list elt	*/
+	SdrObject	timeout;	/*	timeline event list elt	*/
 } ClosedExport;
 #endif
 
@@ -419,14 +419,14 @@ typedef struct
 	uvast		refNbr1;	/*	Engine ID.		*/
 	unsigned int	refNbr2;	/*	Session number.		*/
 	unsigned int	refNbr3;	/*	Serial number.		*/
-	Object		parm;		/*	Non-specific use.	*/
+	SdrObject	parm;		/*	Non-specific use.	*/
 	time_t		scheduledTime;	/*	Seconds since Jan 1970.	*/
 	LtpEventType	type;
 } LtpEvent;
 
 typedef struct
 {
-	Object		segAddr;
+	SdrObject	segAddr;
 	unsigned int	sessionNbr;
 } LtpXmitSegRef;
 
@@ -442,39 +442,39 @@ typedef struct
 	Sdnv		engineIdSdnv;
 	unsigned int	remoteQtime;	/*	In seconds.		*/
 	int		purge;		/*	Boolean.		*/
-	Object		lsoCmd;		/*	For starting the LSO.	*/
+	SdrObject	lsoCmd;		/*	For starting the LSO.	*/
 	unsigned int	maxExportSessions;
 	unsigned int	maxImportSessions;
 	unsigned int	importBufferCount;
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
-	Object		stats;		/*	LtpSpanStats address.	*/
+	SdrObject	stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 
-	Object		currentExportSessionObj;
+	SdrObject	currentExportSessionObj;
 	unsigned int	ageOfBufferedBlock;
 	unsigned int	lengthOfBufferedBlock;
 	unsigned int	redLengthOfBufferedBlock;
 	unsigned int	clientSvcIdOfBufferedBlock;
 
-	Object		exportSessions;	/*	SDR list: ExportSession	*/
+	SdrObject exportSessions; /* SDR list: ExportSession */
 
 	/*	Note: any given export session may be in the
 	 *	exportSessions list (and the LtpDB.exportSessionsHash)
 	 *	or in the LtpDB.deadExports list, but not both.		*/
 
-	Object		segments;	/*	SDR list: XmitSegRef	*/
-	Object		importBuffers;	/*	SDR list: Object	*/
-	Object		importSessions;	/*	SDR list: ImportSession	*/
+	SdrObject segments;	  /* SDR list: XmitSegRef */
+	SdrObject importBuffers;  /* SDR list: SdrObject */
+	SdrObject importSessions; /* SDR list: ImportSession */
 
 	/*	Note: any given import session may be in the
 	 *	importSessions list (and hash) or in the deadImports
 	 *	list, but not both.					*/
 
-	Object		importSessionsHash;
-	Object		closedImports;	/*	SDR list: session nbr	*/
-	Object		deadImports;	/*	SDR list: ImportSession	*/
+	SdrObject importSessionsHash;
+	SdrObject closedImports; /* SDR list: session nbr */
+	SdrObject deadImports;	 /* SDR list: ImportSession */
 } LtpSpan;
 
 /* LtpSeat structure characterizes one of the link-service-layer input
@@ -482,7 +482,7 @@ typedef struct
 
 typedef struct
 {
-	Object		lsiCmd;		/*	An SDR string.		*/
+	SdrObject lsiCmd; /* An SDR string. */
 } LtpSeat;
 
 /*	*	*	LTP statistics management	*	*	*/
@@ -527,8 +527,8 @@ typedef struct
 
 typedef struct
 {
-	Object		spanElt;	/*	Reference to LtpSpan.	*/
-	Object		stats;		/*	LtpSpanStats address.	*/
+	SdrObject	spanElt;	/*	Reference to LtpSpan.	*/
+	SdrObject	stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	TallyDelta	statsDeltas[LTP_SPAN_STATS];
 	uvast		engineId;	/*	ID of remote engine.	*/
@@ -640,7 +640,7 @@ typedef struct
 
 typedef struct
 {
-	Object		seatElt;	/*	Reference to LtpSeat.	*/
+	SdrObject	seatElt;	/*	Reference to LtpSeat.	*/
 	char		lsiCmd[256];
 	int		lsiPid;		/*	For stopping the LSi.	*/
 } LtpVseat;
@@ -655,12 +655,12 @@ typedef struct
 	LtpNoticeType	type;
 	unsigned char	reasonCode;
 	unsigned char	endOfBlock;	/*	Boolean.		*/
-	Object		data;		/*	To be serialized.	*/
+	SdrObject	data;		/*	To be serialized.	*/
 } LtpNotice;
 
 typedef struct
 {
-	Object		notices;	/*	SDR list of LtpNotices	*/
+	SdrObject notices; /* SDR list of LtpNotices */
 } LtpClient;
 
 /* The volatile client object encapsulates the current volatile state
@@ -668,7 +668,7 @@ typedef struct
 
 typedef struct
 {
-	Object		notices;	/*	Copied from LtpClient.	*/
+	SdrObject	notices;	/*	Copied from LtpClient.	*/
 	int		pid;
 	sm_SemId	semaphore;	/*	For notices.		*/
 } LtpVclient;
@@ -680,7 +680,7 @@ typedef struct
 	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
 	unsigned int	maxBacklog;
-	Object		deliverables;	/*	SDR list: Deliverable	*/
+	SdrObject	deliverables; /* SDR list: Deliverable */
 
 	/*	estMaxExportSessions is used to compute the number
 	 *	of rows in the export sessions hash table in the LTP
@@ -711,14 +711,14 @@ typedef struct
 
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
-	Object		exportSessionsHash;
+	SdrObject	exportSessionsHash;
 #if CLOSED_EXPORTS_ENABLED
-	Object		closedExports;	/*	SDR list: CLosedExport	*/
+	SdrObject closedExports;     /* SDR list: CLosedExport */
 #endif
-	Object		deadExports;	/*	SDR list: ExportSession	*/
-	Object		spans;		/*	SDR list: LtpSpan	*/
-	Object		seats;		/*	SDR list: LtpSeat	*/
-	Object		timeline;	/*	SDR list: LtpEvent	*/
+	SdrObject	deadExports; /* SDR list: ExportSession */
+	SdrObject	spans;	     /* SDR list: LtpSpan */
+	SdrObject	seats;	     /* SDR list: LtpSeat */
+	SdrObject	timeline;    /* SDR list: LtpEvent */
 	unsigned int	maxAcqInHeap;
 	unsigned long	heapBytesReserved;
 	unsigned long	heapBytesOccupied;
@@ -765,7 +765,7 @@ extern void		ltpStop(void);
 extern int		ltpAttach(void);
 extern void		ltpDetach(void);
 
-extern Object		getLtpDbObject(void);
+extern SdrObject	getLtpDbObject(void);
 extern LtpDB		*getLtpConstants(void);
 extern LtpVdb		*getLtpVdb(void);
 
@@ -795,21 +795,21 @@ extern void		checkReservationLimit(void);
 extern int		ltpStartSpan(uvast engineId);
 extern void		ltpStopSpan(uvast engineId);
 
-extern int		startExportSession(Sdr sdr, Object spanObj,
+extern int		startExportSession(Sdr sdr, SdrObject spanObj,
 				LtpVspan *vspan);
 extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
-				LtpExportSession *session, Object sessionObj,
+				LtpExportSession *session, SdrObject sessionObj,
 				Lyst extents, unsigned int reportSerialNbr,
 				unsigned int checkpointSerialNbr);
 
 extern void		getImportSession(LtpVspan *vspan,
 				unsigned int sessionNbr,
 				LtpVImportSession **vsessionPtr,
-				Object *sessionObj);
+				SdrObject *sessionObj);
 extern void		clearImportSession(LtpImportSession *session);
 extern void		stopImportSession(LtpImportSession *session);
-extern void		removeImportSession(Object sessionObj);
-extern void		closeImportSession(Object sessionObj);
+extern void		removeImportSession(SdrObject sessionObj);
+extern void		closeImportSession(SdrObject sessionObj);
 
 extern int		ltpAttachClient(unsigned int clientSvcId);
 extern void		ltpDetachClient(unsigned int clientSvcId);
@@ -822,7 +822,7 @@ extern int		enqueueNotice(LtpVclient *client,
 				LtpNoticeType type,
 				unsigned char reasonCode,
 				unsigned char endOfBlock,
-				Object data);
+				SdrObject data);
 
 extern void		computeRetransmissionLimits(LtpVspan *vspan);
 extern int		getMaxReports(int redPartLength,
@@ -854,11 +854,11 @@ extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
 				unsigned int size);
 extern int		ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan);
 #if CLOSED_EXPORTS_ENABLED
-extern void 		ltpForgetClosedExport(Object elt);
+extern void 		ltpForgetClosedExport(SdrObject elt);
 #endif
 #if 0
 extern int		addClosedExport(LtpDB *ltpdb, LtpVspan *vspan,
-				Object spanObj, unsigned int sessionNbr,
+				SdrObject spanObj, unsigned int sessionNbr,
 				unsigned int segmentLength);
 extern int		ackFromClosedExport(unsigned int sessionNbr,
 				unsigned int rptSerialNbr);

@@ -89,7 +89,7 @@ struct EppConfig {
 
 extern int	sendBytesByEPP(unsigned char *buffer, size_t length,
 			struct EppConfig *eppcfg);
-extern int	sendBundleByEPP(unsigned int bundleLength, Object bundleZco,
+extern int	sendBundleByEPP(unsigned int bundleLength, SdrObject bundleZco,
 			unsigned char *buffer, struct EppConfig *eppcfg);
 
 #ifdef __cplusplus

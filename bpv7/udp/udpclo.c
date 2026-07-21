@@ -66,12 +66,12 @@ int main(int argc, char *argv[])
 	PsmAddress        vductElt;
 	Sdr               sdr;
 	Outduct           outduct;
-	Object            planDuctList;
-	Object            planObj = 0;
+	SdrObject	  planDuctList;
+	SdrObject	  planObj = 0;
 	BpPlan            plan;
 	IonNeighbor      *neighbor = NULL;
 	PsmAddress        nextElt;
-	Object            bundleZco;
+	SdrObject	  bundleZco;
 	BpAncillaryData   ancillaryData;
 	unsigned int      bundleLength;
 	int               ductSocket = -1;

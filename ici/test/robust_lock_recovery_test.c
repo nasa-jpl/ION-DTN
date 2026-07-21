@@ -94,7 +94,7 @@ typedef struct
 	int	doWrite;	/*	Victim modifies the heap.	*/
 } CaseParams;
 
-static Object	testObjs[NUM_OBJS];
+static SdrObject testObjs[NUM_OBJS];
 
 static int	caseParams(char *tag, CaseParams *p)
 {
@@ -163,8 +163,8 @@ static int	runVictim(char *tag)
 
 	if (p.doWrite)
 	{
-		char	buf[OBJ_SIZE];
-		Object	obj;
+		char	  buf[OBJ_SIZE];
+		SdrObject obj;
 
 		obj = sdr_malloc(sdr, OBJ_SIZE);
 		if (obj == 0)

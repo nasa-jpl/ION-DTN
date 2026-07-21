@@ -313,8 +313,8 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type);
 
 void       bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr);
-Address    bslpol_scparms_persist(PsmPartition partition, char *cursor, PsmAddress parms, int *bytes_left);
-Address    bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *cursor, int *bytes_left);
+SdrAddress bslpol_scparms_persist(PsmPartition partition, char *cursor, PsmAddress parms, int *bytes_left);
+SdrAddress bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *cursor, int *bytes_left);
 int        bslpol_scparms_size(PsmPartition partition, PsmAddress parms);
 
 /* Rule Persistence Functions. */

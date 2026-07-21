@@ -327,7 +327,7 @@ static LystElt	addTcpclNeighbor(VPlan *vplan, VInduct *induct, Lyst neighbors)
 
 static void	cancelXmit(LystElt elt, void *userdata)
 {
-	Object	bundleZco = (Object) lyst_data(elt);
+	SdrObject bundleZco = (SdrObject) lyst_data(elt);
 
 	/* Parameter intentionally unused. */
 	(void)userdata;
@@ -885,7 +885,7 @@ static void	shutDownNeighbors(Lyst neighbors)
 
 /*	*	*	Sender thread functions		*	*	*/
 
-static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
+static int sendBundleByTcpcl(SenderThreadParms *stp, SdrObject bundleZco)
 {
 	Sdr		sdr = getIonsdr();
 	TcpclSession	*session = stp->session;
@@ -998,7 +998,7 @@ pipeline.", session->outductName);
 static int	sendOneBundle(SenderThreadParms *stp)
 {
 	TcpclSession	*session = stp->session;
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	BpAncillaryData	ancillaryData;
 
 	while (1)
@@ -1708,7 +1708,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 	int		result;
 	uvast		lengthAcked;
 	LystElt		elt;
-	Object		bundleZco = 0;
+	SdrObject	bundleZco = 0;
 
 	/* Parameter intentionally unused. */
 	(void)msgtypeByte;
@@ -1739,7 +1739,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
-			bundleZco = (Object) lyst_data(elt);
+			bundleZco = (SdrObject) lyst_data(elt);
 		}
 
 		pthread_mutex_unlock(&(session->plMutex));
@@ -1767,7 +1767,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
-			bundleZco = (Object) lyst_data_set(elt, NULL);
+			bundleZco = (SdrObject) lyst_data_set(elt, NULL);
 			lyst_delete(elt);
 		}
 
@@ -1801,7 +1801,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
-			bundleZco = (Object) lyst_data_set(elt, NULL);
+			bundleZco = (SdrObject) lyst_data_set(elt, NULL);
 			lyst_delete(elt);
 		}
 
@@ -2439,14 +2439,14 @@ static int	rescanPlans(ClockThreadParms *ctp)
 	PsmPartition	wm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
 	ClProtocol	clp;
-	Object		protocolElt;
-	Object		protocolObj;
+	SdrObject	protocolElt;
+	SdrObject	protocolObj;
 	PsmAddress	vplanElt;
 	VPlan		*vplan;
-	Object		planObj;
+	SdrObject	planObj;
 			OBJ_POINTER(BpPlan, plan);
-	Object		ductElt;
-	Object		outductElt;
+	SdrObject	ductElt;
+	SdrObject	outductElt;
 			OBJ_POINTER(Outduct, outduct);
 	LystElt		neighborElt;
 
@@ -2525,14 +2525,14 @@ static int	rescanPlans(ClockThreadParms *ctp)
 
 static int	noLongerReferenced(char *outductName)
 {
-	Sdr		sdr = getIonsdr();
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-	Object		planElt;
-	Object		planObj;
-			OBJ_POINTER(BpPlan, plan);
-	Object		ductElt;
-	Object		outductElt;
+	Sdr	   sdr = getIonsdr();
+	VOutduct  *vduct;
+	PsmAddress vductElt;
+	SdrObject  planElt;
+	SdrObject  planObj;
+	SdrObject  ductElt;
+	SdrObject  outductElt;
+	OBJ_POINTER(BpPlan, plan);
 
 	CHKERR(sdr_begin_xn(sdr));
 	findOutduct("tcp", outductName, &vduct, &vductElt);

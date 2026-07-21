@@ -90,9 +90,9 @@ static BpVdb	*_bpvdb(char **);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
-static Object	_bpdbObject(Object *newDbObj)
+static SdrObject _bpdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -107,7 +107,7 @@ static BpDB	*_bpConstants(void)
 	static BpDB	buf;
 	static BpDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -275,7 +275,7 @@ static int	flushTallyDeltas(TallyDelta *deltas, Tally *tallies, int count)
 	return modified;
 }
 
-static int	flushCosDeltas(Sdr sdr, TallyDelta *deltas, Object statsAddr)
+static int flushCosDeltas(Sdr sdr, TallyDelta *deltas, SdrObject statsAddr)
 {
 	BpCosStats	stats;
 
@@ -508,11 +508,11 @@ static void	resetEndpoint(VEndpoint *vpoint)
 	vpoint->appCookie = 0;
 }
 
-static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
+static int raiseEndpoint(VScheme *vscheme, SdrObject endpointElt)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	Object		endpointObj;
+	SdrObject	endpointObj;
 	Endpoint	endpoint;
 	VEndpoint	*vpoint;
 	PsmAddress	vpointElt;
@@ -610,18 +610,18 @@ static void	resetScheme(VScheme *vscheme)
 	vscheme->admAppPid = ERROR;
 }
 
-static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
+static int raiseScheme(SdrObject schemeElt, BpVdb *bpvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	Object		schemeObj;
+	SdrObject	schemeObj;
 	Scheme		scheme;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	char		nbrBuf[FQN_MAX_LENGTH];
 	PsmAddress	addr;
 	char		hostNameBuf[MAXHOSTNAMELEN + 1];
-	Object		elt;
+	SdrObject	elt;
 
 	schemeObj = sdr_list_data(sdr, schemeElt);
 	sdr_read(sdr, (char *) &scheme, schemeObj, sizeof(Scheme));
@@ -880,11 +880,11 @@ static void	resetPlan(VPlan *vplan)
 #endif
 }
 
-static int	raisePlan(Object planElt, BpVdb *bpvdb)
+static int raisePlan(SdrObject planElt, BpVdb *bpvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	PsmAddress	elt;
 	VPlan		*vplan;
@@ -1023,11 +1023,11 @@ static void	resetInduct(VInduct *vduct)
 	vduct->cliPid = ERROR;
 }
 
-static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
+static int raiseInduct(SdrObject inductElt, BpVdb *bpvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	Object		inductObj;
+	SdrObject	inductObj;
 	Induct		duct;
 	ClProtocol	protocol;
 	VInduct		*vduct;
@@ -1156,11 +1156,11 @@ static void	resetOutduct(VOutduct *vduct)
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
 }
 
-static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
+static int raiseOutduct(SdrObject outductElt, BpVdb *bpvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
-	Object		outductObj;
+	SdrObject	outductObj;
 	Outduct		duct;
 	ClProtocol	protocol;
 	VOutduct	*vduct;
@@ -1281,11 +1281,11 @@ SIGTERM, sending SIGKILL",
 	vduct->cloPid = ERROR;
 }
 
-static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
+static int raiseProtocol(SdrAddress protocolAddr, BpVdb *bpvdb)
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = _bpConstants();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(Induct, induct);
 		OBJ_POINTER(Outduct, outduct);
 
@@ -1335,7 +1335,7 @@ int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
 {
 	Sdr	sdr = getIonsdr();
 	BpEvent	*argEvent;
-	Object	elt;
+	SdrObject elt;
 	BpEvent	event;
 
 	if (partition == NULL || nodeData == 0 || dataBuffer == 0)
@@ -1346,7 +1346,7 @@ int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
 	}
 
 	argEvent = (BpEvent *) dataBuffer;
-	elt = (Object) nodeData;
+	elt = (SdrObject) nodeData;
 	sdr_read(sdr, (char *) &event, sdr_list_data(sdr, elt),
 			sizeof(BpEvent));
 	if (event.time < argEvent->time)
@@ -1464,8 +1464,8 @@ static BpVdb	*_bpvdb(char **name)
 	Sdr		sdr;
 	BpDB		*db;
 	BpVdb		*newVdb;
-	Object		sdrElt;
-	Object		addr;
+	SdrObject	sdrElt;
+	SdrObject	addr;
 	BpEvent		event;
 
 	if (name)
@@ -1705,7 +1705,7 @@ static char	*_bpdbName(void)
 int	bpInit(void)
 {
 	Sdr		sdr;
-	Object		bpdbObject;
+	SdrObject	bpdbObject;
 	BpDB		bpdbBuf;
 	BpCosStats	cosStatsInit;
 	BpDelStats	delStatsInit;
@@ -1950,7 +1950,7 @@ void	bpRaiseVdb(void)
 	}
 }
 
-Object	getBpDbObject(void)
+SdrObject getBpDbObject(void)
 {
 	return _bpdbObject(NULL);
 }
@@ -2064,9 +2064,9 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	VPlan		*vplan;
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
-	Object		zcoElt;
-	Object		nextElt;
-	Object		zco;
+	SdrObject	zcoElt;
+	SdrObject	nextElt;
+	SdrObject	zco;
 
 	writeMemo("[i] bpStop: Starting BP shutdown sequence.");
 
@@ -2257,7 +2257,7 @@ responding to SIGTERM, sending SIGKILL.",
 
 int	bpAttach(void)
 {
-	Object		bpdbObject = _bpdbObject(NULL);
+	SdrObject	bpdbObject = _bpdbObject(NULL);
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	Sdr		sdr;
 	char		*bpvdbName = _bpvdbName();
@@ -2390,7 +2390,7 @@ void	getCurrentDtnTime(DtnTime *dt)
 Throttle	*applicableThrottle(VPlan *vplan)
 {
 	Sdr		sdr = getIonsdr();
-	Object		planObj;
+	SdrObject	planObj;
 			OBJ_POINTER(BpPlan, plan);
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
@@ -2535,7 +2535,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	}
 }
 
-int	startBpTask(Object cmd, Object cmdParms, int *pid)
+int startBpTask(SdrObject cmd, SdrObject cmdParms, int *pid)
 {
 	Sdr	sdr = getIonsdr();
 	char	buffer[600];
@@ -2619,7 +2619,7 @@ static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
 void	reportAllStateStats(void)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bpDbObject = getBpDbObject();
+	SdrObject	bpDbObject = getBpDbObject();
 	time_t		currentTime;
 	char		toTimestamp[20];
 	BpDB		bpdb;
@@ -2700,8 +2700,8 @@ void	reportAllStateStats(void)
 	 *	endpoints across all schemes.				*/
 
 	{
-		Object		schemeElt;
-		Object		endpointElt;
+		SdrObject	schemeElt;
+		SdrObject	endpointElt;
 		Scheme		scheme;
 		Endpoint	endpoint;
 		EndpointStats	epStats;
@@ -2759,19 +2759,19 @@ void	reportAllStateStats(void)
 
 /*	*	*	Bundle destruction functions	*	*	*/
 
-static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
+static int destroyIncomplete(IncompleteBundle *incomplete, SdrObject incElt)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	nextElt;
-	Object	fragObj;
+	SdrObject elt;
+	SdrObject nextElt;
+	SdrObject fragObj;
 	Bundle	fragment;
 
 	for (elt = sdr_list_first(sdr, incomplete->fragments); elt;
 			elt = nextElt)
 	{
 		nextElt = sdr_list_next(sdr, elt);
-		fragObj = (Object) sdr_list_data(sdr, elt);
+		fragObj = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &fragment, fragObj, sizeof(Bundle));
 		fragment.fragmentElt = 0;	/*	Lose constraint.*/
 		fragment.incompleteElt = 0;
@@ -2831,8 +2831,8 @@ void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 static void	purgePlanXmitElt(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
-	Object	queue;
-	Object	planObj;
+	SdrObject queue;
+	SdrObject planObj;
 	BpPlan	plan;
 
 	/*	Validate planXmitElt before use.  After transaction
@@ -2889,10 +2889,10 @@ detected (post-reversal cleanup), clearing reference.");
 	sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 }
 
-void	destroyBpTimelineEvent(Object timelineElt)
+void destroyBpTimelineEvent(SdrObject timelineElt)
 {
 	Sdr	sdr = getIonsdr();
-	Object	eventObj;
+	SdrObject eventObj;
 	BpEvent	event;
 
 	CHKVOID(timelineElt);
@@ -2907,8 +2907,8 @@ void	destroyBpTimelineEvent(Object timelineElt)
 static void	purgeStationsStack(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 
 	if (bundle->stations == 0)
 	{
@@ -2945,14 +2945,14 @@ static void	purgeStationsStack(Bundle *bundle)
 	}
 }
 
-int	bpDestroyBundle(Object bundleObj, int unconditional)
+int bpDestroyBundle(SdrObject bundleObj, int unconditional)
 {
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
 			OBJ_POINTER(IncompleteBundle, incomplete);
-	Object		bsetObj;
+	SdrObject	bsetObj;
 	BundleSet	bset;
-	Object		elt;
+	SdrObject	elt;
 
 	/*	Defensive checks: validate transaction and bundle address.
 	 *	After transaction crash, ionLocked() may return false.
@@ -3297,12 +3297,12 @@ static int	constructBundleHashKey(char *buffer, char *sourceEid,
 
 int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 		unsigned int fragmentOffset, unsigned int fragmentLength,
-		Object *bundleAddr)
+		SdrObject *bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	char		key[BUNDLES_HASH_KEY_BUFLEN];
-	Address		bsetObj;
-	Object		hashElt;
+	SdrAddress	bsetObj;
+	SdrObject	hashElt;
 	BundleSet	bset;
 
 	CHKERR(sourceEid && creationTime && bundleAddr);
@@ -3334,12 +3334,12 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 
 static int	findBundleForSteward(char *sourceEid, BpTimestamp *creationTime,
 			unsigned int fragmentOffset, unsigned int fragmentLength,
-			Object *bundleAddr)
+			SdrObject *bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	char		key[BUNDLES_HASH_KEY_BUFLEN];
-	Address		bsetObj;
-	Object		hashElt;
+	SdrAddress	bsetObj;
+	SdrObject	hashElt;
 	BundleSet	bset;
 
 	/*	Like findBundle(), but when the bundle-ID key is non-unique
@@ -3415,8 +3415,8 @@ int	addScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		schemeBuf;
-	Object		addr;
-	Object		schemeElt = 0;
+	SdrObject	addr;
+	SdrObject	schemeElt = 0;
 
 	CHKERR(schemeName);
 	if (*schemeName == 0)
@@ -3545,7 +3545,7 @@ int	updateScheme(char *schemeName, char *fwdCmd, char *admAppCmd)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		schemeBuf;
-	Object		addr;
+	SdrObject	addr;
 
 	CHKERR(schemeName);
 	if (*schemeName == 0)
@@ -3600,7 +3600,7 @@ too long", admAppCmd);
 	/*	All parameters validated, okay to update the scheme.
 	 *	First wipe out current cmds, then establish new ones.	*/
 
-	addr = (Object) sdr_list_data(sdr, vscheme->schemeElt);
+	addr = (SdrObject) sdr_list_data(sdr, vscheme->schemeElt);
 	sdr_stage(sdr, (char *) &schemeBuf, addr, sizeof(Scheme));
 	if (schemeBuf.fwdCmd)
 	{
@@ -3639,8 +3639,8 @@ int	removeScheme(char *schemeName)
 	Sdr		sdr = getIonsdr();
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		schemeElt;
-	Object		addr;
+	SdrObject	schemeElt;
+	SdrObject	addr;
 	Scheme		schemeBuf;
 
 	CHKERR(schemeName);
@@ -3865,9 +3865,9 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	Endpoint	endpointBuf;
 	Scheme		scheme;
 	EndpointStats	statsInit;
-	Object		addr;
-	Object		endpointElt = 0;	/*	To hush gcc.	*/
-	Object		dbObject;
+	SdrObject	addr;
+	SdrObject	endpointElt = 0; /* To hush gcc. */
+	SdrObject	dbObject;
 	BpDB		db;
 
 	CHKERR(eid);
@@ -3924,7 +3924,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 
 	endpointBuf.incompletes = sdr_list_create(sdr);
 	endpointBuf.deliveryQueue = sdr_list_create(sdr);
-	endpointBuf.scheme = (Object) sdr_list_data(sdr, vscheme->schemeElt);
+	endpointBuf.scheme = (SdrObject) sdr_list_data(sdr, vscheme->schemeElt);
 	endpointBuf.stats = sdr_malloc(sdr, sizeof(EndpointStats));
 	if (endpointBuf.stats)
 	{
@@ -3982,7 +3982,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	VScheme		*vscheme;
 	PsmAddress	elt;
 	VEndpoint	*vpoint;
-	Object		addr;
+	SdrObject	addr;
 	Endpoint	endpointBuf;
 
 	CHKERR(eid);
@@ -4005,7 +4005,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	/*	All parameters validated, okay to update the endpoint.
 	 *	First wipe out current parms, then establish new ones.	*/
 
-	addr = (Object) sdr_list_data(sdr, vpoint->endpointElt);
+	addr = (SdrObject) sdr_list_data(sdr, vpoint->endpointElt);
 	sdr_stage(sdr, (char *) &endpointBuf, addr, sizeof(Endpoint));
 	endpointBuf.recvRule = recvRule;
 	if (endpointBuf.recvScript)
@@ -4061,8 +4061,8 @@ int	removeEndpoint(char *eid)
 	VScheme		*vscheme;
 	PsmAddress	elt;
 	VEndpoint	*vpoint;
-	Object		endpointElt;
-	Object		addr;
+	SdrObject	endpointElt;
+	SdrObject	addr;
 	Endpoint	endpointBuf;
 
 	CHKERR(eid);
@@ -4097,7 +4097,7 @@ int	removeEndpoint(char *eid)
 	}
 
 	endpointElt = vpoint->endpointElt;
-	addr = (Object) sdr_list_data(sdr, endpointElt);
+	addr = (SdrObject) sdr_list_data(sdr, endpointElt);
 	sdr_read(sdr, (char *) &endpointBuf, addr, sizeof(Endpoint));
 	if (sdr_list_length(sdr, endpointBuf.incompletes) != 0)
 	{
@@ -4221,10 +4221,10 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		elt = 0;
+	SdrObject	elt = 0;
 	BpPlan		planBuf;
 	PlanStats	statsInit;
-	Object		addr;
+	SdrObject	addr;
 
 	CHKERR(eidIn);
 	CHKERR(sdr_begin_xn(sdr));
@@ -4325,7 +4325,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		addr;
+	SdrObject	addr;
 	BpPlan		planBuf;
 
 	CHKERR(eidIn);
@@ -4345,7 +4345,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 
 	/*	All parameters validated, okay to update the plan.	*/
 
-	addr = (Object) sdr_list_data(sdr, vplan->planElt);
+	addr = (SdrObject) sdr_list_data(sdr, vplan->planElt);
 	sdr_stage(sdr, (char *) &planBuf, addr, sizeof(BpPlan));
 	planBuf.nominalRate = nominalRate;
 	sdr_write(sdr, addr, (char *) &planBuf, sizeof(BpPlan));
@@ -4366,10 +4366,10 @@ int	removePlan(char *eidIn)
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planElt;
-	Object		addr;
+	SdrObject	planElt;
+	SdrObject	addr;
 	BpPlan		planBuf;
-	Object		elt;
+	SdrObject	elt;
 
 	CHKERR(eidIn);
 	if (filterEid(eid, eidIn) < 0)
@@ -4556,7 +4556,7 @@ int	setPlanViaEid(char *eid, char *viaEid)
 	size_t		viaEidLength;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 
 	CHKERR(eid);
@@ -4603,10 +4603,10 @@ int	setPlanViaEid(char *eid, char *viaEid)
 	return 1;
 }
 
-int	attachPlanDuct(char *eid, Object outductElt)
+int attachPlanDuct(char *eid, SdrObject outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	Object		outductObj;
+	SdrObject	outductObj;
 	Outduct		outduct;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -4655,10 +4655,10 @@ int	attachPlanDuct(char *eid, Object outductElt)
 	return 1;
 }
 
-int	detachPlanDuct(Object outductElt)
+int detachPlanDuct(SdrObject outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	Object		outductObj;
+	SdrObject	outductObj;
 	Outduct		outduct;
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -4746,10 +4746,10 @@ void	lookupPlan(char *eid, VPlan **answer)
 	}
 }
 
-void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
+void fetchProtocol(char *protocolName, ClProtocol *clp, SdrObject *clpElt)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 
 	CHKVOID(protocolName && clp && clpElt);
 	for (elt = sdr_list_first(sdr, (_bpConstants())->protocols); elt;
@@ -4770,8 +4770,8 @@ int	addProtocol(char *protocolName, int protocolClass)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	clpbuf;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 
 	CHKERR(protocolName);
 	if (*protocolName == 0
@@ -4840,8 +4840,8 @@ int	removeProtocol(char *protocolName)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	clpbuf;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 
 	CHKERR(protocolName);
 	CHKERR(sdr_begin_xn(sdr));
@@ -4855,7 +4855,7 @@ int	removeProtocol(char *protocolName)
 
 	/*	Okay to remove this protocol from the database.		*/
 
-	addr = (Object) sdr_list_data(sdr, elt);
+	addr = (SdrObject) sdr_list_data(sdr, elt);
 	sdr_free(sdr, addr);
 	sdr_list_delete(sdr, elt, NULL, NULL);
 	if (sdr_end_xn(sdr) < 0)
@@ -4974,13 +4974,13 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpConstants = _bpConstants();
 	ClProtocol	clpbuf;
-	Object		clpElt;
+	SdrObject	clpElt;
 	VInduct		*vduct;
 	PsmAddress	vductElt;
 	Induct		ductBuf;
 	InductStats	statsInit;
-	Object		addr;
-	Object		elt = 0;
+	SdrObject	addr;
+	SdrObject	elt = 0;
 
 	CHKERR(protocolName && ductName);
 	if (*protocolName == 0 || *ductName == 0)
@@ -5038,7 +5038,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 		ductBuf.cliCmd = sdr_string_create(sdr, cliCmd);
 	}
 
-	ductBuf.protocol = (Object) sdr_list_data(sdr, clpElt);
+	ductBuf.protocol = (SdrObject) sdr_list_data(sdr, clpElt);
 	ductBuf.stats = sdr_malloc(sdr, sizeof(InductStats));
 	if (ductBuf.stats)
 	{
@@ -5078,7 +5078,7 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 	Sdr		sdr = getIonsdr();
 	VInduct		*vduct;
 	PsmAddress	vductElt;
-	Object		addr;
+	SdrObject	addr;
 	Induct		ductBuf;
 
 	CHKERR(protocolName && ductName);
@@ -5117,7 +5117,7 @@ int	updateInduct(char *protocolName, char *ductName, char *cliCmd)
 	/*	All parameters validated, okay to update the duct.
 	 *	First wipe out current cliCmd, then establish new one.	*/
 
-	addr = (Object) sdr_list_data(sdr, vduct->inductElt);
+	addr = (SdrObject) sdr_list_data(sdr, vduct->inductElt);
 	sdr_stage(sdr, (char *) &ductBuf, addr, sizeof(Induct));
 	if (ductBuf.cliCmd)
 	{
@@ -5145,8 +5145,8 @@ int	removeInduct(char *protocolName, char *ductName)
 	Sdr		sdr = getIonsdr();
 	VInduct		*vduct;
 	PsmAddress	vductElt;
-	Object		ductElt;
-	Object		addr;
+	SdrObject	ductElt;
+	SdrObject	addr;
 	Induct		inductBuf;
 
 	CHKERR(protocolName && ductName);
@@ -5279,9 +5279,9 @@ static int	flushOutduct(Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	protocol;
-	Object		elt;
-	Object		nextElt;
-	Object		bundleObj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	bundleObj;
 	Bundle		bundle;
 	int		protocolClassReqd;
 	int		protocolClassApplied;
@@ -5333,12 +5333,12 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpConstants = _bpConstants();
 	ClProtocol	clpbuf;
-	Object		clpElt;
+	SdrObject	clpElt;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	Outduct		ductBuf;
-	Object		addr;
-	Object		elt = 0;
+	SdrObject	addr;
+	SdrObject	elt = 0;
 
 	CHKERR(protocolName && ductName);
 	if (*protocolName == 0 || *ductName == 0)
@@ -5414,7 +5414,7 @@ outduct expressions for any convergence-layer protocols", ductName);
 
 	ductBuf.maxPayloadLen = maxPayloadLength;
 	ductBuf.xmitBuffer = sdr_list_create(sdr);
-	ductBuf.protocol = (Object) sdr_list_data(sdr, clpElt);
+	ductBuf.protocol = (SdrObject) sdr_list_data(sdr, clpElt);
 	addr = sdr_malloc(sdr, sizeof(Outduct));
 	if (addr)
 	{
@@ -5453,7 +5453,7 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	Sdr		sdr = getIonsdr();
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	Object		addr;
+	SdrObject	addr;
 	Outduct		ductBuf;
 
 	CHKERR(protocolName && ductName);
@@ -5501,7 +5501,7 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	/*	All parameters validated, okay to update the duct.
 	 *	First wipe out current cloCmd, then establish new one.	*/
 
-	addr = (Object) sdr_list_data(sdr, vduct->outductElt);
+	addr = (SdrObject) sdr_list_data(sdr, vduct->outductElt);
 	sdr_stage(sdr, (char *) &ductBuf, addr, sizeof(Outduct));
 	if (ductBuf.cloCmd)
 	{
@@ -5530,8 +5530,8 @@ int	removeOutduct(char *protocolName, char *ductName)
 	Sdr		sdr = getIonsdr();
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	Object		outductElt;
-	Object		outductObj;
+	SdrObject	outductElt;
+	SdrObject	outductObj;
 	Outduct		outduct;
 
 	CHKERR(protocolName && ductName);
@@ -5673,12 +5673,12 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 }
 
 static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
-			Object *incompleteAddr, Object *incompleteElt)
+			SdrObject *incompleteAddr, SdrObject *incompleteElt)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Endpoint, endpoint);
 	char	*bundleEid = NULL;
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IncompleteBundle, incomplete);
 		OBJ_POINTER(Bundle, fragment);
 	char	*fragmentEid;
@@ -5777,7 +5777,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 	return 0;
 }
 
-Object	insertBpTimelineEvent(BpEvent *newEvent)
+SdrObject insertBpTimelineEvent(BpEvent *newEvent)
 {
 	PsmPartition	wm = getIonwm();
 	PsmAddress	timeline = (getBpVdb())->timeline;
@@ -5785,9 +5785,9 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	PsmAddress	successor;
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpConstants = _bpConstants();
-	Address		addr;
-	Object		nextElt;
-	Object		elt;
+	SdrAddress	addr;
+	SdrObject	nextElt;
+	SdrObject	elt;
 
 	CHKZERO(newEvent);
 	CHKZERO(ionLocked());
@@ -5809,7 +5809,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	sdr_write(sdr, addr, (char *) newEvent, sizeof(BpEvent));
 	if (successor)
 	{
-		nextElt = (Object) sm_rbt_data(wm, successor);
+		nextElt = (SdrObject) sm_rbt_data(wm, successor);
 		elt = sdr_list_insert_before(sdr, nextElt, addr);
 	}
 	else
@@ -5890,7 +5890,7 @@ static void	computeExpirationTime(Bundle *bundle)
 	}
 }
 
-static int	setBundleTTL(Bundle *bundle, Object bundleObj)
+static int setBundleTTL(Bundle *bundle, SdrObject bundleObj)
 {
 	BpEvent	event;
 
@@ -5911,14 +5911,14 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-static int	catalogueBundle(Bundle *bundle, Object bundleObj)
+static int catalogueBundle(Bundle *bundle, SdrObject bundleObj)
 {
 	Sdr		sdr = getIonsdr();
-	Object		bundles = (_bpConstants())->bundles;
+	SdrObject	bundles = (_bpConstants())->bundles;
 	char		*sourceEid;
 	char		bundleKey[BUNDLES_HASH_KEY_BUFLEN];
-	Address		bsetObj;
-	Object		hashElt;
+	SdrAddress	bsetObj;
+	SdrObject	hashElt;
 	BundleSet	bset;
 	int		result = 0;
 
@@ -6004,7 +6004,7 @@ cannot be retrieved by key", bundleKey);
 	return result;
 }
 
-int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
+int bpClone(Bundle *oldBundle, Bundle *newBundle, SdrObject *newBundleObj,
 		unsigned int offset, unsigned int length)
 {
 	Sdr		sdr = getIonsdr();
@@ -6148,7 +6148,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		for (Object elt = sdr_list_first(sdr, oldBundle->destinations);
+		for (SdrObject elt = sdr_list_first(sdr, oldBundle->destinations);
 				elt; elt = sdr_list_next(sdr, elt))
 		{
 			uvast fqnn = (uvast) sdr_list_data(sdr, elt);
@@ -6252,13 +6252,13 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	return 0;
 }
 
-int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
+int forwardBundle(SdrObject bundleObj, Bundle *bundle, char *eid)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	char		eidBuf[SDRSTRING_BUFSZ];
 	MetaEid		stationMetaEid;
-	Object		stationEid;
+	SdrObject	stationEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		schemeBuf;
@@ -6519,12 +6519,12 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		char *reportToEidString, uvast lifespan, int classOfService,
 		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
-		int ackRequested, BpAncillaryData *ancillaryData, Object adu,
-		Object *bundleObj, int adminRecordType)
+		int ackRequested, BpAncillaryData *ancillaryData, SdrObject adu,
+		SdrObject *bundleObj, int adminRecordType)
 {
 	Sdr		sdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
-	Object		bpDbObject = getBpDbObject();
+	SdrObject	bpDbObject = getBpDbObject();
 	PsmPartition	bpwm = getIonwm();
 	MetaEid		destMetaEid;
 	VScheme		*vscheme;
@@ -6545,7 +6545,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	MetaEid		reportToMetaEidBuf;
 	MetaEid		*reportToMetaEid;
 	DtnTime		currentDtnTime;
-	Object		bundleAddr;
+	SdrObject	bundleAddr;
 	ExtensionSpec	*userExtensions = NULL;
 	int		userExtensionsCt = 0;
 	ExtensionSpec	*extensions;
@@ -7007,7 +7007,7 @@ when asking for status reports.");
 
 	if (custodySwitch != NoCustodyRequested)
 	{
-		Object ctebElt = findExtensionBlock(&bundle,
+		SdrObject ctebElt = findExtensionBlock(&bundle,
 				CBR_BLOCK_TYPE_CTEB, 0);
 
 #ifdef DEBUG_CUSTODY_SRC
@@ -7193,8 +7193,8 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 	}
 }
 
-static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
-			VEndpoint *vpoint)
+static int enqueueForDelivery(SdrObject bundleObj, Bundle *bundle,
+		VEndpoint *vpoint)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Endpoint, endpoint);
@@ -7272,11 +7272,11 @@ static int	sendRequestedStatusReports(Bundle *bundle)
 	return 0;
 }
 
-static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
-			Object bundleObj, Bundle *bundle)
+static int extendIncomplete(IncompleteBundle *incomplete, SdrObject incElt,
+		SdrObject bundleObj, Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(Bundle, fragment);
 
 	bundle->incompleteElt = incElt;
@@ -7333,12 +7333,12 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	return 0;
 }
 
-static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
-			VEndpoint *vpoint)
+static int createIncompleteBundle(SdrObject bundleObj, Bundle *bundle,
+		VEndpoint *vpoint)
 {
 	Sdr			sdr = getIonsdr();
 	IncompleteBundle	incomplete;
-	Object			incObj;
+	SdrObject		incObj;
 				OBJ_POINTER(Endpoint, endpoint);
 
 	incomplete.fragments = sdr_list_create(sdr);
@@ -7394,11 +7394,11 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
-static int deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
+static int deliverBundle(SdrObject bundleObj, Bundle *bundle, VEndpoint *vpoint)
 {
-	Object	incompleteAddr = 0;
+	SdrObject incompleteAddr = 0;
 		OBJ_POINTER(IncompleteBundle, incomplete);
-	Object	elt;
+	SdrObject elt;
 
 	CHKERR(bundleObj && bundle && vpoint);
 	CHKERR(ionLocked());
@@ -7446,13 +7446,12 @@ static int deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 	return enqueueForDelivery(bundleObj, bundle, vpoint);
 }
 
-static int	dispatchBundle(Object bundleObj, Bundle *bundle,
-			VEndpoint **vpoint)
+static int dispatchBundle(SdrObject bundleObj, Bundle *bundle, VEndpoint **vpoint)
 {
 	Sdr		sdr = getIonsdr();
 	BpDB		*db = getBpConstants();
 	Bundle		newBundle;
-	Object		newBundleObj;
+	SdrObject	newBundleObj;
 
 	CHKERR(ionLocked());
 	if (bundle->deliverable)
@@ -7766,7 +7765,7 @@ int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 	return 0;
 }
 
-int	bpLoadAcq(AcqWorkArea *work, Object zco)
+int bpLoadAcq(AcqWorkArea *work, SdrObject zco)
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = _bpConstants();
@@ -7802,7 +7801,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	vast			heapSpaceNeeded = 0;
 	vast			fileSpaceNeeded = 0;
 	ReqTicket		ticket;
-	Object			extentObj;
+	SdrObject		extentObj;
 	char			cwd[200];
 	char			fileName[SDRSTRING_BUFSZ];
 	int			fd;
@@ -7896,7 +7895,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
 		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
-		if (work->zco == (Object) ERROR)
+		if (work->zco == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
@@ -9650,7 +9649,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpSrReason srReason)
 static void	initAuthenticity(AcqWorkArea *work)
 {
 #if !USING_BSL
-	Object	secdbObj;
+	SdrObject secdbObj;
 #endif
 
 	work->authentic = -1;		/*	Unknown.		*/
@@ -9728,7 +9727,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	MetaEid		senderMetaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		bundleObj;
+	SdrObject	bundleObj;
 
 	if (ionHeapMemProtected(sdr) || ionWmMemProtected())
 	{
@@ -9812,7 +9811,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	zco_destroy(sdr, work->rawBundle);
 	switch (bundle->payload.content)
 	{
-	case (Object) ERROR:
+	case (SdrObject) ERROR:
 		putErrmsg("Can't clone payload out of bundle.", NULL);
 		return -1;
 	case 0:
@@ -10235,18 +10234,18 @@ bundle.", NULL);
 static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 {
 	Sdr		sdr = getIonsdr();
-	Object		fragmentsList;
-	Object		incElt;
-	Object		incObj;
+	SdrObject	fragmentsList;
+	SdrObject	incElt;
+	SdrObject	incObj;
 			OBJ_POINTER(IncompleteBundle, incomplete);
-	Object		elt;
+	SdrObject	elt;
 			OBJ_POINTER(Bundle, fragment);
 	unsigned int	endOfFurthestFragment;
 	unsigned int	endOfFragment;
 	Bundle		aggregateBundle;
-	Object		aggregateBundleObj;
+	SdrObject	aggregateBundleObj;
 	unsigned int	aggregateAduLength;
-	Object		fragmentObj;
+	SdrObject	fragmentObj;
 	Bundle		fragBuf;
 	unsigned int	bytesToSkip;
 	unsigned int	bytesToCopy;
@@ -10458,7 +10457,7 @@ acquisition.");
 
 /*	*	*	Status report functions		*	*	*/
 
-static int	serializeStatusRpt(Bundle *bundle, Object *zco)
+static int serializeStatusRpt(Bundle *bundle, SdrObject *zco)
 {
 	Sdr		sdr = getIonsdr();
 	BpStatusRpt	*rpt = &(bundle->statusRpt);
@@ -10467,7 +10466,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 	unsigned char	*cursor;
 	int		eidLength;
 	int		rptLength;
-	Object		sourceData;
+	SdrObject	sourceData;
 
 	CHKERR(bundle);
 	CHKERR(zco);
@@ -10671,7 +10670,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 
 	*zco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
 			ZcoOutbound);
-	if (sdr_end_xn(sdr) < 0 || *zco == (Object) ERROR || *zco == 0)
+	if (sdr_end_xn(sdr) < 0 || *zco == (SdrObject) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
 		return -1;
@@ -10687,7 +10686,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
  */
 static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 {
-	Object		crebElt;
+	SdrObject	crebElt;
 	ExtensionBlock	crebBlk;
 	uvast		seqId;
 	uvast		seqNum;
@@ -10810,7 +10809,7 @@ int	sendStatusRpt(Bundle *bundle)
 	int		srMode;
 	int		priority = bundle->priority;
 	BpAncillaryData ecos = { .ordinal = bundle->ancillaryData.ordinal };
-	Object		payloadZco = 0;
+	SdrObject	payloadZco = 0;
 	uvast		ttl;	/*	Original bundle's TTL.		*/
 	char		*reportToEid;
 	int		result;
@@ -11366,7 +11365,7 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		payloadBlockHeaderLength;
-	Object		workZco;
+	SdrObject	workZco;
 	unsigned char	crcBuffer[8];
 	unsigned char	*cursor2;
 	int		crcSize;
@@ -11533,8 +11532,8 @@ static int	catenateBundle(Bundle *bundle)
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	Object		elt;
-	Object		blkAddr;
+	SdrObject	elt;
+	SdrObject	blkAddr;
 	ExtensionBlock	blk;
 	int		totalHeaderLength;
 	int		result;
@@ -11649,7 +11648,7 @@ static int	catenateBundle(Bundle *bundle)
 
 /*	*	*	Bundle transmission queue functions	*	*/
 
-int	bpAccept(Object bundleObj, Bundle *bundle)
+int bpAccept(SdrObject bundleObj, Bundle *bundle)
 {
 	CHKERR(bundleObj && bundle);
 	CHKERR(ionLocked());
@@ -11671,7 +11670,7 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 static void	noteFragmentation(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
-	Object	dbObject;
+	SdrObject dbObject;
 	BpDB	db;
 
 	dbObject = getBpDbObject();
@@ -11688,10 +11687,10 @@ static void	noteFragmentation(Bundle *bundle)
 	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
 }
 
-int	bpFragment(Bundle *bundle, Object bundleObj,
-		Object *queueElt, size_t fragmentLength,
-		Bundle *firstBundle, Object *firstBundleObj,
-		Bundle *secondBundle, Object *secondBundleObj)
+int bpFragment(Bundle *bundle, SdrObject bundleObj, SdrObject *queueElt,
+		size_t fragmentLength, Bundle *firstBundle,
+		SdrObject *firstBundleObj, Bundle *secondBundle,
+		SdrObject *secondBundleObj)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -11731,13 +11730,13 @@ int	bpFragment(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-static Object	insertBundleIntoQueue(Object queue, Object firstElt,
-			Object lastElt, Object bundleAddr, int priority,
-			unsigned char ordinal, time_t enqueueTime)
+static SdrObject insertBundleIntoQueue(SdrObject queue, SdrObject firstElt,
+		SdrObject lastElt, SdrObject bundleAddr, int priority,
+		unsigned char ordinal, time_t enqueueTime)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
-	Object	nextElt;
+	SdrObject nextElt;
 
 	/* Parameter intentionally unused. */
 	(void)queue;
@@ -11787,17 +11786,17 @@ static Object	insertBundleIntoQueue(Object queue, Object firstElt,
 	return sdr_list_insert_after(sdr, lastElt, bundleAddr);
 }
 
-static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
-			Object bundleObj, int backlogIncrement)
+static SdrObject enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
+		SdrObject bundleObj, int backlogIncrement)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned char	ordinal = bundle->ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
-	Object		lastElt = 0;
-	Object		lastForPriorOrdinal = 0;
-	Object		firstElt = 0;
+	SdrObject	lastElt = 0;
+	SdrObject	lastForPriorOrdinal = 0;
+	SdrObject	firstElt = 0;
 	int		i;
-	Object		xmitElt;
+	SdrObject	xmitElt;
 
 	/*	Enqueue the new bundle immediately after the last
 	 *	currently enqueued bundle whose ordinal is equal to
@@ -11888,15 +11887,15 @@ static int	isLoopback(char *eid)
 	return 0;
 }
 
-int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
+int bpEnqueue(VPlan *vplan, Bundle *bundle, SdrObject bundleObj)
 {
 	Sdr		sdr = getIonsdr();
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	unsigned int	backlogIncrement;
 	time_t		enqueueTime;
 	int		priority;
-	Object		lastElt;
+	SdrObject	lastElt;
 
 	CHKERR(ionLocked());
 	CHKERR(vplan && bundle && bundleObj);
@@ -12017,7 +12016,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
+int enqueueToLimbo(Bundle *bundle, SdrObject bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = getBpConstants();
@@ -12069,10 +12068,10 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
+int reverseEnqueue(SdrObject xmitElt, BpPlan *plan, int sendToLimbo)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bundleAddr;
+	SdrObject bundleAddr;
 	Bundle	bundle;
 
 	CHKERR(xmitElt && plan);
@@ -12122,10 +12121,10 @@ int	bpBlockPlan(char *eid)
 	Sdr		sdr = getIonsdr();
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
-	Object		xmitElt;
-	Object		nextElt;
+	SdrObject	xmitElt;
+	SdrObject	nextElt;
 
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
@@ -12195,10 +12194,10 @@ int	bpBlockPlan(char *eid)
 	return 0;
 }
 
-int	releaseFromLimbo(Object xmitElt, int resuming)
+int releaseFromLimbo(SdrObject xmitElt, int resuming)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bundleAddr;
+	SdrObject bundleAddr;
 	Bundle	bundle;
 
 	/*	Defensive check: verify transaction still active.	*/
@@ -12275,10 +12274,10 @@ int	bpUnblockPlan(char *eid)
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpDB		*bpConstants = getBpConstants();
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
-	Object		xmitElt;
-	Object		nextElt;
+	SdrObject	xmitElt;
+	SdrObject	nextElt;
 
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
@@ -12324,7 +12323,7 @@ int	bpUnblockPlan(char *eid)
 	return 0;
 }
 
-int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
+int bpAbandon(SdrObject bundleObj, Bundle *bundle, int reason)
 {
 	int		result1 = 0;
 	int		result2 = 0;
@@ -12398,16 +12397,16 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 	return ((result1 + result2) == 0 ? 0 : -1);
 }
 
-int	bpDequeue(VOutduct *vduct, Object *bundleZco,
+int bpDequeue(VOutduct *vduct, SdrObject *bundleZco,
 		BpAncillaryData *ancillaryData, int timeoutInterval)
 {
 	Sdr		sdr = getIonsdr();
 	int		stewardshipAccepted;
-	Object		outductObj;
+	SdrObject	outductObj;
 	Outduct		outduct;
 			OBJ_POINTER(ClProtocol, protocol);
-	Object		elt;
-	Object		bundleObj;
+	SdrObject	elt;
+	SdrObject	bundleObj;
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
@@ -12750,7 +12749,7 @@ bundle.", NULL);
 
 	if (stewardshipAccepted && bundle.hashEntry)
 	{
-		Object	stewardBsetObj;
+		SdrObject stewardBsetObj;
 
 		stewardBsetObj = sdr_hash_entry_value(sdr,
 				(_bpConstants())->bundles, bundle.hashEntry);
@@ -13140,7 +13139,7 @@ no CRC.");
 	}
 }
 
-int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image)
+int decodeBundle(Sdr sdr, SdrObject zco, unsigned char *buffer, Bundle *image)
 {
 	ZcoReader	reader;
 	int		bytesBuffered;
@@ -13169,7 +13168,7 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image)
 	return result;
 }
 
-int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
+int retrieveSerializedBundle(SdrObject bundleZco, SdrObject *bundleObj)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned char	*buffer;
@@ -13222,10 +13221,10 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	return (result < 0 ? result : 0);
 }
 
-int	bpHandleXmitSuccess(Object bundleZco)
+int bpHandleXmitSuccess(SdrObject bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bundleAddr;
+	SdrObject bundleAddr;
 	Bundle	bundle;
 	int	result;
 
@@ -13298,10 +13297,10 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	return 1;
 }
 
-int	bpHandleXmitFailure(Object bundleZco)
+int bpHandleXmitFailure(SdrObject bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bundleAddr;
+	SdrObject bundleAddr;
 	Bundle	bundle;
 
 	CHKERR(bundleZco);
@@ -13365,7 +13364,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 	return 1;
 }
 
-int	bpReforwardBundle(Object bundleAddr)
+int bpReforwardBundle(SdrObject bundleAddr)
 {
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;

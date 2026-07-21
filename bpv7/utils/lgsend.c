@@ -27,12 +27,12 @@ int	main(int argc, char **argv)
 	Sdr	sdr;
 	int	cmdFile;
 	int	fileSize;
-	Object	adu;
+	SdrObject adu;
 	int	offset;
 	char	line[256];
 	int	lineLength;
-	Object	bundleZco;
-	Object	newBundle;
+	SdrObject bundleZco;
+	SdrObject newBundle;
 
 	if (cmdFileName == NULL || ownEid == NULL ||destEid == NULL)
 	{
@@ -153,7 +153,7 @@ int	main(int argc, char **argv)
 
 	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize,
 			BP_EXPEDITED_PRIORITY, 0, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("lgsend: can't create application data unit.", NULL);
 	}

@@ -82,10 +82,10 @@ static void	shutDown(int signum)
 
 /*	*	imcfw clock thread functions	*	*	*	*/
 
-static void	destroyGroup(Object groupElt)
+static void destroyGroup(SdrObject groupElt)
 {
 	Sdr	sdr = getIonsdr();
-	Object	groupAddr;
+	SdrObject groupAddr;
 		OBJ_POINTER(ImcGroup, group);
 
 	groupAddr = sdr_list_data(sdr, groupElt);
@@ -100,9 +100,9 @@ static void	*imcClock(void *parm)
 	int		*running = (int *) parm;
 	ImcDB		*imcConstants = getImcConstants();
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		nextElt;
-	Object		groupAddr;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	groupAddr;
 	ImcGroup	group;
 
 	/*	Main loop for time-driven IMC functionality.		*/
@@ -157,7 +157,7 @@ static void	*imcClock(void *parm)
 static int	loadDestination(Bundle *bundle, uvast newFqnn)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 	uvast	fqnn;
 
 	/*	Ensure no duplication in destinations list.		*/
@@ -458,7 +458,7 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast fqnn)
 	return 0;
 }
 
-static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj, uvast fqnn)
+static int enqueueToNeighbor(Bundle *bundle, SdrObject bundleObj, uvast fqnn)
 {
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
@@ -488,7 +488,7 @@ puts("Sending to neighbor.");
 	return 0;
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast fqnn)
+static int enqueueBundle(Bundle *bundle, SdrObject bundleObj, uvast fqnn)
 {
 	/*	Entry node for Gang must be a neighbor.			*/
 
@@ -514,13 +514,13 @@ printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", fqnn);
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
-static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
+static int forwardImcBundle(Bundle *bundle, SdrObject bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned int	memmgr = getIonMemoryMgr();
 	uvast		ownFqnn = getOwnFqnn();
 	Lyst		gangs;
-	Object		elt;
+	SdrObject	elt;
 	uvast		fqnn;
 	int		regionIdx;
 	uint32_t	regionNbr;
@@ -528,7 +528,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 	LystElt		elt2;
 	ImcGang		*gang;
 	Bundle		newBundle;
-	Object		newBundleObj;
+	SdrObject	newBundleObj;
 	LystElt		elt3;
 
 	gangs = lyst_create_using(memmgr);
@@ -647,8 +647,8 @@ printf("Gang bundle sent to " UVAST_FIELDSPEC " has %lu members.\n", gang->entry
 	return bpDestroyBundle(bundleAddr, 2);
 }
 
-static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
-			ExtensionBlock *imcblock, Object imcblkAddr)
+static int relayImcBundle(Bundle *bundle, SdrObject bundleAddr,
+		ExtensionBlock *imcblock, SdrObject imcblkAddr)
 {
 	Sdr		sdr = getIonsdr();
 	uvast		ownFqnn = getOwnFqnn();
@@ -743,8 +743,8 @@ printf("Loading: Bundle has %d destinations.\n", destinationsCount);
 static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		memberAddr;
+	SdrObject	elt;
+	SdrObject	memberAddr;
 	RegionMember	member;
 
 	for (elt = sdr_list_first(sdr, db->rolodex); elt;
@@ -767,18 +767,18 @@ static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 	return 0;
 }
 
-static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
+static int originateImcBundle(Bundle *bundle, SdrObject bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	uint32_t	regionNbr;
 	int		regionIdx;
 	uvast		fqgn;
-	Object		groupAddr;
-	Object		groupElt;
+	SdrObject	groupAddr;
+	SdrObject	groupElt;
 	ImcGroup	group;
-	Object		elt;
+	SdrObject	elt;
 	uvast		fqnn;
 
 	fqgn = bundle->destination.ssp.imc.fqgn;
@@ -878,11 +878,11 @@ int	main(void)
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
 	pthread_t	clockThread;
-	Object		elt;
-	Object		bundleAddr;
+	SdrObject	elt;
+	SdrObject	bundleAddr;
 	Bundle		bundle;
-	Object		imcblkElt;
-	Object		imcblkAddr;
+	SdrObject	imcblkElt;
+	SdrObject	imcblkAddr;
 	ExtensionBlock	imcblock;
 
 	if (bpAttach() < 0)
@@ -949,7 +949,7 @@ int	main(void)
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		bundleAddr = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		bundle.priority = bundle.classOfService;
 		bundle.ordinal = bundle.ancillaryData.ordinal;

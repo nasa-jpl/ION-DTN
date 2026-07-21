@@ -112,7 +112,7 @@ static int attachToDtka(void)
 static void managekeyType(int tokenCount, char **tokens)
 {
 	Sdr sdr = getIonsdr();
-	Object dtkadbObj = getDtkaDbObject();
+	SdrObject dtkadbObj = getDtkaDbObject();
 	DtkaDB dtkadb;
 	char *newkeyType = tokens[2];
 	unsigned int newkeySize;
@@ -152,7 +152,7 @@ static void managekeyType(int tokenCount, char **tokens)
 static void manageKeyGenTime(int tokenCount, char **tokens)
 {
 	Sdr sdr = getIonsdr();
-	Object dtkadbObj = getDtkaDbObject();
+	SdrObject dtkadbObj = getDtkaDbObject();
 	time_t newKeyGenTime;
 	DtkaDB dtkadb;
 
@@ -182,7 +182,7 @@ static void manageKeyGenTime(int tokenCount, char **tokens)
 static void manageInterval(int tokenCount, char **tokens)
 {
 	Sdr sdr = getIonsdr();
-	Object dtkadbObj = getDtkaDbObject();
+	SdrObject dtkadbObj = getDtkaDbObject();
 	DtkaDB dtkadb;
 	int newInterval;
 
@@ -219,7 +219,7 @@ static void manageInterval(int tokenCount, char **tokens)
 static void manageLeadTime(int tokenCount, char **tokens)
 {
 	Sdr sdr = getIonsdr();
-	Object dtkadbObj = getDtkaDbObject();
+	SdrObject dtkadbObj = getDtkaDbObject();
 	DtkaDB dtkadb;
 	int newLeadTime;
 

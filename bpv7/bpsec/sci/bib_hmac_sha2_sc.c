@@ -70,7 +70,7 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	uint8_t *csi_ctx = NULL;
 	csi_val_t csi_digest;
 	BpsecSerializeData ippt_preamble;
-	Object ipptZco = 0;
+	SdrObject ipptZco = 0;
 	int ipptZcoLen = 0;
 	int addData = 0;
 	uint16_t sha_variant = 0;
@@ -217,7 +217,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 {
 	csi_val_t key;
 	BpsecSerializeData ippt_preamble;
-	Object ipptZco = 0;
+	SdrObject ipptZco = 0;
 	int ipptZcoLen = 0;
 	uint8_t *csi_ctx = NULL;
 	sc_value *digest = NULL;
@@ -402,7 +402,7 @@ sc_value_map* bpsec_bhssci_valMapGet(void)
  * @retval NULL  - Error
  *****************************************************************************/
 
-uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc)
+uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc)
 {
 	Sdr sdr = getIonsdr();
 	ZcoReader dataReader;

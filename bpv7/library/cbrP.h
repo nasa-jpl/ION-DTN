@@ -31,20 +31,20 @@ extern "C" {
  * Single instance per BPA, accessed via getCbrConstants().
  */
 typedef struct {
-	Object		seqCounters;		/* SDR list: BundleSeqCounter */
-	Object		pendingCrs;		/* SDR list: PendingSignal for CRS */
-	Object		pendingCcs;		/* SDR list: PendingSignal for CCS */
-	Object		custodyBundles;		/* SDR list: CustodyBundle */
+	SdrObject	seqCounters;		/* SDR list: BundleSeqCounter */
+	SdrObject	pendingCrs;		/* SDR list: PendingSignal for CRS */
+	SdrObject	pendingCcs;		/* SDR list: PendingSignal for CCS */
+	SdrObject	custodyBundles;		/* SDR list: CustodyBundle */
 
 	/* Custody acceptance whitelist (empty = accept from anyone) */
-	Object		custodyAcceptByCustodian; /* SDR list of SDR strings */
-	Object		custodyAcceptBySource;	  /* SDR list of SDR strings */
+	SdrObject	custodyAcceptByCustodian; /* SDR list of SDR strings */
+	SdrObject	custodyAcceptBySource;	  /* SDR list of SDR strings */
 
 	/* Auto custody-request policy (empty = no auto-request) */
-	Object		custodyReqDests;	  /* SDR list of SDR strings */
+	SdrObject	custodyReqDests;	  /* SDR list of SDR strings */
 
 	/* CRS reception history (ring buffer) */
-	Object		crsHistory;		/* SDR list of ReceivedCrsRecord */
+	SdrObject	crsHistory;		/* SDR list of ReceivedCrsRecord */
 	unsigned int	crsHistoryMax;		/* Ring limit; 0 = unlimited */
 
 	/* Configuration */
@@ -97,9 +97,9 @@ typedef struct {
  *   - End-to-End Gap Detection may fail if widths are mismatched
  */
 typedef struct {
-	Object		sourceEid;	/* SDR string: source endpoint ID */
+	SdrObject	sourceEid;	/* SDR string: source endpoint ID */
 	uvast		seqId;		/* Sequence identifier (0 = dest-specific) */
-	Object		destEid;	/* SDR string: dest EID (when seqId==0) */
+	SdrObject	destEid;	/* SDR string: dest EID (when seqId==0) */
 	uvast		nextSeqNum;	/* Next sequence number to assign */
 	uvast		counterMaxValue;/* Max before wraparound (default: MAX_64) */
 	int		forCustody;	/* 0 = status reporting, 1 = custody */
@@ -111,11 +111,11 @@ typedef struct {
  * Grouped by destination, signal type, and status/disposition code.
  */
 typedef struct {
-	Object		destEid;	/* SDR string: signal destination */
+	SdrObject	destEid;	/* SDR string: signal destination */
 	int		signalType;	/* CBR_SIGNAL_CRS or CBR_SIGNAL_CCS */
 	int		statusCode;	/* For CRS: status assertion reason */
 	int		dispCode;	/* For CCS: disposition code */
-	Object		sequences;	/* SDR list: BundleSequenceEntry */
+	SdrObject	sequences;	/* SDR list: BundleSequenceEntry */
 	time_t		aggregateStart;	/* When aggregation began */
 	unsigned int	bundleCount;	/* Number of bundles aggregated */
 } PendingSignal;
@@ -133,8 +133,8 @@ typedef struct {
 	uvast		seqId;		/* Sequence identifier */
 	uvast		seqNumStart;	/* Starting sequence number */
 	uvast		length;		/* Number of bundles (contiguous) */
-	Object		rangeArray;	/* SDR list for non-contiguous (0 if contiguous) */
-	Object		sourceEid;	/* SDR string: source EID */
+	SdrObject	rangeArray;	/* SDR list for non-contiguous (0 if contiguous) */
+	SdrObject	sourceEid;	/* SDR string: source EID */
 } BundleSequenceEntry;
 
 /**
@@ -153,11 +153,11 @@ typedef struct {
  * Used for retransmission if custody signal not received.
  */
 typedef struct {
-	Object		bundleObj;	/* Reference to the Bundle in SDR */
-	Object		destEid;	/* SDR string: Next custodian EID */
+	SdrObject	bundleObj;	/* Reference to the Bundle in SDR */
+	SdrObject	destEid;	/* SDR string: Next custodian EID */
 	uvast		seqId;		/* CTEB sequence identifier */
 	uvast		seqNum;		/* CTEB sequence number */
-	Object		sourceEid;	/* SDR string: Bundle source EID */
+	SdrObject	sourceEid;	/* SDR string: Bundle source EID */
 	time_t		custodyAccepted;/* When custody was accepted */
 	time_t		lastTransmit;	/* When last transmitted */
 	int		retransmitCount;/* Number of retransmissions */
@@ -168,7 +168,7 @@ typedef struct {
 /**
  * Get the SDR object address of the CbrDb.
  */
-extern Object		getCbrDbObject(void);
+extern SdrObject getCbrDbObject(void);
 
 /**
  * Get a pointer to the CbrDb constants (in working memory).
@@ -185,16 +185,16 @@ extern CbrDb		*getCbrConstants(void);
  *
  * @return	SDR list element of matching BundleSeqCounter, 0 if not found
  */
-extern Object		cbr_findSeqCounter(Sdr sdr, char *sourceEid,
-				char *destEid, uvast seqId, int forCustody);
+extern SdrObject cbr_findSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+		uvast seqId, int forCustody);
 
 /**
  * Create a new sequence counter.
  *
  * @return	SDR list element of new BundleSeqCounter, 0 on error
  */
-extern Object		cbr_createSeqCounter(Sdr sdr, char *sourceEid,
-				char *destEid, uvast seqId, int forCustody);
+extern SdrObject cbr_createSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
+		uvast seqId, int forCustody);
 
 /*	Signal Management						*/
 
@@ -203,22 +203,22 @@ extern Object		cbr_createSeqCounter(Sdr sdr, char *sourceEid,
  *
  * @return	SDR list element of PendingSignal, 0 on error
  */
-extern Object		cbr_findOrCreatePendingSignal(Sdr sdr, char *destEid,
-				int signalType, int statusOrDispCode);
+extern SdrObject cbr_findOrCreatePendingSignal(Sdr sdr, char *destEid,
+		int signalType, int statusOrDispCode);
 
 /**
  * Add a bundle sequence to a pending signal's collection.
  * Performs range compression for contiguous sequences.
  */
-extern int		cbr_addToSignalSequences(Sdr sdr, Object signalElt,
-				char *sourceEid, uvast seqId, uvast seqNum);
+extern int cbr_addToSignalSequences(Sdr sdr, SdrObject signalElt,
+		char *sourceEid, uvast seqId, uvast seqNum);
 
 /**
  * Serialize and transmit a pending signal.
  *
  * @return	0 on success, -1 on error
  */
-extern int		cbr_transmitSignal(Sdr sdr, Object signalElt);
+extern int cbr_transmitSignal(Sdr sdr, SdrObject signalElt);
 
 /*	Custody Bundle Management					*/
 
@@ -227,17 +227,16 @@ extern int		cbr_transmitSignal(Sdr sdr, Object signalElt);
  *
  * @return	SDR list element of CustodyBundle, 0 if not found
  */
-extern Object		cbr_findCustodyBundle(Sdr sdr, char *sourceEid,
-				uvast seqId, uvast seqNum);
+extern SdrObject cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
+		uvast seqNum);
 
 /**
  * Add a bundle to custody tracking.
  *
  * @return	SDR list element of new CustodyBundle, 0 on error
  */
-extern Object		cbr_trackCustodyBundle(Sdr sdr, Object bundleObj,
-				char *destEid, char *sourceEid, uvast seqId,
-				uvast seqNum);
+extern SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj,
+		char *destEid, char *sourceEid, uvast seqId, uvast seqNum);
 
 /**
  * Increment the custodyOriginated counter.
@@ -248,7 +247,7 @@ extern void		cbr_noteCustodyOriginated(Sdr sdr);
 /**
  * Remove a bundle from custody tracking.
  */
-extern void		cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt);
+extern void cbr_untrackCustodyBundle(Sdr sdr, SdrObject custodyElt);
 
 /**
  * Remove custody tracking for a bundle identified by its SDR object address.
@@ -258,7 +257,7 @@ extern void		cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt);
  * @param sdr		SDR handle
  * @param bundleObj	SDR object address of the bundle being destroyed
  */
-extern void		cbr_untrackBundleByObj(Sdr sdr, Object bundleObj);
+extern void cbr_untrackBundleByObj(Sdr sdr, SdrObject bundleObj);
 
 /*	Retransmission						*/
 
@@ -273,8 +272,7 @@ extern int		cbr_checkRetransmissions(Sdr sdr);
 /**
  * Retransmit a specific custody bundle.
  */
-extern int		cbr_doRetransmit(Sdr sdr, CustodyBundle *cb,
-				Object cbElt);
+extern int cbr_doRetransmit(Sdr sdr, CustodyBundle *cb, SdrObject cbElt);
 
 /*	CBOR Encoding/Decoding					*/
 
@@ -284,8 +282,8 @@ extern int		cbr_doRetransmit(Sdr sdr, CustodyBundle *cb,
  *
  * @return	Bytes written, -1 on error
  */
-extern int		cbr_encodeCrs(Sdr sdr, Object signalElt,
-				unsigned char *buffer, size_t buflen);
+extern int cbr_encodeCrs(Sdr sdr, SdrObject signalElt, unsigned char *buffer,
+		size_t buflen);
 
 /**
  * Decode a CRS admin record from CBOR.
@@ -301,8 +299,8 @@ extern int		cbr_decodeCrs(unsigned char *buffer, size_t length,
  *
  * @return	Bytes written, -1 on error
  */
-extern int		cbr_encodeCcs(Sdr sdr, Object signalElt,
-				unsigned char *buffer, size_t buflen);
+extern int cbr_encodeCcs(Sdr sdr, SdrObject signalElt, unsigned char *buffer,
+		size_t buflen);
 
 /**
  * Decode a CCS admin record from CBOR.
@@ -321,22 +319,22 @@ extern int		cbr_decodeCcs(unsigned char *buffer, size_t length,
  *
  * @return	1 if extended, 0 if new entry needed, -1 on error
  */
-extern int		cbr_extendSequenceEntry(Sdr sdr, Object entryObj,
-				BundleSequenceEntry *entry, uvast seqNum);
+extern int cbr_extendSequenceEntry(Sdr sdr, SdrObject entryObj,
+		BundleSequenceEntry *entry, uvast seqNum);
 
 /**
  * Convert a simple contiguous entry to a range array.
  * Called when a gap is detected in a previously contiguous sequence.
  */
-extern int		cbr_convertToRangeArray(Sdr sdr, Object entryObj,
-				BundleSequenceEntry *entry, uvast currentLen,
-				uvast gap, uvast newLen);
+extern int cbr_convertToRangeArray(Sdr sdr, SdrObject entryObj,
+		BundleSequenceEntry *entry, uvast currentLen, uvast gap,
+		uvast newLen);
 
 /**
  * Extend an existing range array with a new subsequence.
  */
-extern int		cbr_extendRangeArray(Sdr sdr, Object rangeArray,
-				uvast expectedNext, uvast seqNum);
+extern int cbr_extendRangeArray(Sdr sdr, SdrObject rangeArray,
+		uvast expectedNext, uvast seqNum);
 
 /*	Admin Endpoint Helpers						*/
 

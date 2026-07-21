@@ -114,8 +114,8 @@ int bslevt_create(PsmPartition wm, BpSecEventId eventId, uint8_t actions,
 int bslevt_delete(PsmPartition wm, char *esName, BpSecEventId eventId);
 BpSecEventId bslevt_get_id(char *name);
 char	    *bslevt_get_name(BpSecEventId eventId);
-Address bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left);
-Address bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left);
+SdrAddress bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left);
+SdrAddress bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left);
 int	bslevt_validate_actions(BpSecEventId eventId, uint8_t *actions);
 
 #endif /* BPSEC_POLICY_EVENT_H_ */

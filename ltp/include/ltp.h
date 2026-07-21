@@ -40,7 +40,7 @@ extern int	ltp_engine_is_started(void);
 
 extern int	ltp_send(uvast destinationEngineId,
 			unsigned int clientId,
-			Object clientServiceData,
+			SdrObject clientServiceData,
 			unsigned int redLength,
 			LtpSessionId *sessionId);
 		/*	clientServiceData must be a "zero-copy object"
@@ -75,7 +75,7 @@ extern int	ltp_get_notice(unsigned int clientId,
 			unsigned char *endOfBlock,
 			unsigned int *dataOffset,
 			unsigned int *dataLength,
-			Object *data);
+			SdrObject *data);
 		/*	The value returned in *data is always a zero-
 		 *	copy object; use the zco_* functions defined
 		 *	in "zco.h" to retrieve the content of that
@@ -111,7 +111,7 @@ extern int	ltp_get_notice(unsigned int clientId,
 
 extern void	ltp_interrupt(unsigned int clientId);
 
-extern void	ltp_release_data(Object data);
+extern void	ltp_release_data(SdrObject data);
 
 extern void	ltp_close(unsigned int clientId);
 

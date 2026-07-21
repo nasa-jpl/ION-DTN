@@ -297,13 +297,13 @@ static void	displayImportSession(LtpImportSession *session, int isDead,
 	(*count)++;
 }
 
-static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
+static void processSpan(Sdr sdr, SdrObject spanObj, LtpSpan *span,
 			TypeFilter typeFilter, unsigned int filterSession,
 			int activeOnly, int countMode)
 {
 	char			buffer[256];
-	Object			elt;
-	Object			sessionObj;
+	SdrObject		elt;
+	SdrObject		sessionObj;
 	LtpExportSession	exportSession;
 	LtpImportSession	importSession;
 	int			activeExports = 0;
@@ -633,8 +633,8 @@ static int	runLtpWatch(uvast filterEngineId, int hasEngineFilter,
 {
 	Sdr		sdr;
 	LtpDB		*ltpConstants;
-	Object		sdrElt;
-	Object		spanObj;
+	SdrObject	sdrElt;
+	SdrObject	spanObj;
 	LtpSpan		span;
 	char		buffer[256];
 	char		timestamp[TIMESTAMPBUFSZ];

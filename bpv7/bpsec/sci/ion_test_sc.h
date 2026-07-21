@@ -70,7 +70,7 @@
 
 int      bpsec_itscbcb_decrypt(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, BpsecInboundTargetResult *tgtResult);
 int      bpsec_itscbcb_parmsGet(sc_state *state, csi_cipherparms_t *parms, csi_val_t *sessionKey, csi_val_t *encryptedSessionKey);
-int      bpsec_itscbcb_compute(Object *dataObj, uint32_t chunkSize, uint32_t suite, csi_val_t sessionKey, csi_cipherparms_t *parms, uint8_t function);
+int      bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize, uint32_t suite, csi_val_t sessionKey, csi_cipherparms_t *parms, uint8_t function);
 int      bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
 
 
@@ -78,7 +78,7 @@ int      bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle,
  *                               BIB Functions                               *
  *****************************************************************************/
 
-uint8_t* bpsec_itscbib_compute(Object dataObj, sc_value *key_value, csi_svcid_t svc);
+uint8_t* bpsec_itscbib_compute(SdrObject dataObj, sc_value *key_value, csi_svcid_t svc);
 int      bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
 int      bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, BpsecInboundTargetResult *tgtResult);
 
@@ -100,8 +100,8 @@ sc_value_map* bpsec_itsci_valMapGet(void);
 
 
 int32_t bpsec_itsc_updatePayloadFromFile(uint32_t suite, csi_cipherparms_t *csi_parms,
-	uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
-	ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
+	uint8_t *context, csi_blocksize_t *blocksize, SdrObject dataObj,
+	ZcoReader *dataReader, uvast cipherBufLen, SdrObject *cipherZco,
 	uint8_t function);
 
 

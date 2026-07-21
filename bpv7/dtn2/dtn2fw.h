@@ -24,7 +24,7 @@ extern "C" {
 
 extern int	dtn2_init(void);
 
-extern void	dtn2_findPlan(char *nodeName, Object *planAddr, Object *elt);
+extern void	dtn2_findPlan(char *nodeName, SdrObject *planAddr, SdrObject *elt);
 
 extern int	dtn2_addPlan(char *nodeName, unsigned int nominalRate);
 extern int	dtn2_addPlanDuct(char *nodeName, char *ductExpression);

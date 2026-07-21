@@ -163,7 +163,7 @@ static int	noteContactAcquired(uvast discoveryFqnn,
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*cxref;
-	Object		contactObj;
+	SdrObject	contactObj;
 	IonContact	contact;
 
 	regionIdx = ionRegionOf(discoveryFqnn, ownFqnn, &regionNbr);
@@ -307,7 +307,7 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 	PsmAddress	vschemeElt;
 	uvast		discoveryFqnn;
 	int		cbhe = 0;
-	Object		elt;
+	SdrObject	elt;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	char		ductExpression[SDRSTRING_BUFSZ];
@@ -508,7 +508,7 @@ static int	noteContactLost(uvast discoveryFqnn, time_t startTime)
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*cxref;
-	Object		contactObj;
+	SdrObject	contactObj;
 	IonContact	contact;
 	time_t		currentTime;
 

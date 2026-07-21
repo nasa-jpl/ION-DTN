@@ -48,23 +48,21 @@ typedef struct
 
 #define sdr_malloc(sdr, size) \
 Sdr_malloc(__FILE__, __LINE__, sdr, size)
-extern Object		Sdr_malloc(const char *file, int line,
-				Sdr sdr, size_t size);
+extern SdrObject Sdr_malloc(const char *file, int line, Sdr sdr, size_t size);
 
 #define sdr_insert(sdr, from, size) \
 Sdr_insert(__FILE__, __LINE__, sdr, from, size)
-extern Object		Sdr_insert(const char *file, int line,
-				Sdr sdr, char *from, size_t size);
+extern SdrObject Sdr_insert(const char *file, int line, Sdr sdr, char *from,
+		size_t size);
 
 #define sdr_stow(sdr, variable) \
 Sdr_insert(__FILE__, __LINE__, sdr, (char *) &variable, sizeof variable)
 
-extern size_t		sdr_object_length(Sdr sdr, Object object);
+extern size_t sdr_object_length(Sdr sdr, SdrObject object);
 
 #define sdr_free(sdr, object) \
 Sdr_free(__FILE__, __LINE__, sdr, object)
-extern void		Sdr_free(const char *file, int line,
-				Sdr sdr, Object object);
+extern void Sdr_free(const char *file, int line, Sdr sdr, SdrObject object);
 
 extern void		sdr_set_search_limit(Sdr sdr, unsigned int newLimit);
 			/*	Sets limit on the number of free
@@ -75,8 +73,7 @@ extern void		sdr_set_search_limit(Sdr sdr, unsigned int newLimit);
 			 *	to the next higher non-empty free space
 			 *	bucket.					*/
 
-extern void		sdr_stage(Sdr sdr, char *into, Object from,
-				size_t size);
+extern void sdr_stage(Sdr sdr, char *into, SdrObject from, size_t size);
 			/*	Like sdr_read, but also registers the
 			 *	object for SDR_BOUNDED write validation.
 			 *	Must be used instead of sdr_read when

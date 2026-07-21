@@ -23,10 +23,10 @@ static int	file2sdr_stopped(int *newState)
 	return state;
 }
 
-static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
-			sm_SemId file2sdr_semaphore)
+static SdrObject newCycle(Sdr sdr, SdrObject cycleList, Cycle *currentCycle,
+		sm_SemId file2sdr_semaphore)
 {
-	Object	cycleObj;
+	SdrObject cycleObj;
 
 	CHKZERO(sdr_begin_xn(sdr));
 	currentCycle->cycleNbr++;
@@ -47,8 +47,8 @@ static Object	newCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 	return cycleObj;
 }
 
-static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
-			sm_SemId file2sdr_semaphore)
+static SdrObject endCycle(Sdr sdr, SdrObject cycleList, Cycle *currentCycle,
+		sm_SemId file2sdr_semaphore)
 {
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_list_insert_last(sdr, currentCycle->lines,
@@ -77,9 +77,9 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	char		sdrName[256];
 	Sdr		sdr;
 	sm_SemId	file2sdr_semaphore;
-	Object		cycleList;
-	Object		cycleListElt;
-	Object		cycleObj;
+	SdrObject	cycleList;
+	SdrObject	cycleListElt;
+	SdrObject	cycleObj;
 	Cycle		currentCycle = { 0, 0, 0 };
 	int		inputFile;
 	unsigned long	startLineNbr;

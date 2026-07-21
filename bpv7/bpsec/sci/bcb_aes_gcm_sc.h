@@ -90,11 +90,11 @@ int           bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *
 sc_value_map* bpsec_bagsci_valMapGet(void);
 
 /* Generic Utilities */
-uint8_t*      bpsec_bagscu_computeSignature(BpsecSerializeData aad, Object zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc);
+uint8_t*      bpsec_bagscu_computeSignature(BpsecSerializeData aad, SdrObject zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc);
 int           bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTargetResult *tgtResult, csi_cipherparms_t *parms);
 int           bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle *bundle, BpsecOutboundTargetResult *tgtResult, csi_cipherparms_t *parms);
 
-int           bpsec_bagscu_zcoCompute(uint32_t suite, Object *dataObj, csi_val_t sesKey, csi_cipherparms_t *parms, uint8_t function);
+int           bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey, csi_cipherparms_t *parms, uint8_t function);
 
 
 

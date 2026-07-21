@@ -146,21 +146,21 @@ sc_value*  bpsec_scv_memCopy(sc_value *oldVal); // was bpsec_sciutil_valMemCopy
 int        bpsec_scv_memCreate(sc_value *val, sc_val_type type, int id, int length); // was bpsec_sciutil_valMemCreate
 sc_value   bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id);
 sc_value*  bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **cursor, unsigned int *unparsedBytes); // was bpsec_sci_valDeserialize
-Object     bpsec_scv_memListRecord(Sdr sdr, Object list, Lyst values); // was bpsec_sci_valListRecord
+SdrObject  bpsec_scv_memListRecord(Sdr sdr, SdrObject list, Lyst values); // was bpsec_sci_valListRecord
 int        bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, unsigned int *resultLen);
-Object     bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal); // was bpsec_sci_valSdrRecord
-int        bpsec_scv_memSdrListAppend(Sdr sdr, Object list, sc_value *val); // was sciuSdrValListAppend and bpsec_sci_valSdrListAppend
+SdrObject  bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal); // was bpsec_sci_valSdrRecord
+int        bpsec_scv_memSdrListAppend(Sdr sdr, SdrObject list, sc_value *val); // was sciuSdrValListAppend and bpsec_sci_valSdrListAppend
 
 
 /**  SC_VAL_STORE_SDR Functions **/
-Object    bpsec_scv_sdrCopy(Sdr sdr, Object oldObj); // was bpsec_sci_valSdrCopy
-void      bpsec_scv_sdrListCbDel(Sdr sdr, Object eltData, void *args);
-Object    bpsec_scv_sdrListCopy(Sdr sdr, Object oldList); // was bpsec_sci_valSdrListCopy
-Lyst      bpsec_scv_sdrListRead(Sdr sdr, Object list); // was bpsec_sci_playbackSciValList
-uint8_t*  bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object list, unsigned int *length); // was bpsec_sci_valSdrListSerialize
-sc_value* bpsec_scv_sdrMemConvert(Sdr sdr, Object valAddr); //was bpsec_sci_playbackSciVal
-void      bpsec_scv_sdrRelease(Sdr sdr, Object val); // was bpsec_sci_valSdrDestroy
-int       bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, Object valObj, uint8_t **data, unsigned int *length);
+SdrObject bpsec_scv_sdrCopy(Sdr sdr, SdrObject oldObj); // was bpsec_sci_valSdrCopy
+void      bpsec_scv_sdrListCbDel(Sdr sdr, SdrObject eltData, void *args);
+SdrObject bpsec_scv_sdrListCopy(Sdr sdr, SdrObject oldList); // was bpsec_sci_valSdrListCopy
+Lyst      bpsec_scv_sdrListRead(Sdr sdr, SdrObject list); // was bpsec_sci_playbackSciValList
+uint8_t*  bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject list, unsigned int *length); // was bpsec_sci_valSdrListSerialize
+sc_value* bpsec_scv_sdrMemConvert(Sdr sdr, SdrObject valAddr); //was bpsec_sci_playbackSciVal
+void      bpsec_scv_sdrRelease(Sdr sdr, SdrObject val); // was bpsec_sci_valSdrDestroy
+int       bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, SdrObject valObj, uint8_t **data, unsigned int *length);
 
 
 
@@ -169,8 +169,8 @@ int       bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, Object valObj, uint8_t **
 PsmAddress bpsec_scv_smCreate(PsmPartition wm, sc_val_type type); // was bpsec_sciutil_valSharedCreate
 void       bpsec_scv_smlistCbDel(PsmPartition partition, PsmAddress elt, void *arg); // was bpsec_sciutil_valSmlistCbDel
 char*      bpsec_scv_smListPrint(PsmPartition wm, sc_Def *sc_def, Lyst vals); // was bpsec_sciutil_valsPrint
-Object     bpsec_scv_smListRecord(Sdr sdr, Object list, PsmPartition wm, PsmAddress values); // was bpsec_sci_recordSciValSharedList
-Object     bpsec_scv_smSdrConvert(Sdr sdr, PsmPartition wm, PsmAddress oldValAddr); // was bpsec_sci_recordSharedSciVal
+SdrObject  bpsec_scv_smListRecord(Sdr sdr, SdrObject list, PsmPartition wm, PsmAddress values); // was bpsec_sci_recordSciValSharedList
+SdrObject  bpsec_scv_smSdrConvert(Sdr sdr, PsmPartition wm, PsmAddress oldValAddr); // was bpsec_sci_recordSharedSciVal
 
 
 

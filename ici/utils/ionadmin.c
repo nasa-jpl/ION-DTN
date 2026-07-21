@@ -788,7 +788,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 static void	manageClockError(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newMaxClockError;
 	char	errMsg[256];
@@ -826,7 +826,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 static void	manageClockSync(int tokenCount, char **tokens)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 	int	newSyncVal;
 	char	buffer[128];
@@ -869,7 +869,7 @@ static void	manageClockSync(int tokenCount, char **tokens)
 static void	manageProduction(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
 	char	errMsg[256];
@@ -908,7 +908,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 static void	manageConsumption(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
 	char	errMsg[256];
@@ -947,7 +947,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	vast	newFileLimit = -1;	/*	-1 = "unchanged"	*/
 	vast	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
@@ -1103,7 +1103,7 @@ static void	manageSearch(int tokenCount, char **tokens)
 static void	manageHorizon(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	char	*horizonString;
 	time_t	refTime;
 	time_t	horizon;
@@ -1141,7 +1141,7 @@ static void	manageHorizon(int tokenCount, char **tokens)
 static void	manageAlarm(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	char	*newAlarmScript;
 
@@ -1389,7 +1389,7 @@ static void	switchEcho(int tokenCount, char **tokens)
 static void	executeWatch(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 
 	if (tokenCount != 2)

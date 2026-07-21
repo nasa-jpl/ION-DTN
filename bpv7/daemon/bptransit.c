@@ -52,7 +52,7 @@ static void	shutDown(int signum)
 /*	*	Common functions for initiating bundle forwarding	*/
 
 static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
-			Object bundleAddr, Object newPayload)
+			SdrObject bundleAddr, SdrObject newPayload)
 {
 	char	*eidString;
 	int	result;
@@ -105,19 +105,19 @@ int	main(void)
 	BpVdb			*vdb;
 	ReqAttendant		attendant;
 	MigrationThreadParms	mtp;
-	Object			elt;
-	Object			bundleAddr;
+	SdrObject		elt;
+	SdrObject		bundleAddr;
 	Bundle			bundle;
 	int			priority;
 	vast			fileSpaceNeeded;
 	vast			bulkSpaceNeeded;
 	vast			heapSpaceNeeded;
-	Object			currentElt;
+	SdrObject		currentElt;
 	vast			currentFileSpaceNeeded;
 	vast			currentHeapSpaceNeeded;
 	ReqTicket		ticket;
 	vast			length;
-	Object			newPayload;
+	SdrObject		newPayload;
 
 	if (bpAttach() < 0)
 	{
@@ -166,7 +166,7 @@ int	main(void)
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		bundleAddr = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		priority = bundle.priority;
 
@@ -357,7 +357,7 @@ bundle.", NULL);
 				ZcoOutbound);
 		switch (newPayload)
 		{
-		case (Object) ERROR:
+		case (SdrObject) ERROR:
 		case 0:
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create payload ZCO.", NULL);

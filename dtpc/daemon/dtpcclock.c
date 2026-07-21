@@ -41,11 +41,11 @@ static void	shutDown(int signum)	/*	Stops dtpcclock.	*/
 static int	updateAdus(Sdr sdr)
 {
 	DtpcDB		*dtpcConstants = getDtpcConstants();
-	Object		aggrElt;
-	Object		aduElt;
-	Object		profileElt;
-	Object		aduObj;
-	Object		aggrObj;
+	SdrObject	aggrElt;
+	SdrObject	aduElt;
+	SdrObject	profileElt;
+	SdrObject	aduObj;
+	SdrObject	aggrObj;
 	OutAdu		adu;
 	OBJ_POINTER(OutAggregator, outAggr);
 	OBJ_POINTER(Profile, profile);
@@ -112,8 +112,8 @@ static int	updateAdus(Sdr sdr)
 static int	handleEvents(Sdr sdr, time_t currentTime)
 {
 	DtpcDB		*dtpcConstants = getDtpcConstants();
-	Object		elt;
-	Object		eventObj;
+	SdrObject	elt;
+	SdrObject	eventObj;
 	int		result;
 	OBJ_POINTER(DtpcEvent, event);
 

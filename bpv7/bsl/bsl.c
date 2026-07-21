@@ -40,8 +40,8 @@ static int	getBlockNumbersFromSdr(Bundle *bundle,
 	Sdr	sdr = getIonsdr();
 	int	canonicalBlockCount;
 	int	i;
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	canonicalBlockCount = 1	+ sdr_list_length(sdr, bundle->extensions);
@@ -204,8 +204,8 @@ static int	getBlockMetadataFromSdr(Bundle *bundle, uint64_t block_num,
 			BSL_CanonicalBlock_t *result_canonical_block)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	elt = getExtensionBlock(bundle, block_num);
@@ -299,7 +299,7 @@ static int	createBlockInSdr(uint64_t block_type_code,
 {
 	Sdr		sdr = getIonsdr();
 	ExtensionBlock	newBlock;
-	Object		bytesObj;
+	SdrObject	bytesObj;
 
 	memset((char *) &newBlock, 0, sizeof(ExtensionBlock));
 	newBlock.type = block_type_code;
@@ -436,7 +436,7 @@ static int	ion_bsl_RemoveBlock(BSL_BundleRef_t *bundle_ref,
 {
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	Object		bundleBlkElt;
+	SdrObject	bundleBlkElt;
 	LystElt		workBlkElt;
 
 	work = (AcqWorkArea *) (bundle_ref->data);
@@ -504,9 +504,9 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	Sdr		sdr = getIonsdr();
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	Object		elt;
+	SdrObject	elt;
 #if 0
-	Object		addr;
+	SdrObject	addr;
 	ExtensionBlock	blk;
 	unsigned char	*buffer;
 #endif
@@ -554,9 +554,9 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	 *	5. Update block to point to new space
 	 *	6. Update bundle overhead accounting		*/
 
-	Object		addr;
+	SdrObject	addr;
 	ExtensionBlock	blk;
-	Object		newBytesObj;
+	SdrObject	newBytesObj;
 	unsigned char	*tempBuf = NULL;
 	int		oldSize;
 	int		overhead_delta;
@@ -679,10 +679,10 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	AcqWorkArea	*work;
 	Bundle		*bundle;
 	vast		bytesReceived;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 			OBJ_POINTER(ExtensionBlock, blk);
-	Address		startOfBTSD;
+	SdrAddress	startOfBTSD;
 
 	work = ref->work;
 	bundle = &(work->bundle);
@@ -841,10 +841,10 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	Sdr		sdr = getIonsdr();
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	Object		elt;
-	Object		addr;
+	SdrObject	elt;
+	SdrObject	addr;
 			OBJ_POINTER(ExtensionBlock, blk);
-	Address		startOfBTSD;
+	SdrAddress	startOfBTSD;
 	char		*mutableBuf;
 
 	work = ref->work;
@@ -1278,7 +1278,7 @@ static int	ion_bsl_eid_to_text(char **text,
 #endif
 static int	ion_bsl_GetEid(void *user_data, BSL_HostEID_t *result_eid)
 {
-	static Object	bpDbObject = 0;
+	static SdrObject bpDbObject = 0;
 	Sdr		sdr;
 	BpDB		bpdb;
 	static char	localIpnEid[SDRSTRING_BUFSZ];
@@ -1892,7 +1892,7 @@ int	bslInitialize(BslAgent *agent)
 {
 	static int		bslInitialized = 0;
 	Sdr			sdr = getIonsdr();
-	Object			bpDbObject;
+	SdrObject		bpDbObject;
 	BpDB			bpdb;
 	char			keyRegistryFilePath[SDRSTRING_BUFSZ];
 	char			policyConfigFilePath[SDRSTRING_BUFSZ];
@@ -2079,8 +2079,8 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 		Sdr		sdr = getIonsdr();
 		AcqWorkArea	*work;
 		Bundle		*bundle;
-		Object		elt;
-		Object		blkAddr;
+		SdrObject	elt;
+		SdrObject	blkAddr;
 		ExtensionBlock	blk;
 		char		*rawData;
 

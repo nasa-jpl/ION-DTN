@@ -11,9 +11,9 @@
 									*/
 #include "tccP.h"
 
-static Object	_tccmdbobject(Object *newDbObj)
+static SdrObject _tccmdbobject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -28,10 +28,10 @@ static char	*_tccmdbName(void)
 	return "tccdb";
 }
 
-static Object	getTccMDB(void)
+static SdrObject getTccMDB(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	mdbobj;
+	SdrObject mdbobj;
 	TccMDB	mdb;
 
 	mdbobj = _tccmdbobject(NULL);
@@ -223,12 +223,12 @@ static int	createTccVdb(int blocksGroupNbr)
 int	tccInit(int blocksGroupNbr, int auths, int K, double R)
 {
 	Sdr		sdr;
-	Object		mdbobj;
+	SdrObject	mdbobj;
 	TccMDB		mdb;
-	Object		dbobj;
+	SdrObject	dbobj;
 	TccDB		db;
 	int		i;
-	Object		authObj;
+	SdrObject	authObj;
 	TccAuthority	auth;
 	int		seqLength;
 	int		sharenum;
@@ -467,13 +467,13 @@ int	tccAttach(int blocksGroupNbr)
 	return -1;
 }
 
-Object	getTccDBObj(int blocksGroupNbr)
+SdrObject getTccDBObj(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
-	Object	mdbobj;
+	SdrObject mdbobj;
 	TccMDB	mdb;
-	Object	elt;
-	Object	dbobj;
+	SdrObject elt;
+	SdrObject dbobj;
 	TccDB	db;
 
 	mdbobj = getTccMDB();

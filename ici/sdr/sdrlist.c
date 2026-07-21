@@ -26,18 +26,18 @@
 
 typedef struct
 {
-	Address		userData;
-	Object		first;	/*	first element in the list	*/
-	Object		last;	/*	last element in the list	*/
+	SdrAddress	userData;
+	SdrObject	first;	/*	first element in the list	*/
+	SdrObject	last;	/*	last element in the list	*/
 	size_t		length;	/*	number of elements in the list	*/
 } SdrList;
 
 typedef struct
 {
-	Object		list;	/*	list that this element is in	*/
-	Object		prev;	/*	previous element in list	*/
-	Object		next;	/*	next element in list		*/
-	Object		data;	/*	data for this element		*/
+	SdrObject list; /* list that this element is in */
+	SdrObject prev; /* previous element in list */
+	SdrObject next; /* next element in list */
+	SdrObject data; /* data for this element */
 } SdrListElt;
 
 /*	*	*	List management functions	*	*	*/
@@ -58,9 +58,9 @@ static void	sdr_list__elt_clear(SdrListElt *elt)
 	elt->data = 0;
 }
 
-Object	Sdr_list_create(const char *file, int line, Sdr sdrv)
+SdrObject Sdr_list_create(const char *file, int line, Sdr sdrv)
 {
-	Object	list;
+	SdrObject list;
 	SdrList	listBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -78,16 +78,16 @@ Object	Sdr_list_create(const char *file, int line, Sdr sdrv)
 	}
 
 	sdr_list__clear(&listBuffer);
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	return list;
 }
 
-void	Sdr_list_destroy(const char *file, int line, Sdr sdrv, Object list,
+void Sdr_list_destroy(const char *file, int line, Sdr sdrv, SdrObject list,
 		SdrListDeleteFn deleteFn, void *arg)
 {
 	SdrList		listBuffer;
-	Object		elt;
-	Object		next;
+	SdrObject	elt;
+	SdrObject	next;
 	SdrListElt	eltBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -103,10 +103,10 @@ void	Sdr_list_destroy(const char *file, int line, Sdr sdrv, Object list,
 		return;
 	}
 
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	for (elt = listBuffer.first; elt != 0; elt = next)
 	{
-		sdrFetch(eltBuffer, (Address) elt);
+		sdrFetch(eltBuffer, (SdrAddress) elt);
 		next = eltBuffer.next;
 		if (deleteFn)
 		{
@@ -115,17 +115,17 @@ void	Sdr_list_destroy(const char *file, int line, Sdr sdrv, Object list,
 
 		/* just in case user mistakenly accesses later... */
 		sdr_list__elt_clear(&eltBuffer);
-		sdrPut((Address) elt, eltBuffer);
+		sdrPut((SdrAddress) elt, eltBuffer);
 		sdrFree(elt);
 	}
 
 	/* just in case user mistakenly accesses later... */
 	sdr_list__clear(&listBuffer);
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	sdrFree(list);
 }
 
-Address	sdr_list_user_data(Sdr sdrv, Object list)
+SdrAddress sdr_list_user_data(Sdr sdrv, SdrObject list)
 {
 	SdrList		listBuffer;
 
@@ -135,7 +135,7 @@ Address	sdr_list_user_data(Sdr sdrv, Object list)
 }
 
 void	Sdr_list_user_data_set(const char *file, int line, Sdr sdrv,
-		Object list, Address data)
+		SdrObject list, SdrAddress data)
 {
 	SdrList	listBuffer;
 
@@ -154,10 +154,10 @@ void	Sdr_list_user_data_set(const char *file, int line, Sdr sdrv,
 
 	sdrFetch(listBuffer, list);
 	listBuffer.userData = data;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 }
 
-size_t	sdr_list_length(Sdr sdrv, Object list)
+size_t sdr_list_length(Sdr sdrv, SdrObject list)
 {
 	SdrList		listBuffer;
 
@@ -166,11 +166,11 @@ size_t	sdr_list_length(Sdr sdrv, Object list)
 	return listBuffer.length;
 }
 
-Object	Sdr_list_insert_first(const char *file, int line, Sdr sdrv, Object list,
-		Address data)
+SdrObject Sdr_list_insert_first(const char *file, int line, Sdr sdrv,
+		SdrObject list, SdrAddress data)
 {
 	SdrList		listBuffer;
-	Object		elt;
+	SdrObject	elt;
 	SdrListElt	eltBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -199,15 +199,15 @@ Object	Sdr_list_insert_first(const char *file, int line, Sdr sdrv, Object list,
 	eltBuffer.data = data;
 
 	/* insert new element at the beginning of the list */
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	eltBuffer.prev = 0;
 	eltBuffer.next = listBuffer.first;
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	if (listBuffer.first != 0)
 	{
-		sdrFetch(eltBuffer, (Address) listBuffer.first);
+		sdrFetch(eltBuffer, (SdrAddress) listBuffer.first);
 		eltBuffer.prev = elt;
-		sdrPut((Address) listBuffer.first, eltBuffer);
+		sdrPut((SdrAddress) listBuffer.first, eltBuffer);
 	}
 	else
 	{
@@ -216,15 +216,15 @@ Object	Sdr_list_insert_first(const char *file, int line, Sdr sdrv, Object list,
 
 	listBuffer.first = elt;
 	listBuffer.length += 1;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	return elt;
 }
 
-Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
-		Address data)
+SdrObject Sdr_list_insert_last(const char *file, int line, Sdr sdrv,
+		SdrObject list, SdrAddress data)
 {
 	SdrList		listBuffer;
-	Object		elt;
+	SdrObject	elt;
 	SdrListElt	eltBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -253,15 +253,15 @@ Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
 	eltBuffer.data = data;
 
 	/* insert new element at the end of the list */
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	eltBuffer.prev = listBuffer.last;
 	eltBuffer.next = 0;
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	if (listBuffer.last != 0)
 	{
-		sdrFetch(eltBuffer, (Address) listBuffer.last);
+		sdrFetch(eltBuffer, (SdrAddress) listBuffer.last);
 		eltBuffer.next = elt;
-		sdrPut((Address) listBuffer.last, eltBuffer);
+		sdrPut((SdrAddress) listBuffer.last, eltBuffer);
 	}
 	else
 	{
@@ -270,17 +270,17 @@ Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
 
 	listBuffer.last = elt;
 	listBuffer.length += 1;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	return elt;
 }
 
-Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
-		Object oldElt, Address data)
+SdrObject Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
+		SdrObject oldElt, SdrAddress data)
 {
 	SdrListElt	oldEltBuffer;
-	Object		list;
+	SdrObject	list;
 	SdrList		listBuffer;
-	Object		elt;
+	SdrObject	elt;
 	SdrListElt	eltBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -296,7 +296,7 @@ Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
 		return 0;
 	}
 
-	sdrFetch(oldEltBuffer, (Address) oldElt);
+	sdrFetch(oldEltBuffer, (SdrAddress) oldElt);
 	if ((list = oldEltBuffer.list) == 0)
 	{
 		oK(_xniEnd(file, line, "list", sdrv));
@@ -321,15 +321,15 @@ Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
 	eltBuffer.data = data;
 
 	/* insert new element before the specified element */
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	eltBuffer.prev = oldEltBuffer.prev;
 	eltBuffer.next = oldElt;
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	if (oldEltBuffer.prev != 0)
 	{
-		sdrFetch(eltBuffer, (Address) oldEltBuffer.prev);
+		sdrFetch(eltBuffer, (SdrAddress) oldEltBuffer.prev);
 		eltBuffer.next = elt;
-		sdrPut((Address) oldEltBuffer.prev, eltBuffer);
+		sdrPut((SdrAddress) oldEltBuffer.prev, eltBuffer);
 	}
 	else
 	{
@@ -337,19 +337,19 @@ Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
 	}
 
 	oldEltBuffer.prev = elt;
-	sdrPut((Address) oldElt, oldEltBuffer);
+	sdrPut((SdrAddress) oldElt, oldEltBuffer);
 	listBuffer.length += 1;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	return elt;
 }
 
-Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
-		Object oldElt, Address data)
+SdrObject Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
+		SdrObject oldElt, SdrAddress data)
 {
 	SdrListElt	oldEltBuffer;
-	Object		list;
+	SdrObject	list;
 	SdrList		listBuffer;
-	Object		elt;
+	SdrObject	elt;
 	SdrListElt	eltBuffer;
 
 	if (!(sdr_in_xn(sdrv)))
@@ -365,7 +365,7 @@ Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
 		return 0;
 	}
 
-	sdrFetch(oldEltBuffer, (Address) oldElt);
+	sdrFetch(oldEltBuffer, (SdrAddress) oldElt);
 	if ((list = oldEltBuffer.list) == 0)
 	{
 		oK(_xniEnd(file, line, "list", sdrv));
@@ -390,15 +390,15 @@ Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
 	eltBuffer.data = data;
 
 	/* insert new element after the specified element */
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	eltBuffer.next = oldEltBuffer.next;
 	eltBuffer.prev = oldElt;
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	if (oldEltBuffer.next != 0)
 	{
-		sdrFetch(eltBuffer, (Address) oldEltBuffer.next);
+		sdrFetch(eltBuffer, (SdrAddress) oldEltBuffer.next);
 		eltBuffer.prev = elt;
-		sdrPut((Address) oldEltBuffer.next, eltBuffer);
+		sdrPut((SdrAddress) oldEltBuffer.next, eltBuffer);
 	}
 	else
 	{
@@ -406,18 +406,18 @@ Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
 	}
 
 	oldEltBuffer.next = elt;
-	sdrPut((Address) oldElt, oldEltBuffer);
+	sdrPut((SdrAddress) oldElt, oldEltBuffer);
 	listBuffer.length += 1;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 	return elt;
 }
 
-Object	Sdr_list_insert(const char *file, int line, Sdr sdrv, Object list,
-		Address data, SdrListCompareFn compare, void *dataBuffer)
+SdrObject Sdr_list_insert(const char *file, int line, Sdr sdrv, SdrObject list,
+		SdrAddress data, SdrListCompareFn compare, void *dataBuffer)
 {
 	SdrList		listBuffer;
 	SdrListElt	eltBuffer;
-	Object		elt;
+	SdrObject	elt;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -444,10 +444,10 @@ Object	Sdr_list_insert(const char *file, int line, Sdr sdrv, Object list,
 	 *	FIFO within key, i.e., we insert element AFTER the last
 	 *	element in the table with the same key value.		*/
 
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	for (elt = listBuffer.last; elt != 0; elt = eltBuffer.prev)
 	{
-		sdrFetch(eltBuffer, (Address) elt);
+		sdrFetch(eltBuffer, (SdrAddress) elt);
 		if (compare(sdrv, eltBuffer.data, dataBuffer) <= 0) break;
 	}
 
@@ -461,14 +461,14 @@ Object	Sdr_list_insert(const char *file, int line, Sdr sdrv, Object list,
 	return Sdr_list_insert_after(file, line, sdrv, elt, data);
 }
 
-void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
+void Sdr_list_delete(const char *file, int line, Sdr sdrv, SdrObject elt,
 		SdrListDeleteFn deleteFn, void *arg)
 {
 	SdrListElt	eltBuffer;
-	Object		list;
+	SdrObject	list;
 	SdrList		listBuffer;
-	Object		next;
-	Object		prev;
+	SdrObject	next;
+	SdrObject	prev;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -483,14 +483,14 @@ void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
 		return;
 	}
 
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	if ((list = eltBuffer.list) == 0)
 	{
 		oK(_xniEnd(file, line, "list", sdrv));
 		return;
 	}
 
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	if (listBuffer.length < 1)
 	{
 		oK(_xniEnd(file, line, "list non-empty", sdrv));
@@ -506,13 +506,13 @@ void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
 
 	/* just in case user accesses later... */
 	sdr_list__elt_clear(&eltBuffer);
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	sdrFree(elt);
 	if (prev)
 	{
-		sdrFetch(eltBuffer, (Address) prev);
+		sdrFetch(eltBuffer, (SdrAddress) prev);
 		eltBuffer.next = next;
-		sdrPut((Address) prev, eltBuffer);
+		sdrPut((SdrAddress) prev, eltBuffer);
 	}
 	else
 	{
@@ -521,9 +521,9 @@ void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
 
 	if (next)
 	{
-		sdrFetch(eltBuffer, (Address) next);
+		sdrFetch(eltBuffer, (SdrAddress) next);
 		eltBuffer.prev = prev;
-		sdrPut((Address) next, eltBuffer);
+		sdrPut((SdrAddress) next, eltBuffer);
 	}
 	else
 	{
@@ -531,10 +531,10 @@ void	Sdr_list_delete(const char *file, int line, Sdr sdrv, Object elt,
 	}
 
 	listBuffer.length -= 1;
-	sdrPut((Address) list, listBuffer);
+	sdrPut((SdrAddress) list, listBuffer);
 }
 
-Object	sdr_list_first(Sdr sdrv, Object list)
+SdrObject sdr_list_first(Sdr sdrv, SdrObject list)
 {
 	SdrList		listBuffer;
 
@@ -547,11 +547,11 @@ accessible", itoa(list));
 	}
 
 	CHKZERO(list);
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	return listBuffer.first;
 }
 
-Object	sdr_list_last(Sdr sdrv, Object list)
+SdrObject sdr_list_last(Sdr sdrv, SdrObject list)
 {
 	SdrList		listBuffer;
 
@@ -564,11 +564,11 @@ accessible", itoa(list));
 	}
 
 	CHKZERO(list);
-	sdrFetch(listBuffer, (Address) list);
+	sdrFetch(listBuffer, (SdrAddress) list);
 	return listBuffer.last;
 }
 
-Object	sdr_list_next(Sdr sdrv, Object elt)
+SdrObject sdr_list_next(Sdr sdrv, SdrObject elt)
 {
 	SdrListElt	eltBuffer;
 
@@ -581,11 +581,11 @@ accessible", itoa(elt));
 	}
 
 	CHKZERO(elt);
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	return eltBuffer.next;
 }
 
-Object	sdr_list_prev(Sdr sdrv, Object elt)
+SdrObject sdr_list_prev(Sdr sdrv, SdrObject elt)
 {
 	SdrListElt	eltBuffer;
 
@@ -598,14 +598,14 @@ accessible", itoa(elt));
 	}
 
 	CHKZERO(elt);
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	return eltBuffer.prev;
 }
 
-Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
+SdrObject sdr_list_search(Sdr sdrv, SdrObject fromElt, int reverse,
 			SdrListCompareFn compare, void *dataBuffer)
 {
-	Object		eltAddr;
+	SdrObject	eltAddr;
 	SdrListElt	elt;
 	int		result;
 
@@ -625,7 +625,7 @@ accessible", itoa(fromElt));
 			for (eltAddr = fromElt; eltAddr != 0;
 					eltAddr = elt.prev)
 			{
-				sdrFetch(elt, (Address) eltAddr);
+				sdrFetch(elt, (SdrAddress) eltAddr);
 				result = compare(sdrv, elt.data, dataBuffer);
 				if (result < 0)
 				{
@@ -645,7 +645,7 @@ accessible", itoa(fromElt));
 			for (eltAddr = fromElt; eltAddr != 0;
 					eltAddr = elt.next)
 			{
-				sdrFetch(elt, (Address) eltAddr);
+				sdrFetch(elt, (SdrAddress) eltAddr);
 				result = compare(sdrv, elt.data, dataBuffer);
 				if (result > 0)
 				{
@@ -670,45 +670,45 @@ accessible", itoa(fromElt));
 	{
 		for (eltAddr = fromElt; eltAddr != 0; eltAddr = elt.prev)
 		{
-			sdrFetch(elt, (Address) eltAddr);
-			if (elt.data == (Address) dataBuffer) break;
+			sdrFetch(elt, (SdrAddress) eltAddr);
+			if (elt.data == (SdrAddress) dataBuffer) break;
 		}
 	}
 	else
 	{
 		for (eltAddr = fromElt; eltAddr != 0; eltAddr = elt.next)
 		{
-			sdrFetch(elt, (Address) eltAddr);
-			if (elt.data == (Address) dataBuffer) break;
+			sdrFetch(elt, (SdrAddress) eltAddr);
+			if (elt.data == (SdrAddress) dataBuffer) break;
 		}
 	}
 
 	return eltAddr;
 }
 
-Object	sdr_list_list(Sdr sdrv, Object elt)
+SdrObject sdr_list_list(Sdr sdrv, SdrObject elt)
 {
 	SdrListElt	eltBuffer;
 
 	CHKZERO(elt);
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	return eltBuffer.list;
 }
 
-Address	sdr_list_data(Sdr sdrv, Object elt)
+SdrAddress sdr_list_data(Sdr sdrv, SdrObject elt)
 {
 	SdrListElt	eltBuffer;
 
 	CHKZERO(elt);
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	return eltBuffer.data;
 }
 
-Address	Sdr_list_data_set(const char *file, int line, Sdr sdrv, Object elt,
-		Address new)
+SdrAddress Sdr_list_data_set(const char *file, int line, Sdr sdrv,
+		SdrObject elt, SdrAddress new)
 {
 	SdrListElt	eltBuffer;
-	Address		old;
+	SdrAddress	old;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -723,9 +723,9 @@ Address	Sdr_list_data_set(const char *file, int line, Sdr sdrv, Object elt,
 		return 0;
 	}
 
-	sdrFetch(eltBuffer, (Address) elt);
+	sdrFetch(eltBuffer, (SdrAddress) elt);
 	old = eltBuffer.data;
 	eltBuffer.data = new;
-	sdrPut((Address) elt, eltBuffer);
+	sdrPut((SdrAddress) elt, eltBuffer);
 	return old;
 }

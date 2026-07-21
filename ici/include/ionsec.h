@@ -34,21 +34,21 @@ typedef struct
 {
 	char		name[32];	/*	NULL-terminated.	*/
 	int		length;
-	Object		value;
+	SdrObject	value;
 } SecKey;				/*	Symmetric keys.		*/
 
 typedef struct
 {
 	time_t		effectiveTime;
 	int		length;
-	Object		value;
+	SdrObject	value;
 } OwnPublicKey;
 
 typedef struct
 {
 	time_t		effectiveTime;
 	int		length;
-	Object		value;
+	SdrObject	value;
 } PrivateKey;
 
 typedef struct
@@ -57,27 +57,27 @@ typedef struct
 	time_t		effectiveTime;
 	time_t		assertionTime;
 	int		length;
-	Object		value;
+	SdrObject	value;
 } PublicKey;				/*	Not used for Own keys.	*/
 
 typedef struct
 {
 	uvast		fqnn;
 	time_t		effectiveTime;
-	Object		publicKeyElt;	/*	Ref. to PublicKey.	*/
+	SdrObject	publicKeyElt;	/*	Ref. to PublicKey.	*/
 } PubKeyRef;				/*	Not used for Own keys.	*/
 
 typedef struct
 {
-	Object publicKeys;	 /* SdrList PublicKey */
-	Object ownPublicKeys;	 /* SdrList OwnPublicKey */
-	Object privateKeys;	 /* SdrList PrivateKey */
-	time_t nextRekeyTime;	 /* 1970 epoch time. */
-	Object keys;		 /* SdrList of SecKey */
-	Object rules[5];	 /* SdrLists of sec rules */
+	SdrObject publicKeys;	    /* SdrList PublicKey */
+	SdrObject ownPublicKeys;    /* SdrList OwnPublicKey */
+	SdrObject privateKeys;	    /* SdrList PrivateKey */
+	time_t	  nextRekeyTime;    /* 1970 epoch time. */
+	SdrObject keys;		    /* SdrList of SecKey */
+	SdrObject rules[5];	    /* SdrLists of sec rules */
 #if !USING_BSL
-	Object bpSecPolicyRules; /* Policy Engine Database */
-	Object bpSecEventSets;
+	SdrObject bpSecPolicyRules; /* Policy Engine Database */
+	SdrObject bpSecEventSets;
 #endif
 } SecDB;
 
@@ -96,7 +96,7 @@ typedef struct
 
 extern int	secInitialize(void);
 extern int	secAttach(void);
-extern Object	getSecDbObject(void);
+extern SdrObject getSecDbObject(void);
 extern SecDB	*getSecConstants(void);
 extern SecVdb	*getSecVdb(void);
 
@@ -105,7 +105,7 @@ extern SecVdb	*getSecVdb(void);
  */
 
 extern void	sec_findPublicKey(uvast fqnn, time_t effectiveTime,
-			Object *keyAddr, Object *eltp);
+			SdrObject *keyAddr, SdrObject *eltp);
 extern int	sec_addPublicKey(uvast fqnn, time_t effectiveTime,
 			time_t assertionTime, int datLen, unsigned char *data);
 extern int	sec_removePublicKey(uvast fqnn, time_t effectiveTime);
@@ -173,7 +173,7 @@ extern int	sec_get_private_key(time_t effectiveTime, int *datBufferLen,
  * Functions for managing symmetric cryptography.
  */
 
-extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
+extern void	sec_findKey(char *keyName, SdrObject *keyAddr, SdrObject *eltp);
 extern int	sec_addKey(char *keyName, char *fileName, int keyLen);
 extern int	sec_updateKey(char *keyName, char *fileName, int keyLen);
 extern int	sec_removeKey(char *keyName);

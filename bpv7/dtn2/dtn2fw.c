@@ -41,10 +41,10 @@ static void	shutDown(int signum)
 	sm_SemEnd(_dtn2fwSemaphore(NULL));
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj)
+static int enqueueBundle(Bundle *bundle, SdrObject bundleObj)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
 	VScheme		*vscheme = NULL;
@@ -142,8 +142,8 @@ int	main(void)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	Object		elt;
-	Object		bundleAddr;
+	SdrObject	elt;
+	SdrObject	bundleAddr;
 	Bundle		bundle;
 
 	if (bpAttach() < 0)
@@ -192,7 +192,7 @@ int	main(void)
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		bundleAddr = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		bundle.priority = bundle.classOfService;
 		bundle.ordinal = bundle.ancillaryData.ordinal;

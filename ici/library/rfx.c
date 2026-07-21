@@ -548,10 +548,10 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 			size_t xmitRate, float confidence)
 {
 	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	CpsNotice	notice;
-	Object		noticeObj;
+	SdrObject	noticeObj;
 
 	/*	If regionNbr is 0
 	 *		This is a range notice
@@ -806,7 +806,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	IonNode		*node;
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	PsmAddress	cxelt;
 	PsmAddress	addr;
@@ -1119,7 +1119,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	return cxaddr;
 }
 
-static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
+static void	insertContact(int regionIdx, IonDB *iondb, SdrObject iondbObj,
 			time_t fromTime, time_t toTime, uvast fromFqnn,
 			uvast toFqnn, size_t xmitRate, float confidence,
 			ContactType contactType, PsmAddress *cxaddr)
@@ -1128,8 +1128,8 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 	uint32_t	regionNbr = iondb->regions[regionIdx].regionNbr;
 	IonContact	contact;
 	double		volume;
-	Object		obj;
-	Object		elt;
+	SdrObject	obj;
+	SdrObject	elt;
 	IonCXref	newCx;
 
 	/* Parameter intentionally unused. */
@@ -1181,7 +1181,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	IonVdb		*vdb = getIonVdb();
 	time_t		currentTime = getCtime();
 	IonCXref	*cxref;
-	Object		obj;
+	SdrObject	obj;
 	IonEvent	event;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
@@ -1346,16 +1346,16 @@ static void	deleteContact(PsmAddress cxaddr)
 			rfx_erase_data, NULL);
 }
 
-static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
-			int announce)
+static void vacateRegion(IonDB *iondb, SdrObject iondbObj, int regionIdx,
+		int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	uint32_t	regionNbr = iondb->regions[regionIdx].regionNbr;
-	Object		elt;
-	Object		nextElt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	obj;
 	IonContact	contact;
 	IonCXref	arg;
 	PsmAddress	cxelt;
@@ -1507,12 +1507,12 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 }
 
 static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
-			Object iondbObj, int announce)
+			SdrObject iondbObj, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	uint32_t	homeRegionNbr;
-	Object		elt;
-	Object		memberObj;
+	SdrObject	elt;
+	SdrObject	memberObj;
 	RegionMember	member;
 
 	homeRegionNbr = iondb->regions[0].regionNbr;
@@ -1546,11 +1546,11 @@ static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
 }
 
 static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
-			IonDB *iondb, Object iondbObj, int announce)
+			IonDB *iondb, SdrObject iondbObj, int announce)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		memberObj;
+	SdrObject	elt;
+	SdrObject	memberObj;
 	RegionMember	member;
 
 	for (elt = sdr_list_first(sdr, iondb->rolodex); elt;
@@ -1640,8 +1640,8 @@ static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
 	}
 }
 
-static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
-			int announce)
+static void registerSelf(uint32_t regionNbr, IonDB *iondb, SdrObject iondbObj,
+		int announce)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -1672,7 +1672,7 @@ static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
 		iondb->regions[0].contacts = sdr_list_create(sdr);
 		CHKVOID(iondb->regions[0].contacts);
 		sdr_list_user_data_set(sdr, iondb->regions[0].contacts,
-				(Address) regionNbr);
+				(SdrAddress) regionNbr);
 	}
 	else
 	{
@@ -1684,14 +1684,14 @@ static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
 		iondb->regions[1].contacts = sdr_list_create(sdr);
 		CHKVOID(iondb->regions[1].contacts);
 		sdr_list_user_data_set(sdr, iondb->regions[1].contacts,
-				(Address) regionNbr);
+				(SdrAddress) regionNbr);
 	}
 
 	registerInRegion(regionNbr, getOwnFqnn(), iondb, iondbObj, announce);
 }
 
 static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
-			IonDB *iondb, Object iondbObj, PsmAddress *cxaddr,
+			IonDB *iondb, SdrObject iondbObj, PsmAddress *cxaddr,
 			int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -1751,7 +1751,7 @@ int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
 	IonVdb 		*vdb = getIonVdb();
 	uvast		ownFqnn = getOwnFqnn();
 	ContactType	contactType;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	int		regionIdx;
 	IonCXref	arg;
@@ -2112,7 +2112,7 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
 	IonCXref	*cxref;
-	Object		obj;
+	SdrObject	obj;
 	IonContact	contact;
 	IonNeighbor	*neighbor;
 
@@ -2281,11 +2281,11 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	int		regionIdx;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
-	Object		elt;
-	Object		nextElt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	obj;
 	IonContact	contact;
 	IonCXref	arg;
 	PsmAddress	cxelt;
@@ -2899,10 +2899,10 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 	PsmAddress	prevElt;
 	char		rangeIdString[128];
 	IonRange	range;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
-	Object		obj;
-	Object		elt;
+	SdrObject	obj;
+	SdrObject	elt;
 
 	/*	Note that ranges are normally assumed to be symmetrical,
 	 *	i.e., the signal propagation time from B to A is normally
@@ -3102,7 +3102,7 @@ static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 	IonVdb 		*vdb = getIonVdb();
 	time_t		currentTime = getCtime();
 	IonRXref	*rxref;
-	Object		obj;
+	SdrObject	obj;
 	IonEvent	event;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
@@ -3514,10 +3514,10 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 
 /*	*	*	RFX control functions	*	*	*	*/
 
-static int	loadRange(Object elt)
+static int loadRange(SdrObject elt)
 {
 	Sdr		sdr = getIonsdr();
-	Object		obj;
+	SdrObject	obj;
 	IonRange	range;
 	IonRXref	rxref;
 
@@ -3540,10 +3540,10 @@ static int	loadRange(Object elt)
 	return 0;
 }
 
-static int	loadContact(Object elt, uint32_t regionNbr)
+static int loadContact(SdrObject elt, uint32_t regionNbr)
 {
 	Sdr		sdr = getIonsdr();
-	Object		obj;
+	SdrObject	obj;
 	IonContact	contact;
 	IonCXref	cxref;
 
@@ -3580,11 +3580,11 @@ int	rfx_start(void)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	int		i;
 	uint32_t	regionNbr;
-	Object		elt;
+	SdrObject	elt;
 
 	iondbObj = getIonDbObject();
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
@@ -3650,7 +3650,7 @@ int	rfx_start(void)
 static void	stopWatchDaemons(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	pid;
 	int	i;
@@ -3769,7 +3769,7 @@ static void	stopWatchDaemons(void)
 static void	launchWatchDaemons(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	iondbObj = getIonDbObject();
+	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
 
 	CHKVOID(sdr_begin_xn(sdr));

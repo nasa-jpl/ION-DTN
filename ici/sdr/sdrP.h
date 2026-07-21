@@ -49,8 +49,8 @@
 
 typedef struct
 {
-	Address		from;	/*	1st byte of object		*/
-	Address		to;	/*	1st byte beyond scope of object	*/
+	SdrAddress from; /* 1st byte of object */
+	SdrAddress to;	 /* 1st byte beyond scope of object */
 } ObjectExtent;
 
 /*	Sorted (by 'from') dynamic array of ObjectExtents.  Backs the
@@ -180,13 +180,13 @@ typedef struct sdr_str
 
 typedef struct
 {
-	Address		firstFreeBlock;
+	SdrAddress	firstFreeBlock;
 	size_t		freeBlocks;
 } SmallFreeBucket;
 
 typedef struct
 {
-	Address		firstFreeBlock;
+	SdrAddress	firstFreeBlock;
 	size_t		freeBlocks;
 	size_t		freeBytes;
 } LargeFreeBucket;
@@ -205,18 +205,18 @@ typedef struct
 
 typedef struct	/*	Non-volatile state at front of SDR.		*/
 {
-	Object		catalogue;		/*	partition root	*/
+	SdrObject	catalogue;		/*	partition root	*/
 	unsigned int	status;			/*	INITIALIZED?	*/
 	size_t		dsSize;			/*	Map + heap.	*/
 	size_t		heapSize;
 
 		/*	For dynamic management of heap space.	*/
 
-	Address		startOfSmallPool;
-	Address		endOfSmallPool;
+	SdrAddress	startOfSmallPool;
+	SdrAddress	endOfSmallPool;
 	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
-	Address		startOfLargePool;
-	Address		endOfLargePool;
+	SdrAddress	startOfLargePool;
+	SdrAddress	endOfLargePool;
 	LargeFreeBucket	largePoolFree[LARGE_ORDERS];
 	unsigned int	largePoolSearchLimit;
 	size_t		unassignedSpace;
@@ -274,8 +274,7 @@ extern char		*_violationMsg(void);
 
 #define ADDRESS_OF(X)	(((char *) &(map->X)) - ((char *) map))
 
-extern void		_sdrput(const char*, int, Sdr, Address, char*, size_t,
-				PutSrc);
+extern void _sdrput(const char *, int, Sdr, SdrAddress, char *, size_t, PutSrc);
 #define	sdrPatch(A,V)	_sdrput(__FILE__, __LINE__, sdrv, (A), (char *) &(V), \
 sizeof (V), SystemPut)
 #define	patchMap(X,V)	_sdrput(__FILE__, __LINE__, sdrv, ADDRESS_OF(X), \
@@ -283,15 +282,15 @@ sizeof (V), SystemPut)
 #define	sdrPut(A,V)	_sdrput(file, line, sdrv, (A), (char *) &(V), \
 sizeof (V), SystemPut)
 
-extern void		_sdrfetch(Sdr, char *, Address, size_t);
+extern void _sdrfetch(Sdr, char *, SdrAddress, size_t);
 #define sdrFetch(V,A)	_sdrfetch(sdrv, (char *) &(V), (A), sizeof (V))
 
-extern Object		_sdrzalloc(Sdr, size_t);
-extern Object		_sdrmalloc(Sdr, size_t);
-extern void		_sdrfree(Sdr, Object, PutSrc);
+extern SdrObject _sdrzalloc(Sdr, size_t);
+extern SdrObject _sdrmalloc(Sdr, size_t);
+extern void	 _sdrfree(Sdr, SdrObject, PutSrc);
 #define sdrFree(Obj)	_sdrfree(sdrv, Obj, SystemPut)
 
-extern int		sdrBoundaryViolated(Sdr, Address, size_t);
+extern int		sdrBoundaryViolated(Sdr, SdrAddress, size_t);
 extern int		sdrFetchSafe(Sdr);
 
 extern void		crashXn(Sdr);

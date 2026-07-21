@@ -58,8 +58,8 @@ typedef struct
 } LtpRecvAuthRule;
 
 /*		LTP segment signing rules				*/
-extern int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
-			Object *eltp);
+extern int	sec_findLtpXmitAuthRule(uvast ltpEngineId, SdrObject *ruleAddr,
+			SdrObject *eltp);
 extern int	sec_addLtpXmitAuthRule(uvast ltpEngineId,
 			unsigned char ciphersuiteNbr, char *keyName);
 extern int	sec_updateLtpXmitAuthRule(uvast ltpEngineId,
@@ -67,8 +67,8 @@ extern int	sec_updateLtpXmitAuthRule(uvast ltpEngineId,
 extern int	sec_removeLtpXmitAuthRule(uvast ltpEngineId);
 
 /*		LTP segment authentication rules			*/
-extern int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
-			Object *eltp);
+extern int	sec_findLtpRecvAuthRule(uvast ltpEngineId, SdrObject *ruleAddr,
+			SdrObject *eltp);
 extern int	sec_addLtpRecvAuthRule(uvast ltpEngineId,
 			unsigned char ciphersuiteNbr, char *keyName);
 extern int	sec_updateLtpRecvAuthRule(uvast ltpEngineId,

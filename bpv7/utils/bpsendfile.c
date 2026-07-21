@@ -51,12 +51,12 @@ static int run_bpsendfile(char *ownEid, char *destEid, char *rptToEid,
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
 	Sdr		sdr;
-	Object		fileRef;
+	SdrObject	fileRef;
 	struct stat	statbuf;
 	int		aduLength;
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	char		progressText[300];
-	Object		newBundle;
+	SdrObject	newBundle;
 	int		sendFailed = 0;
 
 	if (svcClass == NULL)
@@ -137,7 +137,7 @@ static int run_bpsendfile(char *ownEid, char *destEid, char *rptToEid,
 
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
 	}

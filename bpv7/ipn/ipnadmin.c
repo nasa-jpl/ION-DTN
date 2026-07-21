@@ -576,8 +576,8 @@ static void	printPlan(BpPlan *plan)
 	char	*action = "none";
 	char	viaEid[SDRSTRING_BUFSZ];
 	char	*spec = "none";
-	Object	ductElt;
-	Object	outductElt;
+	SdrObject ductElt;
+	SdrObject outductElt;
 	Outduct	outduct;
 	char	neighborBuf[FQN_MAX_LENGTH];
 	char	buffer[1024];
@@ -611,8 +611,8 @@ static void	infoPlan(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	int	fqnn;
-	Object	planAddr;
-	Object	elt;
+	SdrObject planAddr;
+	SdrObject elt;
 		OBJ_POINTER(BpPlan, plan);
 
 	if (tokenCount != 3)
@@ -654,7 +654,7 @@ static void	infoExit(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	uvast	firstFqnn;
 	uvast	lastFqnn;
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IpnExit, exit);
 
 	if (tokenCount != 4)
@@ -758,7 +758,7 @@ static void	infoOverride(int tokenCount, char **tokens)
 	unsigned int	dataLabel;
 	uvast		destFqnn;
 	uvast		sourceFqnn;
-	Object		elt;
+	SdrObject	elt;
 			OBJ_POINTER(IpnOverride, ovrd);
 
 	if (tokenCount != 5)
@@ -836,7 +836,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 static void	listPlans(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(BpPlan, plan);
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -858,7 +858,7 @@ static void	listPlans(void)
 static void	listExits(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IpnExit, exit);
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -875,7 +875,7 @@ static void	listExits(void)
 static void	listOverrides(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(IpnOverride, ovrd);
 
 	CHKVOID(sdr_begin_xn(sdr));

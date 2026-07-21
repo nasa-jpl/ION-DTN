@@ -561,10 +561,11 @@ On success, places a value in *ionsapPtr that can be supplied to future bp funct
 Function Prototype
 
 ```c
-int bp_send(BpSAP sap, char *destEid, char *reportToEid,
-             int lifespan, int classOfService, BpCustodySwitch custodySwitch,
-             unsigned char srrFlags, int ackRequested,
-             BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
+int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+                int classOfService, BpCustodySwitch custodySwitch,
+                unsigned char srrFlags, int ackRequested,
+                BpAncillaryData *ancillaryData, SdrObject adu,
+                SdrObject *newBundle)
 ```
 
 Parameters
@@ -642,7 +643,7 @@ If 1 is returned, then either the destination of the bundle was "dtn:none" (the 
 Function Prototype
 
 ```c
-int bp_track(Object bundle, Object trackingElt)
+int bp_track(SdrObject bundle, SdrObject trackingElt)
 ```
 
 Parameters
@@ -659,10 +660,10 @@ Example Call
 
 ```c
 /* a lyst of bundles in SDR */
-Object bundleList;
+SdrObject bundleList;
 
 /* a bundle object in SDR */
-Object bundleObject;
+SdrObject bundleObject;
 
 bundleElt = sdr_list_insert_last(sdr, bundleList,
                 bundleObject);
@@ -688,7 +689,7 @@ Adds `trackingElt` to the list of "tracking" references in bundle. `trackingElt`
 Function Prototype
 
 ```c
-void bp_untrack(Object bundle, Object trackingElt)
+void bp_untrack(SdrObject bundle, SdrObject trackingElt)
 ```
 
 Parameters
@@ -712,7 +713,7 @@ Removes `trackingElt` from the list of "tracking" references in bundle, if it is
 Function Prototype
 
 ```c
-int bp_suspend(Object bundle)
+int bp_suspend(SdrObject bundle)
 ```
 
 Parameters
@@ -735,7 +736,7 @@ Suspends transmission of bundle. Has no effect if bundle is "critical" (i.e., ha
 Function Prototype
 
 ```c
-int bp_resume(Object bundle)
+int bp_resume(SdrObject bundle)
 ```
 
 Parameters
@@ -758,7 +759,7 @@ Terminates suspension of transmission of bundle. Has no effect if bundle is "cri
 Function Prototype
 
 ```c
-int bp_cancel(Object bundle)
+int bp_cancel(SdrObject bundle)
 ```
 
 Parameters
@@ -781,7 +782,7 @@ Cancels transmission of bundle. If the indicated bundle is currently queued for 
 Function Prototype
 
 ```c
-int bp_release(Object bundle)
+int bp_release(SdrObject bundle)
 ```
 
 Parameters
@@ -1171,7 +1172,7 @@ When working with SDR transactions for ZCO creation:
 
 ```c
 Sdr sdr = bp_get_sdr();
-Object extent;
+SdrObject extent;
 
 CHKERR(sdr_begin_xn(sdr));  // Macro that checks and handles errors
 
@@ -1347,8 +1348,8 @@ SDR-based ZCOs store the payload data in ION's SDR heap. This is appropriate for
 int send_sdr_bundle(char *destEid, char *data, int dataLen)
 {
     Sdr sdr;
-    Object extent, bundleZco;
-    Object bundleObj = 0;
+    SdrObject extent, bundleZco;
+    SdrObject bundleObj = 0;
     ReqAttendant attendant;
     int result;
 
@@ -1396,7 +1397,7 @@ int send_sdr_bundle(char *destEid, char *data, int dataLen)
     bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, dataLen,
                              BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
 
-    if (bundleZco == 0 || bundleZco == (Object)ERROR)
+    if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
     {
         putErrmsg("Can't create ZCO.", NULL);
         ionStopAttendant(&attendant);
@@ -1443,8 +1444,8 @@ int send_file_bundle(char *destEid, char *filename)
 {
     struct stat statbuf;
     int fileRef;
-    Object bundleZco;
-    Object bundleObj = 0;
+    SdrObject bundleZco;
+    SdrObject bundleObj = 0;
     ReqAttendant attendant;
     int result;
 
@@ -1476,7 +1477,7 @@ int send_file_bundle(char *destEid, char *filename)
     bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, statbuf.st_size,
                              BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
 
-    if (bundleZco == 0 || bundleZco == (Object)ERROR)
+    if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
     {
         putErrmsg("Can't create file ZCO.", NULL);
         ionStopAttendant(&attendant);
@@ -1656,7 +1657,7 @@ bp_open_source(ownEid, &sap, 1);  // detain=1
 
 for (int i = 0; i < 1000; i++)
 {
-    Object bundleObj;
+    SdrObject bundleObj;
     bp_send(sap, destEid, NULL, 300, BP_STD_PRIORITY,
             NoCustodyRequested, 0, 0, NULL, zco, &bundleObj);
 
@@ -1673,7 +1674,7 @@ bp_open_source(ownEid, &sap, 1);  // detain=1
 
 for (int i = 0; i < 1000; i++)
 {
-    Object bundleObj;
+    SdrObject bundleObj;
     bp_send(sap, destEid, NULL, 300, BP_STD_PRIORITY,
             NoCustodyRequested, 0, 0, NULL, zco, &bundleObj);
 
@@ -1727,7 +1728,7 @@ if (result <= 0)  // Catches both 0 (user error) and -1 (system error)
 **Problem:**
 ```c
 // BAD - trying to reuse ZCO
-Object zco = ionCreateZco(...);
+SdrObject zco = ionCreateZco(...);
 
 bp_send(sap, "ipn:1.1", NULL, 300, BP_STD_PRIORITY,
         NoCustodyRequested, 0, 0, NULL, zco, NULL);
@@ -1740,11 +1741,11 @@ bp_send(sap, "ipn:2.1", NULL, 300, BP_STD_PRIORITY,
 **Solution:**
 ```c
 // GOOD - create new ZCO for each bundle
-Object zco1 = ionCreateZco(...);
+SdrObject zco1 = ionCreateZco(...);
 bp_send(sap, "ipn:1.1", NULL, 300, BP_STD_PRIORITY,
         NoCustodyRequested, 0, 0, NULL, zco1, NULL);
 
-Object zco2 = ionCreateZco(...);  // Create new ZCO
+SdrObject zco2 = ionCreateZco(...);  // Create new ZCO
 bp_send(sap, "ipn:2.1", NULL, 300, BP_STD_PRIORITY,
         NoCustodyRequested, 0, 0, NULL, zco2, NULL);
 ```
@@ -1849,7 +1850,7 @@ bp_send(sap,  // Proper source endpoint
 // BAD - using SDR for large files
 char bigData[10 * 1024 * 1024];  // 10 MB
 // ... load data ...
-Object extent = sdr_malloc(sdr, sizeof(bigData));  // Consumes SDR heap!
+SdrObject extent = sdr_malloc(sdr, sizeof(bigData));  // Consumes SDR heap!
 ```
 
 **Solution:**
@@ -1857,7 +1858,7 @@ Object extent = sdr_malloc(sdr, sizeof(bigData));  // Consumes SDR heap!
 // GOOD - use file ZCO for large data
 // For data > ~100KB, use file-based ZCO instead
 int fileRef = zco_create_file_ref(sdr, "large_file.dat", "", ZcoOutbound);
-Object zco = ionCreateZco(ZcoFileSource, fileRef, 0, fileSize,
+SdrObject zco = ionCreateZco(ZcoFileSource, fileRef, 0, fileSize,
                           BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
 ```
 
@@ -1893,7 +1894,7 @@ bp_open("dtn://node1/service", &sap);  // Correct DTN format
 // BAD - attendant never stopped
 ReqAttendant attendant;
 ionStartAttendant(&attendant);
-Object zco = ionCreateZco(..., &attendant);
+SdrObject zco = ionCreateZco(..., &attendant);
 bp_send(..., zco, ...);
 // Missing ionStopAttendant()!
 ```
@@ -1903,7 +1904,7 @@ bp_send(..., zco, ...);
 // GOOD - always stop attendant
 ReqAttendant attendant;
 ionStartAttendant(&attendant);
-Object zco = ionCreateZco(..., &attendant);
+SdrObject zco = ionCreateZco(..., &attendant);
 bp_send(..., zco, ...);
 ionStopAttendant(&attendant);  // Clean up!
 ```

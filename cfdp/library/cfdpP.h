@@ -25,24 +25,24 @@ extern "C" {
 
 typedef struct
 {
-	Object		text;
+	SdrObject	text;
 	unsigned char	length;
 } MsgToUser;
 
 typedef struct
 {
 	CfdpAction	action;
-	Object		firstFileName;		/*	sdrstring	*/
-	Object		secondFileName;		/*	sdrstring	*/
+	SdrObject	firstFileName;	/* sdrstring */
+	SdrObject	secondFileName; /* sdrstring */
 } FilestoreRequest;
 
 typedef struct
 {
 	CfdpAction	action;
 	unsigned int	status;			/*	per table 5-18	*/
-	Object		firstFileName;		/*	sdrstring	*/
-	Object		secondFileName;		/*	sdrstring	*/
-	Object		message;		/*	sdrstring	*/
+	SdrObject	firstFileName;		/*	sdrstring	*/
+	SdrObject	secondFileName;		/*	sdrstring	*/
+	SdrObject	message;		/*	sdrstring	*/
 } FilestoreResponse;
 
 typedef struct
@@ -51,10 +51,10 @@ typedef struct
 	time_t		      time;
 	int		      reqNbr;
 	CfdpTransactionId     transactionId;
-	Object		      sourceFileName; /* sdrstring */
-	Object		      destFileName;   /* sdrstring */
+	SdrObject	      sourceFileName; /* sdrstring */
+	SdrObject	      destFileName;   /* sdrstring */
 	uvast		      fileSize;
-	Object		      messagesToUser; /* MdList */
+	SdrObject	      messagesToUser; /* MdList */
 	uvast		      offset;
 	unsigned int	      length;
 	unsigned int	      recordBoundsRespected;
@@ -67,8 +67,8 @@ typedef struct
 	CfdpDeliveryCode      deliveryCode;
 	CfdpFileStatus	      fileStatus;
 	CfdpTransactionId     originatingTransactionId;
-	Object		      statusReport;	  /* sdrstring */
-	Object		      filestoreResponses; /* MdList */
+	SdrObject	      statusReport;	  /* sdrstring */
+	SdrObject	      filestoreResponses; /* MdList */
 } CfdpEvent;
 
 typedef enum
@@ -84,13 +84,13 @@ typedef struct
 	unsigned int		length;
 	CfdpContinuationState	continuationState;
 	unsigned int		metadataLength;
-	Object			metadata;
+	SdrObject		metadata;
 } FileDataPdu;
 
 typedef struct
 {
 	time_t			deadline;
-	Object			fdu;
+	SdrObject		fdu;
 } FinishPending;
 
 typedef struct
@@ -111,17 +111,17 @@ typedef struct
 
 	FduState     state;
 	CfdpHandler  faultHandlers[16];
-	Object	     metadataPdu;  /* bytes */
+	SdrObject    metadataPdu;  /* bytes */
 	unsigned int mpduLength;   /* in bytes */
 	uvast	     fileSize;	   /* in bytes */
 	unsigned int largeFile;	   /* Boolean */
 	uvast	     progress;	   /* bytes issued */
 	unsigned int transmitted;  /* Boolean */
-	Object	     fileRef;	   /* ZCO file ref */
-	Object	     fileDataPdus; /* sdrlist */
-	Object	     eofPdu;	   /* bytes */
+	SdrObject    fileRef;	   /* ZCO file ref */
+	SdrObject    fileDataPdus; /* sdrlist */
+	SdrObject    eofPdu;	   /* bytes */
 	unsigned int epduLength;   /* in bytes */
-	Object	     closureElt;   /* in sdrlist */
+	SdrObject    closureElt;   /* in sdrlist */
 } OutFdu;
 
 /*	Each CfdpExtent in "extents" indicates a range of bytes of file
@@ -140,7 +140,7 @@ typedef struct
 
 typedef struct
 {
-	Object			pdu;		/*	bytes		*/
+	SdrObject		pdu;		/* bytes */
 	unsigned int		length;		/*	in bytes	*/
 	int			largeFile;
 	int			entityNbrLength;
@@ -154,14 +154,14 @@ typedef struct
 
 	/* File Delivery Unit metadata */
 
-	Object	     sourceFileName;   /* sdrstring */
-	Object	     destFileName;     /* sdrstring */
+	SdrObject    sourceFileName;   /* sdrstring */
+	SdrObject    destFileName;     /* sdrstring */
 	unsigned int closureRequested; /* Boolean */
 	CfdpHandler  faultHandlers[16];
 	int	     flowLabelLength;
-	Object	     flowLabel;
-	Object	     messagesToUser;	/* sdrlist */
-	Object	     filestoreRequests; /* sdrlist */
+	SdrObject    flowLabel;
+	SdrObject    messagesToUser;	/* sdrlist */
+	SdrObject    filestoreRequests; /* sdrlist */
 
 	/* File reception status */
 
@@ -176,12 +176,12 @@ typedef struct
 	int	      checksumVerified;
 	CfdpCondition finishCondition;
 	uvast	      fileSize;
-	Object	      workingFileName; /* sdrstring */
+	SdrObject     workingFileName; /* sdrstring */
 	uvast	      progress;
 	time_t	      checkTime;
 	int	      checkTimeouts;
 	uvast	      bytesReceived;
-	Object	      extents; /* sdrlist */
+	SdrObject     extents; /* sdrlist */
 	time_t	      inactivityDeadline;
 } InFdu;
 
@@ -205,7 +205,7 @@ typedef struct
 	unsigned int		ackTimerInterval;
 	CfdpCksumType		inCkType;
 	CfdpCksumType		outCkType;
-	Object			inboundFdus;	/*	sdrlist: InFdu	*/
+	SdrObject		inboundFdus; /* sdrlist: InFdu */
 } Entity;
 
 typedef struct
@@ -214,8 +214,8 @@ typedef struct
 	CfdpNumber	  proxyDestinationEntityNbr;
 	char		  proxySourceFileName[256];
 	char		  proxyDestFileName[256];
-	Object		  proxyMsgsToUser;	      /* sdrlist */
-	Object		  proxyFilestoreRequests;     /* sdrlist */
+	SdrObject	  proxyMsgsToUser;	      /* sdrlist */
+	SdrObject	  proxyFilestoreRequests;     /* sdrlist */
 	CfdpHandler	  proxyFaultHandlers[16];
 	unsigned int	  proxyUnacknowledged;	      /* Boolean */
 	int		  proxyFlowLabelLength;
@@ -225,7 +225,7 @@ typedef struct
 	CfdpCondition	  proxyCondition;
 	CfdpDeliveryCode  proxyDeliveryCode;
 	CfdpFileStatus	  proxyFileStatus;
-	Object		  proxyFilestoreResponses; /* sdrlist */
+	SdrObject	  proxyFilestoreResponses;    /* sdrlist */
 	char		  directoryName[256];
 	char		  directoryDestFileName[256];
 	unsigned int	  directoryListingOptions;	/* v2 request bits */
@@ -258,14 +258,14 @@ typedef struct
 
 	uvast		maxTransmitRate;	/*	bits per second	*/
 
-	Object		usrmsgLists;	/*	SDR list: MetadataList	*/
-	Object		fsreqLists;	/*	SDR list: MetadataList	*/
-	Object		fsrespLists;	/*	SDR list: MetadataList	*/
-	Object		outboundFdus;	/*	SDR list: OutFdu	*/
-	Object		events;		/*	SDR list: CfdpEvent	*/
-	Object		entities;	/*	SDR list: Entity	*/
-	Object		finishPdus;	/*	SDR list: FinishPdu	*/
-	Object		finsPending;	/*	SDR list: FinishPending	*/
+	SdrObject	usrmsgLists;	/* SDR list: MetadataList */
+	SdrObject	fsreqLists;	/* SDR list: MetadataList */
+	SdrObject	fsrespLists;	/* SDR list: MetadataList */
+	SdrObject	outboundFdus;	/* SDR list: OutFdu */
+	SdrObject	events;		/* SDR list: CfdpEvent */
+	SdrObject	entities;	/* SDR list: Entity */
+	SdrObject	finishPdus;	/* SDR list: FinishPdu */
+	SdrObject	finsPending;	/* SDR list: FinishPending */
 } CfdpDB;
 
 /*	The volatile database object encapsulates the current volatile
@@ -306,7 +306,7 @@ typedef struct
 	 *	reassembled, if any.  currentFile is the FD that is
 	 *	being used to reassemble that FDU.			*/
 
-	Object		currentFdu;
+	SdrObject	currentFdu;
 	int		currentFile;
 
 	/*	The "attendant" of the CFDP entity is a coordination
@@ -351,12 +351,12 @@ extern void		cfdpDetach(void);
 
 extern void		cfdpScrub(void);
 
-extern Object		getCfdpDbObject(void);
+extern SdrObject	getCfdpDbObject(void);
 extern CfdpDB		*getCfdpConstants(void);
 extern CfdpVdb		*getCfdpVdb(void);
 
-extern Object		findEntity(uvast entityId, Entity *entity);
-extern Object		addEntity(uvast entityId, char *protocolName,
+extern SdrObject	findEntity(uvast entityId, Entity *entity);
+extern SdrObject	addEntity(uvast entityId, char *protocolName,
 				char *endpointName, unsigned int rtt,
 				unsigned int inCkType, unsigned int outCkType);
 extern int		changeEntity(uvast entityId, char *protocolName,
@@ -375,23 +375,23 @@ extern void		addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 #endif
 extern int		getReqNbr(void);	/*	Returns next req nbr.	*/
 
-extern MetadataList	createMetadataList(Object log);
+extern MetadataList	createMetadataList(SdrObject log);
 extern void		destroyUsrmsgList(MetadataList *list);
 extern void		destroyFsreqList(MetadataList *list);
 extern void		destroyFsrespList(MetadataList *list);
 
-extern Object		findOutFdu(CfdpTransactionId *id, OutFdu *fdu,
-				Object *elt);
+extern SdrObject	findOutFdu(CfdpTransactionId *id, OutFdu *fdu,
+				SdrObject *elt);
 extern int		suspendOutFdu(CfdpTransactionId *id, CfdpCondition c,
 				int reqNbr);
 extern int		cancelOutFdu(CfdpTransactionId *id, CfdpCondition c,
 				int reqNbr);
-extern void		destroyOutFdu(OutFdu *fdu, Object fduObj,
-				Object fduElt);
+extern void		destroyOutFdu(OutFdu *fdu, SdrObject fduObj,
+				SdrObject fduElt);
 
-extern Object		findInFdu(CfdpTransactionId *id, InFdu *fdu,
-				Object *elt, int createIfNotFound);
-extern int		completeInFdu(InFdu *fdu, Object fduObj, Object fduElt,
+extern SdrObject	findInFdu(CfdpTransactionId *id, InFdu *fdu,
+				SdrObject *elt, int createIfNotFound);
+extern int		completeInFdu(InFdu *fdu, SdrObject fduObj, SdrObject fduElt,
 				CfdpCondition c, int reqNbr);
 
 extern int		enqueueCfdpEvent(CfdpEvent *event);
@@ -399,7 +399,7 @@ extern int		enqueueCfdpEvent(CfdpEvent *event);
 extern int		handleFault(CfdpTransactionId *id, CfdpCondition c,
 				CfdpHandler *handler);
 
-extern int		cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer,
+extern int		cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer,
 				FinishPdu *fpdu, int *direction);
 extern int		cfdpHandleInboundPdu(unsigned char *buf, int length);
 

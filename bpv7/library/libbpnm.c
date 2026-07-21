@@ -195,7 +195,7 @@ void bpnm_endpoint_get (char *targetName, NmbpEndpoint *results,
 void	bpnm_node_get(NmbpNode *buf)
 {
 	Sdr	sdr = getIonsdr();
-	Object	bpDbObject = getBpDbObject();
+	SdrObject bpDbObject = getBpDbObject();
 	char	idBuf[FQN_MAX_LENGTH];
 	BpDB	bpdb;
 
@@ -265,14 +265,14 @@ void bpnm_extensions_get(char *nameBuffer, int bufLen, char *nameArray[],
 void bpnm_disposition_get(NmbpDisposition *results)
 {
 	Sdr	   sdr = getIonsdr();
-	Object	   bpDbObject = getBpDbObject();
+	SdrObject  bpDbObject = getBpDbObject();
 	BpDB	   bpdb;
 	int	   i;
 	Tally	  *tally;
 	BpCosStats cosStats;
-	Object	   elt;
+	SdrObject  elt;
 	Scheme	   scheme;
-	Object	   elt2;
+	SdrObject  elt2;
 	Bcla	   bcla;
 	Endpoint   endpoint;
 	BpPlan	   plan;
@@ -538,7 +538,7 @@ static void resetDbStats(BpDB *db)
 void bpnm_disposition_reset(void)
 {
 	Sdr    sdr = getIonsdr();
-	Object dbobj;
+	SdrObject dbobj;
 	BpDB   db;
 
 	dbobj = getBpDbObject();

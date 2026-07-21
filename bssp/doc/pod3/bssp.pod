@@ -60,7 +60,8 @@ Terminates all access to BSSP functionality on the local computer.
 Returns 1 if the local BSSP engine has been started and not yet stopped,
 0 otherwise.
 
-=item int bssp_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData, int inOrder, BsspSessionId *sessionId)
+=item int bssp_send(uvast destinationEngineId, unsigned int clientId,
+SdrObject clientServiceData, int inOrder, BsspSessionId *sessionId)
 
 Sends a client service data unit to the application that is waiting for
 data tagged with the indicated I<clientId> as received at the remote BSSP
@@ -94,7 +95,9 @@ for any single client service data ID.
 Returns 0 on success, -1 on any error (e.g., the indicated client service
 is already being held open by some other application task).
 
-=item int bssp_get_notice(unsigned int clientId, BsspNoticeType *type, BsspSessionId *sessionId, unsigned char *reasonCode, unsigned int *dataLength, Object *data)
+=item int bssp_get_notice(unsigned int clientId, BsspNoticeType *type,
+BsspSessionId *sessionId, unsigned char *reasonCode, unsigned int *dataLength,
+SdrObject *data)
 
 Receives notices of BSSP processing events pertaining to the flow of service
 data units tagged with the indicated client service ID.  The nature of each
@@ -123,7 +126,7 @@ Interrupts an bssp_get_notice() invocation.  This function is designed to be
 called from a signal handler; for this purpose, I<clientId> may need to be
 obtained from a static variable.
 
-=item void bssp_release_data(Object data)
+=item void bssp_release_data(SdrObject data)
 
 Releases the resources allocated to hold I<data>, which must be a B<received>
 client service data unit ZCO.

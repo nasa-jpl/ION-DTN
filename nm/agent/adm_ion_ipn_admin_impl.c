@@ -119,8 +119,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_exits(ari_t *id)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	Sdr	sdr = getIonsdr();
-	Object	elt;
+	Sdr	  sdr = getIonsdr();
+	SdrObject elt;
 	OBJ_POINTER(IpnExit, exit);
 	char	eidString[SDRSTRING_BUFSZ];
 	tnvc_t  *cur_row = NULL;
@@ -181,18 +181,17 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	Sdr	sdr = getIonsdr();
-	Object	elt;
+	Sdr	  sdr = getIonsdr();
+	SdrObject elt;
 	OBJ_POINTER(BpPlan, plan);
-	char	*action = "none";
-	char	viaEid[SDRSTRING_BUFSZ];
-	char	*spec = "none";
-	Object	ductElt;
-	Object	outductElt;
-	Outduct	outduct;
-	tnvc_t  *cur_row = NULL;
-	char	nbrBuf[FQN_MAX_LENGTH];
-
+	char	 *action = "none";
+	char	  viaEid[SDRSTRING_BUFSZ];
+	char	 *spec = "none";
+	SdrObject ductElt;
+	SdrObject outductElt;
+	Outduct	  outduct;
+	tnvc_t	 *cur_row = NULL;
+	char	  nbrBuf[FQN_MAX_LENGTH];
 
 	CHKNULL(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getBpConstants())->plans); elt;

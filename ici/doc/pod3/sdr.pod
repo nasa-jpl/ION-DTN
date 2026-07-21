@@ -389,7 +389,7 @@ canceled.
 
 =over 4
 
-=item void sdr_read(Sdr sdr, char *into, Address from, size_t length)
+=item void sdr_read(Sdr sdr, char *into, SdrAddress from, size_t length)
 
 Copies I<length> characters at I<from> (a location in the
 indicated SDR) to the memory location given by I<into>.  The data are
@@ -402,7 +402,7 @@ sdr_peek() is a macro that uses sdr_read() to load I<variable> from
 the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
-=item void sdr_write(Sdr sdr, Address into, char *from, size_t length)
+=item void sdr_write(Sdr sdr, SdrAddress into, char *from, size_t length)
 
 Copies I<length> characters at I<from> (a location in memory) to the SDR
 heap location given by I<into>.  Can only be performed during a transaction,
@@ -419,7 +419,7 @@ sdr_poke() is a macro that uses sdr_write() to store I<variable> at
 the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
-=item void *sdr_pointer(Sdr sdr, Address address)
+=item void *sdr_pointer(Sdr sdr, SdrAddress address)
 
 Returns a pointer to the indicated location in the heap - a "heap pointer" - or
 NULL if the indicated address is invalid.  NOTE that this
@@ -436,7 +436,7 @@ pointer in order to write directly into the heap: this makes
 transaction reversal impossible.  Whenever writing to the SDR, always use
 sdr_write().
 
-=item Address sdr_address(Sdr sdr, void *pointer)
+=item SdrAddress sdr_address(Sdr sdr, void *pointer)
 
 Returns the address within the SDR heap of the indicated location,
 which must be (or be derived from) a heap pointer as returned
@@ -464,7 +464,7 @@ of I<variable> is used as the number of bytes to copy.
 
 =over 4
 
-=item Object sdr_malloc(Sdr sdr, size_t size)
+=item SdrObject sdr_malloc(Sdr sdr, size_t size)
 
 Allocates a block of space from the of the indicated SDR's
 heap.  I<size> is the size of the
@@ -472,29 +472,29 @@ block to allocate; the maximum size is 1/2 of the maximum
 address space size (i.e., 2G for a 32-bit machine).  Returns block address if
 successful, zero if block could not be allocated.
 
-=item Object sdr_insert(Sdr sdr, char *from, size_t size)
+=item SdrObject sdr_insert(Sdr sdr, char *from, size_t size)
 
 Uses sdr_malloc() to obtain a block of space of size I<size> and, if this
 allocation is successful, uses sdr_write() to copy I<size> bytes of data
 from memory at I<from> into the newly allocated block.  Returns block address
 if successful, zero if block could not be allocated.
 
-=item Object sdr_stow(sdr, variable)
+=item SdrObject sdr_stow(sdr, variable)
 
 sdr_stow() is a macro that uses sdr_insert() to insert a copy of I<variable>
 into the dataspace.  The size of I<variable> is used as the number of bytes
 to copy.
 
-=item size_t sdr_object_length(Sdr sdr, Object object)
+=item size_t sdr_object_length(Sdr sdr, SdrObject object)
 
 Returns the number of bytes of heap space allocated to the application
 data at I<object>.
 
-=item void sdr_free(Sdr sdr, Object object)
+=item void sdr_free(Sdr sdr, SdrObject object)
 
 Frees for subsequent re-allocation the heap space occupied by I<object>.
 
-=item void sdr_stage(Sdr sdr, char *into, Object from, size_t length)
+=item void sdr_stage(Sdr sdr, char *into, SdrObject from, size_t length)
 
 Like sdr_read(), this function will copy I<length> characters
 at I<from> (a location in the heap of the indicated SDR)
@@ -632,7 +632,7 @@ entries and a function for navigating through catalogue entries sequentially.
 
 =over 4
 
-=item void sdr_catlg(Sdr sdr, char *name, int type, Object object)
+=item void sdr_catlg(Sdr sdr, char *name, int type, SdrObject object)
 
 Associates I<object> with I<name> in the indicated SDR's catalogue and notes
 the I<type> that was declared for this object.  I<type> is optional and
@@ -642,9 +642,9 @@ The SDR catalogue is flat, not hierarchical like a directory tree,
 and all names must be unique.  The length of I<name> is limited to
 15 characters.
 
-=item Object sdr_find(Sdr sdr, char *name, int *type)
+=item SdrObject sdr_find(Sdr sdr, char *name, int *type)
 
-Locates the Object associated with I<name> in the indicated SDR's catalogue
+Locates the SdrObject associated with I<name> in the indicated SDR's catalogue
 and returns its address; also reports the catalogued type of the object in
 I<*type> if I<type> is non-NULL.  Returns zero if no object is currently
 catalogued under this name.
@@ -654,7 +654,8 @@ catalogued under this name.
 Dissociates from I<name> whatever object in the indicated
 SDR's catalogue is currently catalogued under that name.
 
-=item Object sdr_read_catlg(Sdr sdr, char *name, int *type, Object *object, Object previous_entry)
+=item SdrObject sdr_read_catlg(Sdr sdr, char *name, int *type,
+SdrObject *object, SdrObject previous_entry)
 
 Used to navigate through catalogue entries sequentially.  If
 I<previous_entry> is zero, reads the first entry in the

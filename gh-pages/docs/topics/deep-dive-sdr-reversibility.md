@@ -358,7 +358,7 @@ Two conditions allow safe reads:
 The SDR list functions (`sdr_list_first`, `sdr_list_next`, etc.) check `sdrFetchSafe()` defensively:
 
 ```c
-Object sdr_list_first(Sdr sdrv, Object list) {
+SdrObject sdr_list_first(Sdr sdrv, SdrObject list) {
     if (!sdrFetchSafe(sdrv)) {
         writeMemoNote("[?] sdr_list_first called but SDR not accessible",
                       itoa(list));

@@ -34,14 +34,14 @@ int	bssp_engine_is_started(void)
 }
 
 int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
-		Object clientServiceData, int inOrder, BsspSessionId *sessionId)
+		SdrObject clientServiceData, int inOrder, BsspSessionId *sessionId)
 {
 	BsspVdb			*vdb = getBsspVdb();
 	Sdr			sdr = getIonsdr();
 	BsspVspan		*vspan;
 	PsmAddress		vspanElt;
 	unsigned int		dataLength;
-	Object			spanObj;
+	SdrObject		spanObj;
 	BsspSpan		span;
 	BsspExportSession   session;
 	int			blockIssued;
@@ -206,13 +206,13 @@ int	bssp_open(unsigned int clientSvcId)
 
 int	bssp_get_notice(unsigned int clientSvcId, BsspNoticeType *type,
 		BsspSessionId *sessionId, unsigned char *reasonCode,
-		unsigned int *dataLength, Object *data)
+		unsigned int *dataLength, SdrObject *data)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVdb		*vdb = getBsspVdb();
 	BsspVclient	*client;
-	Object		elt;
-	Object		noticeAddr;
+	SdrObject	elt;
+	SdrObject	noticeAddr;
 	BsspNotice	notice;
 
 	CHKERR(clientSvcId <= MAX_BSSP_CLIENT_NBR);
@@ -306,7 +306,7 @@ void	bssp_interrupt(unsigned int clientSvcId)
 	}
 }
 
-void	bssp_release_data(Object data)
+void bssp_release_data(SdrObject data)
 {
 	Sdr	bsspSdr = getIonsdr();
 

@@ -65,7 +65,10 @@ subject to immediate destruction upon transmission.)  On success, places a
 value in I<*ionsapPtr> that can be supplied to future bp function invocations
 and returns 0.  Returns -1 on any error.
 
-=item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
+=item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
+int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags,
+int ackRequested, BpAncillaryData *ancillaryData, SdrObject adu,
+SdrObject *newBundle)
 
 Sends a bundle to the endpoint identified by I<destEid>, from the
 source endpoint as provided to the bp_open() call that returned I<sap>.
@@ -163,7 +166,7 @@ non-NULL and the address of the newly created bundle within the ION database
 is placed in I<newBundle>.  This address can be used to track, suspend/resume,
 or cancel transmission of the bundle.
 
-=item int bp_track(Object bundle, Object trackingElt)
+=item int bp_track(SdrObject bundle, SdrObject trackingElt)
 
 Adds I<trackingElt> to the list of "tracking" references in I<bundle>.
 I<trackingElt> must be the address of an SDR list element -- whose data is
@@ -174,12 +177,12 @@ the application's privately managed list of bundles.  This enables the
 application to keep track of bundles that it is operating on without risk
 of inadvertently de-referencing the address of a nonexistent bundle.
 
-=item void bp_untrack(Object bundle, Object trackingElt)
+=item void bp_untrack(SdrObject bundle, SdrObject trackingElt)
 
 Removes I<trackingElt> from the list of "tracking" references in I<bundle>,
 if it is in that list.  Does not delete I<trackingElt> itself.
 
-=item int bp_suspend(Object bundle)
+=item int bp_suspend(SdrObject bundle)
 
 Suspends transmission of I<bundle>.  Has no effect if bundle is "critical"
 (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or
@@ -188,7 +191,7 @@ the bundle to its selected transmission outduct and places it in the
 "limbo" queue until the suspension is lifted by calling bp_resume.  Returns
 0 on success, -1 on any error.
 
-=item int bp_resume(Object bundle)
+=item int bp_resume(SdrObject bundle)
 
 Terminates suspension of transmission of I<bundle>.  Has no effect if
 bundle is "critical" (i.e., has got extended class of service
@@ -196,14 +199,14 @@ BP_MINIMUM_LATENCY flag set) or is not suspended.  Otherwise, removes
 the bundle from the "limbo" queue and queues it for route re-computation
 and re-queuing.  Returns 0 on success, -1 on any error.
 
-=item int bp_cancel(Object bundle)
+=item int bp_cancel(SdrObject bundle)
 
 Cancels transmission of I<bundle>.  If the indicated bundle is currently
 queued for forwarding, transmission, or retransmission, it is removed
 from the relevant queue and destroyed exactly as if its Time To Live had
 expired.  Returns 0 on success, -1 on any error.
 
-=item int bp_release(Object bundle)
+=item int bp_release(SdrObject bundle)
 
 Releases a detained bundle for destruction when all retention constraints
 have been removed.  After a detained bundle has been released, the application

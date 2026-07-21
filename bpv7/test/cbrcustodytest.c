@@ -112,10 +112,10 @@ int	main(int argc, char **argv)
 	Sdr		sdr;
 	char		line[64];
 	int		lineLength;
-	Object		extent;
-	Object		bundleZco;
+	SdrObject	extent;
+	SdrObject	bundleZco;
 	ReqAttendant	attendant;
-	Object		newBundle;
+	SdrObject	newBundle;
 	int		bundleCount;
 	int		elapsed;
 	int		status;
@@ -259,7 +259,7 @@ int	main(int argc, char **argv)
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
 			BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("cbrcustodytest: Can't create ZCO.", NULL);
 		ionStopAttendant(&attendant);

@@ -23,15 +23,15 @@
 #define BSSP_VERSION	0
 
 static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
-			Object *sessionObj, BsspExportSession *sessionBuf,
-			Object *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
+			SdrObject *sessionObj, BsspExportSession *sessionBuf,
+			SdrObject *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
 			PsmAddress *vspanElt);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
-static Object	_bsspdbObject(Object *newDbObj)
+static SdrObject _bsspdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -46,7 +46,7 @@ static BsspDB	*_bsspConstants(void)
 	static BsspDB	buf;
 	static BsspDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -143,11 +143,11 @@ static void	resetSpan(BsspVspan *vspan)
 	vspan->bsoRLPid = ERROR;		/*	None.	*/
 }
 
-static int	raiseSpan(Object spanElt, BsspVdb *bsspvdb)
+static int raiseSpan(SdrObject spanElt, BsspVdb *bsspvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bsspwm = getIonwm();
-	Object		spanObj;
+	SdrObject	spanObj;
 	BsspSpan	span;
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -201,11 +201,11 @@ static int	raiseSpan(Object spanElt, BsspVdb *bsspvdb)
 	return 0;
 }
 
-static int	raiseSeat(Object seatElt, BsspVdb *bsspvdb)
+static int raiseSeat(SdrObject seatElt, BsspVdb *bsspvdb)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bsspwm = getIonwm();
-	Object		seatObj;
+	SdrObject	seatObj;
 	BsspSeat	seat;
 	char		beBsiCmd[256];
 	char		rlBsiCmd[256];
@@ -292,19 +292,19 @@ static void	dropSeat(BsspVseat *vseat, PsmAddress vseatElt)
 	psm_free(bsspwm, vseatAddr);
 }
 
-Object	getBsspDbObject(void)
+SdrObject getBsspDbObject(void)
 {
 	return _bsspdbObject(NULL);
 }
 
-int	startBsspExportSession(Sdr sdr, Object spanObj, BsspVspan *vspan)
+int startBsspExportSession(Sdr sdr, SdrObject spanObj, BsspVspan *vspan)
 {
-	Object			dbobj;
+	SdrObject		dbobj;
 	BsspSpan		span;
 	BsspDB			bsspdb;
 	unsigned int		sessionNbr;
-	Object			sessionObj;
-	Object			elt;
+	SdrObject		sessionObj;
+	SdrObject		elt;
 	BsspExportSession	session;
 
 	CHKERR(vspan);
@@ -372,7 +372,7 @@ static void	startSpan(BsspVspan *vspan)
 {
 	Sdr		sdr = getIonsdr();
 	BsspSpan	span;
-	Object		spanObj;
+	SdrObject	spanObj;
 	char		cmd[SDRSTRING_BUFSZ];
 	char		engineIdString[11];
 	char		bsoCmdString[SDRSTRING_BUFSZ + 64];
@@ -518,7 +518,7 @@ static BsspVdb		*_bsspvdb(char **name)
 		/*	BSSP volatile database doesn't exist yet.	*/
 		Sdr		sdr;
 		BsspDB		*db;
-		Object		sdrElt;
+		SdrObject	sdrElt;
 		int		i;
 		BsspVclient	*client;
 
@@ -598,7 +598,7 @@ static char	*_bsspdbName(void)
 int	bsspInit(int estMaxExportSessions)
 {
 	Sdr	sdr;
-	Object	bsspdbObject;
+	SdrObject bsspdbObject;
 	IonDB	iondb;
 	BsspDB	bsspdbBuf;
 	int	i;
@@ -921,7 +921,7 @@ to SIGTERM, sending SIGKILL",
 
 int	bsspAttach(void)
 {
-	Object	bsspdbObject = _bsspdbObject(NULL);
+	SdrObject bsspdbObject = _bsspdbObject(NULL);
 	BsspVdb	*bsspvdb = _bsspvdb(NULL);
 	Sdr	sdr;
 	char	*bsspvdbName = _bsspvdbName();
@@ -1020,8 +1020,8 @@ int	addBsspSeat(char *beBsiCmd, char *rlBsiCmd)
 	BsspVseat	*vseat;
 	PsmAddress	vseatElt;
 	BsspSeat	seatBuf;
-	Object		addr;
-	Object		seatElt = 0;
+	SdrObject	addr;
+	SdrObject	seatElt = 0;
 
 	if (beBsiCmd == NULL || *beBsiCmd == '\0' ||
 		rlBsiCmd == NULL || *rlBsiCmd == '\0')
@@ -1090,8 +1090,8 @@ int	removeBsspSeat(char *beBsiCmd, char *rlBsiCmd)
 	Sdr		sdr = getIonsdr();
 	BsspVseat	*vseat;
 	PsmAddress	vseatElt;
-	Object		seatElt;
-	Object		seatObj;
+	SdrObject	seatElt;
+	SdrObject	seatObj;
 			OBJ_POINTER(BsspSeat, seat);
 
 	/*	Must stop the seat before trying to remove it.		*/
@@ -1117,7 +1117,7 @@ int	removeBsspSeat(char *beBsiCmd, char *rlBsiCmd)
 	vseat->beBsiPid = ERROR;
 	vseat->rlBsiPid = ERROR;
 	seatElt = vseat->seatElt;
-	seatObj = (Object) sdr_list_data(sdr, seatElt);
+	seatObj = (SdrObject) sdr_list_data(sdr, seatElt);
 	GET_OBJ_POINTER(sdr, BsspSeat, seat, seatObj);
 	dropSeat(vseat, vseatElt);
 	if (seat->beBsiCmd)
@@ -1172,8 +1172,8 @@ int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
 	BsspSpan	spanBuf;
-	Object		addr;
-	Object		spanElt = 0;
+	SdrObject	addr;
+	SdrObject	spanElt = 0;
 
 	if (bsoBECmd == NULL || *bsoBECmd == '\0' ||
 		bsoRLCmd == NULL || *bsoRLCmd == '\0')
@@ -1274,7 +1274,7 @@ int	updateBsspSpan(uvast engineId, unsigned int maxExportSessions,
 	Sdr		sdr = getIonsdr();
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		addr;
+	SdrObject	addr;
 	BsspSpan		spanBuf;
 
 	if (bsoBECmd)
@@ -1333,7 +1333,7 @@ string too long.", bsoRLCmd);
 		return 0;
 	}
 
-	addr = (Object) sdr_list_data(sdr, vspan->spanElt);
+	addr = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
 	sdr_stage(sdr, (char *) &spanBuf, addr, sizeof(BsspSpan));
 	if (maxExportSessions == 0)
 	{
@@ -1386,8 +1386,8 @@ int	removeBsspSpan(uvast engineId)
 	Sdr		sdr = getIonsdr();
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		spanElt;
-	Object		spanObj;
+	SdrObject	spanElt;
+	SdrObject	spanObj;
 			OBJ_POINTER(BsspSpan, span);
 
 	/*	Must stop the span before trying to remove it.		*/
@@ -1409,7 +1409,7 @@ int	removeBsspSpan(uvast engineId)
 	CHKERR(sdr_begin_xn(sdr));
 	resetSpan(vspan);
 	spanElt = vspan->spanElt;
-	spanObj = (Object) sdr_list_data(sdr, spanElt);
+	spanObj = (SdrObject) sdr_list_data(sdr, spanElt);
 	GET_OBJ_POINTER(sdr, BsspSpan, span, spanObj);
 	if (sdr_list_length(sdr, span->beBlocks) != 0)
 	{
@@ -1507,12 +1507,12 @@ void	bsspStopSpan(uvast engineId)
 
 /*	*	*	BSSP event mgt and access functions	*	*/
 
-static Object	insertBsspTimelineEvent(BsspEvent *newEvent)
+static SdrObject insertBsspTimelineEvent(BsspEvent *newEvent)
 {
 	Sdr	sdr = getIonsdr();
 	BsspDB	*bsspConstants = _bsspConstants();
-	Object	eventObj;
-	Object	elt;
+	SdrObject eventObj;
+	SdrObject elt;
 		OBJ_POINTER(BsspEvent, event);
 
 	CHKZERO(ionLocked());
@@ -1546,8 +1546,8 @@ static void	cancelEvent(BsspEventType type, uvast refNbr1,
 			unsigned int refNbr2)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	eventObj;
+	SdrObject elt;
+	SdrObject eventObj;
 		OBJ_POINTER(BsspEvent, event);
 
 	for (elt = sdr_list_first(sdr, (_bsspConstants())->timeline); elt;
@@ -1633,11 +1633,10 @@ void	bsspDetachClient(unsigned int clientSvcId)
 
 int	enqueueBsspNotice(BsspVclient *client, uvast sourceEngineId,
 		unsigned int sessionNbr, unsigned int dataLength,
-		BsspNoticeType type, unsigned char reasonCode,
-		Object data)
+		BsspNoticeType type, unsigned char reasonCode, SdrObject data)
 {
 	Sdr		sdr = getIonsdr();
-	Object		noticeObj;
+	SdrObject	noticeObj;
 	BsspNotice	notice;
 
 	CHKERR(client);
@@ -1674,14 +1673,14 @@ int	enqueueBsspNotice(BsspVclient *client, uvast sourceEngineId,
 
 /*	*	*	Session management functions	*	*	*/
 
-static void	getExportSession(unsigned int sessionNbr, Object *sessionObj)
+static void getExportSession(unsigned int sessionNbr, SdrObject *sessionObj)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 
 	CHKVOID(ionLocked());
 	if (sdr_hash_retrieve(sdr, (_bsspConstants())->exportSessionsHash,
-			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
+			    (char *) &sessionNbr, (SdrAddress *) &elt, NULL) == 1)
 	{
 		*sessionObj = sdr_list_data(sdr, elt);
 		return;
@@ -1692,7 +1691,7 @@ static void	getExportSession(unsigned int sessionNbr, Object *sessionObj)
 	*sessionObj = 0;
 }
 
-static void	destroyDataXmitBlk(Object blockObj, BsspXmitBlock *blk)
+static void destroyDataXmitBlk(SdrObject blockObj, BsspXmitBlock *blk)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -1711,7 +1710,7 @@ static void	destroyDataXmitBlk(Object blockObj, BsspXmitBlock *blk)
 static void	stopExportSession(BsspExportSession *session)
 {
 	Sdr	sdr = getIonsdr();
-	Object	blkObj;
+	SdrObject blkObj;
 		OBJ_POINTER(BsspXmitBlock, blk);
 
 	CHKVOID(ionLocked());
@@ -1720,17 +1719,17 @@ static void	stopExportSession(BsspExportSession *session)
 	destroyDataXmitBlk(blkObj, blk);
 }
 
-static void	closeExportSession(Object sessionObj)
+static void closeExportSession(SdrObject sessionObj)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
-	Object		dbobj = getBsspDbObject();
+	SdrObject	dbobj = getBsspDbObject();
 			OBJ_POINTER(BsspExportSession, session);
 			OBJ_POINTER(BsspSpan, span);
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
 	BsspDB		db;
-	Object		elt;
+	SdrObject	elt;
 
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, BsspExportSession, session, sessionObj);
@@ -1770,7 +1769,8 @@ static void	closeExportSession(Object sessionObj)
 	 *	client to append an SDU to the current block.		*/
 
 	if (sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+			    (char *) &(session->sessionNbr),
+			    (SdrAddress *) &elt) > 0)
 	{
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
@@ -1853,7 +1853,7 @@ static void	serializeAck(BsspXmitBlock *block, char *buf)
 	serializeHeader(block, &sdnv, &cursor);
 }
 
-static int	setTimer(BsspTimer *timer, Address timerAddr, time_t currentSec,
+static int setTimer(BsspTimer *timer, SdrAddress timerAddr, time_t currentSec,
 			BsspVspan *vspan, int blockLength, BsspEvent *event)
 {
 	Sdr	sdr = getIonsdr();
@@ -1925,7 +1925,7 @@ static int	setTimer(BsspTimer *timer, Address timerAddr, time_t currentSec,
 	return 0;
 }
 
-static int	readFromExportBlock(char *buffer, Object svcDataObject,
+static int readFromExportBlock(char *buffer, SdrObject svcDataObject,
 			unsigned int length)
 {
 	Sdr		sdr = getIonsdr();
@@ -1961,11 +1961,11 @@ int	bsspDequeueBEOutboundBlock(BsspVspan *vspan, char **buf)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
-	Object		spanObj;
+	SdrObject	spanObj;
 	BsspSpan	spanBuf;
-	Object		elt;
+	SdrObject	elt;
 	char		memo[64];
-	Object		blkAddr;
+	SdrObject	blkAddr;
 	BsspXmitBlock	block;
 	int		blockLength;
 	time_t		currentTime;
@@ -2110,16 +2110,16 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 {
 	Sdr			sdr = getIonsdr();
 	BsspVdb			*bsspvdb = _bsspvdb(NULL);
-	Object			spanObj;
+	SdrObject		spanObj;
 	BsspSpan		spanBuf;
-	Object			elt;
+	SdrObject		elt;
 	char			memo[64];
-	Object			blkAddr;
+	SdrObject		blkAddr;
 	BsspXmitBlock		block;
 	int			blockLength;
-	Object			sessionObj;
+	SdrObject		sessionObj;
 	BsspExportSession	sessionBuf;
-	Object			spanObj2 = 0;
+	SdrObject		spanObj2 = 0;
 	BsspSpan		spanBuf2;
 	BsspVspan		*vspan2;
 	PsmAddress		vspanElt2;
@@ -2257,17 +2257,17 @@ static void	signalRlBso(unsigned int engineId)
 }
 
 static int	cancelSessionBySender(BsspExportSession *session,
-			Object sessionObj, BsspCancelReasonCode reasonCode)
+			SdrObject sessionObj, BsspCancelReasonCode reasonCode)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
-	Object		dbobj = getBsspDbObject();
+	SdrObject	dbobj = getBsspDbObject();
 	BsspDB		db;
-	Object		spanObj = session->span;
+	SdrObject	spanObj = session->span;
 	BsspSpan		span;
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		elt;
+	SdrObject	elt;
 
 	CHKERR(ionLocked());
 	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
@@ -2318,7 +2318,8 @@ static int	cancelSessionBySender(BsspExportSession *session,
 	 *	cancellation won't affect flow control.			*/
 
 	if (sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+			    (char *) &(session->sessionNbr),
+			    (SdrAddress *) &elt) > 0)
 	{
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
@@ -2358,11 +2359,11 @@ static int	cancelSessionBySender(BsspExportSession *session,
 	return 0;
 }
 
-static Object	enqueueAckBlock(Object spanObj, Object blockObj)
+static SdrObject enqueueAckBlock(SdrObject spanObj, SdrObject blockObj)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(BsspSpan, span);
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(BsspXmitBlock, block);
 
 	CHKZERO(ionLocked());
@@ -2396,10 +2397,10 @@ static Object	enqueueAckBlock(Object spanObj, Object blockObj)
 	return elt;
 }
 
-static int	constructAck(BsspXmitBlock *rs, Object spanObj)
+static int constructAck(BsspXmitBlock *rs, SdrObject spanObj)
 {
 	Sdr	sdr = getIonsdr();
-	Object	rsObj;
+	SdrObject rsObj;
 		OBJ_POINTER(BsspSpan, span);
 
 	CHKERR(ionLocked());
@@ -2424,7 +2425,7 @@ putErrmsg("Sending Ack.", NULL);
 	return 0;
 }
 
-static int	sendAck(unsigned int sessionNbr, Object spanObj)
+static int sendAck(unsigned int sessionNbr, SdrObject spanObj)
 {
 	Sdr		sdr = getIonsdr();
 			OBJ_POINTER(BsspSpan, span);
@@ -2469,12 +2470,12 @@ static int	handleDataBlock(uvast sourceEngineId, BsspDB *bsspdb,
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		spanObj;
+	SdrObject	spanObj;
 	BsspVclient	*client;
 	ReqTicket	ticket;
-	Object		pduObj;
+	SdrObject	pduObj;
 	vast		pduLength = 0;
-	Object		clientSvcData = 0;
+	SdrObject	clientSvcData = 0;
 
 	/* Parameter intentionally unused. */
 	(void)bsspdb;
@@ -2572,7 +2573,7 @@ utoa(pdu->length));
 			ZcoInbound);
 	switch (clientSvcData)
 	{
-	case (Object) ERROR:
+	case (SdrObject) ERROR:
 		putErrmsg("Can't record data block.", NULL);
 		sdr_cancel_xn(sdr);
 		ionShred(ticket);		/*	Cancel request.	*/
@@ -2615,10 +2616,10 @@ utoa(pdu->length));
 }
 
 static int	constructDataBlock(Sdr sdr, BsspExportSession *session,
-			Object sessionObj, BsspVspan *vspan, BsspSpan *span,
+			SdrObject sessionObj, BsspVspan *vspan, BsspSpan *span,
 			int inOrder)
 {
-	Object		blockObj;
+	SdrObject	blockObj;
 	BsspXmitBlock	block;
 	int		length;
 	int		dataBlockOverhead;
@@ -2727,7 +2728,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 }
 
 int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
-		BsspExportSession *session, Object sessionObj, int inOrder)
+		BsspExportSession *session, SdrObject sessionObj, int inOrder)
 {
 	CHKERR(session);
 	if (session->svcDataObject == 0)	/*	Canceled.	*/
@@ -2757,8 +2758,8 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 }
 
 static void	getSessionContext(BsspDB *bsspDb, unsigned int sessionNbr,
-			Object *sessionObj, BsspExportSession *sessionBuf,
-			Object *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
+			SdrObject *sessionObj, BsspExportSession *sessionBuf,
+			SdrObject *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
 			PsmAddress *vspanElt)
 {
 	Sdr	sdr = getIonsdr();
@@ -2804,9 +2805,9 @@ static int	handleAck(BsspDB *bsspDb, unsigned int sessionNbr,
 {
 	Sdr			sdr = getIonsdr();
 	BsspVdb			*bsspvdb = _bsspvdb(NULL);
-	Object			sessionObj;
+	SdrObject		sessionObj;
 	BsspExportSession	sessionBuf;
-	Object			spanObj = 0;
+	SdrObject		spanObj = 0;
 	BsspSpan		spanBuf;
 	BsspVspan		*vspan;
 	PsmAddress		vspanElt;
@@ -2958,7 +2959,7 @@ int	bsspHandleInboundBlock(char *buf, int length)
 void	bsspStartXmit(BsspVspan *vspan)
 {
 	Sdr		sdr = getIonsdr();
-	Object		spanObj;
+	SdrObject	spanObj;
 	BsspSpan	span;
 
 	CHKVOID(ionLocked());
@@ -2980,11 +2981,11 @@ void	bsspStartXmit(BsspVspan *vspan)
 void	bsspStopXmit(BsspVspan *vspan)
 {
 	Sdr			sdr = getIonsdr();
-	Object			spanObj;
+	SdrObject		spanObj;
 	BsspSpan		span;
-	Object			elt;
-	Object			nextElt;
-	Object			sessionObj;
+	SdrObject		elt;
+	SdrObject		nextElt;
+	SdrObject		sessionObj;
 	BsspExportSession	session;
 
 	CHKVOID(ionLocked());
@@ -3023,7 +3024,7 @@ void	bsspStopXmit(BsspVspan *vspan)
 }
 
 static void	suspendTimer(time_t suspendTime, BsspTimer *timer,
-			Address timerAddr, unsigned int qTime,
+			SdrAddress timerAddr, unsigned int qTime,
 			unsigned int remoteXmitRate, BsspEventType eventType,
 			uvast eventRefNbr1, unsigned int eventRefNbr2)
 {
@@ -3057,11 +3058,11 @@ int	bsspSuspendTimers(BsspVspan *vspan, PsmAddress vspanElt,
 		time_t suspendTime, unsigned int priorXmitRate)
 {
 	Sdr			sdr = getIonsdr();
-	Object			spanObj;
+	SdrObject		spanObj;
 				OBJ_POINTER(BsspSpan, span);
 	unsigned int		qTime;
-	Object			elt;
-	Object			sessionObj;
+	SdrObject		elt;
+	SdrObject		sessionObj;
 	BsspTimer		*timer;
 	BsspExportSession	xsessionBuf;
 	BsspXmitBlock		dsBuf;
@@ -3109,7 +3110,7 @@ int	bsspSuspendTimers(BsspVspan *vspan, PsmAddress vspanElt,
 }
 
 static int	resumeTimer(time_t resumeTime, BsspTimer *timer,
-			Address timerAddr, unsigned int qTime,
+			SdrAddress timerAddr, unsigned int qTime,
 			unsigned int remoteXmitRate, BsspEventType eventType,
 			uvast refNbr1, unsigned int refNbr2)
 {
@@ -3155,11 +3156,11 @@ int	bsspResumeTimers(BsspVspan *vspan, PsmAddress vspanElt,
 		time_t resumeTime, unsigned int remoteXmitRate)
 {
 	Sdr			sdr = getIonsdr();
-	Object			spanObj;
+	SdrObject		spanObj;
 				OBJ_POINTER(BsspSpan, span);
 	unsigned int		qTime;
-	Object			elt;
-	Object			sessionObj;
+	SdrObject		elt;
+	SdrObject		sessionObj;
 	BsspTimer		*timer;
 	BsspExportSession	xsessionBuf;
 	BsspXmitBlock		dsBuf;
@@ -3222,7 +3223,7 @@ int	bsspResumeTimers(BsspVspan *vspan, PsmAddress vspanElt,
 int	bsspResendBlock(unsigned int sessionNbr)
 {
 	Sdr			sdr = getIonsdr();
-	Object			sessionObj;
+	SdrObject		sessionObj;
 	BsspExportSession	sessionBuf;
 	BsspXmitBlock		dblkBuf;
 				OBJ_POINTER(BsspSpan, span);

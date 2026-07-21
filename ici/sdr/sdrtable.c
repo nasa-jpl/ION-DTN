@@ -26,19 +26,19 @@
 
 typedef struct
 {
-	Address		userData;
+	SdrObject	userData;
 	int		rowSize;
 	int		rowCount;
-	Object		rows;	/*	an array			*/
+	SdrObject	rows; /* an array */
 } SdrTable;
 
 /*	*	*	Table management functions	*	*	*/
 
-Object	Sdr_table_create(const char *file, int line, Sdr sdrv, int rowSize,
+SdrObject Sdr_table_create(const char *file, int line, Sdr sdrv, int rowSize,
 		int rowCount)
 {
 	SdrTable	tableBuffer;
-	Object		table;
+	SdrObject	table;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -80,22 +80,22 @@ Object	Sdr_table_create(const char *file, int line, Sdr sdrv, int rowSize,
 		return 0;
 	}
 
-	sdrPut((Address) table, tableBuffer);
+	sdrPut((SdrObject) table, tableBuffer);
 	return table;
 }
 
-Address	sdr_table_user_data(Sdr sdrv, Object table)
+SdrObject sdr_table_user_data(Sdr sdrv, SdrObject table)
 {
 	SdrTable	tableBuffer;
 
 	CHKZERO(sdrFetchSafe(sdrv));
 	CHKZERO(table);
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	return tableBuffer.userData;
 }
 
 void	Sdr_table_user_data_set(const char *file, int line, Sdr sdrv,
-		Object table, Address data)
+		SdrObject table, SdrObject data)
 {
 	SdrTable	tableBuffer;
 
@@ -112,46 +112,45 @@ void	Sdr_table_user_data_set(const char *file, int line, Sdr sdrv,
 		return;
 	}
 
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	tableBuffer.userData = data;
-	sdrPut((Address) table, tableBuffer);
+	sdrPut((SdrObject) table, tableBuffer);
 }
 
-void	sdr_table_dimensions(Sdr sdrv, Object table, int *rowSize,
-		int *rowCount)
+void sdr_table_dimensions(Sdr sdrv, SdrObject table, int *rowSize, int *rowCount)
 {
 	SdrTable	tableBuffer;
 
 	CHKVOID(table);
 	CHKVOID(rowSize);
 	CHKVOID(rowCount);
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	*rowSize = tableBuffer.rowSize;
 	*rowCount = tableBuffer.rowCount;
 }
 
-void	sdr_table_stage(Sdr sdrv, Object table)
+void sdr_table_stage(Sdr sdrv, SdrObject table)
 {
 	SdrTable	tableBuffer;
 
 	CHKVOID(table);
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	sdr_stage(sdrv, NULL, tableBuffer.rows, 0);
 }
 
-Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
+SdrObject sdr_table_row(Sdr sdrv, SdrObject table, unsigned int rowNbr)
 {
 	SdrTable	tableBuffer;
-	Address		addr;
+	SdrObject	addr;
 
 	CHKERR(table);
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	CHKERR(rowNbr < (unsigned int)tableBuffer.rowCount);
-	addr = ((Address) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
+	addr = ((SdrObject) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
 	return addr;
 }
 
-void	Sdr_table_destroy(const char *file, int line, Sdr sdrv, Object table)
+void Sdr_table_destroy(const char *file, int line, Sdr sdrv, SdrObject table)
 {
 	SdrTable	tableBuffer;
 
@@ -168,13 +167,13 @@ void	Sdr_table_destroy(const char *file, int line, Sdr sdrv, Object table)
 		return;
 	}
 
-	sdrFetch(tableBuffer, (Address) table);
+	sdrFetch(tableBuffer, (SdrObject) table);
 	sdrFree(tableBuffer.rows);
 
 	/* just in case user mistakenly accesses later... */
 	tableBuffer.rowSize = 0;
 	tableBuffer.rowCount = 0;
 	tableBuffer.rows = 0;
-	sdrPut((Address) table, tableBuffer);
+	sdrPut((SdrObject) table, tableBuffer);
 	sdrFree(table);
 }

@@ -415,8 +415,8 @@ static void	listEntities(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*db = getCfdpConstants();
-	Object	elt;
-	Object	entityObj;
+	SdrObject elt;
+	SdrObject entityObj;
 	Entity	entity;
 	char	nbrBuf[FQN_MAX_LENGTH];
 	char	buffer[128];
@@ -486,7 +486,7 @@ static void executeList(int tokenCount, char **tokens)
 		printText(buffer);
 
 		/* Get UTA command from database */
-		Object cfdpdbobj = getCfdpDbObject();
+		SdrObject cfdpdbobj = getCfdpDbObject();
 		CfdpDB cfdpdb;
 		sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
 		istrcpy(utaCmd, cfdpdb.utaCmd, sizeof(utaCmd));
@@ -596,7 +596,7 @@ static void executeList(int tokenCount, char **tokens)
 static void	manageDiscard(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newDiscard;
 
@@ -625,7 +625,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 static void	manageRequirecrc(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newRequirecrc;
 
@@ -654,7 +654,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 static void	manageFillchar(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	uvast	parsed_val;
 	char	errMsg[256];
@@ -685,7 +685,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 static void	manageCkperiod(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newCkperiod;
 
@@ -714,7 +714,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 static void	manageMaxtimeouts(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMaxtimeouts;
 
@@ -743,7 +743,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 static void	manageMaxevents(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMaxevents;
 
@@ -772,7 +772,7 @@ static void	manageMaxevents(int tokenCount, char **tokens)
 static void	manageMaxtrnbr(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newMaxtrnbr;
 
@@ -801,7 +801,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 static void	manageSegsize(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newSegsize;
 
@@ -830,7 +830,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 static void	manageInactivity(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	cfdpdbObj = getCfdpDbObject();
+	SdrObject cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
 	int	newLimit;
 

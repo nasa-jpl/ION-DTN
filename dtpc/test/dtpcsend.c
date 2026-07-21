@@ -30,12 +30,12 @@ static DtpcSAP	_dtpcsap(DtpcSAP *newSAP)
 	return sap;
 }
 
-static int	checkElision(Object recordsList)
+static int checkElision(SdrObject recordsList)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		nextElt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	obj;
 	PayloadRecord	item;
 	uvast		firstLength;
 	uvast		length;
@@ -106,8 +106,8 @@ dtpcsend";
 	char		totalbytes[21];
 	DtpcSAP		sap;
 	Sdr		sdr;
-	Object		aduObj;
-	Address		addr;
+	SdrObject	aduObj;
+	SdrAddress	addr;
 	DtpcElisionFn	elisionFn;
 
 	elisionFn = elisionEnabled ? checkElision : NULL;

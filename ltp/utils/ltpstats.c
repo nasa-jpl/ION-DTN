@@ -170,7 +170,7 @@ static void	reportGroupedStats(LtpSpanStats *stats, uvast engineId,
 	}
 }
 
-static void	resetStats(Sdr sdr, Object statsObj)
+static void resetStats(Sdr sdr, SdrObject statsObj)
 {
 	LtpSpanStats	stats;
 	int		i;
@@ -193,8 +193,8 @@ static void	resetStats(Sdr sdr, Object statsObj)
 static void	processSpanStats(DisplayMode mode, int doReset)
 {
 	Sdr		sdr;
-	Object		sdrElt;
-	Object		spanObj;
+	SdrObject	sdrElt;
+	SdrObject	spanObj;
 	LtpSpan		span;
 	LtpSpanStats	stats;
 	char		fromTimestamp[TIMESTAMPBUFSZ];

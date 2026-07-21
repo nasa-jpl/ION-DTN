@@ -11,9 +11,9 @@
 									*/
 #include "dtka.h"
 
-static Object	_dtkadbObject(Object *newDbObj)
+static SdrObject _dtkadbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -28,7 +28,7 @@ static DtkaDB	*_dtkaConstants(void)
 	static DtkaDB	buf;
 	static DtkaDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -62,7 +62,7 @@ static DtkaDB	*_dtkaConstants(void)
 	return db;
 }
 
-Object	getDtkaDbObject(void)
+SdrObject getDtkaDbObject(void)
 {
 	return _dtkadbObject(NULL);
 }
@@ -80,7 +80,7 @@ static char	*_dtkadbName(void)
 int	dtkaInit(void)
 {
 	Sdr	sdr;
-	Object	dtkadbObject;
+	SdrObject dtkadbObject;
 	DtkaDB	dtkadbBuf;
 
 	if (bp_attach() < 0)
@@ -142,7 +142,7 @@ int	dtkaInit(void)
 
 int	dtkaAttach(void)
 {
-	Object	dtkadbObject = _dtkadbObject(NULL);
+	SdrObject dtkadbObject = _dtkadbObject(NULL);
 	Sdr	sdr;
 
 	if (bp_attach() < 0)

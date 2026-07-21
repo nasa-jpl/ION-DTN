@@ -598,7 +598,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
  * @retval 0 - There was an error persisting values.
  *****************************************************************************/
 
-Object bpsec_scv_memListRecord(Sdr sdr, Object sdr_list, Lyst values)
+SdrObject bpsec_scv_memListRecord(Sdr sdr, SdrObject sdr_list, Lyst values)
 {
 	sc_value *val = NULL;
 	LystElt elt = NULL;
@@ -762,10 +762,10 @@ int bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, uns
  * @retval  0 - Error. The  sc value was not persisted.
  *****************************************************************************/
 
-Object bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal)
+SdrObject bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal)
 {
 	sc_value newVal;
-	Object result = 0;
+	SdrObject result = 0;
 	BPSEC_DEBUG_PROC("(sdr, "ADDR_FIELDSPEC")", (uaddr)oldVal);
 
 	CHKZERO(sdr);
@@ -814,9 +814,9 @@ Object bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal)
  * @retval -1 - The sc_value was not added to the SDR or list.
  * @retval 0  - The sc_value is now in the SDR and SDR list.
  *****************************************************************************/
-int bpsec_scv_memSdrListAppend(Sdr sdr, Object list, sc_value *val)
+int bpsec_scv_memSdrListAppend(Sdr sdr, SdrObject list, sc_value *val)
 {
-	Object sdr_val = 0;
+	SdrObject sdr_val = 0;
 
 	BPSEC_DEBUG_PROC("(sdr, %d," ADDR_FIELDSPEC ")", list, (uaddr) val);
 
@@ -860,10 +860,10 @@ int bpsec_scv_memSdrListAppend(Sdr sdr, Object list, sc_value *val)
   * @retval  0 - Error. The  sc value was not persisted.
   *****************************************************************************/
 
-Object bpsec_scv_sdrCopy(Sdr sdr, Object oldObj)
+SdrObject bpsec_scv_sdrCopy(Sdr sdr, SdrObject oldObj)
 {
 	char *buf = NULL;
-	Object newObj = 0;
+	SdrObject newObj = 0;
 	sc_value oldVal;
 	sc_value newVal;
 
@@ -922,7 +922,7 @@ Object bpsec_scv_sdrCopy(Sdr sdr, Object oldObj)
 
 
 // TODO comment..
-void  bpsec_scv_sdrListCbDel(Sdr sdr, Object eltData, void *args)
+void bpsec_scv_sdrListCbDel(Sdr sdr, SdrObject eltData, void *args)
 {
 	/* Parameter intentionally unused. */
 	(void) args;
@@ -944,12 +944,12 @@ void  bpsec_scv_sdrListCbDel(Sdr sdr, Object eltData, void *args)
   * @retval  0 - Error. The  sc value was not persisted.
   *****************************************************************************/
 
-Object bpsec_scv_sdrListCopy(Sdr sdr, Object oldList)
+SdrObject bpsec_scv_sdrListCopy(Sdr sdr, SdrObject oldList)
 {
-	Object newList = 0;
-	Object elt = 0;
-	Object oldObj = 0;
-	Object newObj = 0;
+	SdrObject newList = 0;
+	SdrObject elt = 0;
+	SdrObject oldObj = 0;
+	SdrObject newObj = 0;
 
 
 	int success = 1;
@@ -1021,9 +1021,9 @@ Object bpsec_scv_sdrListCopy(Sdr sdr, Object oldList)
  * @retval NULL  - There was an error.
  *
  *****************************************************************************/
-Lyst bpsec_scv_sdrListRead(Sdr sdr, Object sdr_list)
+Lyst bpsec_scv_sdrListRead(Sdr sdr, SdrObject sdr_list)
 {
-	Object listElt;
+	SdrObject listElt;
 	Lyst result = lyst_create_using(getIonMemoryMgr());
 
 	BPSEC_DEBUG_PROC("(sdr, %d)", sdr_list);
@@ -1073,13 +1073,13 @@ Lyst bpsec_scv_sdrListRead(Sdr sdr, Object sdr_list)
   * @retval  NULL - Error. The list was not serialized.
   *****************************************************************************/
 
-uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsigned int *length)
+uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject sdr_list, unsigned int *length)
 {
 	int success = 0;
 	uint8_t *result = NULL;
 	uint8_t *cursor = NULL;
-	Object elt = 0;
-	Object valObj;
+	SdrObject elt = 0;
+	SdrObject valObj;
 	int maxVals = 0;
 	int curVals = 0;
 	unsigned char arrayHdr[9];
@@ -1256,7 +1256,7 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsig
  * @retval NULL  - There was an error.
  *
  *****************************************************************************/
-sc_value *bpsec_scv_sdrMemConvert(Sdr sdr, Object valAddr)
+sc_value *bpsec_scv_sdrMemConvert(Sdr sdr, SdrObject valAddr)
 {
 	sc_value sdr_val;
 	sc_value *val = NULL;
@@ -1289,7 +1289,7 @@ sc_value *bpsec_scv_sdrMemConvert(Sdr sdr, Object valAddr)
   *
   *****************************************************************************/
 
-void bpsec_scv_sdrRelease(Sdr sdr, Object valObj)
+void bpsec_scv_sdrRelease(Sdr sdr, SdrObject valObj)
 {
 	sc_value val;
 	sdr_read(sdr, (char*) &val, valObj, sizeof(val));
@@ -1317,7 +1317,7 @@ void bpsec_scv_sdrRelease(Sdr sdr, Object valObj)
   * @retval -1 - Error. The value was not serialized.
   *****************************************************************************/
 
-int bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, Object valObj, uint8_t **data, unsigned int *length)
+int bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, SdrObject valObj, uint8_t **data, unsigned int *length)
 {
 	int success = 0;
 	sc_value *tmp = NULL;
@@ -1483,9 +1483,9 @@ char* bpsec_scv_smListPrint(PsmPartition wm, sc_Def *sc_def, Lyst vals)
  * @retval 0 - There was an error persisting values.
  *****************************************************************************/
 
-Object bpsec_scv_smListRecord(Sdr sdr, Object sdr_list, PsmPartition wm, PsmAddress values)
+SdrObject bpsec_scv_smListRecord(Sdr sdr, SdrObject sdr_list, PsmPartition wm, PsmAddress values)
 {
-	Object curObj = 0;
+	SdrObject curObj = 0;
 	PsmAddress elt = 0;
 	int list_created_here = 0;
 
@@ -1537,11 +1537,11 @@ Object bpsec_scv_smListRecord(Sdr sdr, Object sdr_list, PsmPartition wm, PsmAddr
  * @retval  0 - Error. The  sc value was not persisted.
  *****************************************************************************/
 
-Object bpsec_scv_smSdrConvert(Sdr sdr, PsmPartition wm, PsmAddress oldValAddr)
+SdrObject bpsec_scv_smSdrConvert(Sdr sdr, PsmPartition wm, PsmAddress oldValAddr)
 {
 	sc_value *oldVal = psp(wm, oldValAddr);
 	sc_value newVal;
-	Object result = 0;
+	SdrObject result = 0;
 
 	/* Step 0 - Sanity Checks. */
 	CHKZERO(sdr);

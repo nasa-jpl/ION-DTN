@@ -89,7 +89,7 @@ sc_value_map* bpsec_bhssci_valMapGet(void);
 
 
 /* Generic Utilities */
-uint8_t* bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc);
+uint8_t* bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc);
 
 
 

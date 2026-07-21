@@ -93,11 +93,11 @@ static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 
 #ifdef ION_BANDWIDTH_RESERVED
 static void	selectNextBundleForTransmission(Outflow *flows,
-			Outflow **winner, Object *eltp)
+			Outflow **winner, SdrObject *eltp)
 {
 	Sdr		bpSdr = getIonsdr();
 	Outflow		*flow;
-	Object		elt;
+	SdrObject	elt;
 	Outflow		*selectedFlow;
 	unsigned int	selectedFlowSvc;
 	int		i;
@@ -202,11 +202,11 @@ static void	resyncFlows(Outflow *flows)
 }
 #else		/*	Strict priority, which is the default.		*/
 static void	selectNextBundleForTransmission(Outflow *flows,
-			Outflow **winner, Object *eltp)
+			Outflow **winner, SdrObject *eltp)
 {
 	int	i;
 	Outflow	*flow;
-	Object	elt;
+	SdrObject elt;
 
 	*eltp = 0;		/*	Default: nothing ready.		*/
 	i = EXPEDITED_FLOW;	/*	Start with highest priority.	*/
@@ -231,11 +231,11 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 #endif
 
 static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
-			Object *bundleElt, Bundle *bundle)
+			SdrObject *bundleElt, Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
 	Outflow		*selectedFlow;
-	Object		xmitElt;
+	SdrObject	xmitElt;
 
 	/* Parameter intentionally unused. */
 	(void)bundle;
@@ -295,20 +295,20 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 	}
 }
 
-static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
+static int	outductSelected(BpPlan *plan, SdrObject planObj, Bundle *bundle,
 			int classReqd, ClProtocol *protocol, Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
-	Object		ovrdAddr;
+	SdrObject	ovrdAddr;
 	IpnOverride	ovrd;
 	char		outductExpression[SDRSTRING_BUFSZ];
 	char		*cursor;
 	char		protocolNameBuf[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		*protocolName = NULL;
 	char		*ductName = NULL;
-	Object		ductElt;
-	Object		outductElt;
-	Object		outductObj;
+	SdrObject	ductElt;
+	SdrObject	outductElt;
+	SdrObject	outductObj;
 
 	/* Parameter intentionally unused. */
 	(void)planObj;
@@ -410,7 +410,7 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 {
 	Sdr		sdr = getIonsdr();
 	int		protClassReqd;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	ClProtocol	protocol;
 	Outduct		outduct;
@@ -482,23 +482,23 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	Throttle	*throttle;
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
 	size_t		maxPayloadLength;
-	Object		bundleElt;
-	Object		bundleObj;
+	SdrObject	bundleElt;
+	SdrObject	bundleObj;
 	Bundle		bundle;
 	VOutduct	*vduct;
 			OBJ_POINTER(Outduct, outduct);
 	Bundle		firstBundle;
-	Object		firstBundleObj;
+	SdrObject	firstBundleObj;
 	Bundle		secondBundle;
-	Object		secondBundleObj;
-	Object		queue;
+	SdrObject	secondBundleObj;
+	SdrObject	queue;
 
 	if (!nodeName)
 	{

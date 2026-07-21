@@ -319,12 +319,12 @@ static int bslasb_extractTargetResults(BpsecInboundASB *asb, int memIdx, unsigne
 // TODO: Document function.
 // TODO: Fix function names.
 
-static Object bslasb_outboundCopyTargetResults(Sdr sdr, Object oldResultList)
+static SdrObject bslasb_outboundCopyTargetResults(Sdr sdr, SdrObject oldResultList)
 {
-	Object newResultList = 0;
-	Object elt = 0;
-	Object curTgtResultObj = 0;
-	Object newTgtResultObj = 0;
+	SdrObject newResultList = 0;
+	SdrObject elt = 0;
+	SdrObject curTgtResultObj = 0;
+	SdrObject newTgtResultObj = 0;
 	BpsecOutboundTargetResult oldTgtResult;
 	BpsecOutboundTargetResult newTgtResult;
 	int success = 1;
@@ -716,7 +716,7 @@ int bpsec_asb_inboundAsbRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 	LystElt			elt;
 	BpsecInboundTargetResult	*oldTarget;
 	BpsecOutboundTargetResult	newTarget;
-	Object			obj;
+	SdrObject			obj;
 
 	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
 			(uaddr) newBlk, (uaddr) oldBlk);
@@ -821,9 +821,9 @@ void bpsec_asb_inboundTargetResultRelease(LystElt item, void *tag) // bsu_outTgt
 
 
 // TODO: Document function.
-Object bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size)
+SdrObject bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size)
 {
-	Object obj = 0;
+	SdrObject obj = 0;
 
 	CHKZERO(size);
 
@@ -838,18 +838,18 @@ Object bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size)
 }
 // TODO: Document function.
 
-void bpsec_asb_outboundTargetResultsRelease(Sdr sdr, Object eltData, void *arg)
+void bpsec_asb_outboundTargetResultsRelease(Sdr sdr, SdrObject eltData, void *arg)
 {
 	/* Parameter intentionally unused. */
 	(void) arg;
 
-	Object obj = sdr_list_data(sdr, eltData);
+	SdrObject obj = sdr_list_data(sdr, eltData);
 
 	bpsec_asb_outboundTargetResultDelete(sdr, obj);
 }
 
 // TODO: Document function.
-void bpsec_asb_outboundTargetResultDelete(Sdr sdr, Object obj)
+void bpsec_asb_outboundTargetResultDelete(Sdr sdr, SdrObject obj)
 {
 	if(obj != 0)
 	{
@@ -886,7 +886,7 @@ void bpsec_asb_outboundAsbDelete(Sdr sdr, BpsecOutboundASB *asb)
 }
 
 // TODO: Document function.
-void bpsec_asb_outboundAsbDeleteObj(Sdr sdr, Object obj)
+void bpsec_asb_outboundAsbDeleteObj(Sdr sdr, SdrObject obj)
 {
 	BpsecOutboundASB asb;
 
@@ -1000,7 +1000,7 @@ static void	releaseTmpData(BpsecSerializeData *tmpData, int limit)
 
 int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSerializeData *tgtIds, BpsecSerializeData *tgtResults)
 {
-	Object elt = 0;
+	SdrObject elt = 0;
 	BpsecSerializeData *tmpData = NULL;
 	uint8_t *cursor = NULL;
 	int i = 0;
@@ -1443,7 +1443,7 @@ void     bpsec_asb_outboundSecuritySourceInsert(Bundle *bundle, BpsecOutboundASB
 int bpsec_asb_outboundTargetInsert(Sdr sdr, BpsecOutboundASB *asb, uint8_t nbr)
 {
 
-	Object			  obj;
+	SdrObject		  obj;
 	BpsecOutboundTargetResult tgtResult;
 
 	CHKERR(sdr && asb);

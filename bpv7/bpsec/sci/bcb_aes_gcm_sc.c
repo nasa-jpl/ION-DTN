@@ -221,7 +221,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
  * @retval <1 - Failure
  *****************************************************************************/
 
-int bpsec_bagscu_zcoCompute(uint32_t suite, Object *dataObj, csi_val_t sesKey, csi_cipherparms_t *parms, uint8_t function)
+int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey, csi_cipherparms_t *parms, uint8_t function)
 {
 	Sdr sdr = getIonsdr();
 	csi_blocksize_t blocksize;
@@ -230,7 +230,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, Object *dataObj, csi_val_t sesKey, c
 	ZcoReader dataReader;
 	uint8_t   *context = NULL;
 	int32_t   result = 0;
-	Object    cipherZco = 0;
+	SdrObject cipherZco = 0;
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(dataObj);
@@ -720,7 +720,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 	}
 	else
 	{
-		Object blkObj = getExtensionBlock(bundle, tgtResult->scTargetId);
+		SdrObject blkObj = getExtensionBlock(bundle, tgtResult->scTargetId);
 		OBJ_POINTER(ExtensionBlock, blk);
 		unsigned char *data = NULL;
 		csi_val_t input;

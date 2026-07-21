@@ -26,7 +26,7 @@ int	main(int argc, char *argv[])
 	LtpVdb			*vdb;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
-	Object			spanObj;
+	SdrObject		spanObj;
 	LtpSpan			span;
 	int			returnCode = 0;
 	char			nbrBuf[FQN_MAX_LENGTH];

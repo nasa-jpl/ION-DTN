@@ -23,8 +23,8 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 	int		randomSduLength = 0;
 	int		bytesRemaining;
 	int		bytesToWrite;
-	Object		fileRef;
-	Object		zco;
+	SdrObject	fileRef;
+	SdrObject	zco;
 	LtpSessionId	sessionId;
 	int		bytesSent = 0;
 	time_t		startTime;
@@ -125,7 +125,7 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 
 		zco = ionCreateZco(ZcoFileSource, fileRef, 0, sduLength, 0,
 				0, ZcoOutbound, NULL);
-		if (zco == 0 || zco == (Object) ERROR)
+		if (zco == 0 || zco == (SdrObject) ERROR)
 		{
 			putErrmsg("ltpdriver can't create ZCO.", NULL);
 			running = 0;

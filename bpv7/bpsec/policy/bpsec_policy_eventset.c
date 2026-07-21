@@ -584,8 +584,8 @@ int bsles_sdr_forget(PsmPartition wm, char *name)
 	Sdr ionsdr = getIonsdr();
 	BpSecPolicyDbEntry entry;
 	BpSecEventSet curEventSet;
-	Object sdrElt = 0;
-	Object dataElt = 0;
+	SdrObject sdrElt = 0;
+	SdrObject dataElt = 0;
 	int success = 0;
 
 	/* Parameter intentionally unused. */

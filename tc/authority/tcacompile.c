@@ -44,7 +44,7 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	char		*buffer;
 	char		*cursor;
 	unsigned int	bytesRemaining;
-	Object		elt;
+	SdrObject	 elt;
 			OBJ_POINTER(TcaRecord, rec);
 	int		recLen;
 	int		bulletinLen = 0;
@@ -52,10 +52,10 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	int		fd;
 	uint32_t	bulletinId;
 	char		destEid[32];
-	Object		fileRef;
-	Object		zco;
+	SdrObject	fileRef;
+	SdrObject	zco;
 	int		result;
-	Object		newBundle;
+	SdrObject	newBundle;
 
 	/*	Allocate temporary buffer of the maximum size that
 	 *	might be needed to hold the entire bulletin.		*/
@@ -134,7 +134,7 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 
 	zco = ionCreateZco(ZcoFileSource, fileRef, 0, 4 + bulletinLen,
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (zco == 0 || zco == (Object) -1)
+	if (zco == 0 || zco == (SdrObject) -1)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		zco_destroy_file_ref(sdr, fileRef);
@@ -170,7 +170,7 @@ int	main(int argc, char *argv[])
 	char	ownEid[32];
 	BpSAP	sap;
 	Sdr	sdr;
-	Object	dbobj;
+	SdrObject dbobj;
 	TcaDB	db;
 	saddr	state = 1;
 	char	cmdbuf[32];

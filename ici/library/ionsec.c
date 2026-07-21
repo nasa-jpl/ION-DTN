@@ -46,9 +46,9 @@ static char	*_secVdbName(void)
 	return "secvdb";
 }
 
-static Object	_secdbObject(Object *newDbObj)
+static SdrObject _secdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -63,7 +63,7 @@ static SecDB	*_secConstants(void)
 	static SecDB	buf;
 	static SecDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -135,7 +135,7 @@ static void	eraseKeyRef(PsmPartition wm, PsmAddress refData, void *arg)
 }
 
 static int	loadPublicKey(PsmPartition wm, PsmAddress rbt, PublicKey *key,
-			Object elt)
+			SdrObject elt)
 {
 	PsmAddress	refAddr;
 	PubKeyRef	*ref;
@@ -165,7 +165,7 @@ static int	loadPublicKeys(PsmAddress rbt)
 	PsmPartition	wm = getIonwm();
 	Sdr		sdr = getIonsdr();
 	SecDB		db;
-	Object		elt;
+	SdrObject	elt;
 			OBJ_POINTER(PublicKey, nodeKey);
 
 	sdr_read(sdr, (char *) &db, _secdbObject(NULL), sizeof(SecDB));
@@ -272,7 +272,7 @@ static SecVdb	*_secvdb(char **name)
 int	secInitialize(void)
 {
 	Sdr	ionsdr;
-	Object	secdbObject;
+	SdrObject secdbObject;
 	SecDB	secdbBuf;
 	char	*secvdbName = _secVdbName();
 
@@ -345,7 +345,7 @@ int	secInitialize(void)
 int	secAttach(void)
 {
 	Sdr	ionsdr;
-	Object	secdbObject;
+	SdrObject secdbObject;
 	SecVdb	*secvdb = _secvdb(NULL);
 	char	*secvdbName = _secVdbName();
 
@@ -384,7 +384,7 @@ int	secAttach(void)
 	return 0;
 }
 
-Object	getSecDbObject(void)
+SdrObject getSecDbObject(void)
 {
 	return _secdbObject(NULL);
 }
@@ -403,8 +403,8 @@ SecVdb	*getSecVdb(void)
  * Asymmetric cryptography functions
  */
 
-static Object	locatePublicKey(uvast fqnn, time_t effectiveTime,
-			PubKeyRef *argRef)
+static SdrObject locatePublicKey(uvast fqnn, time_t effectiveTime,
+		PubKeyRef *argRef)
 {
 	SecDB		*secdb = _secConstants();
 	PsmPartition	wm = getIonwm();
@@ -440,11 +440,11 @@ static Object	locatePublicKey(uvast fqnn, time_t effectiveTime,
 	return ref->publicKeyElt;
 }
 
-void	sec_findPublicKey(uvast fqnn, time_t effectiveTime, Object *keyAddr,
-		Object *eltp)
+void sec_findPublicKey(uvast fqnn, time_t effectiveTime, SdrObject *keyAddr,
+		SdrObject *eltp)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	PubKeyRef	argRef;
 
 	/*	This function finds the PublicKey for the specified
@@ -478,7 +478,7 @@ int	sec_addPublicKey(uvast fqnn, time_t effectiveTime,
 	PubKeyRef	argRef;
 	PsmAddress	rbtNode;
 	PsmAddress	successor;
-	Object		keyObj;
+	SdrObject	keyObj;
 	PublicKey	newPublicKey;
 	PsmAddress	successorRefAddr;
 	PubKeyRef	*successorRef;
@@ -565,9 +565,9 @@ int	sec_removePublicKey(uvast fqnn, time_t effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecVdb		*vdb = getSecVdb();
-	Object		elt;
+	SdrObject	elt;
 	PubKeyRef	argRef;
-	Object		keyObj;
+	SdrObject	keyObj;
 	PublicKey	publicKey;
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -594,11 +594,11 @@ int	sec_removePublicKey(uvast fqnn, time_t effectiveTime)
 	return 0;
 }
 
-static Object	locateOwnPublicKey(time_t effectiveTime, Object *nextKey)
+static SdrObject locateOwnPublicKey(time_t effectiveTime, SdrObject *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(OwnPublicKey, key);
 
 	/*	This function locates the OwnPublicKey identified
@@ -641,8 +641,8 @@ int	sec_addOwnPublicKey(time_t effectiveTime, int keyLen,
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
 	char		keyId[32];
-	Object		nextKey;
-	Object		keyObj;
+	SdrObject	nextKey;
+	SdrObject	keyObj;
 	OwnPublicKey	newOwnPublicKey;
 
 	CHKERR(secdb);
@@ -695,8 +695,8 @@ int	sec_removeOwnPublicKey(time_t effectiveTime)
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
 	char		keyId[32];
-	Object		keyElt;
-	Object		keyObj;
+	SdrObject	keyElt;
+	SdrObject	keyObj;
 	OwnPublicKey	ownPublicKey;
 
 	if (secdb == NULL)	/*	No security database declared.	*/
@@ -730,11 +730,11 @@ int	sec_removeOwnPublicKey(time_t effectiveTime)
 	return 0;
 }
 
-static Object	locatePrivateKey(time_t effectiveTime, Object *nextKey)
+static SdrObject locatePrivateKey(time_t effectiveTime, SdrObject *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(PrivateKey, key);
 
 	/*	This function locates the PrivateKey identified by
@@ -776,8 +776,8 @@ int	sec_addPrivateKey(time_t effectiveTime, int keyLen,
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
 	char		keyId[32];
-	Object		nextKey;
-	Object		keyObj;
+	SdrObject	nextKey;
+	SdrObject	keyObj;
 	OwnPublicKey	newPrivateKey;
 
 	CHKERR(secdb);
@@ -830,8 +830,8 @@ int	sec_removePrivateKey(time_t effectiveTime)
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
 	char		keyId[32];
-	Object		keyElt;
-	Object		keyObj;
+	SdrObject	keyElt;
+	SdrObject	keyObj;
 	PrivateKey	privateKey;
 
 	if (secdb == NULL)	/*	No security database declared.	*/
@@ -877,7 +877,7 @@ int	sec_get_public_key(uvast fqnn, time_t effectiveTime,
 	PsmAddress	successor;
 	PsmAddress	refAddr;
 	PubKeyRef	*ref;
-	Object		keyObj;
+	SdrObject	keyObj;
 	PublicKey	publicKey;
 
 	if (secdb == NULL)	/*	No security database declared.	*/
@@ -946,9 +946,9 @@ int	sec_get_own_public_key(time_t effectiveTime, int *keyBufferLen,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
-	Object		keyElt;
-	Object		nextKey;
-	Object		keyObj;
+	SdrObject	keyElt;
+	SdrObject	nextKey;
+	SdrObject	keyObj;
 	OwnPublicKey	ownPublicKey;
 
 	if (secdb == NULL)	/*	No security database declared.	*/
@@ -1004,9 +1004,9 @@ int	sec_get_private_key(time_t effectiveTime, int *keyBufferLen,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
-	Object		keyElt;
-	Object		nextKey;
-	Object		keyObj;
+	SdrObject	keyElt;
+	SdrObject	nextKey;
+	SdrObject	keyObj;
 	PrivateKey	privateKey;
 
 	if (secdb == NULL)	/*	No security database declared.	*/
@@ -1061,11 +1061,11 @@ int	sec_get_private_key(time_t effectiveTime, int *keyBufferLen,
  * Symmetric cryptography functions
  */
 
-static Object	locateKey(char *keyName, Object *nextKey)
+static SdrObject locateKey(char *keyName, SdrObject *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(SecKey, key);
 	int	result;
 
@@ -1103,10 +1103,10 @@ static Object	locateKey(char *keyName, Object *nextKey)
 	return 0;
 }
 
-void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
+void sec_findKey(char *keyName, SdrObject *keyAddr, SdrObject *eltp)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 
 	/*	This function finds the SecKey identified by the
 	 *	specified name, if any.					*/
@@ -1189,9 +1189,9 @@ int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB*	secdb = _secConstants();
-	Object	nextKey;
+	SdrObject nextKey;
 	SecKey	key;
-	Object	keyObj;
+	SdrObject keyObj;
 
 	CHKERR(keyName);
 	CHKERR(keyVal);
@@ -1261,10 +1261,10 @@ int sec_addKey(char *keyName, char *fileName, int keyLen)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants(); /* Required for list head */
-	Object		nextKey;
+	SdrObject	nextKey;
 	struct stat	statbuf;
 	SecKey		key;
-	Object		keyObj;
+	SdrObject	keyObj;
 
 	CHKERR(keyName);
 	CHKERR(fileName);
@@ -1366,8 +1366,8 @@ int sec_addKey(char *keyName, char *fileName, int keyLen)
 int sec_updateKey(char *keyName, char *fileName, int keyLen)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		keyObj;
+	SdrObject	elt;
+	SdrObject	keyObj;
 	SecKey		key;
 	struct stat	statbuf;
 
@@ -1459,8 +1459,8 @@ int sec_updateKey(char *keyName, char *fileName, int keyLen)
 int	sec_removeKey(char *keyName)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	keyObj;
+	SdrObject elt;
+	SdrObject keyObj;
 		OBJ_POINTER(SecKey, key);
 
 	CHKERR(keyName);
@@ -1493,8 +1493,8 @@ int	sec_removeKey(char *keyName)
 int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 {
 	Sdr	sdr = getIonsdr();
-	Object	keyAddr;
-	Object	elt;
+	SdrObject keyAddr;
+	SdrObject elt;
 		OBJ_POINTER(SecKey, key);
 
 	CHKERR(keyName);

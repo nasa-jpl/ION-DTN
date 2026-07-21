@@ -121,7 +121,7 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 	uvast		seqNum;
 	char		*sourceEidStr;
 	char		*destEidStr;
-	Object		scratchAddr;
+	SdrObject	scratchAddr;
 
 	/*	Check if CREB should be attached based on config mode.	*/
 
@@ -375,7 +375,7 @@ int	creb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
 {
 	Sdr		sdr = getIonsdr();
 	CrebScratchpad	*ramScratch;
-	Object		scratchAddr;
+	SdrObject	scratchAddr;
 
 	if (ramBlk->object == NULL || ramBlk->size == 0)
 	{
@@ -408,7 +408,7 @@ int	creb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr		sdr = getIonsdr();
 	CrebScratchpad	scratch;
-	Object		newScratchAddr;
+	SdrObject	newScratchAddr;
 
 	if (oldBlk->object == 0)
 	{

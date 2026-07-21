@@ -15,11 +15,11 @@ int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
 		int *length)
 {
 	Sdr		sdr;
-	Object		dbobj;
+	SdrObject	dbobj;
 	TccDB		db;
 	TccVdb		*vdb;
-	Object		contentElt;
-	Object		contentObj;
+	SdrObject	contentElt;
+	SdrObject	contentObj;
 	TccContent	content;
 
 	CHKERR(bulletinContent && length);

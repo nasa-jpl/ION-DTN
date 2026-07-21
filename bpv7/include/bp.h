@@ -113,16 +113,16 @@ typedef struct
 	char		name[MAX_SCHEME_NAME_LEN + 1];
 	int		nameLength;
 	SchemeCodeNbr	codeNumber;
-	Object		fwdCmd; 	/*	For starting forwarder.	*/
-	Object		admAppCmd; 	/*	For starting admin app.	*/
-	Object		forwardQueue;	/*	SDR list of Bundles	*/
-	Object		endpoints;	/*	SDR list of Endpoints	*/
-	Object		bclas;		/*	SDR list of BIBE CLAs	*/
+	SdrObject	fwdCmd;	      /* For starting forwarder. */
+	SdrObject	admAppCmd;    /* For starting admin app. */
+	SdrObject	forwardQueue; /* SDR list of Bundles */
+	SdrObject	endpoints;    /* SDR list of Endpoints */
+	SdrObject	bclas;	      /* SDR list of BIBE CLAs */
 } Scheme;
 
 typedef struct
 {
-	Object		schemeElt;	/*	Reference to scheme.	*/
+	SdrObject schemeElt; /* Reference to scheme. */
 
 	/*	Copied from Scheme.					*/
 
@@ -151,7 +151,7 @@ typedef enum
 
 typedef union
 {
-	Object		nv;		/*	Recorded in SDR heap.	*/
+	SdrObject	nv;		/*	Recorded in SDR heap.	*/
 	PsmAddress	v;		/*	Recorded in wm.		*/
 	char		*s;		/*	Temporary string in RAM.*/
 } EndpointName;
@@ -414,7 +414,7 @@ typedef struct
 	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
-	Object		adu;		/*	Zero-copy object.	*/
+	SdrObject	adu;		/*	Zero-copy object.	*/
 
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
@@ -557,8 +557,8 @@ extern int		bp_send(	BpSAP sap,
 					unsigned char srrFlags,
 					int ackRequested,
 					BpAncillaryData *ancillaryData,
-					Object adu,
-					Object *newBundle);
+					SdrObject adu,
+					SdrObject *newBundle);
 			/*	ancillaryData, if not *	NULL, is used
 			 *	to populate the Quality of service block.
 			 *	Flag values are OR'd together.  If this
@@ -586,8 +586,7 @@ extern int		bp_send(	BpSAP sap,
 			 *	new bundle's address has been placed
 			 *	in newBundle.				*/
 
-extern int		bp_track(	Object bundleObj,
-					Object trackingElt);
+extern int bp_track(SdrObject bundleObj, SdrObject trackingElt);
 			/*	Adds trackingElt to the list of
 			 *	"tracking" references in the bundle.
 			 *	trackingElt must be the address of
@@ -607,15 +606,13 @@ extern int		bp_track(	Object bundleObj,
 			 *	of inadvertently de-referencing the
 			 *	address of a nonexistent bundle.	*/
 
-extern void		bp_untrack(	Object bundleObj,
-					Object trackingElt);
+extern void bp_untrack(SdrObject bundleObj, SdrObject trackingElt);
 			/*	Removes trackingElt from the bundle's
 			 *	list of "tracking" references, if it
 			 *	is in that list.  Does not delete
 			 *	trackingElt itself.			*/
 
-extern int		bp_memo(	Object bundleObj,
-					unsigned int interval);
+extern int bp_memo(SdrObject bundleObj, unsigned int interval);
 			/*	Inserts a "custody-acceptance due"
 			 *	event into the timeline.  The event
 			 *	causes the indicated bundle to be
@@ -631,16 +628,16 @@ extern int		bp_memo(	Object bundleObj,
 			 *	BIBE.  NO EVENT IS INSERTED INTO
 			 *	THE TIMELINE.				*/
 
-extern int		bp_suspend(	Object bundleObj);
+extern int bp_suspend(SdrObject bundleObj);
 			/*	Suspends transmission of this bundle.	*/
 
-extern int		bp_resume(	Object bundleObj);
+extern int bp_resume(SdrObject bundleObj);
 			/*	Resumes transmission of this bundle.	*/
 
-extern int		bp_cancel(	Object bundleObj);
+extern int bp_cancel(SdrObject bundleObj);
 			/*	Cancels transmission of this bundle.	*/
 
-extern int		bp_release(	Object bundleObj);
+extern int bp_release(SdrObject bundleObj);
 			/*	Terminates detention of this bundle,
 			 *	enabling it to be deleted from
 			 *	storage when all other retention

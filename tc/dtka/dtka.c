@@ -249,10 +249,10 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 	unsigned char	*privateKey;
 	char		recordBuffer[TC_MAX_REC];
 	int		recordLen;
-	Object		extent;
-	Object		bundleZco;
+	SdrObject	extent;
+	SdrObject	bundleZco;
 	char		destEid[32];
-	Object		newBundle;
+	SdrObject	newBundle;
 
 	effectiveTime = currentTime + db->effectiveLeadTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
@@ -371,7 +371,7 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, recordLen,
 		BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (Object)-1)
+	if (bundleZco == 0 || bundleZco == (SdrObject)-1)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		return -1;
@@ -395,7 +395,7 @@ static void	*generateKeys(void *parm)
 {
 	char	*procName = "dtka";
 	Sdr	sdr;
-	Object	dbobj;
+	SdrObject dbobj;
 	DtkaDB	db;
 	time_t	currentTime;
 	char	nbrBuf[FQN_MAX_LENGTH];

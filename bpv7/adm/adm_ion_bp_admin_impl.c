@@ -214,7 +214,7 @@ tbl_t *dtn_ion_bpadmin_tblt_inducts(ari_t *id)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	ClProtocol	clpbuf;
-	Object		clp_elt;
+	SdrObject	clp_elt;
 	VInduct		*vduct;
 	PsmAddress	vduct_elt;
 	OBJ_POINTER(Induct, duct);
@@ -297,7 +297,7 @@ tbl_t *dtn_ion_bpadmin_tblt_outducts(ari_t *id)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	ClProtocol	clpbuf;
-	Object		clp_elt;
+	SdrObject	clp_elt;
 	VOutduct	*vduct;
 	PsmAddress	vduct_elt;
 	OBJ_POINTER(Outduct, duct);
@@ -385,7 +385,7 @@ tbl_t *dtn_ion_bpadmin_tblt_protocols(ari_t *id)
 	 */
 
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 	OBJ_POINTER(ClProtocol, clp);
 	tnvc_t  *cur_row = NULL;
 
@@ -898,7 +898,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_manage_heap_max(eid_t *def_mgr, tnvc_t *parms, int8_
 	 * +-------------------------------------------------------------------------+
 	 */
 	Sdr		sdr = getIonsdr();
-	Object		bpdbObj = getBpDbObject();
+	SdrObject	bpdbObj = getBpDbObject();
 	BpDB		bpdb;
 	int success;
 	unsigned int heapmax = adm_get_parm_uint(parms, 0, &success);
@@ -1502,7 +1502,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	int success;
 	Sdr	sdr = getIonsdr();
-	Object	dbObj = getBpDbObject();
+	SdrObject dbObj = getBpDbObject();
 	BpDB	db;
 	char *name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	BpVdb	*vdb = getBpVdb();

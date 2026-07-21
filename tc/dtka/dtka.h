@@ -46,7 +46,7 @@ extern "C"
 
 	extern int dtkaInit(void);
 	extern int dtkaAttach(void);
-	extern Object getDtkaDbObject(void);
+	extern SdrObject getDtkaDbObject(void);
 	extern DtkaDB *getDtkaConstants(void);
 
 #ifdef __cplusplus

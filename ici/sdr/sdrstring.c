@@ -37,10 +37,10 @@ typedef unsigned char	SdrStringBuffer[SDRSTRING_BUFSZ];
 
 /*	*	*	String management functions	*	*	*/
 
-Object	Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
+SdrObject Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
 {
 	size_t		length = 0;
-	Object		string;
+	SdrObject	string;
 	SdrStringBuffer stringBuf;
 
 	if (!sdr_in_xn(sdrv))
@@ -65,17 +65,17 @@ Object	Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
 
 	stringBuf[0] = length;
 	memcpy(stringBuf + 1, from, length);
-	_sdrput(file, line, sdrv, (Address) string, (char *) stringBuf,
+	_sdrput(file, line, sdrv, (SdrAddress) string, (char *) stringBuf,
 			length + 1, SystemPut);
 	return string;
 }
 
-Object	Sdr_string_dup(const char *file, int line, Sdr sdrv, Object from)
+SdrObject Sdr_string_dup(const char *file, int line, Sdr sdrv, SdrObject from)
 {
-	Address		addr = (Address) from;
+	SdrAddress	addr = (SdrAddress) from;
 	unsigned char	length;
 	SdrStringBuffer stringBuf;
-	Object		string;
+	SdrObject	string;
 
 	if (!sdr_in_xn(sdrv))
 	{
@@ -100,23 +100,23 @@ Object	Sdr_string_dup(const char *file, int line, Sdr sdrv, Object from)
 	}
 
 	stringBuf[0] = length;
-	_sdrput(file, line, sdrv, (Address) string, (char *) stringBuf,
+	_sdrput(file, line, sdrv, (SdrAddress) string, (char *) stringBuf,
 			length + 1, SystemPut);
 	return string;
 }
 
-int	sdr_string_length(Sdr sdrv, Object string)
+int sdr_string_length(Sdr sdrv, SdrObject string)
 {
 	unsigned char	length;
 
 	CHKERR(string);
-	sdrFetch(length, (Address) string);
+	sdrFetch(length, (SdrAddress) string);
 	return length;
 }
 
-int	sdr_string_read(Sdr sdrv, char *into, Object string)
+int sdr_string_read(Sdr sdrv, char *into, SdrObject string)
 {
-	Address		addr = (Address) string;
+	SdrAddress	addr = (SdrAddress) string;
 	unsigned char	length;
 
 	CHKERR(sdrFetchSafe(sdrv));

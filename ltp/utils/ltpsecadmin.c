@@ -322,7 +322,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
-static void	printLtpRecvAuthRule(Object ruleAddr)
+static void printLtpRecvAuthRule(SdrObject ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(LtpRecvAuthRule, rule);
@@ -340,7 +340,7 @@ static void	printLtpRecvAuthRule(Object ruleAddr)
 	printText(buf);
 }
 
-static void	printLtpXmitAuthRule(Object ruleAddr)
+static void printLtpXmitAuthRule(SdrObject ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(LtpXmitAuthRule, rule);
@@ -361,8 +361,8 @@ static void	printLtpXmitAuthRule(Object ruleAddr)
 static void	executeInfo(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		addr;
-	Object		elt;
+	SdrObject	addr;
+	SdrObject	elt;
 
 	if (tokenCount < 2)
 	{
@@ -417,8 +417,8 @@ static void	executeList(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(SecDB, db);
-	Object	elt;
-	Object	obj;
+	SdrObject	elt;
+	SdrObject	obj;
 
 	if (tokenCount < 2)
 	{

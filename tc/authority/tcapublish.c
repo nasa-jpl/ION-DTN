@@ -52,8 +52,8 @@ static void	shutDown(int signum)	/*	Commands tcapublish shutdown.	*/
 	state->running = 0;
 }
 
-static Object	nextPendingRecord(Sdr sdr, Object elt, Object *obj,
-			TcaRecord *record)
+static SdrObject nextPendingRecord(Sdr sdr, SdrObject elt, SdrObject *obj,
+		TcaRecord *record)
 {
 	elt = sdr_list_next(sdr, elt);
 	if (elt)
@@ -66,7 +66,7 @@ static Object	nextPendingRecord(Sdr sdr, Object elt, Object *obj,
 }
 
 static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
-			Object adu)
+			SdrObject adu)
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
@@ -77,9 +77,9 @@ char	nbrBuf[FQN_MAX_LENGTH];
 	PsmAddress	schemeElt;
 	char		msgBuffer[256];
 	int		auths;
-	Object		elt;
+	SdrObject	elt;
 	int		i;		/*	Authority array index.	*/
-	Object		authObj;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 	ZcoReader	reader;
 	int		bulletinLength;
@@ -87,7 +87,7 @@ char	nbrBuf[FQN_MAX_LENGTH];
 	uint32_t	currentBulletinId;
 	char		timestamp1[TIMESTAMPBUFSZ];
 	char		timestamp2[TIMESTAMPBUFSZ];
-	Object		obj;
+	SdrObject	obj;
 	TcaRecord	record;
 	char		*acknowledged;
 	int		bytesRemaining;
@@ -380,9 +380,9 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 {
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		destEid[32];
-	Object		elt;
+	SdrObject	elt;
 	int		i;
-	Object		authObj;
+	SdrObject	authObj;
 	TcaAuthority	auth;
 	char		msgbuf[384];
 	int		auths;
@@ -394,9 +394,9 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	char		*cursor;
 	unsigned int	bytesRemaining;
 	char		*acknowledged;
-	Object		elt2;
-	Object		nextElt;
-	Object		obj;
+	SdrObject	elt2;
+	SdrObject	nextElt;
+	SdrObject	obj;
 			OBJ_POINTER(TcaRecord, rec);
 	int		recCount = 0;
 	int		recLen;
@@ -410,8 +410,8 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	unsigned int	sharenum;
 	unsigned int	*sharenums;
 	unsigned int	u4;
-	Object		zco;
-	Object		newBundle;
+	SdrObject	zco;
+	SdrObject	newBundle;
 #if TC_DEBUG
 char	bytes[256];
 char	*byte;
@@ -738,7 +738,7 @@ for (i = 0; i < (db->fec_M - db->fec_K); i++)
 			(char *) (buffer + (sharenum * blksize)), blksize);
 		zco = ionCreateZco(ZcoSdrSource, obj, 0, 40 + blksize,
 				BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-		if (zco == 0 || zco == (Object) -1)
+		if (zco == 0 || zco == (SdrObject) -1)
 		{
 			putErrmsg("Can't create block ZCO.", NULL);
 			ion_fec_free(fec);
@@ -783,7 +783,7 @@ int	main(int argc, char *argv[])
 	TcaPublishState	state = { NULL, 1 };
 	BpSAP		sendSAP;
 	Sdr		sdr;
-	Object		dbobj;
+	SdrObject	dbobj;
 	TcaDB		db;
 	time_t		currentTime;
 	int		interval;

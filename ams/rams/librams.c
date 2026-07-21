@@ -567,9 +567,9 @@ static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
 	Sdr		sdr = getIonsdr();
 	int		classOfService;
 	BpAncillaryData	ancillaryData = {0};
-	Object		extent;
-	Object		bundleZco;
-	Object		newBundle;
+	SdrObject	extent;
+	SdrObject	bundleZco;
+	SdrObject	newBundle;
 	char		errorMsg[128];
 
 	classOfService = rpdu->flowLabel & 0x03;
@@ -592,7 +592,7 @@ static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, rpdu->envelopeLength,
 		classOfService, ancillaryData.ordinal, ZcoOutbound, NULL);
 
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		sdr_cancel_xn(sdr); /* Abort the extent allocation */
 		putErrmsg("Failed creating message ZCO.", NULL);

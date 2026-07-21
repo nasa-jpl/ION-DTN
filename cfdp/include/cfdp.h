@@ -32,7 +32,7 @@ typedef enum
 	NullChecksum = 15
 } CfdpCksumType;
 
-typedef Object		MetadataList;	/*	SDR list		*/
+typedef SdrObject MetadataList; /* SDR list */
 
 /*	A MetadataList is an SDR list (of user messages, filestore
  *	requests, or filestore responses) that is used to simplify

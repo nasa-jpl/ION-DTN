@@ -262,7 +262,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	int		srrFlags = 0;
 	BpSAP		sap;
 	Sdr		sdr;
-	Object		newBundle;
+	SdrObject	newBundle;
 
 	if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 			&custodySwitch, &priority))
@@ -292,10 +292,10 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 
 	if (*trace == '@')
 	{
-		Object      fileRef;
+		SdrObject	fileRef;
 		struct stat	statbuf;
 		int		aduLength;
-		Object	traceZco;
+		SdrObject	traceZco;
 		char        *fileName;
 
 		fileName = trace + 1;
@@ -352,8 +352,8 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	else
 	{
 		int		msgLength = strlen(trace) + 1;
-		Object	msg;
-		Object	traceZco;
+		SdrObject	msg;
+		SdrObject	traceZco;
 
 		sdr = bp_get_sdr();
 		CHKZERO(sdr_begin_xn(sdr));
@@ -372,7 +372,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 
 		traceZco = ionCreateZco(ZcoSdrSource, msg, 0, msgLength, priority,
 			ancillaryData.ordinal, ZcoOutbound, NULL);
-		if (traceZco == 0 || traceZco == (Object) ERROR)
+		if (traceZco == 0 || traceZco == (SdrObject) ERROR)
 		{
 				putErrmsg("bptrace can't create ZCO", NULL);
 		}

@@ -48,8 +48,8 @@ void ltpnm_spanEngineIds_get (uvast IdArray [], int *numIds)
 {
 	Sdr	sdr = getIonsdr();
 	int	maxEngines;
-	Object	sdrElt;
-	Object	spanObj;
+	SdrObject sdrElt;
+	SdrObject spanObj;
 	LtpSpan span;
 
 	CHKVOID(numIds);
@@ -118,11 +118,11 @@ void ltpnm_span_get (uvast	engineIdWanted,
                      int	*success)
 {
 	Sdr		 sdr = getIonsdr();
-	Object		 sdrElt;
-	Object		 spanObj;
+	SdrObject	 sdrElt;
+	SdrObject	 spanObj;
 	LtpSpan		 span;
 	LtpSpanStats	 stats;
-	Object		 elt2;
+	SdrObject	 elt2;
 	LtpImportSession isession;
 
 	CHKVOID(engineIdWanted > 0);
@@ -219,8 +219,8 @@ void ltpnm_span_get (uvast	engineIdWanted,
 void ltpnm_span_reset (uvast engineIdWanted, int *success)
 {
 	Sdr	     sdr = getIonsdr();
-	Object	     sdrElt;
-	Object	     spanObj;
+	SdrObject    sdrElt;
+	SdrObject    spanObj;
 	LtpSpan	     span;
 	LtpSpanStats stats;
 	Tally	    *tally;

@@ -40,9 +40,9 @@ static int	removePredictedContacts(int regionIdx)
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
 	uint32_t	regionNbr;
-	Object		obj;
-	Object		elt;
-	Object		nextElt;
+	SdrObject	obj;
+	SdrObject	elt;
+	SdrObject	nextElt;
 	IonContact	contact;
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
@@ -88,7 +88,7 @@ static void	freePbContents(LystElt elt, void *userdata)
 	MRELEASE(lyst_data(elt));
 }
 
-static int	insertIntoPredictionBase(Lyst pb, Object sagaElt)
+static int insertIntoPredictionBase(Lyst pb, SdrObject sagaElt)
 {
 	Sdr		sdr = getIonsdr();
 	Encounter	encounter;
@@ -198,8 +198,8 @@ static Lyst	constructPredictionBase(int regionIdx)
 	Sdr	sdr = getIonsdr();
 	Lyst	pb;
 	BpDB	db;
-	Object	elt;
-	Object	nextElt;
+	SdrObject elt;
+	SdrObject nextElt;
 
 #ifdef SAGA_DEBUG
 puts("Building prediction base.");
@@ -234,9 +234,9 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime,
 			int regionIdx)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getBpDbObject();
+	SdrObject	dbobj = getBpDbObject();
 	BpDB		db;
-	Object		iondbObj = getIonDbObject();
+	SdrObject	iondbObj = getIonDbObject();
 	IonDB		iondb;
 	uvast		fromFqnn;
 	uvast		toFqnn;
@@ -517,11 +517,11 @@ void	saga_insert(time_t fromTime, time_t toTime, uvast fromFqnn,
 		uvast toFqnn, size_t xmitRate, int idx)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getBpDbObject();
+	SdrObject	dbobj = getBpDbObject();
 	BpDB		db;
-	Object		saga;
+	SdrObject	saga;
 	Encounter	encounter;
-	Object		encounterObj;
+	SdrObject	encounterObj;
 #ifdef SAGA_DEBUG
 char	buf1[64];
 char	buf2[64];
@@ -593,13 +593,13 @@ int	saga_send(uvast destinationFqnn, int regionIdx)
 	unsigned char	*cursor;
 	IonDB		iondb;
 	uvast		uvtemp;
-	Object		encounterElt;
-	Object		nextEncounterElt;
-	Object		encounterAddr;
+	SdrObject	encounterElt;
+	SdrObject	nextEncounterElt;
+	SdrObject	encounterAddr;
 	Encounter	encounter;
 	int		aduLength;
-	Object		aduObj;
-	Object		aduZco;
+	SdrObject	aduObj;
+	SdrObject	aduZco;
 
 	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnFqnn());
@@ -705,7 +705,7 @@ int	saga_send(uvast destinationFqnn, int regionIdx)
 	MRELEASE(buffer);
 	aduZco = ionCreateZco(ZcoSdrSource, aduObj, 0, aduLength,
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (aduZco == 0 || aduZco == (Object) ERROR)
+	if (aduZco == 0 || aduZco == (SdrObject) ERROR)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Failed creating saga message ZCO.", NULL);
@@ -746,8 +746,8 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	uvast		toFqnn;
 	size_t		xmitRate;
 	BpDB		*bpConstants = getBpConstants();
-	Object		bundleElt;
-	Object		nextBundleElt;
+	SdrObject	bundleElt;
+	SdrObject	nextBundleElt;
 
 	/* Parameter intentionally unused. */
 	(void)dlv;

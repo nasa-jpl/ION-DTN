@@ -19,12 +19,12 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
 	Sdr		sdr;
-	Object		fileRef;
+	SdrObject	fileRef;
 	struct stat	statbuf;
 	int		aduLength;
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	char		progressText[300];
-	Object		newBundle;
+	SdrObject	newBundle;
 
 	if (svcClass == NULL)
 	{
@@ -104,7 +104,7 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	/* Create and send pilot bundle */
 
 	CHKZERO(sdr_begin_xn(sdr));
-	Object pilotAduString = sdr_string_create(sdr, "Go.");
+	SdrObject pilotAduString = sdr_string_create(sdr, "Go.");
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("bpdriver can't create pilot ADU string.", NULL);
@@ -115,7 +115,7 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0,
 			sdr_string_length(sdr, pilotAduString),
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (Object) ERROR)
+	if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("bpdriver can't create pilot ADU.", NULL);
 		bp_close(sap);
@@ -152,7 +152,8 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	for (i = repetitions; i > 0; --i){
 		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 				priority, ancillaryData.ordinal, ZcoOutbound, NULL);
-		if (bundleZco == 0 || bundleZco == (Object) ERROR) {
+		if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
+		{
 			putErrmsg("bpsendtest can't create ZCO.", NULL);
 		}
 		else

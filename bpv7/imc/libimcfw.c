@@ -18,9 +18,9 @@ static	char	imcEid[] = "imc:0.0";
 
 /*	*	*	Globals used for IMC scheme service.	*	*/
 
-static Object	_imcdbObject(Object *newDbObj)
+static SdrObject _imcdbObject(SdrObject *newDbObj)
 {
-	static Object	obj = 0;
+	static SdrObject obj = 0;
 
 	if (newDbObj)
 	{
@@ -35,7 +35,7 @@ static ImcDB	*_imcConstants(void)
 	static ImcDB	buf;
 	static ImcDB	*db = NULL;
 	Sdr		sdr;
-	Object		dbObject;
+	SdrObject	dbObject;
 
 	if (db == NULL)
 	{
@@ -69,7 +69,7 @@ static ImcDB	*_imcConstants(void)
 int	imcInit(void)
 {
 	Sdr	sdr = getIonsdr();
-	Object	imcdbObject;
+	SdrObject imcdbObject;
 	ImcDB	imcdbBuf;
 
 	/*	Recover the IMC database, creating it if necessary.	*/
@@ -113,7 +113,7 @@ int	imcInit(void)
 	return 0;
 }
 
-Object	getImcDbObject(void)
+SdrObject getImcDbObject(void)
 {
 	return _imcdbObject(NULL);
 }
@@ -125,13 +125,13 @@ ImcDB	*getImcConstants(void)
 
 /*	*	*	Multicast group mgt functions	*	*	*/
 
-static Object	createGroup(uvast fqgn, Object nextGroup)
+static SdrObject createGroup(uvast fqgn, SdrObject nextGroup)
 {
 	Sdr		sdr = getIonsdr();
 	ImcDB		*db = _imcConstants();
 	ImcGroup	group;
-	Object		addr;
-	Object		elt = 0;	/*	Default.		*/
+	SdrObject	addr;
+	SdrObject	elt = 0; /* Default. */
 
 #if IMCDEBUG
 printf("Creating group (" UVAST_FIELDSPEC ").\n", fqgn);
@@ -160,10 +160,10 @@ fflush(stdout);
 	return elt;
 }
 
-static Object	locateGroup(uvast fqgn, Object *nextGroup)
+static SdrObject locateGroup(uvast fqgn, SdrObject *nextGroup)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(ImcGroup, group);
 
 	if (nextGroup)
@@ -196,11 +196,11 @@ static Object	locateGroup(uvast fqgn, Object *nextGroup)
 	return 0;
 }
 
-void	imcFindGroup(uvast fqgn, Object *addr, Object *eltp)
+void imcFindGroup(uvast fqgn, SdrObject *addr, SdrObject *eltp)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	nextGroupElt;
+	SdrObject elt;
+	SdrObject nextGroupElt;
 
 	CHKVOID(addr);
 	CHKVOID(eltp);
@@ -232,12 +232,12 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	PsmAddress	vschemeElt;
 	uvast		arrayLength;
 	uvast		fqgn;
-	Object		groupAddr;
-	Object		groupElt;
+	SdrObject	groupAddr;
+	SdrObject	groupElt;
 	ImcGroup	group;
-	Object		elt;
+	SdrObject	elt;
 	uvast		fqnn;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	int		sourceRegion;
 	uint32_t	sourceRegionNbr;
@@ -387,8 +387,8 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 	MetaEid		sourceMetaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		sourceData;
-	Object		payloadZco;
+	SdrObject	sourceData;
+	SdrObject	payloadZco;
 	unsigned int	ttl = 604800; /* Seconds; 1 week. */
 	BpAncillaryData ancillary = { .ordinal = 255 };
 
@@ -415,8 +415,8 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 
 	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - length,
 			ZcoOutbound);
-	if (sdr_end_xn(sdr) < 0
-	|| payloadZco == (Object) ERROR || payloadZco == 0)
+	if (sdr_end_xn(sdr) < 0 || payloadZco == (SdrObject) ERROR ||
+			payloadZco == 0)
 	{
 		putErrmsg("Can't create IMC dispatch payload.", NULL);
 		return -1;

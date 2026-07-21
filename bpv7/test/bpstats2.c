@@ -67,7 +67,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 	static char *classnames[] =
 	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
 	Sdr		sdrHandle = getIonsdr();
-	Object		bpDbObject = getBpDbObject();
+	SdrObject	bpDbObject = getBpDbObject();
 	BpDB		bpdb;
 	time_t startTime;
 	time_t currentTime;
@@ -191,8 +191,8 @@ int sendStats(char *destEid, char *buffer, size_t len)
 {
 	int bytesWritten = 0, rc;
 	int i = 0;
-	Object bundleZco, extent;
-	Object newBundle;   /* We never use but bp_send requires it. */
+	SdrObject bundleZco, extent;
+	SdrObject newBundle;   /* We never use but bp_send requires it. */
 
 	if(destEid == NULL || (strcmp(destEid, "dtn:none") == 0)) {
 		putErrmsg("Can't send stats: bad dest EID", destEid);
@@ -224,7 +224,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, bytesWritten,
 			BP_STD_PRIORITY, 0, ZcoOutbound, _attendant(NULL));
-	if(bundleZco == 0 || bundleZco == (Object) ERROR)
+	if(bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
 		return -1;

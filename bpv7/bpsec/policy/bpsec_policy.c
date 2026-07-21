@@ -96,7 +96,7 @@ int bsl_all_init(PsmPartition partition)
  * @retval   0 - Failure
  *****************************************************************************/
 
-Address bsl_bufread(void *value, char *cursor, int length, int *bytes_left)
+SdrAddress bsl_bufread(void *value, char *cursor, int length, int *bytes_left)
 {
 	CHKZERO(*bytes_left >= length);
 	memcpy(value, cursor, length);
@@ -127,7 +127,7 @@ Address bsl_bufread(void *value, char *cursor, int length, int *bytes_left)
  * @retval   0 - Failure
  *****************************************************************************/
 
-Address bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left)
+SdrAddress bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left)
 {
 	CHKZERO(*bytes_left >= length);
 
@@ -220,7 +220,7 @@ int bsl_sdr_bootstrap(PsmPartition wm)
 	Sdr ionsdr = getIonsdr();
 	SecDB *secdb = getSecConstants();
 	SecVdb *secvdb = getSecVdb();
-	Object sdrElt = 0;
+	SdrObject sdrElt = 0;
 	BpSecPolicyDbEntry entry;
 
 	if (secdb == NULL) return -1;
@@ -279,10 +279,10 @@ int bsl_sdr_bootstrap(PsmPartition wm)
  * @retval -1 - System error
  *****************************************************************************/
 
-int bsl_sdr_insert(Sdr ionsdr, char *buffer, BpSecPolicyDbEntry entry, Object list)
+int bsl_sdr_insert(Sdr ionsdr, char *buffer, BpSecPolicyDbEntry entry, SdrObject list)
 {
 
-	Object itemObj = 0;
+	SdrObject itemObj = 0;
 
 	CHKERR(sdr_begin_xn(ionsdr));
 
@@ -469,7 +469,7 @@ void bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk)
 	}
 
 	/* Step 1: Find security block representing the security operation */
-	Object sop = getExtensionBlock(bundle, sopBlk->number);
+	SdrObject sop = getExtensionBlock(bundle, sopBlk->number);
 
 	if (sop)
 	{
@@ -570,7 +570,7 @@ void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 	Sdr sdr = getIonsdr();
 
 	/* Step 1: Search for the security target block */
-	Object tgt = bspsec_util_findOutboundBpsecTargetBlock(bundle, tgtNum, sopBlk->type);
+	SdrObject tgt = bspsec_util_findOutboundBpsecTargetBlock(bundle, tgtNum, sopBlk->type);
 
 	if (tgt)
 	{
@@ -660,9 +660,9 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 	CHKVOID(tgtNum);
 
 	Sdr	               sdr = getIonsdr();
-	Object	           sopElt;
-	Object	           sopAddr;
-	Object             tgtElt;
+	SdrObject	   sopElt;
+	SdrObject	   sopAddr;
+	SdrObject	   tgtElt;
 	unsigned char      sopTgtNum;
 	BpsecOutboundASB   asb;
 	OBJ_POINTER(ExtensionBlock, sopBlk);
@@ -992,7 +992,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	{
 		ExtensionBlock tgt;
 		Sdr	sdr = getIonsdr();
-		Object tgtObj = getExtensionBlock(bundle, tgtNum);
+		SdrObject tgtObj = getExtensionBlock(bundle, tgtNum);
 		sdr_read(sdr, (char *) &tgt, tgtObj,sizeof(ExtensionBlock));
 		tag.type = tgt.type;
 	}

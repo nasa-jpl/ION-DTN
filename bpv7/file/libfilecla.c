@@ -27,7 +27,7 @@ int	sendBytesByFile(unsigned char *buffer, size_t length,
 	return bytesWritten;
 }
 
-int	sendBundleByFile(unsigned int bundleLength, Object bundleZco,
+int	sendBundleByFile(unsigned int bundleLength, SdrObject bundleZco,
 		unsigned char *buffer, struct FileCloConfig *cfg)
 {
 	Sdr	  sdr;

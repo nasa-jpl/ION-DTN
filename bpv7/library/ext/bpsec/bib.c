@@ -74,8 +74,8 @@ extern char gMsg[]; /*    Debug message buffer.    */
 int bpsec_sign(Bundle *bundle)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
-	Object blockObj;
+	SdrObject elt;
+	SdrObject blockObj;
 	BpSecPolRule *curRule = NULL;
 	ExtensionBlock block;
 

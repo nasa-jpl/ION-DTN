@@ -138,13 +138,13 @@ static int	attachToTcc(void)
 static void	manageAuthority(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTccDBObj(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTccDBObj(_blocksGroupNbr(NULL));
 	int		idx;
 	uvast		fqnn;
 	TccDB		db;
 	int		i;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TccAuthority	auth;
 
 	if (tokenCount != 4)
@@ -209,13 +209,13 @@ static void	executeManage(int tokenCount, char **tokens)
 static void	executeInfo(void)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj = getTccDBObj(_blocksGroupNbr(NULL));
+	SdrObject	dbobj = getTccDBObj(_blocksGroupNbr(NULL));
 	TccDB		db;
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[256];
 	int		i;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TccAuthority	auth;
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock heap.	*/

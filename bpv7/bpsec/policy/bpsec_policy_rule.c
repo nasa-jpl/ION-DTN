@@ -383,7 +383,7 @@ int bslpol_proc_applySenderPolRule(Bundle *bundle, BpBlockType secBlkType, BpSec
 {
 	Sdr sdr = getIonsdr();
 	PsmPartition wm = getIonwm();
-	Object blkObj = 0;
+	SdrObject blkObj = 0;
 	ExtensionBlock blk;
 	BpsecOutboundASB asb;
 	sc_Def def;
@@ -430,7 +430,7 @@ int bslpol_proc_applySenderPolRule(Bundle *bundle, BpBlockType secBlkType, BpSec
 	 *    (If it were a BCB, we wouldn't have added the target
 	 *    block as a target of the new BCB.)            */
 
-	bibObj = (Object) sdr_list_data(sdr, bibElt);
+	bibObj = (SdrObject) sdr_list_data(sdr, bibElt);
 	sdr_read(sdr, (char *) &bib, bibObj, sizeof(ExtensionBlock));
 	sdr_read(sdr, (char *) &bibAsb, bib.object, bib.size);
 	if (sdr_list_length(sdr, bibAsb.secResults) == 1)
@@ -1507,7 +1507,7 @@ void bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr)
  * @retval  The number of bytes written into the buffer beyond the cursor.
  *****************************************************************************/
 
-Address bslpol_scparms_persist(PsmPartition partition, char *buffer, PsmAddress parms, int *bytes_left)
+SdrAddress bslpol_scparms_persist(PsmPartition partition, char *buffer, PsmAddress parms, int *bytes_left)
 {
 
 	char *cursor = buffer;
@@ -1558,7 +1558,7 @@ Address bslpol_scparms_persist(PsmPartition partition, char *buffer, PsmAddress 
  * @retval  The number of bytes read from the buffer beyond the cursor.
  *****************************************************************************/
 
-Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *buffer, int *bytes_left)
+SdrAddress bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *buffer, int *bytes_left)
 {
 	char *cursor = buffer;
 	PsmAddress newParm = 0;
@@ -1653,8 +1653,8 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 	Sdr ionsdr = getIonsdr();
 	BpSecPolicyDbEntry entry;
 	BpSecPolRule *rulePtr = NULL;
-	Object sdrElt = 0;
-	Object dataElt = 0;
+	SdrObject sdrElt = 0;
+	SdrObject dataElt = 0;
 	uint16_t user_id = 0;
 	int success = 0;
 

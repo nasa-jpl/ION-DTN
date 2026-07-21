@@ -139,7 +139,7 @@ static int	sduCanBeAppendedToBlock(LtpSpan *span,
 }
 
 int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
-		Object clientServiceData, unsigned int redPartLength,
+		SdrObject clientServiceData, unsigned int redPartLength,
 		LtpSessionId *sessionId)
 {
 	LtpVdb		*vdb = getLtpVdb();
@@ -147,7 +147,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	unsigned int	dataLength;
-	Object		spanObj;
+	SdrObject	spanObj;
 	LtpSpan		span;
 	OBJ_POINTER(LtpExportSession, session);
 
@@ -286,13 +286,13 @@ int	ltp_open(unsigned int clientSvcId)
 int	ltp_get_notice(unsigned int clientSvcId, LtpNoticeType *type,
 		LtpSessionId *sessionId, unsigned char *reasonCode,
 		unsigned char *endOfBlock, unsigned int *dataOffset,
-		unsigned int *dataLength, Object *data)
+		unsigned int *dataLength, SdrObject *data)
 {
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
 	LtpVclient	*client;
-	Object		elt;
-	Object		noticeAddr;
+	SdrObject	elt;
+	SdrObject	noticeAddr;
 	LtpNotice	notice;
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
@@ -398,7 +398,7 @@ void	ltp_interrupt(unsigned int clientSvcId)
 	}
 }
 
-void	ltp_release_data(Object data)
+void ltp_release_data(SdrObject data)
 {
 	Sdr	ltpSdr = getIonsdr();
 
@@ -495,7 +495,7 @@ void	ltp_list_spans(void)
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmPartition	ionwm = getIonwm();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	OBJ_POINTER(LtpDB, ltpdb);
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[128];
@@ -589,11 +589,11 @@ void	ltp_print_span_sessions(uvast engineId)
 	Sdr		sdr = getIonsdr();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		spanObj;
+	SdrObject	spanObj;
 	OBJ_POINTER(LtpSpan, span);
 	char		buffer[256];
-	Object		elt;
-	Object		sessionObj;
+	SdrObject	elt;
+	SdrObject	sessionObj;
 	OBJ_POINTER(LtpExportSession, session);
 
 	CHKVOID(sdr_begin_xn(sdr));

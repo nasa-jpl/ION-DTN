@@ -74,12 +74,12 @@ static void	printBytes(char *text, int length)
 	}
 }
 
-static void	printExtensions(Sdr sdr, Object extensions)
+static void printExtensions(Sdr sdr, SdrObject extensions)
 {
 	int	buflen = 0;
 	char	*buf = NULL;
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	for (elt = sdr_list_first(sdr, extensions); elt;
@@ -161,8 +161,8 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 
 static void	printQueueState(Sdr sdr, Bundle *bundle)
 {
-	Object	queue;
-	Object	planAddr;
+	SdrObject queue;
+	SdrObject planAddr;
 	BpPlan	planBuf;
 	char	buf[300];
 
@@ -207,14 +207,14 @@ static void	printQueueState(Sdr sdr, Bundle *bundle)
 	return;
 }
 
-static void	printBundle(Object bundleObj)
+static void printBundle(SdrObject bundleObj)
 {
 	Sdr	sdr = bp_get_sdr();
 		OBJ_POINTER(Bundle, bundle);
 	char	*eid;
 	char	buf[300];
-	Object  stationEidElt;
-	Object  stationEidObj;
+	SdrObject stationEidElt;
+	SdrObject stationEidObj;
 	char    proxEidBuf[SDRSTRING_BUFSZ];
 	int	priority;
 	uvast expirationTimeDtnMsec;
@@ -319,12 +319,12 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 	PUTS("**** End of bundle");
 }
 
-static int	printQueue(int detail, Object queue, char *name)
+static int printQueue(int detail, SdrObject queue, char *name)
 {
 	Sdr	sdr = bp_get_sdr();
 	int	bundlesCount = 0;
 	char	msgbuf[256];
-	Object	elt;
+	SdrObject elt;
 
 	isprintf(msgbuf, sizeof msgbuf, "\n**   %s queue", name);
 	PUTS(msgbuf);
@@ -353,7 +353,7 @@ static int	printPlan(int detail, char *eid, int priority)
 	int	bundlesCount = 0;
 	VPlan	*vplan;
 	char	msgbuf[256];
-	Object	planObj;
+	SdrObject planObj;
 	BpPlan	plan;
 	int	partialCount;
 
@@ -395,8 +395,8 @@ static int	printAll(int detail)
 	Sdr	sdr = bp_get_sdr();
 	int	bundlesCount = 0;
 	BpDB	*bpConstants;
-	Object	elt;
-	Object	addr;
+	SdrObject elt;
+	SdrObject addr;
 		OBJ_POINTER(BpEvent, event);
 	char	buf[300];
 

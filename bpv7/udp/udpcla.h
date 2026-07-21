@@ -48,14 +48,14 @@ extern int  receiveUdpClaDatagram(UdpClaSocket *claSock, char *buffer,
 extern int  sendUdpClaShutdown(UdpClaSocket *claSock);
 extern void cleanupUdpClaSocket(UdpClaSocket *claSock);
 extern int  sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
-		int *bundleSocket, unsigned int bundleLength, Object bundleZco,
-		unsigned char *buffer);
+		int *bundleSocket, unsigned int bundleLength,
+		SdrObject bundleZco, unsigned char *buffer);
 
 /* Legacy IPv4 only UDP send & receive functions */
 extern int sendBytesByUDP(int *bundleSocket, char *from, int length,
 		struct sockaddr *socketName);
 extern int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
-		unsigned int bundleLength, Object bundleZco,
+		unsigned int bundleLength, SdrObject bundleZco,
 		unsigned char *buffer);
 extern int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
 		char *into, int length);

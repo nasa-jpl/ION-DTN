@@ -101,7 +101,7 @@ void	parseProxyMsgToUser(char *text, int bytesRemaining,
 {
 	Sdr		sdr = getIonsdr();
 	MsgToUser	msg;
-	Object		msgObj;
+	SdrObject	msgObj;
 
 	/*	Get message.						*/
 
@@ -153,7 +153,7 @@ void	parseProxyFilestoreRequest(char *text, int bytesRemaining,
 	Sdr			sdr = getIonsdr();
 	int			length;
 	FilestoreRequest	req;
-	Object			reqObj;
+	SdrObject		reqObj;
 	char			nameBuffer[256];
 
 	/*	Get (and ignore) total length of request.		*/
@@ -345,7 +345,7 @@ void	parseProxyFilestoreResponse(char *text, int bytesRemaining,
 	Sdr			sdr = getIonsdr();
 	int			length;
 	FilestoreResponse	resp;
-	Object			respObj;
+	SdrObject		respObj;
 	char			nameBuffer[256];
 
 	/*	Get (and ignore) total length of response.		*/
@@ -520,10 +520,10 @@ static int	reportOnProxyPut(CfdpUserOpsData *opsData,
 			CfdpFileStatus fileStatus)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = cfdp_create_usrmsg_list();
+	SdrObject		msgs = cfdp_create_usrmsg_list();
 	MsgToUser		msg;
 	unsigned char		textBuffer[6];
-	Object			msgObj;
+	SdrObject		msgObj;
 	CfdpTransactionId	transactionId;
 
 	msg.length = 6;
@@ -616,7 +616,7 @@ int	handleProxyPutCancel(CfdpUserOpsData *opsData)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpDB	*db = getCfdpConstants();
-	Object	elt;
+	SdrObject elt;
 		OBJ_POINTER(OutFdu, fdu);
 
 	for (elt = sdr_list_first(sdr, db->outboundFdus); elt;
@@ -648,18 +648,18 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
 		unsigned char *flowLabel, unsigned int closureLatency,
-		Object messagesToUser, Object filestoreRequests,
+		SdrObject messagesToUser, SdrObject filestoreRequests,
 		CfdpNumber *beneficiaryEntityNbr, CfdpProxyTask *task,
 		CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
 	int		sourceFileNameLen;
 	int		destFileNameLen;
-	Object		msgs;
+	SdrObject	msgs;
 	unsigned char	textBuffer[600];
-	Object		elt;
-	Object		nextElt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	obj;
 	int		length;
 	int		pad;
 			OBJ_POINTER(MsgToUser, proxyMsg);
@@ -1004,7 +1004,7 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 		char *sourceFileName, char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
 		unsigned char *flowLabel, unsigned int closureLatency,
-		Object messagesToUser, Object filestoreRequests,
+		SdrObject messagesToUser, SdrObject filestoreRequests,
 		CfdpTransactionId *rputTransactionId,
 		CfdpTransactionId *transactionId)
 {
@@ -1070,7 +1070,7 @@ int	cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
 		unsigned char *flowLabel, unsigned int closureLatency,
-		Object messagesToUser, Object filestoreRequests,
+		SdrObject messagesToUser, SdrObject filestoreRequests,
 		CfdpProxyTask *task, CfdpTransactionId *transactionId)
 {
 	CfdpDB	*db = getCfdpConstants();
@@ -1293,7 +1293,7 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 			int incomplete)
 {
 	Sdr			sdr = getIonsdr();
-	Object			msgs = cfdp_create_usrmsg_list();
+	SdrObject		msgs = cfdp_create_usrmsg_list();
 	int			dirNameLen = strlen(opsData->directoryName);
 	int			destFileNameLen =
 					strlen(opsData->directoryDestFileName);
@@ -1306,7 +1306,7 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	MsgToUser		msg;
 	unsigned char		textBuffer[600];
 	int			pos;
-	Object			msgObj;
+	SdrObject		msgObj;
 	CfdpTransactionId	transactionId;
 
 	if (headerOverhead + 1 + dirNameLen + destFileNameLen > 255)
@@ -1551,7 +1551,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
 		unsigned char *flowLabel, unsigned int closureLatency,
-		Object messagesToUser, Object filestoreRequests,
+		SdrObject messagesToUser, SdrObject filestoreRequests,
 		CfdpDirListTask *task, CfdpTransactionId *transactionId)
 {
 	return cfdp_rls_extended(respondentEntityNbr, utParmsLength, utParms,
@@ -1566,8 +1566,8 @@ int	cfdp_rls_extended(CfdpNumber *respondentEntityNbr,
 		char *sourceFileName, char *destFileName,
 		CfdpReaderFn readerFn, CfdpHandler *faultHandlers,
 		unsigned int flowLabelLength, unsigned char *flowLabel,
-		unsigned int closureLatency, Object messagesToUser,
-		Object filestoreRequests, CfdpDirListTask *task,
+		unsigned int closureLatency, SdrObject messagesToUser,
+		SdrObject filestoreRequests, CfdpDirListTask *task,
 		unsigned int listingOptions,
 		CfdpTransactionId *transactionId)
 {

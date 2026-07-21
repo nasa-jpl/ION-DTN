@@ -255,7 +255,7 @@ int	main(int argc, char *argv[])
 	int			fd;
 	char			quit = '\0';
 #ifdef UDP_MULTISEND
-	Object			spanObj;
+	SdrObject		spanObj;
 	LtpSpan			spanBuf;
 	unsigned int		batchLimit;
 	char			*buffers;

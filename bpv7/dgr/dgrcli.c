@@ -48,7 +48,7 @@ static void	*receiveBundles(void *parm)
 	unsigned int		fromHostNbr;
 	int			length;
 	int			errnbr;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	char			hostName[MAXHOSTNAMELEN + 1];
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -103,8 +103,8 @@ static void	*receiveBundles(void *parm)
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
 						ZcoOutbound);
-					if (sdr_end_xn(sdr) < 0
-					|| bundleZco == (Object) ERROR)
+					if (sdr_end_xn(sdr) < 0 ||
+							bundleZco == (SdrObject) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);
@@ -141,8 +141,8 @@ success.", NULL);
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
 						ZcoOutbound);
-					if (sdr_end_xn(sdr) < 0
-					|| bundleZco == (Object) ERROR)
+					if (sdr_end_xn(sdr) < 0 ||
+							bundleZco == (SdrObject) ERROR)
 					{
 						putErrmsg("Failed creating \
 temporary ZCO.", NULL);

@@ -214,8 +214,8 @@ Ends the semaphore in attendant so that the task blocked on taking it is interru
 Function Prototype
 
 ```c
-extern Object ionCreateZco(	ZcoMedium source,
-			Object location,
+extern SdrObject ionCreateZco(ZcoMedium source,
+			SdrObject location,
 			vast offset,
 			vast length,
 			unsigned char coarsePriority,
@@ -253,7 +253,7 @@ typedef enum
 Return Value
 
 * Location of the ZCO: on success, the requested space has become available, and the ZCO has been created to hold the user data
-* `((Object) -1)`: the function has failed
+* `((SdrObject) -1)`: the function has failed
 * `0`: either the attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available, or the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
 
 Example Call
@@ -263,7 +263,7 @@ SdrObject bundleZco;
 
 bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
 		BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
-if (bundleZco == 0 || bundleZco == (Object) ERROR)
+if (bundleZco == 0 || bundleZco == (SdrObject) ERROR)
 {
 	putErrmsg("Can't create ZCO extent.", NULL);
 	/* user implemented error handling routine goes here */
@@ -304,7 +304,7 @@ The number of SDR-related APIs is significant, and most are used by ION internal
 Function Prototype
 
 ```c
-Object sdr_malloc(Sdr sdr, unsigned long size)
+SdrObject sdr_malloc(Sdr sdr, unsigned long size)
 ```
 
 Parameters
@@ -350,7 +350,7 @@ Allocates a block of space from the indicated SDR's heap. The maximum size is 1/
 Function Prototype
 
 ```c
-Object sdr_insert(Sdr sdr, char *from, unsigned long size)
+SdrObject sdr_insert(Sdr sdr, char *from, unsigned long size)
 ```
 
 Parameters
@@ -388,7 +388,7 @@ This function combines the action of `sdr_malloc` and `sdr_write`. It first uses
 Function Prototype
 
 ```c
-Object sdr_stow(sdr, variable)
+SdrObject sdr_stow(sdr, variable)
 ```
 
 Parameters
@@ -412,7 +412,7 @@ Description
 Function Prototype
 
 ```c
-size_t sdr_object_length(Sdr sdr, Object object)
+size_t sdr_object_length(Sdr sdr, SdrObject object)
 ```
 
 Parameters
@@ -436,13 +436,13 @@ Returns the number of bytes of heap space allocated to the application data at *
 Function Prototype
 
 ```c
-void sdr_free(Sdr sdr, Object object)
+void sdr_free(Sdr sdr, SdrObject object)
 ```
 
 Parameters
 
 * `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
-* `object`: the location of an application data Object
+* `object`: the location of an application data SdrObject
 
 Return Value
 
@@ -459,7 +459,7 @@ Frees the heap space occupied by an object at *object*. The space freed is put b
 Function Prototype
 
 ```c
-void sdr_read(Sdr sdr, char *into, Address from, int length)
+void sdr_read(Sdr sdr, char *into, SdrAddress from, int length)
 ```
 
 Parameters
@@ -484,7 +484,7 @@ Copies length characters from (a location in the indicated SDR) to the memory lo
 Function Prototype
 
 ```c
-void sdr_stage(Sdr sdr, char *into, Object from, int length)
+void sdr_stage(Sdr sdr, char *into, SdrObject from, int length)
 ```
 
 Parameters
@@ -511,7 +511,7 @@ Like `sdr_read`, this function will copy length characters from (a location in t
 Function Prototype
 
 ```c
-void sdr_write(Sdr sdr, Address into, char *from, int length)
+void sdr_write(Sdr sdr, SdrAddress into, char *from, int length)
 
 ```
 
@@ -668,8 +668,8 @@ The SDR list management functions manage doubly-linked lists in managed SDR heap
 ```c
 #include "sdr.h"
 
-typedef int (*SdrListCompareFn)(Sdr sdr, Address eltData, void *argData);
-typedef void (*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
+typedef int (*SdrListCompareFn)(Sdr sdr, SdrAddress eltData, void *argData);
+typedef void (*SdrListDeleteFn)(Sdr sdr, SdrObject elt, void *argument);
 ```
 
 ### Callback: SdrListCompareFn
@@ -681,19 +681,45 @@ USAGE
 When inserting elements or searching a list, the user may optionally provide a compare function of the form:
 
 ```c
-int user_comp_name(Sdr sdr, Address eltData, void *dataBuffer);
+int user_comp_name(Sdr sdr, SdrAddress eltData, void *dataBuffer);
 ```
 
-When provided, this function is automatically called by the sdrlist function being invoked; when the function is called, it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, dataBuffer, which is nominally the address in the local memory of some other item in the same format. The user-supplied function normally compares some key values of the two data items. It returns 0 if they are equal, an integer less than 0 if eltData's key value is less than that of dataBuffer, and an integer greater than 0 if eltData's key value is greater than that of dataBuffer. These return values will produce a list in ascending order.
+When provided,
+this function is automatically called by the sdrlist function being invoked;
+when the function is called,
+it is passed the content of a list element
+(eltData, nominally the SdrAddress of an item in the SDR's heap space)
+and an argument, dataBuffer,
+which is nominally the address in the local memory of some other item
+in the same format.
+The user-supplied function
+normally compares some key values of the two data items.
+It returns 0 if they are equal,
+an integer less than 0
+if eltData's key value is less than that of dataBuffer,
+and an integer greater than 0
+if eltData's key value is greater than that of dataBuffer.
+These return values will produce a list in ascending order.
 If the user desires the list to be in descending order, the function must reverse the signs of these return values.
 
 When deleting an element or destroying a list, the user may optionally provide a delete function of the form:
 
 ```c
-void user_delete_name(Sdr sdr, Address eltData, void *argData)
+void user_delete_name(Sdr sdr, SdrAddress eltData, void *argData)
 ```
 
-When provided, this function is automatically called by the sdrlist function being invoked; when the function is called, it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, argData, which if non-NULL is normally the address in the local memory of a data item providing context for the list element deletion. The user-supplied function performs any application-specific cleanup associated with deleting the element, such as freeing the element's content data item and/or other SDR heap space associated with the element.
+When provided,
+this function is automatically called by the sdrlist function being invoked;
+when the function is called,
+it is passed the content of a list element
+(eltData, nominally the SdrAddress of an item in the SDR's heap space)
+and an argument, argData,
+which if non-NULL is normally the address in the local memory of a data item
+providing context for the list element deletion.
+The user-supplied function performs any application-specific cleanup
+associated with deleting the element,
+such as freeing the element's content data item
+and/or other SDR heap space associated with the element.
 
 ---
 
@@ -704,8 +730,8 @@ When provided, this function is automatically called by the sdrlist function bei
 Function Prototype
 
 ```c
-Object sdr_list_insert_first(Sdr sdr, Object list, Address data)
-Object sdr_list_insert_last(Sdr sdr, Object list, Address data)
+SdrObject sdr_list_insert_first(Sdr sdr, SdrObject list, SdrAddress data)
+SdrObject sdr_list_insert_last(Sdr sdr, SdrObject list, SdrAddress data)
 ```
 
 Parameters
@@ -730,7 +756,7 @@ Creates a new element and inserts it at the front/end of the list. This function
 Function Prototype
 
 ```c
-Object sdr_list_create(Sdr sdr)
+SdrObject sdr_list_create(Sdr sdr)
 ```
 
 Parameters
@@ -753,7 +779,7 @@ Creates a new list object in the SDR; the new list object initially contains no 
 Function Prototype
 
 ```c
-int sdr_list_length(Sdr sdr, Object list)
+int sdr_list_length(Sdr sdr, SdrObject list)
 ```
 
 Parameters
@@ -777,7 +803,7 @@ Returns the number of elements in the list, or -1 on any error.
 Function Prototype
 
 ```c
-void sdr_list_destroy(Sdr sdr, Object list, SdrListDeleteFn fn, void *arg)
+void sdr_list_destroy(Sdr sdr, SdrObject list, SdrListDeleteFn fn, void *arg)
 ```
 
 Parameters
@@ -793,7 +819,12 @@ Return Value
 
 Description
 
-Destroys a list, freeing all elements of the list. If fn is non-NULL, that function is called once for each freed element; when called, fn is passed the Address that is the element's data, and the argument pointer is passed to `sdr_list_destroy`. See the manual page for `sdrlist` for details on the form of the delete function sdrlist.
+Destroys a list, freeing all elements of the list.
+If fn is non-NULL, that function is called once for each freed element;
+when called, fn is passed the SdrAddress that is the element's data,
+and the argument pointer is passed to `sdr_list_destroy`.
+See the manual page for `sdrlist`
+for details on the form of the delete function sdrlist.
 
 Do not use sdr_free to destroy an SDR list, as this would leave the elements of the list allocated yet unreferenced.
 
@@ -804,7 +835,7 @@ Do not use sdr_free to destroy an SDR list, as this would leave the elements of 
 Function Prototype
 
 ```c
-void sdr_list_user_data_set(Sdr sdr, Object list, Address userData)
+void sdr_list_user_data_set(Sdr sdr, SdrObject list, SdrAddress userData)
 ```
 
 Parameters
@@ -819,7 +850,12 @@ Return Value
 
 Description
 
-Sets the "user data" word of list to userData. Note that userData is nominally an Address but can be any value that occupies a single word. It is typically used to point to an SDR object that somehow characterizes the list as a whole, such as a name.
+Sets the "user data" word of list to userData.
+Note that userData is nominally an SdrAddress
+but can be any value that occupies a single word.
+It is typically used to point to an SDR object
+that somehow characterizes the list as a whole,
+such as a name.
 
 ---
 
@@ -828,7 +864,7 @@ Sets the "user data" word of list to userData. Note that userData is nominally a
 Function Prototype
 
 ```c
-Address sdr_list_user_data(Sdr sdr, Object list)
+SdrAddress sdr_list_user_data(Sdr sdr, SdrObject list)
 ```
 
 Parameters
@@ -852,7 +888,8 @@ Returns the value of the "user data" word of list, or zero on any error.
 Function Prototype
 
 ```c
-Object sdr_list_insert(Sdr sdr, Object list, Address data, SdrListCompareFn fn, void *dataBuffer)
+SdrObject sdr_list_insert(Sdr sdr, SdrObject list, SdrAddress data,
+		SdrListCompareFn fn, void *dataBuffer)
 ```
 
 Parameters
@@ -881,8 +918,8 @@ Creates a new list element whose data value is data and inserts that element int
 Function Prototype
 
 ```c
-Object sdr_list_insert_before(Sdr sdr, Object elt, Address data)
-Object sdr_list_insert_after(Sdr sdr, Object elt, Address data)
+SdrObject sdr_list_insert_before(Sdr sdr, SdrObject elt, SdrAddress data)
+SdrObject sdr_list_insert_after(Sdr sdr, SdrObject elt, SdrAddress data)
 ```
 
 Parameters
@@ -907,7 +944,7 @@ Creates a new element and inserts it before/after the specified list element. Th
 Function Prototype
 
 ```c
-void sdr_list_delete(Sdr sdr, Object elt, SdrListDeleteFn fn, void *arg)
+void sdr_list_delete(Sdr sdr, SdrObject elt, SdrListDeleteFn fn, void *arg)
 ```
 
 Parameters
@@ -923,7 +960,11 @@ Return Value
 
 Description
 
-Delete elt from the list it is in. If fn is non-NULL, that function will be called upon deletion of elt; when called, that function is passed the Address that is the list element's data value and the arg pointer passed to `sdr_list_delete`.
+Delete elt from the list it is in.
+If fn is non-NULL, that function will be called upon deletion of elt;
+when called, that function is passed the SdrAddress
+that is the list element's data value
+and the arg pointer passed to `sdr_list_delete`.
 
 ---
 
@@ -934,8 +975,8 @@ Delete elt from the list it is in. If fn is non-NULL, that function will be call
 Function Prototype
 
 ```c
-Object sdr_list_first(Sdr sdr, Object list)
-Object sdr_list_last(Sdr sdr, Object list)
+SdrObject sdr_list_first(Sdr sdr, SdrObject list)
+SdrObject sdr_list_last(Sdr sdr, SdrObject list)
 ```
 
 Parameters
@@ -961,8 +1002,8 @@ Returns the address of the first/last element of the list, or zero on any error.
 Function Prototype
 
 ```c
-Object sdr_list_next(Sdr sdr, Object elt)
-Object sdr_list_prev(Sdr sdr, Object elt)
+SdrObject sdr_list_next(Sdr sdr, SdrObject elt)
+SdrObject sdr_list_prev(Sdr sdr, SdrObject elt)
 ```
 
 Parameters
@@ -986,7 +1027,8 @@ Returns the address of the element following/preceding elt in that element's lis
 Function Prototype
 
 ```c
-Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *dataBuffer);
+SdrObject sdr_list_search(Sdr sdr, SdrObject elt, int reverse,
+		SdrListCompareFn fn, void *dataBuffer);
 ```
 
 Parameters
@@ -1006,8 +1048,30 @@ Description
 
 Search a list for an element whose data matches the data in dataBuffer, starting at the indicated initial list element.
 
-If the compare function is non-NULL, the list is assumed to be sorted in the order implied by that function, and the function is automatically called once for each element of the list until it returns a value that is greater than or equal to zero (where zero indicates an exact match and a value greater than zero indicates that the list contains no matching element); each time compare is called it is passed the Address that is the element's data value and the dataBuffer value passed to sm_list_search().
-If the reverse is non-zero, then the list is searched in reverse order (starting at the indicated initial list element), and the search ends when the compare function returns a value that is less than or equal to zero. If the compare function is NULL, then the entire list is searched (in either forward or reverse order, as directed) until an element is located whose data value is equal to ((Address) dataBuffer). Returns the address of the matching element if one is found, 0 otherwise.
+If the compare function is non-NULL,
+the list is assumed to be sorted in the order implied by that function,
+and the function is automatically called once for each element of the list
+until it returns a value that is greater than or equal to zero
+(where zero indicates an exact match
+and a value greater than zero
+indicates that the list contains no matching element);
+each time compare is called it is passed the SdrAddress
+that is the element's data value
+and the dataBuffer value passed to sm_list_search().
+
+If the reverse is non-zero,
+then the list is searched in reverse order
+(starting at the indicated initial list element),
+and the search ends when the compare function returns a value
+that is less than or equal to zero.
+
+If the compare function is NULL,
+then the entire list is searched
+(in either forward or reverse order, as directed)
+until an element is located
+whose data value is equal to `((SdrAddress) dataBuffer)`.
+
+Returns the address of the matching element if one is found, 0 otherwise.
 
 ---
 
@@ -1016,7 +1080,7 @@ If the reverse is non-zero, then the list is searched in reverse order (starting
 Function Prototype
 
 ```c
-Object sdr_list_list(Sdr sdr, Object elt)
+SdrObject sdr_list_list(Sdr sdr, SdrObject elt)
 ```
 
 Parameters
@@ -1040,7 +1104,7 @@ Returns the address of the list to which elt belongs, or 0 on any error.
 Function Prototype
 
 ```c
-Address sdr_list_data(Sdr sdr, Object elt)
+SdrAddress sdr_list_data(Sdr sdr, SdrObject elt)
 ```
 
 Parameters
@@ -1055,7 +1119,7 @@ Return Value
 
 Description
 
-Returns the Address that is the data value of elt, or 0 on any error.
+Returns the SdrAddress that is the data value of elt, or 0 on any error.
 
 ---
 
@@ -1064,7 +1128,7 @@ Returns the Address that is the data value of elt, or 0 on any error.
 Function Prototype
 
 ```c
-Address sdr_list_data_set(Sdr sdr, Object elt, Address data)
+SdrAddress sdr_list_data_set(Sdr sdr, SdrObject elt, SdrAddress data)
 ```
 
 Parameters

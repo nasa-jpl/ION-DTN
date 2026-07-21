@@ -46,7 +46,7 @@ struct SppConfig {
 };
 
 extern int	sendBytesBySPP(int length, unsigned char *buffer, struct SppConfig *sppcfg,size_t);
-extern int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
+extern int	sendBundleBySPP(unsigned int bundleLength, SdrObject bundleZco,
 				unsigned char *buffer,struct SppConfig *sppcfg);
 
 #ifdef __cplusplus

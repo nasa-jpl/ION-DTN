@@ -137,7 +137,7 @@ tbl_t *dtn_ltp_agent_tblt_engines(ari_t *id)
 	Sdr		sdr = getIonsdr();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmPartition	ionwm = getIonwm();
-	Object		ltpdbObj = getLtpDbObject();
+	SdrObject	ltpdbObj = getLtpDbObject();
 	OBJ_POINTER(LtpDB, ltpdb);
 	PsmAddress	elt;
 	LtpVspan	*vspan;

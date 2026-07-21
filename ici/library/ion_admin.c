@@ -23,7 +23,7 @@
 int ion_set_production_rate(int rate_bytes_per_sec)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	/* Validate that ION is attached */
@@ -73,7 +73,7 @@ int ion_set_production_rate(int rate_bytes_per_sec)
 int ion_get_production_rate(int *rate_bytes_per_sec)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	if (rate_bytes_per_sec == NULL)
@@ -121,7 +121,7 @@ int ion_get_production_rate(int *rate_bytes_per_sec)
 int ion_set_consumption_rate(int rate_bytes_per_sec)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	/* Validate that ION is attached */
@@ -171,7 +171,7 @@ int ion_set_consumption_rate(int rate_bytes_per_sec)
 int ion_get_consumption_rate(int *rate_bytes_per_sec)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	if (rate_bytes_per_sec == NULL)
@@ -219,7 +219,7 @@ int ion_get_consumption_rate(int *rate_bytes_per_sec)
 int ion_set_congestion_forecast_horizon(time_t horizon_time)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	/* Validate that ION is attached */
@@ -263,7 +263,7 @@ int ion_set_congestion_forecast_horizon(time_t horizon_time)
 int ion_get_congestion_forecast_horizon(time_t *horizon_time)
 {
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	if (horizon_time == NULL)

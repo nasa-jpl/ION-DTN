@@ -36,7 +36,7 @@ int	imc_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	*dataBuffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	Object		elt;
+	SdrObject	elt;
 	int		result;
 
 	if (bundle->destinations == 0)

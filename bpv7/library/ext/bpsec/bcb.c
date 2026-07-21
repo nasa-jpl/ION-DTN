@@ -82,8 +82,8 @@ extern char        gMsg[];        /*    Debug message buffer.    */
 int bpsec_encrypt(Bundle *bundle)
 {
 	Sdr                    sdr = getIonsdr();
-	Object                elt;
-	Object                blockObj;
+	SdrObject	       elt;
+	SdrObject	       blockObj;
 	ExtensionBlock        block;
 	// TODO Figure this out...   size_t                xmitRate = 125000;
 

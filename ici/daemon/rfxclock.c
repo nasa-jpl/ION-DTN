@@ -135,7 +135,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	IonNeighbor	*neighbor;
 	IonCXref	*cxref;
 	PsmAddress	ref;
-	Object		iondbObj;
+	SdrObject	iondbObj;
 	IonDB		iondb;
 	IonEvent	*newEvent;
 	PsmAddress	alarmAddr;

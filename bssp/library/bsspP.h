@@ -73,7 +73,7 @@ typedef struct
 
 	unsigned int		clientSvcId;	/*	Destination.	*/
 	unsigned int		length;
-	Object			svcData;/*	Session svcDataObjects.	*/
+	SdrObject		svcData;	/* Session svcDataObjects. */
 
 	/*	Fields for acknowledgment blocks.			*/
 
@@ -92,8 +92,8 @@ typedef enum
 
 typedef struct
 {
-	Object		sessionObj;
-	Object		sessionListElt;
+	SdrObject	sessionObj;
+	SdrObject	sessionListElt;
 	BsspPduClass	pduClass;
 	BsspPdu		pdu;
 } BsspRecvBlk;
@@ -107,8 +107,8 @@ typedef struct
 	unsigned int	sessionNbr;
 	uvast		remoteEngineId;
 	short		ohdLength;
-	Object		queueListElt;
-	Object		sessionObj;
+	SdrObject	queueListElt;
+	SdrObject	sessionObj;
 	BsspPduClass	pduClass;
 	BsspPdu		pdu;
 } BsspXmitBlock;
@@ -117,7 +117,7 @@ typedef struct
 
 typedef struct
 {
-	Object		span;		/*	Transmission span.	*/
+	SdrObject	span;		/* Transmission span. */
 	unsigned int	sessionNbr;	/*	Assigned by self.	*/
 	Sdnv		sessionNbrSdnv;
 	unsigned int	clientSvcId;
@@ -125,8 +125,8 @@ typedef struct
 	int		totalLength;
 	BsspTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
-	Object		svcDataObject;	/*	ZCO			*/
-	Object		block;		/* 	BsspXmitBlock 		*/
+	SdrObject	svcDataObject;	/* ZCO */
+	SdrObject	block;		/* BsspXmitBlock */
 } BsspExportSession;
 
 /* Timeline event structure */
@@ -140,7 +140,7 @@ typedef struct
 {
 	uvast		refNbr1;	/*	Engine ID.		*/
 	unsigned int	refNbr2;	/*	Session number.		*/
-	Object		parm;		/*	Non-specific use.	*/
+	SdrObject	parm;		/* Non-specific use. */
 	time_t		scheduledTime;	/*	Seconds since Jan 1970.	*/
 	BsspEventType	type;
 } BsspEvent;
@@ -155,20 +155,18 @@ typedef struct
 	unsigned int	remoteQtime;	/*	In seconds.		*/
 	unsigned int	maxExportSessions;
 	int		purge;		/*	Boolean.		*/
-	Object		bsoBECmd;	/*	Starts Best Effort BSO.	*/
-	Object		bsoRLCmd;	/*	Starts Reliable BSO.	*/
+	SdrObject	bsoBECmd;	/* Starts Best Effort BSO. */
+	SdrObject	bsoRLCmd;	/* Starts Reliable BSO. */
 	unsigned int 	maxBlockSize;	/*	Bytes 			*/
-	Object		currentExportSessionObj;
+	SdrObject	currentExportSessionObj;
 	unsigned int	lengthOfBufferedBlock;
 	unsigned int	clientSvcIdOfBufferedBlock;
-	Object		exportSessions;
+	SdrObject	exportSessions;
 
-	Object		beBlocks;	/*	SDR list of BsspXmitBlocks
-						enqueued for best-effort
-						transmission		*/
-	Object		rlBlocks;	/*	SDR list of BsspXmitBlocks
-						enqueued for reliable
-						transmission		*/
+	/* SDR list of BsspXmitBlocks enqueued for best-effort transmission */
+	SdrObject beBlocks;
+	/* SDR list of BsspXmitBlocks enqueued for reliable transmission */
+	SdrObject rlBlocks;
 } BsspSpan;
 
 /* BsspSeat structure characterizing one of the link-service-layer
@@ -176,8 +174,8 @@ typedef struct
 
 typedef struct
 {
-	Object		beBsiCmd;
-	Object		rlBsiCmd;
+	SdrObject beBsiCmd;
+	SdrObject rlBsiCmd;
 } BsspSeat;
 
 /* The volatile span object encapsulates the current volatile state
@@ -185,7 +183,7 @@ typedef struct
 
 typedef struct
 {
-	Object		spanElt;	/*	Reference to BsspSpan.	*/
+	SdrObject	spanElt;	/* Reference to BsspSpan. */
 	uvast		engineId;	/*	ID of remote engine.	*/
 	unsigned int	localXmitRate;	/*	Bytes per second.	*/
 	unsigned int	remoteXmitRate;	/*	Bytes per second.	*/
@@ -222,7 +220,7 @@ typedef struct
 
 typedef struct
 {
-	Object		seatElt;	/*	Reference to BsspSeat.	*/
+	SdrObject	seatElt; /* Reference to BsspSeat. */
 	char		beBsiCmd[256];
 	char		rlBsiCmd[256];
 	int		beBsiPid;
@@ -237,12 +235,12 @@ typedef struct
 	unsigned int	dataLength;
 	BsspNoticeType	type;
 	unsigned char	reasonCode;
-	Object		data;		/*	To be serialized.	*/
+	SdrObject	data; /* To be serialized. */
 } BsspNotice;
 
 typedef struct
 {
-	Object		notices;	/*	SDR list of LtpNotices	*/
+	SdrObject notices; /* SDR list of LtpNotices */
 } BsspClient;
 
 /* The volatile client object encapsulates the current volatile state
@@ -250,7 +248,7 @@ typedef struct
 
 typedef struct
 {
-	Object		notices;	/*	Copied from BsspClient.	*/
+	SdrObject	notices;	/* Copied from BsspClient. */
 	int		pid;
 	sm_SemId	semaphore;	/*	For notices.		*/
 } BsspVclient;
@@ -265,10 +263,10 @@ typedef struct
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
 	unsigned int	sessionCount;
-	Object		exportSessionsHash;
-	Object		spans;		/*	SDR list: BsspSpan	*/
-	Object		seats;		/*	SDR list: BsspSeat	*/
-	Object		timeline;	/*	SDR list: BsspEvent	*/
+	SdrObject	exportSessionsHash;
+	SdrObject	spans;	  /* SDR list: BsspSpan */
+	SdrObject	seats;	  /* SDR list: BsspSeat */
+	SdrObject	timeline; /* SDR list: BsspEvent */
 			/*	A catalogue that logs all the pairs of
 			 *	node-service numbers and the latest
 			 *	creation of each pair forwarded by
@@ -307,7 +305,7 @@ extern void		bsspStop(void);
 extern int		bsspAttach(void);
 extern void		bsspDetach(void);
 
-extern Object		getBsspDbObject(void);
+extern SdrObject	getBsspDbObject(void);
 extern BsspDB		*getBsspConstants(void);
 extern BsspVdb		*getBsspVdb(void);
 
@@ -333,11 +331,11 @@ extern int		removeBsspSpan(uvast engineId);
 extern int		bsspStartSpan(uvast engineId);
 extern void		bsspStopSpan(uvast engineId);
 
-extern int		startBsspExportSession(Sdr sdr, Object spanObj,
+extern int		startBsspExportSession(Sdr sdr, SdrObject spanObj,
 				BsspVspan *vspan);
 extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
 				BsspVspan *vspan, BsspExportSession *session,
-				Object sessionObj, int inOrder);
+				SdrObject sessionObj, int inOrder);
 
 extern int		bsspAttachClient(unsigned int clientSvcId);
 extern void		bsspDetachClient(unsigned int clientSvcId);
@@ -348,7 +346,7 @@ extern int		enqueueBsspNotice(BsspVclient *client,
 				unsigned int dataLength,
 				BsspNoticeType type,
 				unsigned char reasonCode,
-				Object data);
+				SdrObject data);
 
 extern int		bsspDequeueBEOutboundBlock(BsspVspan *vspan,
 				char **buf);

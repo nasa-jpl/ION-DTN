@@ -266,8 +266,8 @@ int	verifyAuthExtensionField(LtpRecvSeg* segment, Lyst headerExtensions,
 {
 	Sdr			sdr = getIonsdr();
 	OBJ_POINTER(SecDB, secdb);
-	Object			elt;
-	Object			ruleAddr;
+	SdrObject		elt;
+	SdrObject		ruleAddr;
 	OBJ_POINTER(LtpRecvAuthRule, rule);
 	LystElt			headerElt;
 	LtpExtensionInbound	*headerExt;
@@ -360,8 +360,8 @@ int	addAuthHeaderExtensionField(LtpXmitSeg *segment)
 {
 	Sdr	sdr = getIonsdr();
 	OBJ_POINTER(SecDB, secdb);
-	Object	elt;
-	Object	ruleAddr;
+	SdrObject elt;
+	SdrObject ruleAddr;
 	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char	value[1];
 	int	result = 0;
@@ -415,8 +415,8 @@ int	addAuthTrailerExtensionField(LtpXmitSeg *segment)
 {
 	Sdr	sdr = getIonsdr();
 	OBJ_POINTER(SecDB, secdb);
-	Object	elt;
-	Object	ruleAddr;
+	SdrObject elt;
+	SdrObject ruleAddr;
 	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char	*keyValue;
 	int	keyLength;
@@ -543,7 +543,7 @@ static void	sign_using_sha256(char *keyValue, int keyLength, char *buf,
 	}
 }
 
-int	serializeAuthTrailerExtensionField(Object fieldObj, LtpXmitSeg *segment,
+int serializeAuthTrailerExtensionField(SdrObject fieldObj, LtpXmitSeg *segment,
 		char **cursor)
 {
 	Sdr		sdr = getIonsdr();
@@ -553,8 +553,8 @@ int	serializeAuthTrailerExtensionField(Object fieldObj, LtpXmitSeg *segment,
 	int		authLength;
 	Sdnv		sdnv;
 	int		extensionLength;
-	Object		elt;
-	Object		ruleAddr;
+	SdrObject	elt;
+	SdrObject	ruleAddr;
 	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char		*keyValue;
 	int		keyLength;

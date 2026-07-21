@@ -258,7 +258,7 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
  *****************************************************************************/
 
 int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
-		Object *resultZco, Object *acqFileRef, char *fname,
+		SdrObject *resultZco, SdrObject *acqFileRef, char *fname,
 		char *bytes, uvast length)
 {
 	static uint32_t	acqCount = 0;
@@ -285,7 +285,7 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
 		/*	First try non-blocking ZCO creation.		*/
 		CHKERR(sdr_begin_xn(sdr));
 		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, acct);
-		if (*resultZco == (Object) ERROR)
+		if (*resultZco == (SdrObject) ERROR)
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
 Can't start file source ZCO.", NULL);
@@ -307,7 +307,7 @@ bpsec_util_zcoFileSourceTransferTo: Can't start attendant.", NULL);
 
 			*resultZco = ionCreateZco(ZcoSdrSource, 0, 0, 0,
 				BP_STD_PRIORITY, 0, acct, &attendant);
-			if (*resultZco == 0 || *resultZco == (Object) ERROR)
+			if (*resultZco == 0 || *resultZco == (SdrObject) ERROR)
 			{
 				BPSEC_DEBUG_ERR("x \
 bpsec_util_zcoFileSourceTransferTo: Blocking ZCO admission failed.", NULL);
@@ -506,11 +506,11 @@ unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length)
 	return buffer;
 }
 
-static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
+static int canonicalizePrimaryBlock(Bundle *bundle, SdrObject *zcoOut)
 {
 	Sdr		sdr = getIonsdr();
-	Object  blkBytes = 0;
-	Object  zco = 0;
+	SdrObject  blkBytes = 0;
+	SdrObject  zco = 0;
 	int     blkLength = 0;
 	unsigned char *buffer = NULL;
 
@@ -538,7 +538,7 @@ static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
 			ZcoOutbound);
 	switch (zco)
 	{
-	case ((Object) ERROR):
+	case ((SdrObject) ERROR):
 		return -1;
 
 	case 0:
@@ -554,7 +554,7 @@ static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
 
 // TODO Document function
 // TODO: Can we move this into BEI.h/BEI.c? Or LibbpP.c? Does ION already canonicalize blocks??
-static int	canonicalizePayloadBlock(Bundle *bundle, Object *zcoOut)
+static int canonicalizePayloadBlock(Bundle *bundle, SdrObject *zcoOut)
 {
 	Sdr	sdr = getIonsdr();
 	Payload	payload;
@@ -579,7 +579,7 @@ static int	canonicalizePayloadBlock(Bundle *bundle, Object *zcoOut)
 			payload.length);
 	switch (payload.content)
 	{
-	case ((Object) ERROR):
+	case ((SdrObject) ERROR):
 		return -1;
 
 	case 0:
@@ -604,15 +604,15 @@ static int	canonicalizePayloadBlock(Bundle *bundle, Object *zcoOut)
 // TODO Document function
 // TODO: Can we move this into BEI.h/BEI.c? Or LibbpP.c? Does ION already canonicalize blocks??
 
-static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
-			Object *zcoOut)
+static int canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
+		SdrObject *zcoOut)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		blkObj;
+	SdrObject	elt;
+	SdrObject	blkObj;
 	ExtensionBlock	blk;
 	ExtensionDef	*def;
-	Object		zco;
+	SdrObject	zco;
 
 	/*	Note: to canonicalize this block we read the block
 	 *	into a buffer, tweak the buffer, and call the
@@ -669,7 +669,7 @@ static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
 	zco = zco_create(sdr, ZcoSdrSource, blk.bytes, 0, 0 - blk.length, ZcoOutbound);
 	switch (*zcoOut)
 	{
-	case ((Object) ERROR):
+	case ((SdrObject) ERROR):
 		return -1;
 
 	case 0:
@@ -684,10 +684,10 @@ static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
 }
 
 //	NOTE: this function is not used anywhere.  SB 1 June 2024
-int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco)
+int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, SdrObject *zco)
 {
 	Sdr    sdr = getIonsdr();
-	Object bytesObj = 0;
+	SdrObject bytesObj = 0;
 	int    offset = 0;
 
 	CHKERR(blk);
@@ -714,13 +714,13 @@ int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco)
 // TODO: Can we move this into BEI.h/BEI.c? Or LibbpP.c? Does ION already canonicalize blocks??
 
 static int	canonicalizeAcqExtensionBlock(AcqWorkArea *work, uint8_t blkNbr,
-			Object *zcoOut)
+			SdrObject *zcoOut)
 {
 	Sdr		sdr = getIonsdr();
 	LystElt		elt;
 	AcqExtBlock	*blk;
-	Object		bytesObj;
-	Object		zco;
+	SdrObject	bytesObj;
+	SdrObject	zco;
 
 	/*	Note: to canonicalize this extension block we first
 	 *	find the block within the acquisition work area.  The
@@ -755,7 +755,7 @@ static int	canonicalizeAcqExtensionBlock(AcqWorkArea *work, uint8_t blkNbr,
 
 	switch (zco)
 	{
-	case ((Object) ERROR):
+	case ((SdrObject) ERROR):
 		sdr_free(sdr, bytesObj);
 		return -1;
 
@@ -803,7 +803,7 @@ static int	canonicalizeAcqExtensionBlock(AcqWorkArea *work, uint8_t blkNbr,
  *  10/06/20  S. Burleigh   Initial implementation
  *****************************************************************************/
 
-int	bpsec_util_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, Object *zcoOut)
+int bpsec_util_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, SdrObject *zcoOut)
 {
 	Sdr	sdr = getIonsdr();
 	int	result;
@@ -868,7 +868,7 @@ int	bpsec_util_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, Object *zcoOut)
  *  10/06/20  S. Burleigh   Initial implementation
  *****************************************************************************/
 
-int	bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, Object *zcoOut)
+int bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, SdrObject *zcoOut)
 {
 	Sdr	sdr = getIonsdr();
 	int	result;
@@ -922,7 +922,7 @@ int	bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, Object *zcoOut)
  * \Note This function has been adapted from S. Burleigh's
  *        findOutboundTarget functions in bib.c and bcb.c
  *****************************************************************************/
-Object bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType)
+SdrObject bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType)
 {
 	/* Step 0: Sanity checks. */
 	CHKERR(bundle);
@@ -930,12 +930,12 @@ Object bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, B
 	CHKERR(sopType);
 
 	Sdr                 sdr = getIonsdr();
-	Object              elt;
-	Object              blockObj;
+	SdrObject           elt;
+	SdrObject           blockObj;
 	ExtensionBlock      block;
 	BpsecOutboundASB    asb;
-	Object              elt2;
-	Object              targetObj;
+	SdrObject           elt2;
+	SdrObject           targetObj;
 	BpsecOutboundTargetResult   target;
 
 	/*
@@ -1027,13 +1027,13 @@ int bpsec_util_checkSop(BpBlockType target, BpBlockType sec)
  * @retval !0 - The block that was added (and stored in the SDR).
  *****************************************************************************/
 
-Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms)
+SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms)
 {
 	Sdr sdr = getIonsdr();
 	PsmPartition wm = getIonwm();
 	ExtensionBlock blk;
 	BpsecOutboundASB asb;
-	Object result = 0;
+	SdrObject result = 0;
 
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d",
@@ -1110,8 +1110,8 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 	int8_t result = 1;
 
 
-	Object elt = 0;
-	Object targetObj = 0;
+	SdrObject elt = 0;
+	SdrObject targetObj = 0;
 	BpsecOutboundTargetResult tgtResult;
 	sc_Def def;
 	sc_state state;
@@ -1212,7 +1212,7 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 		}
 	}
 
-	Object updatedParms = bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
+	SdrObject updatedParms = bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
 	if (updatedParms != 0)
 	{
 		secAsb->scParms = updatedParms;
@@ -1271,15 +1271,15 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
  *****************************************************************************/
 
 int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition wm, PsmAddress parms,
-                                      BpBlockType sopType, int tgtBlkNum, Object *bibBlk, Object *secBlk)
+                                      BpBlockType sopType, int tgtBlkNum, SdrObject *bibBlk, SdrObject *secBlk)
 {
 	Sdr                 sdr = getIonsdr();
-	Object              elt;
-	Object              blockObj;
+	SdrObject           elt;
+	SdrObject           blockObj;
 	ExtensionBlock      block;
 	BpsecOutboundASB    asb;
-	Object              elt2;
-	Object              targetObj;
+	SdrObject           elt2;
+	SdrObject           targetObj;
 	BpsecOutboundTargetResult   target;
 
 	int targetFound = 0;
@@ -1421,8 +1421,8 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_action action)
 {
 	Sdr sdr = getIonsdr();
-	Object elt;
-	Object blockObj;
+	SdrObject elt;
+	SdrObject blockObj;
 	ExtensionBlock block;
 	BpsecOutboundASB asb;
 	uint8_t *serializedAsb = NULL;
@@ -1751,7 +1751,7 @@ sc_value bpsec_util_keyRetrieve(char *keyName)
 
 int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csi_blocksize_t *blocksize, ZcoReader *dataReader,
-		uvast outputBufLen, Object *outputZco, uint8_t function)
+		uvast outputBufLen, SdrObject *outputZco, uint8_t function)
 {
 	Sdr          sdr = getIonsdr();
 	ZcoAcct	 acct;
@@ -1759,7 +1759,7 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	csi_val_t    csiOutputChunk;
 	uvast        chunkSize = 0;
 	uvast        bytesRemaining = 0;
-	Object       outputBuffer = 0;
+	SdrObject    outputBuffer = 0;
 	uvast        writeOffset = 0;
 	SdrUsageSummary    summary;
 	uvast        memmax = 0;
@@ -1943,7 +1943,7 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
  *****************************************************************************/
 int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csi_blocksize_t *blocksize, ZcoReader *dataReader,
-		uvast outputBufLen, Object *outputZco, char *filename, uint8_t function)
+		uvast outputBufLen, SdrObject *outputZco, char *filename, uint8_t function)
 {
 	Sdr        sdr = getIonsdr();
 	ZcoAcct    acct;
@@ -1951,7 +1951,7 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	csi_val_t  csiOutputChunk;
 	uvast      chunkSize = 0;
 	uvast      bytesRemaining = 0;
-	Object     fileRef = 0;
+	SdrObject  fileRef = 0;
 	int        result = 1;
 
 	BPSEC_DEBUG_PROC("(%d," ADDR_FIELDSPEC"," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ","
@@ -2116,11 +2116,11 @@ void bpsec_ctx_init(BpsecTxContext *ctx, Sdr sdr, PsmPartition wm)
 	ctx->count = 0;
 }
 
-Object bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size)
+SdrObject bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size)
 {
 	if (ctx->count >= MAX_BPSEC_TX_RESOURCES) return 0;
 
-	Object obj = sdr_malloc(ctx->sdr, size);
+	SdrObject obj = sdr_malloc(ctx->sdr, size);
 	if (obj != 0)
 	{
 		ctx->resources[ctx->count].type = RES_SDR;

@@ -54,7 +54,8 @@ Terminates all access to LTP functionality on the local computer.
 Returns 1 if the local LTP engine has been started and not yet stopped,
 0 otherwise.
 
-=item int ltp_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
+=item int ltp_send(uvast destinationEngineId, unsigned int clientId,
+SdrObject clientServiceData, unsigned int redLength, LtpSessionId *sessionId)
 
 Sends a client service data unit to the application that is waiting for
 data tagged with the indicated I<clientId> as received at the remote LTP
@@ -90,7 +91,9 @@ any single client service data ID.
 Returns 0 on success, -1 on any error (e.g., the indicated client service
 is already being held open by some other application task).
 
-=item int ltp_get_notice(unsigned int clientId, LtpNoticeType *type, LtpSessionId *sessionId, unsigned char *reasonCode, unsigned char *endOfBlock, unsigned int *dataOffset, unsigned int *dataLength, Object *data)
+=item int ltp_get_notice(unsigned int clientId, LtpNoticeType *type,
+LtpSessionId *sessionId, unsigned char *reasonCode, unsigned char *endOfBlock,
+unsigned int *dataOffset, unsigned int *dataLength, SdrObject *data)
 
 Receives notices of LTP processing events pertaining to the flow of service
 data units tagged with the indicated client service ID.  The nature of each
@@ -133,7 +136,7 @@ Interrupts an ltp_get_notice() invocation.  This function is designed to be
 called from a signal handler; for this purpose, I<clientId> may need to be
 obtained from a static variable.
 
-=item void ltp_release_data(Object data)
+=item void ltp_release_data(SdrObject data)
 
 Releases the resources allocated to hold I<data>, which must be a B<received>
 client service data ZCO.

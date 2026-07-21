@@ -51,14 +51,14 @@ static void	shutDown(int signum)	/*	Commands tcc termination.	*/
 	state->running = 0;
 }
 
-static Object	retrieveBulletin(TccDB *db, TccBlockHeader *header,
-			size_t blksize, TccBulletin *bulletin)
+static SdrObject retrieveBulletin(TccDB *db, TccBlockHeader *header,
+		size_t blksize, TccBulletin *bulletin)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		obj;
+	SdrObject	elt;
+	SdrObject	obj;
 	int		i;
-	Object		shareObj;
+	SdrObject	shareObj;
 	TccShare	share;
 
 	for (elt = sdr_list_first(sdr, db->bulletins); elt;
@@ -142,11 +142,11 @@ static Object	retrieveBulletin(TccDB *db, TccBlockHeader *header,
 	return elt;
 }
 
-static Object	getShareObj(TccBulletin *bulletin, int shareNbr)
+static SdrObject getShareObj(TccBulletin *bulletin, int shareNbr)
 {
 	Sdr	sdr = getIonsdr();
 	int	i;
-	Object	elt;
+	SdrObject elt;
 
 	for (i = 0, elt = sdr_list_first(sdr, bulletin->shares); elt;
 			i++, elt = sdr_list_next(sdr, elt))
@@ -161,7 +161,7 @@ static Object	getShareObj(TccBulletin *bulletin, int shareNbr)
 }
 
 #if TC_DEBUG
-static void	printBlockText(Object text, int offset, int blksize)
+static void printBlockText(SdrObject text, int offset, int blksize)
 {
 	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
@@ -185,7 +185,7 @@ static void	snap(TccDB *db, TccBulletin *bulletin,
 {
 	Sdr		sdr = getIonsdr();
 	size_t		blksize = bulletin->blksize;
-	Object		shareObj;
+	SdrObject	shareObj;
 	TccShare	share;
 	TccBlock	*block;
 	int		i;
@@ -256,7 +256,7 @@ static int	tryAuths(TccDB *db, ion_fec_t *fec, TccBulletin *bulletin,
 	unsigned char	*inputSlotOccupied;
 	int		blocksLoaded;
 	int		i;
-	Object		shareObj;
+	SdrObject	shareObj;
 	TccShare	share;
 	TccBlock	*block;
 	int		slotNbr;
@@ -429,7 +429,7 @@ static int	enqueueBulletin(TccDB *db, TccVdb *vdb, char *buffer,
 {
 	Sdr		sdr = getIonsdr();
 	TccContent	content;
-	Object		contentObj;
+	SdrObject	contentObj;
 
 	CHKERR(sdr_begin_xn(sdr));
 	content.length = bufSize;
@@ -472,7 +472,7 @@ static int	enqueueBulletin(TccDB *db, TccVdb *vdb, char *buffer,
 static uvast	getAuthNodeNbr(TccDB *db, int idx)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
+	SdrObject	elt;
 	int		i;
 	TccAuthority	auth;
 
@@ -689,15 +689,15 @@ writeMemo("tcc: Can't be just two compromised authorities; too little data.");
 	return 0;
 }
 
-static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
-			char *src, Object adu)
+static int acquireBlock(Sdr sdr, SdrObject dbobj, TccDB *db, TccVdb *vdb,
+		char *src, SdrObject adu)
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	schemeElt;
-	Object		elt;
-	Object		authObj;
+	SdrObject	elt;
+	SdrObject	authObj;
 	TccAuthority	auth;
 	int		i;
 	vast		aduLength;
@@ -707,11 +707,11 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	ZcoReader	reader;
 	int		len;
 	TccBlockHeader	header;
-	Object		bulletinElt;
-	Object		bulletinObj;
+	SdrObject	bulletinElt;
+	SdrObject	bulletinObj;
 	TccBulletin	bulletin;
-	Object		shareElt;
-	Object		shareObj;
+	SdrObject	shareElt;
+	SdrObject	shareObj;
 	TccShare	share;
 	TccBlock	*block;
 	int		reconstructionResult;
@@ -925,7 +925,7 @@ int	main(int argc, char *argv[])
 	char		ownEid[32];
 	TccState	state = { NULL, 1 };
 	Sdr		sdr;
-	Object		dbobj;
+	SdrObject	dbobj;
 	TccDB		db;
 	TccVdb		*vdb;
 	BpDelivery	dlv;

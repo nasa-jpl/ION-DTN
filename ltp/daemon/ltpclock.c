@@ -38,10 +38,10 @@ static void	shutDown(int signum)	/*	Stops ltpclock.		*/
 	oK(_running(&stop));	/*	Terminates ltpclock.		*/
 }
 
-static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
+static int dispatchEvents(Sdr sdr, SdrObject events, time_t currentTime)
 {
-	Object		elt;
-	Object		eventObj;
+	SdrObject	elt;
+	SdrObject	eventObj;
 	LtpEvent	event;
 	int		result;
 
@@ -137,7 +137,7 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	IonVdb		*ionvdb = getIonVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
-	Object		obj;
+	SdrObject	obj;
 	LtpSpan		span;
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;

@@ -58,8 +58,8 @@ static void	writeRuleMessage(char* ruleMessage, uvast engineId,
  * \par Notes:
  *****************************************************************************/
 
-int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
-		Object * eltp)
+int sec_findLtpXmitAuthRule(uvast ltpEngineId, SdrObject *ruleAddr,
+		SdrObject *eltp)
 {
 	CHKERR(ruleAddr);
 	*ruleAddr = 0;
@@ -68,7 +68,7 @@ int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
 
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = getSecConstants();
-	Object	elt;
+	SdrObject elt;
 	int	result = 0;
 		OBJ_POINTER(LtpXmitAuthRule, rule);
 
@@ -119,8 +119,8 @@ int	sec_addLtpXmitAuthRule(uvast ltpEngineId,
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = getSecConstants();
 	LtpXmitAuthRule	rule;
-	Object		ruleObj;
-	Object		elt;
+	SdrObject	ruleObj;
+	SdrObject	elt;
 
 	CHKERR(secdb);
 	CHKERR(keyName);
@@ -199,8 +199,8 @@ int	sec_updateLtpXmitAuthRule(uvast ltpEngineId,
 {
 	int		cipher = ciphersuiteNbr;
 	Sdr		sdr = getIonsdr();
-	Object		ruleObj;
-	Object		elt;
+	SdrObject	ruleObj;
+	SdrObject	elt;
 	LtpXmitAuthRule	rule;
 
 	CHKERR(keyName);
@@ -264,8 +264,8 @@ is NULL (255).");
 int	sec_removeLtpXmitAuthRule(uvast ltpEngineId)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	ruleObj;
+	SdrObject elt;
+	SdrObject ruleObj;
 
 	/* Need to have a rule to delete it. */
 	if (sec_findLtpXmitAuthRule(ltpEngineId, &ruleObj, &elt) == 0)
@@ -304,8 +304,8 @@ int	sec_removeLtpXmitAuthRule(uvast ltpEngineId)
  * \par Notes:
  *****************************************************************************/
 
-int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
-		Object * eltp)
+int sec_findLtpRecvAuthRule(uvast ltpEngineId, SdrObject *ruleAddr,
+		SdrObject *eltp)
 {
 	CHKERR(ruleAddr);
 	*ruleAddr = 0;
@@ -314,7 +314,7 @@ int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
 
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = getSecConstants();
-	Object	elt;
+	SdrObject elt;
 	int	result = 0;
 		OBJ_POINTER(LtpRecvAuthRule, rule);
 
@@ -365,8 +365,8 @@ int	sec_addLtpRecvAuthRule(uvast ltpEngineId,
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = getSecConstants();
 	LtpRecvAuthRule	rule;
-	Object		ruleObj;
-	Object		elt;
+	SdrObject	ruleObj;
+	SdrObject	elt;
 
 	CHKERR(secdb);
 	CHKERR(keyName);
@@ -446,8 +446,8 @@ int	sec_updateLtpRecvAuthRule(uvast ltpEngineId,
 {
 	int		cipher = ciphersuiteNbr;
 	Sdr		sdr = getIonsdr();
-	Object		ruleObj;
-	Object		elt;
+	SdrObject	ruleObj;
+	SdrObject	elt;
 	LtpRecvAuthRule	rule;
 
 	CHKERR(keyName);
@@ -512,8 +512,8 @@ is NULL (255).");
 int	sec_removeLtpRecvAuthRule(uvast ltpEngineId)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	ruleObj;
+	SdrObject elt;
+	SdrObject ruleObj;
 
 	/* Need to have a rule to delete it. */
 	if (sec_findLtpRecvAuthRule(ltpEngineId, &ruleObj, &elt) == 0)

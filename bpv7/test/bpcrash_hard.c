@@ -27,7 +27,7 @@ int	main(void)
 {
 #endif
 	Sdr		sdr;
-	Object		obj;
+	SdrObject	obj;
 	char		testData[10000];
 	int		i;
 

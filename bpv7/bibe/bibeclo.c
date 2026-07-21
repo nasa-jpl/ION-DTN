@@ -21,7 +21,7 @@ typedef struct
 {
 	char		sourceEid[SDRSTRING_BUFSZ];
 	char		peerEid[SDRSTRING_BUFSZ];
-	Object		bclaAddr;
+	SdrObject	bclaAddr;
 	BpSAP		sap;
 	ReqAttendant	attendant;
 	int		running;
@@ -127,9 +127,9 @@ static void	*retransmitBundles(void *parm)
 	SignalThreadParms	*stp = (SignalThreadParms *) parm;
 	time_t			currentTime;	/*	In seconds.	*/
 	Bcla			bcla;
-	Object			elt;
-	Object			nextElt;
-	Object			bpduObj;
+	SdrObject		elt;
+	SdrObject		nextElt;
+	SdrObject		bpduObj;
 	Bpdu			bpdu;
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
@@ -200,12 +200,12 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	Object		elt;
-	Object		sequenceAddr;
+	SdrObject	elt;
+	SdrObject	sequenceAddr;
 	CtSequence	sequence;
 	int		msglen;
-	Object		msg;
-	Object		payloadZco;
+	SdrObject	msg;
+	SdrObject	payloadZco;
 	uvast		ttl;	/*	In milliseconds.		*/
 
 	memset((char *) &ancillaryData, 0, sizeof(BpAncillaryData));
@@ -298,7 +298,7 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	payloadZco = ionCreateZco(ZcoSdrSource, msg, 0, msglen,
 			bcla.classOfService, 0, ZcoOutbound,
 			&(stp->attendant));
-	if (payloadZco == 0 || payloadZco == (Object) ERROR)
+	if (payloadZco == 0 || payloadZco == (SdrObject) ERROR)
 	{
 		putErrmsg("Can't create ZCO for custody signal.", NULL);
 		return -1;
@@ -403,8 +403,8 @@ int	main(int argc, char *argv[])
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	Outduct			outduct;
-	Object			bclaAddr;
-	Object			bclaElt;
+	SdrObject		bclaAddr;
+	SdrObject		bclaElt;
 	Bcla			bcla;
 	char			reportToBuffer[SDRSTRING_BUFSZ];
 	char			*reportToEid;
@@ -416,18 +416,18 @@ int	main(int argc, char *argv[])
 	unsigned char		*buffer;
 	pthread_t		retransmissionThread;
 	pthread_t		signalThread;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	vast			bundleZcoLength;
-	Object			bpduZco;
+	SdrObject		bpduZco;
 	BpAncillaryData		ancillaryData;
 	int			ctRequested;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	time_t			deadline = 0;
 	int			hdrlen;
-	Object			bpduObj;
+	SdrObject		bpduObj;
 	Bpdu			bpdu;
-	Object			elt;
+	SdrObject		elt;
 
 	if (peerEid == NULL)
 	{

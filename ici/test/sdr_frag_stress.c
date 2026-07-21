@@ -24,7 +24,7 @@
 
 typedef struct
 {
-	Object		obj;
+	SdrObject	obj;
 	size_t		size;
 } LiveAlloc;
 
@@ -194,8 +194,8 @@ static int	runStress(Sdr sdr, const Knobs *k)
 		}
 		else
 		{
-			size_t	sz = pickSize(k);
-			Object	obj;
+			size_t	  sz = pickSize(k);
+			SdrObject obj;
 
 			CHKERR(sdr_begin_xn(sdr));
 			obj = sdr_malloc(sdr, sz);

@@ -93,7 +93,7 @@ typedef enum
 
 typedef struct
 {
-	Object   entryObj; /* The type of object. */
+	SdrObject entryObj; /* The type of object. */
 	uint16_t size;  /* The size of the object. */
 } BpSecPolicyDbEntry;
 
@@ -105,11 +105,11 @@ typedef struct
  *****************************************************************************/
 
 int        bsl_all_init(PsmPartition partition);
-Address    bsl_bufread(void *value, char *cursor, int length, int *bytes_left);
-Address    bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left);
+SdrAddress bsl_bufread(void *value, char *cursor, int length, int *bytes_left);
+SdrAddress bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left);
 PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid);
 int        bsl_sdr_bootstrap(PsmPartition wm);
-int        bsl_sdr_insert(Sdr ionsdr, char *buffer, BpSecPolicyDbEntry entry, Object list);
+int        bsl_sdr_insert(Sdr ionsdr, char *buffer, BpSecPolicyDbEntry entry, SdrObject list);
 int        bsl_vdb_init(PsmPartition partition);
 void       bsl_vdb_teardown(PsmPartition partition);
 

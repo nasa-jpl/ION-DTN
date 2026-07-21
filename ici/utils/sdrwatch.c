@@ -658,7 +658,7 @@ int	main(int argc, char **argv)
 	double	percentThreshold;
 	int	argIdx;
 	Sdr	sdr;
-	Object	iondbObj;
+	SdrObject iondbObj;
 	IonDB	iondb;
 
 	/*	Check for help request.					*/

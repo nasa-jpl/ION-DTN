@@ -78,7 +78,7 @@ int tun_alloc(char *dev, int flags) {
 void *sendthread( void *foo ) {
   unsigned char buffer[65536];
   Sdr sdr;
-  Object extent, bundleZco, newBundle;
+  SdrObject extent, bundleZco, newBundle;
   sdr = bp_get_sdr( );
 
   for(;;) {

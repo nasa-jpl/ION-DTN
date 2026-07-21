@@ -17,13 +17,13 @@
 
 typedef struct
 {
-	Address	value;
+	SdrAddress value;
 	char	key[255];
 } KvPair;
 
 /*	*	*	Table management functions	*	*	*/
 
-Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
+SdrObject Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		int estNbrOfEntries, int meanSearchLength)
 {
 	/*	Each row of an SDR hash table contains a linked list of
@@ -60,9 +60,9 @@ Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 	int	rawRowCount;
 	int	i;
 	int	rowCount;
-	Object	table;
-	Address	rowAddr;
-	Object	listAddr;
+	SdrObject  table;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -92,7 +92,7 @@ Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		break;
 	}
 
-	table = Sdr_table_create(file, line, sdrv, sizeof(Object), rowCount);
+	table = Sdr_table_create(file, line, sdrv, sizeof(SdrObject), rowCount);
 	if (table == 0)
 	{
 		oK(_iEnd(file, line, itoa(rowCount)));
@@ -101,7 +101,7 @@ Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 
 	/*	Save key length for hash function.			*/
 
-	Sdr_table_user_data_set(file, line, sdrv, table, (Address) keyLength);
+	Sdr_table_user_data_set(file, line, sdrv, table, (SdrAddress) keyLength);
 
 	/*	Create linked lists for all rows of the hash table.	*/
 
@@ -116,7 +116,7 @@ Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		}
 
 		_sdrput(file, line, sdrv, rowAddr, (char *) &listAddr,
-				sizeof(Object), SystemPut);
+				sizeof(SdrObject), SystemPut);
 	}
 
 	return table;
@@ -143,21 +143,21 @@ static int	computeRowNbr(int rowCount, int keyLength, char *key)
 	return h % rowCount;
 }
 
-int	Sdr_hash_insert(const char *file, int line, Sdr sdrv, Object hash,
-		char *key, Address value, Object *entry)
+int Sdr_hash_insert(const char *file, int line, Sdr sdrv, SdrObject hash,
+		char *key, SdrAddress value, SdrObject *entry)
 {
 	int	keyLength;
 	int	kvpairLength;
 	int	rowSize;
 	int	rowCount;
 	int	rowNbr;
-	Address	rowAddr;
-	Object	listAddr;
-	Object	elt;
-	Object	kvpairAddr;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
+	SdrObject  elt;
+	SdrObject  kvpairAddr;
 	KvPair	kvpair;
 	int	result;
-	Object	hashElt;
+	SdrObject  hashElt;
 
 	if (entry)
 	{
@@ -178,11 +178,11 @@ int	Sdr_hash_insert(const char *file, int line, Sdr sdrv, Object hash,
 	}
 
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 	rowNbr = computeRowNbr(rowCount, keyLength, key);
 	rowAddr = sdr_table_row(sdrv, hash, rowNbr);
-	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 	for (elt = sdr_list_first(sdrv, listAddr); elt;
 			elt = sdr_list_next(sdrv, elt))
 	{
@@ -239,9 +239,9 @@ int	Sdr_hash_insert(const char *file, int line, Sdr sdrv, Object hash,
 }
 
 int	Sdr_hash_delete_entry(const char *file, int line, Sdr sdrv,
-		Object entry)
+		SdrObject entry)
 {
-	Object	kvpairAddr;
+	SdrObject kvpairAddr;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -262,34 +262,34 @@ int	Sdr_hash_delete_entry(const char *file, int line, Sdr sdrv,
 	return 1;
 }
 
-Address	sdr_hash_entry_value(Sdr sdrv, Object hash, Object entry)
+SdrAddress sdr_hash_entry_value(Sdr sdrv, SdrObject hash, SdrObject entry)
 {
 	int	keyLength;
 	int	kvpairLength;
-	Object	kvpairAddr;
+	SdrObject kvpairAddr;
 	KvPair	kvpair;
 
 	CHKERR(sdrFetchSafe(sdrv));
 	CHKERR(entry);
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	kvpairAddr = sdr_list_data(sdrv, entry);
 	sdr_read(sdrv, (char *) &kvpair, kvpairAddr, kvpairLength);
 	return kvpair.value;
 }
 
-int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
-		Object *entry)
+int sdr_hash_retrieve(Sdr sdrv, SdrObject hash, char *key, SdrAddress *value,
+		SdrObject *entry)
 {
 	int		keyLength;
 	int		kvpairLength;
 	int		rowSize;
 	int		rowCount;
 	int		rowNbr;
-	Address		rowAddr;
-	Object		listAddr;
-	Object		elt;
-	Address		kvpairAddr;
+	SdrAddress	rowAddr;
+	SdrObject	listAddr;
+	SdrObject	elt;
+	SdrAddress	kvpairAddr;
 	KvPair		kvpair;
 	int		result;
 
@@ -303,11 +303,11 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 	CHKERR(key);
 	CHKERR(value);
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 	rowNbr = computeRowNbr(rowCount, keyLength, key);
 	rowAddr = sdr_table_row(sdrv, hash, rowNbr);
-	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 	for (elt = sdr_list_first(sdrv, listAddr); elt;
 			elt = sdr_list_next(sdrv, elt))
 	{
@@ -336,14 +336,14 @@ int	sdr_hash_retrieve(Sdr sdrv, Object hash, char *key, Address *value,
 	return 0;		/*	Unable to retrieve value.	*/
 }
 
-int	sdr_hash_count(Sdr sdrv, Object hash)
+int sdr_hash_count(Sdr sdrv, SdrObject hash)
 {
 	int	count = 0;
 	int	rowSize;
 	int	rowCount;
 	int	i;
-	Address	rowAddr;
-	Object	listAddr;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
 
 	CHKERR(sdrv);
 	CHKERR(hash);
@@ -351,14 +351,14 @@ int	sdr_hash_count(Sdr sdrv, Object hash)
 	for (i = 0; i < rowCount; i++)
 	{
 		rowAddr = sdr_table_row(sdrv, hash, i);
-		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 		count += sdr_list_length(sdrv, listAddr);
 	}
 
 	return count;
 }
 
-int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
+int sdr_hash_foreach(Sdr sdrv, SdrObject hash, sdr_hash_callback callback,
 		void *args)
 {
 	int		keyLength;
@@ -366,10 +366,10 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	int		rowSize;
 	int		rowCount;
 	int		rowNbr;
-	Address		rowAddr;
-	Object		listAddr;
-	Object		elt;
-	Object		kvpairAddr;
+	SdrAddress	rowAddr;
+	SdrObject	listAddr;
+	SdrObject	elt;
+	SdrObject	kvpairAddr;
 	KvPair		kvpair;
 
 	CHKERR(sdrFetchSafe(sdrv));
@@ -377,7 +377,7 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	CHKERR(callback);
 	//Passing NULL args is OK (passed through to callback)
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 
 	/*	Iterate over each row/bucket, loading the sdrlist
@@ -386,7 +386,7 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	for (rowNbr = 0; rowNbr < rowCount; rowNbr++)
 	{
 		rowAddr = sdr_table_row(sdrv, hash, rowNbr);
-		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 
 		/*	Iterate over each member of this bucket.	*/
 
@@ -407,18 +407,18 @@ int	sdr_hash_foreach(Sdr sdrv, Object hash, sdr_hash_callback callback,
 	return 0;
 }
 
-int	Sdr_hash_revise(const char *file, int line, Sdr sdrv, Object hash,
-		char *key, Address value)
+int Sdr_hash_revise(const char *file, int line, Sdr sdrv, SdrObject hash,
+		char *key, SdrAddress value)
 {
 	int	keyLength;
 	int	kvpairLength;
 	int	rowSize;
 	int	rowCount;
 	int	rowNbr;
-	Address	rowAddr;
-	Object	listAddr;
-	Object	elt;
-	Object	kvpairAddr;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
+	SdrObject  elt;
+	SdrObject  kvpairAddr;
 	KvPair	kvpair;
 	int	result;
 
@@ -436,11 +436,11 @@ int	Sdr_hash_revise(const char *file, int line, Sdr sdrv, Object hash,
 	}
 
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 	rowNbr = computeRowNbr(rowCount, keyLength, key);
 	rowAddr = sdr_table_row(sdrv, hash, rowNbr);
-	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 	for (elt = sdr_list_first(sdrv, listAddr); elt;
 			elt = sdr_list_next(sdrv, elt))
 	{
@@ -466,18 +466,18 @@ int	Sdr_hash_revise(const char *file, int line, Sdr sdrv, Object hash,
 	return 0;		/*	Unable to revise value.		*/
 }
 
-int	Sdr_hash_remove(const char *file, int line, Sdr sdrv, Object hash,
-		char *key, Address *value)
+int Sdr_hash_remove(const char *file, int line, Sdr sdrv, SdrObject hash,
+		char *key, SdrAddress *value)
 {
 	int	keyLength;
 	int	kvpairLength;
 	int	rowSize;
 	int	rowCount;
 	int	rowNbr;
-	Address	rowAddr;
-	Object	listAddr;
-	Object	elt;
-	Object	kvpairAddr;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
+	SdrObject  elt;
+	SdrObject  kvpairAddr;
 	KvPair	kvpair;
 	int	result;
 
@@ -495,11 +495,11 @@ int	Sdr_hash_remove(const char *file, int line, Sdr sdrv, Object hash,
 	}
 
 	keyLength = sdr_table_user_data(sdrv, hash);
-	kvpairLength = sizeof(Address) + keyLength;
+	kvpairLength = sizeof(SdrAddress) + keyLength;
 	sdr_table_dimensions(sdrv, hash, &rowSize, &rowCount);
 	rowNbr = computeRowNbr(rowCount, keyLength, key);
 	rowAddr = sdr_table_row(sdrv, hash, rowNbr);
-	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+	sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 	for (elt = sdr_list_first(sdrv, listAddr); elt;
 			elt = sdr_list_next(sdrv, elt))
 	{
@@ -529,7 +529,7 @@ int	Sdr_hash_remove(const char *file, int line, Sdr sdrv, Object hash,
 	return 0;		/*	Unable to remove entry.		*/
 }
 
-static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
+static void deleteHashEntry(Sdr sdrv, SdrObject eltData, void *arg)
 {
 	/* Parameter intentionally unused. */
 	(void)arg;
@@ -537,13 +537,13 @@ static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
 	sdr_free(sdrv, eltData);
 }
 
-void	Sdr_hash_destroy(const char *file, int line, Sdr sdrv, Object hash)
+void Sdr_hash_destroy(const char *file, int line, Sdr sdrv, SdrObject hash)
 {
 	int	rowSize;
 	int	rowCount;
 	int	i;
-	Address	rowAddr;
-	Object	listAddr;
+	SdrAddress rowAddr;
+	SdrObject  listAddr;
 
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -562,7 +562,7 @@ void	Sdr_hash_destroy(const char *file, int line, Sdr sdrv, Object hash)
 	for (i = 0; i < rowCount; i++)
 	{
 		rowAddr = sdr_table_row(sdrv, hash, i);
-		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(Object));
+		sdr_read(sdrv, (char *) &listAddr, rowAddr, sizeof(SdrObject));
 		Sdr_list_destroy(file, line, sdrv, listAddr, deleteHashEntry,
 				NULL);
 	}

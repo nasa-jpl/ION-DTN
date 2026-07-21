@@ -64,7 +64,7 @@ int	main(int argc, char *argv[])
 	uvast		destEngineNbr;
 	Outduct		outduct;
 	int		running = 1;
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	BpAncillaryData	ancillaryData;
 	unsigned int	redPartLength;
 	LtpSessionId	sessionId;

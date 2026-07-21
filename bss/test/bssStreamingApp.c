@@ -65,9 +65,9 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BptestState	state = { NULL, 1 };
 	Sdr		sdr;
-	Object		bundlePayload;
-	Object		bundleZco;
-	Object		newBundle;
+	SdrObject	bundlePayload;
+	SdrObject	bundleZco;
+	SdrObject	newBundle;
 	int 		i=0;
 
 	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/
@@ -152,7 +152,7 @@ payload", itoa(i));
 			sdr_free(sdr, bundlePayload);
 			break;
 
-		case (Object) ERROR:
+		case (SdrObject) ERROR:
 			bundleZco = 0;
 			sdr_free(sdr, bundlePayload);
 		}

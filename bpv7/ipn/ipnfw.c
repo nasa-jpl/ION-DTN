@@ -134,8 +134,7 @@ normal forwarder shutdown); last bundle forwarded was to destination node",
 
 /*		CGR override functions.					*/
 
-static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
-			uvast fqnn)
+static int applyRoutingOverride(Bundle *bundle, SdrObject bundleObj, uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	char		nbrBuf[FQN_MAX_LENGTH];
@@ -232,21 +231,21 @@ static size_t	carryingCapacity(size_t avblVolume)
 	}
 }
 
-static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
-			CgrRoute *route)
+static int proactivelyFragment(Bundle *bundle, SdrObject *bundleObj,
+		CgrRoute *route)
 {
 	Sdr		sdr = getIonsdr();
-	Object		stationEidElt;
-	Object		stationEid;
+	SdrObject	stationEidElt;
+	SdrObject	stationEid;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		stationMetaEid;
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	size_t		fragmentLength;
 	Bundle		firstBundle;
-	Object		firstBundleObj;
+	SdrObject	firstBundleObj;
 	Bundle		secondBundle;
-	Object		secondBundleObj;
+	SdrObject	secondBundleObj;
 	Scheme		schemeBuf;
 
 	CHKERR(bundle->payload.length > 1);
@@ -312,8 +311,8 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	return 0;
 }
 
-static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
-			Object bundleObj, IonNode *terminusNode)
+static int enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
+		SdrObject bundleObj, IonNode *terminusNode)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -326,7 +325,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonCXref	*contact;
-	Object		contactObj;
+	SdrObject	contactObj;
 	IonContact	contactBuf;
 	int		i;
 
@@ -430,15 +429,15 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 #if (MANAGE_OVERBOOKING == 1)
 typedef struct
 {
-	Object	currentElt;	/*	SDR list element.		*/
-	Object	limitElt;	/*	SDR list element.		*/
+	SdrObject currentElt; /* SDR list element. */
+	SdrObject limitElt;   /* SDR list element. */
 } QueueControl;
 
-static Object	getUrgentLimitElt(BpPlan *plan, int ordinal)
+static SdrObject getUrgentLimitElt(BpPlan *plan, int ordinal)
 {
 	Sdr	sdr = getIonsdr();
 	int	i;
-	Object	limitElt;
+	SdrObject limitElt;
 
 	/*	Find last bundle enqueued for the lowest ordinal
 	 *	value that is higher than the bundle's ordinal;
@@ -459,11 +458,11 @@ static Object	getUrgentLimitElt(BpPlan *plan, int ordinal)
 	return sdr_list_first(sdr, plan->urgentQueue);
 }
 
-static Object	nextBundle(QueueControl *queueControls, int *queueIdx)
+static SdrObject nextBundle(QueueControl *queueControls, int *queueIdx)
 {
 	Sdr		sdr = getIonsdr();
 	QueueControl	*queue;
-	Object		currentElt;
+	SdrObject	currentElt;
 
 	queue = queueControls + *queueIdx;
 	while (queue->currentElt == 0)
@@ -498,7 +497,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 	char		neighborEid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	Object		planObj;
+	SdrObject	planObj;
 	BpPlan		plan;
 	QueueControl	queueControls[] = { {0, 0}, {0, 0}, {0, 0} };
 	int		queueIdx = 0;
@@ -506,8 +505,8 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 	int		ordinal;
 	double		protected = 0.0;
 	double		overbooked = 0.0;
-	Object		elt;
-	Object		bundleObj;
+	SdrObject	elt;
+	SdrObject	bundleObj;
 	Bundle		bundle;
 	int		eccc;
 
@@ -626,15 +625,15 @@ static int	proxNodeRedundant(Bundle *bundle, vast fqnn)
 	return 0;
 }
 
-static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
-			IonNode *terminusNode, Lyst bestRoutes, int potential,
-			int preview)
+static int sendCriticalBundle(Bundle *bundle, SdrObject bundleObj,
+		IonNode *terminusNode, Lyst bestRoutes, int potential,
+		int preview)
 {
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
 	Bundle		newBundle;
-	Object		newBundleObj;
+	SdrObject	newBundleObj;
 	int		enqueued = 0;
 
 	/*	Enqueue the bundle on the plan for the entry node of
@@ -785,8 +784,8 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 	return 1;
 }
 
-static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
-			time_t atTime, CgrTrace *trace, int preview)
+static int tryCGR(Bundle *bundle, SdrObject bundleObj, IonNode *terminusNode,
+		time_t atTime, CgrTrace *trace, int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = cgr_get_vdb();
@@ -797,7 +796,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	LystElt		elt;
 	CgrRoute	*route;
 	Bundle		newBundle;
-	Object		newBundleObj;
+	SdrObject	newBundleObj;
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -977,8 +976,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 /*		Contingency functions for when CGR and IRF don't work.	*/
 
-static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			uvast fqnn)
+static int enqueueToNeighbor(Bundle *bundle, SdrObject bundleObj, uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	char		nbrBuf[FQN_MAX_LENGTH];
@@ -1048,11 +1046,11 @@ static void	closeCgr(void)
 	oK(cgrSap(&noSap));
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
+static int enqueueBundle(Bundle *bundle, SdrObject bundleObj, CgrSAP sap)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*ionvdb = getIonVdb();
-	Object		elt;
+	SdrObject	elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
 	VScheme		*vscheme = NULL;
@@ -1218,7 +1216,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	 *	Use findExtensionBlock which works for both locally
 	 *	sourced and received bundles.				*/
 	{
-		Object	ctebElt = findExtensionBlock(bundle,
+		SdrObject ctebElt = findExtensionBlock(bundle,
 				CBR_BLOCK_TYPE_CTEB, 0);
 		int	hasCustody = (ctebElt != 0);
 
@@ -1265,10 +1263,10 @@ int	main(void)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	Object		elt;
-	Object		bundleAddr;
+	SdrObject	elt;
+	SdrObject	bundleAddr;
 	Bundle		bundle;
-	Object		ovrdAddr;
+	SdrObject	ovrdAddr;
 	IpnOverride	ovrd;
 	struct timeval	xnStart;
 	struct timeval	xnEnd;
@@ -1343,7 +1341,7 @@ int	main(void)
 			continue;
 		}
 
-		bundleAddr = (Object) sdr_list_data(sdr, elt);
+		bundleAddr = (SdrObject) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 		/*	Breadcrumb (#1047): record the bundle now being
