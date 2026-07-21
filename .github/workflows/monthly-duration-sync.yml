@@ -218,16 +218,18 @@ jobs:
             ${{ join(matrix.test_batch.tests, ' ') }} \
             2>&1 | tee benchmark-batch-${{ matrix.test_batch.batch }}.log
 
+      - name: Filter and stage changed .DURATION files
+        id: stage-durations
+        run: .github/scripts/filter-duration.sh --threshold 30 --output-dir duration-staging/
+
       - name: Upload .DURATION files for this batch
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: duration-files-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
           include-hidden-files: true
-          path: |
-            tests/**/.DURATION
-            demos/**/.DURATION
-          if-no-files-found: error
+          path: duration-staging/
+          if-no-files-found: warn
 
       - name: Bundle log files
         if: ${{ always() }}
@@ -270,8 +272,11 @@ jobs:
 
       - name: Merge duration files into working tree
         run: |
-          # Merge all downloaded artifacts
-          .github/scripts/merge-duration-artifacts.sh artifacts-staging/ . || {
+          # Create a clean directory to safely check for actual batch overlaps
+          mkdir -p clean-merge-target
+
+          # Merge into the clean target instead of '.'
+          .github/scripts/merge-duration-artifacts.sh artifacts-staging/ clean-merge-target || {
             MERGE_STATUS=$?
             if [ "$MERGE_STATUS" -eq 1 ]; then
               echo "No duration files changed"
@@ -282,9 +287,14 @@ jobs:
             fi
           }
 
+          # Copy the validated, merged files over the Git working tree
+          cp -a clean-merge-target/. .
+
       - name: Check for changes
         id: changes
         run: |
+          rm -rf clean-merge-target/
+          rm -rf artifacts-staging/
           if git diff --quiet tests/ demos/; then
             echo "changes=false" >> $GITHUB_OUTPUT
             echo "No .DURATION files were modified"
@@ -299,6 +309,7 @@ jobs:
         with:
           pattern: benchmark-logs-bundle-*
           path: artifacts-staging/
+
       - name: Upload combined sync log
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
@@ -306,6 +317,8 @@ jobs:
           name: monthly-duration-sync-log-${{ needs.setup.outputs.timestamp }}
           path: |
             artifacts-staging/**/benchmark-*.log
+            artifacts-staging/**/*.stdout
+            artifacts-staging/**/compile-and-buildcheck-log-*
           if-no-files-found: warn
 
       - name: Create Pull Request

@@ -32,7 +32,14 @@ find "$SOURCE_DIR" -type f -name '.DURATION' > "$TMPFILE"
 # Process files (no subshell, uses input redirection)
 while read -r src_file; do
   # Extract relative path from source directory
-  rel_path=$(echo "$src_file" | sed "s|^$SOURCE_DIR/||")
+  case "$src_file" in
+    *tests/*) rel_path="tests/${src_file#*tests/}" ;;
+    *demos/*) rel_path="demos/${src_file#*demos/}" ;;
+    *)
+      echo "Warning: unrecognized path $src_file, skipping..." >&2
+      continue
+      ;;
+  esac
 
   # Construct target path
   target_file="$TARGET_DIR/$rel_path"
