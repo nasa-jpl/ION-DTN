@@ -92,8 +92,8 @@ static int	writeAddPubKeyCmd(time_t effectiveTime, unsigned short
 	}
 
 	putFqn(nbrBuf, getOwnFqnn());
-	len = _isprintf(__FILE__, __LINE__, cmdbuf, sizeof cmdbuf, "a pubkey %s %d %d %d ",
-			nbrBuf, effectiveTime, getCtime(), publicKeyLen);
+	len = _isprintf(__FILE__, __LINE__, cmdbuf, sizeof cmdbuf, "a pubkey %s " VAST_FIELDSPEC " " VAST_FIELDSPEC " %d ",
+			nbrBuf, (vast)effectiveTime, (vast)getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
 	cmdLen += len;
