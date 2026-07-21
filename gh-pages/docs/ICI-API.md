@@ -277,7 +277,15 @@ This function provides a "blocking" implementation of admission control in ION. 
 ---
 
 ## SDR Database & Heap APIs
-SDR persistent data are referenced by object and address values in the application code, simply displacements (offsets) within the SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the SDR address space. An `Address` is the SDR functional equivalent of a C pointer; some Addresses point to actual Objects.
+SDR persistent data are referenced by object and address values
+in the application code,
+both of which are simply displacements (offsets) within the SDR address space.
+The difference between the two is that an `SdrObject`
+is always the address of a block of heap space
+returned by some call to `sdr_malloc`,
+while an `SdrAddress` can refer to any byte in the SDR address space.
+The value of an `SdrObject` is a valid `SdrAddress`,
+but an `SdrAddress` does not necessarily mark the start of an `SdrObject`.
 
 The number of SDR-related APIs is significant, and most are used by ION internally. Fortunately, there are only a few APIs that an external application will likely need to use. The following list of the most commonly used APIs is drawn from the _Database I/O_ and the _Heap Space Management_ API categories.
 

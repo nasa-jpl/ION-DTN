@@ -278,14 +278,18 @@ extern unsigned long long sdr_drop_count(Sdr sdr);
 typedef uaddr		SdrAddress;
 #define	Address		SdrAddress
 
-/*	Both SdrObjects and SdrAddresses are absolute offsets from
-	the start of an SDR heap; they are functionally equivalent
-	to pointers in DRAM.  They are differentiated to enable
-	compile-time type checking to detect some possible SDR access
-	errors: an SdrObject is the address of some block of SDR
-	data space allocated by sdr_malloc() in the sdrmgt library,
-	while an SdrAddress can point to any location in the data
-	space (i.e., it can point anywhere inside an object).		*/
+/*
+ * Both SdrObjects and SdrAddresses are absolute offsets from the start of an
+ * SDR heap. They are differentiated solely as a hint to readers:
+ *
+ * - an SdrObject is the address of some block of SDR data space allocated by
+ *   sdr_malloc() in the sdrmgt library,
+ * - while an SdrAddress can point to any location in the data space (i.e., it
+ *   can point anywhere inside an object).
+ *
+ * The value of an SdrObject is a valid SdrAddress, but an SdrAddress does not
+ * necessarily mark the start of an SdrObject.
+ */
 
 typedef uaddr		SdrObject;
 #define	Object		SdrObject

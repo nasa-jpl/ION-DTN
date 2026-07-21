@@ -72,14 +72,13 @@ provided by a I<transaction> mechanism.
 
 =back
 
-SDR persistent data are referenced in application code by Object
-values and Address values, both of which are simply displacements
-(offsets) within SDR address space.  The difference between the
-two is that an Object is always the address of a block of heap
-space returned by some call to sdr_malloc(), while an Address can
-refer to any byte in the address space.  That is, an Address is
-the SDR functional equivalent of a C pointer in DRAM, and some
-Addresses point to Objects.
+SDR persistent data are referenced in application code by SdrObject values and
+SdrAddress values, both of which are simply displacements (offsets) within SDR
+address space.  The difference between the two is that an SdrObject is always
+the address of a block of heap space returned by some call to sdr_malloc(),
+while an SdrAddress can refer to any byte in the address space.  That is, the
+value of an SdrObject is a valid SdrAddress, but an SdrAddress does not
+necessarily mark the start of an SdrObject.
 
 Before using SDR services, the services must be loaded to the
 target machine and initialized by invoking the sdr_initialize()
