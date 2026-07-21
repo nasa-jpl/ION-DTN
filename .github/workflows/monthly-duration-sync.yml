@@ -161,11 +161,9 @@ jobs:
       - name: Install ION
         if: ${{ steps.cache-restore.outputs.cache-matched-key != '' }}
         run: |
-          {
-            echo "Starting test installation at $(date)"
-            sudo make install
-            sudo ldconfig
-          } > install.log 2> >(tee -a install.log >&2)
+          echo "Starting installation at $(date)"
+          sudo make install
+          sudo ldconfig
 
       - name: Run benchmark on test batch
         timeout-minutes: 420
@@ -180,27 +178,31 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: duration-files-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
+          include-hidden-files: true
           path: |
             tests/**/.DURATION
             demos/**/.DURATION
           if-no-files-found: error
 
-      - name: Upload .stdout files for this batch
+      - name: Bundle log files
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-stdout-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
-          path: |
-            tests/**/*.stdout
-            demos/**/*.stdout
-          if-no-files-found: warn
+        run: |
+          mkdir -p logs-bundle
 
-      - name: Upload benchmark log for this batch
+          cp benchmark-batch-${{ matrix.test_batch.batch }}.log logs-bundle/ 2>/dev/null || echo "No benchmark log found"
+
+          # Copy .stdout files, preserving the directory structure
+          find tests demos -name "*.stdout" -type f -exec cp --parents {} logs-bundle/ \; 2>/dev/null || echo "No .stdout files found"
+
+          echo "Log bundle contents:"
+          find logs-bundle -type f
+
+      - name: Upload bundled logs for this batch
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: benchmark-log-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
-          path: benchmark-batch-${{ matrix.test_batch.batch }}.log
+          name: benchmark-logs-bundle-arc-runner-set-u22-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
+          path: logs-bundle/
           if-no-files-found: warn
 
   aggregate-results:
@@ -247,6 +249,11 @@ jobs:
             git diff --stat tests/ demos/
           fi
 
+      - name: Download all log bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: benchmark-logs-bundle-*
+          path: artifacts-staging/
       - name: Upload combined sync log
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
@@ -310,3 +317,12 @@ jobs:
           else
             echo "ℹ️ **Status:** No changes detected, PR not created" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Clean up ALL intermediate artifacts
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: |
+            benchmark-*
+            duration-files-*
+            compile-and-buildcheck-log-*
+          failOnError: false
