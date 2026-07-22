@@ -87,7 +87,8 @@ static void	handleQuit(int signum)
 }
 
 static int	run_dtpcsend(int cycles, int rate, int recordLength,
-			int topicID, int profileID, char *dstEid)
+			int topicID, int profileID, char *dstEid,
+			int elisionEnabled)
 {
 	static char	buffer[BUF_SIZE] = "this is a testfile created by \
 dtpcsend";
@@ -109,19 +110,22 @@ dtpcsend";
 	Address		addr;
 	DtpcElisionFn	elisionFn;
 
-	elisionFn = checkElision;
+	elisionFn = elisionEnabled ? checkElision : NULL;
 	if (cycles < 1 || rate < MIN_RATE || rate > MAX_RATE ||
 		(recordLength < MIN_PAYLOADSIZE && recordLength != 1) ||
 		recordLength > MAX_PAYLOADSIZE || topicID < 1 ||
 		profileID < 1 || dstEid == NULL)
 	{
 		PUTS("Usage: dtpcsend <number of cycles> <rate(bits/sec)> \
-<payload size(bytes)> <topic ID> <profile ID> <destination endpoint>");
+<payload size(bytes)> <topic ID> <profile ID> <destination endpoint> \
+[elisionFlag]");
 		PUTS("");
 		PUTS("  Rate must be bewteen 1000 and 200000000 bits/sec.");
 		PUTS("  Payload size must be between 2 and 1000000 bytes.");
 		PUTS("  To use payload sizes chosen at random from the");
 		PUTS(" range 1 to 65536, specify payload size 1.");
+		PUTS("  elisionFlag: 1 (default) enables the built-in");
+		PUTS("   duplicate-length elision function; 0 disables it.");
 		PUTS("");
 		return 0;
 	}
@@ -273,6 +277,7 @@ int	dtpcsend(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	int	topicID = atoi((char *) a4);
 	int	profileID = atoi((char *) a5);
 	char	*dstEid = (char *) a6;
+	int	elisionEnabled = a7 ? atoi((char *) a7) : 1;
 #else
 int	main(int argc, char **argv)
 {
@@ -282,10 +287,15 @@ int	main(int argc, char **argv)
 	int	topicID = 0;
 	int	profileID = 0;
 	char	*dstEid = NULL;
+	int	elisionEnabled = 1;
 
-	if (argc > 7) argc = 7;
+	if (argc > 8) argc = 8;
 	switch (argc)
 	{
+	case 8:
+		elisionEnabled = atoi(argv[7]);
+		/* FALLTHROUGH */
+
 	case 7:
 		dstEid = argv[6];
 		/* FALLTHROUGH */
@@ -315,5 +325,5 @@ int	main(int argc, char **argv)
 	}
 #endif
 	return run_dtpcsend(cycles, rate, recordLength, topicID, profileID,
-			dstEid);
+			dstEid, elisionEnabled);
 }

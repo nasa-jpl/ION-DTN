@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes
+rm -f 2.bench.dtpc/ion.log 2.bench.dtpc/send.*.log
+rm -f 3.bench.dtpc/ion.log 3.bench.dtpc/recv.*.log
