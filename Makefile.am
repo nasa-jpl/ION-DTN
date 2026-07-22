@@ -1366,6 +1366,7 @@ bpextra = \
 if ENABLE_IMC
 bpextra += \
 	bpv7/doc/pod1/cpsd.pod \
+	bpv7/doc/pod1/imcadminep.pod \
 	bpv7/doc/pod1/imcfw.pod
 endif # end ENABLE_IMC
 
@@ -1445,6 +1446,7 @@ bpmans = \
 if ENABLE_IMC
 bpmans += \
 	bpv7/doc/cpsd.1 \
+	bpv7/doc/imcadminep.1 \
 	bpv7/doc/imcfw.1
 endif # end ENABLE_IMC
 
