@@ -599,7 +599,7 @@ Here is an example configuration file for "loopback.rc" using LTP as the primary
 
 ## begin ionadmin
 # Initialize node 1 with default SDR configuration
-1 1 ""
+1 1
 s
 
 # Add contact and range (loopback, +1 to +3600 seconds, 100000 bytes/sec, 1 sec OWLT)
@@ -623,8 +623,8 @@ s 'udplsi localhost:1113'
 ## end ltpadmin
 
 ## begin bpadmin
-# Initialize with custodian endpoint ipn:1.0
-1 ipn:1.0
+# Initialize BP
+1
 
 # Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
@@ -667,7 +667,7 @@ Note that this example network uses a different convergence layer: TCP.
 
 ## begin ionadmin
 # Initialize node 1 with default SDR configuration
-1 1 ""
+1 1
 s
 
 # Add contacts (unidirectional, 100000 bytes/sec)
@@ -727,7 +727,7 @@ a plan 2 tcp/10.1.1.2:4556
 
 ## begin ionadmin
 # Initialize node 2 with default SDR configuration
-1 2 ""
+1 2
 s
 
 # Add contacts (unidirectional, 100000 bytes/sec)
@@ -797,7 +797,7 @@ Also note that this network uses both LTP and TCP convergence layers.
 
 ## begin ionadmin
 # Initialize node 1 with default SDR configuration
-1 1 ""
+1 1
 s
 
 # Add contacts for 3-node network (topology: 1--2--3)
@@ -876,7 +876,7 @@ a group 3 3 ipn:2.0
 
 ## begin ionadmin
 # Initialize node 2 with default SDR configuration
-1 2 ""
+1 2
 s
 
 # Add contacts for 3-node network (topology: 1--2--3)
@@ -958,7 +958,7 @@ a plan 1 ltp/1
 
 ## begin ionadmin
 # Initialize node 3 with default SDR configuration
-1 3 ""
+1 3
 s
 
 # Add contacts for 3-node network (topology: 1--2--3)
