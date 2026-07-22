@@ -77,6 +77,7 @@ typedef struct
 	Object		topics;		/* SDR list of Topics		*/
 	Object		rtxEventElt;	/* Ref. to retransmission event	*/
 	Object		delEventElt;	/* Ref. to deletion event	*/
+	uvast		aggrLength;	/* Sum of payload-record lengths */
 } OutAdu;
 
 typedef struct

@@ -31,6 +31,8 @@
 #define EPOCH_2000_SEC 946684800
 #define BUFMAXSIZE     (65536U)
 
+static int estimateLength(OutAdu *outAdu, uvast *returnedLength);
+
 /*      *       *       Helpful utility functions       *       *       */
 
 static Object   _dtpcdbObject(Object *newDbObj)
@@ -595,6 +597,7 @@ int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
 	memset((char *) &outAduBuf, 0, sizeof(OutAdu));
 	outAduBuf.ageOfAdu = -1;
 	outAduBuf.rtxCount = -1;
+	outAduBuf.aggrLength = 0;
 	if (profile->maxRtx == 0)	/*	No transport service.	*/
 	{
 		loadScalar(&outAduBuf.seqNum, 0);
@@ -642,9 +645,8 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	Object		elt;
 	Sdr		sdr = getIonsdr();
 	time_t		currentTime;
-
-	/* Parameter intentionally unused. */
-	(void)newRecord;
+	uvast		recordLength;
+	uvast		newLength;
 
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
 	for (elt = sdr_list_first(sdr, outAdu.topics); elt;
@@ -682,7 +684,6 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 		outAdu.expirationTime = currentTime + lifespan;
 	}
 
-	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));
 	if (sdr_list_insert_last(sdr, topicBuf.payloadRecords, recordObj) == 0)
 	{
 		putErrmsg("No space for list element for payload record.",
@@ -690,12 +691,27 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 		return 0;
 	}
 
-	if (sap->elisionFn != NULL
-	&& (sap->elisionFn)(topicBuf.payloadRecords) < 0)
+	(void) decodeSdnv(&recordLength, newRecord->length.text);
+	outAdu.aggrLength += recordLength;
+
+	if (sap->elisionFn != NULL)
 	{
-		putErrmsg("Elision function failed.", NULL);
-		return 0;
+		if ((sap->elisionFn)(topicBuf.payloadRecords) < 0)
+		{
+			putErrmsg("Elision function failed.", NULL);
+			return 0;
+		}
+
+		/* Elision may have removed records; resync. */
+		if (!estimateLength(&outAdu, &newLength))
+		{
+			return 0;
+		}
+
+		outAdu.aggrLength = newLength;
 	}
+
+	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));
 
 	if ((_dtpcvdb(NULL))->watching & WATCH_r)
 	{
@@ -914,16 +930,13 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 		return -1;
 	}
 
-	/*	Estimate the resulting total length of the aggregated
-	 *	outAdu.							*/
+	/*
+	 * Read the precomputed total length of the aggregated outAdu,
+	 * maintained incrementally by insertToTopic.
+	 */
 
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
-	int estimateLengthRv = estimateLength(&outAdu, &totalLength);
-	if (!estimateLengthRv)
-	{
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
+	totalLength = outAdu.aggrLength;
 
 	/*	If the estimated length equals or exceeds the
 	 *	aggregation size limit (or the aggregation time
