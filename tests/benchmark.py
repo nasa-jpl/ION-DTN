@@ -108,7 +108,6 @@ def _run_single_iteration(
         process = subprocess.run(
             ["./dotest"],
             cwd=script_dir,
-            check=True,
             stdout=log_handle,
             stderr=subprocess.STDOUT,
             text=True,
@@ -119,13 +118,17 @@ def _run_single_iteration(
         elapsed = time.perf_counter() - start_time
         _run_cleanup(script_dir, log_handle, env)
 
+        if process.returncode == 2:
+            log_handle.write("\nTest missing necessary component(s), setting .DURATION to 0\n")
+            return 0
+
         if process.returncode != 0:
             log_handle.write(f"\n!!! FAILED ON ITERATION {iteration_num + 1} !!!\n")
             return None
 
         return elapsed
 
-    except (subprocess.CalledProcessError, OSError) as e:
+    except OSError as e:
         error_msg = (
             f"Execution failed: {e}" if isinstance(e, OSError) else "Test failed"
         )
