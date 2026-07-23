@@ -83,7 +83,8 @@ jobs:
             export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             # Mbed TLS deactivated
-            ./configure --enable-bpsec-debugging --disable-silent-rules
+            ./configure --enable-bpsec-debugging --disable-silent-rules \
+              --disable-legacy-aliases
             make -j4
             sudo make install
             make buildcheck

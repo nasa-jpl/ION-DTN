@@ -196,6 +196,7 @@ jobs:
             ./configure ac_cv_c11=${{ steps.cflags.outputs.ac_cv_c11 }} \
                 --enable-crypto-mbedtls --enable-bpsec-debugging \
                 --disable-silent-rules \
+                --disable-legacy-aliases \
                 CFLAGS="${{ steps.cflags.outputs.cflags }}"
             make all buildcheck
           } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
@@ -527,6 +528,7 @@ jobs:
                     --enable-bpsec-debugging \
                     --disable-silent-rules \
                     --disable-dependency-tracking \
+                    --disable-legacy-aliases \
                     CFLAGS="$TIER_CFLAGS"
 
                 progress "Building ION (make -j$(nproc) all buildcheck)"

@@ -99,7 +99,7 @@ jobs:
         run: |
           echo 'Building ION...'
           autoreconf -fi
-          ./configure --disable-silent-rules
+          ./configure --disable-silent-rules --disable-legacy-aliases
           make -j4
           make buildcheck
 

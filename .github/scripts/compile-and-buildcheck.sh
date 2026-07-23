@@ -22,6 +22,7 @@ echo "Running configure..."
 # shellcheck disable=SC2086
 ./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
     --disable-silent-rules \
+    --disable-legacy-aliases \
     $EXTRA_CONFIGURE_FLAGS
 
 echo "Running ${MAKE_CMD} all..."

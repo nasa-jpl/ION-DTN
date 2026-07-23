@@ -88,7 +88,8 @@ jobs:
             echo "Starting build at $(date)"
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
-              --disable-silent-rules
+              --disable-silent-rules \
+              --disable-legacy-aliases
             make all buildcheck
           } > benchmark.log 2> >(tee -a benchmark.log >&2)
 
