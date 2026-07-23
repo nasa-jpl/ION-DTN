@@ -630,7 +630,12 @@ _elisionFn_ (if not NULL) is associated with this topic, and 0 is returned.
 Returns -1 on any error.
 
 ```c
-int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid, unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit, int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags, BpCustodySwitch custodySwitch, char *reportToEid, int classOfService, Object item, unsigned int length)
+int dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
+                unsigned int maxRtx, size_t aggrSizeLimit,
+                unsigned int aggrTimeLimit, int lifespan,
+                BpAncillaryData *ancillaryData, unsigned char srrFlags,
+                BpCustodySwitch custodySwitch, char *reportToEid,
+                int classOfService, SdrObject item, size_t length)
 ```
 Inserts an application data item into an outbound DTPC application data unit
 destined for _destEid_.
