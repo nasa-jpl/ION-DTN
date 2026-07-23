@@ -443,7 +443,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}
+          name: test-results-solaris-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}
           # Upload the wrapper directory so the inner folder structure is preserved
           path: .github/ansible/test-bundle/
 
@@ -467,7 +467,7 @@ jobs:
         id: download-artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: test-results-${{ github.run_id }}-batch-*
+          pattern: test-results-solaris-${{ github.run_id }}-batch-*
           path: all-artifacts
           merge-multiple: true # Forces flat extraction
         continue-on-error: true
@@ -525,7 +525,7 @@ jobs:
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
-            test-results-*-batch-*
+            test-results-solaris-*
             compile-and-buildcheck-log-solaris-*
           failOnError: false
 

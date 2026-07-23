@@ -249,7 +249,7 @@ jobs:
         if: ${{ always() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
         uses: actions/upload-artifact@v7
         with:
-          name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}
+          name: compile-and-buildcheck-log-arc-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}
           path: compile-and-buildcheck.log
           if-no-files-found: warn
 
@@ -553,6 +553,6 @@ jobs:
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
-            test-results-*
-            compile-and-buildcheck-log-*
+            test-results-arc-*
+            compile-and-buildcheck-log-arc-*
           failOnError: false
