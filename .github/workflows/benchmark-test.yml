@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
   run-benchmarks:
-    runs-on: arc-runner-set-rhel8-dev
+    runs-on: arc-runner-set-rhel9
 
     steps:
       - name: Checkout code
@@ -77,9 +77,9 @@ jobs:
             !.github/
             !benchmark.log
             !**/*.md
-          key: ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-benchmark-build-arc-runner-set-rhel9-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-
+            ion-benchmark-build-arc-runner-set-rhel9-${{ steps.calculate-hash.outputs.hash }}-
 
       - name: Build ION
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
@@ -103,7 +103,7 @@ jobs:
             !.github/
             !benchmark.log
             !**/*.md
-          key: ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-benchmark-build-arc-runner-set-rhel9-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Overlay fresh tests and scripts
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key != '' }}
