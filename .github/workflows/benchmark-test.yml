@@ -49,13 +49,14 @@ concurrency:
 
 jobs:
   run-benchmarks:
-    runs-on: arc-runner-set-u22
+    runs-on: arc-runner-set-rhel8-dev
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
+          persist-credentials: true
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -185,7 +186,7 @@ jobs:
 
       - name: Commit newly generated .DURATION files
         if: ${{ always() }}
-        uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         with:
           commit_message: "Add .DURATION file(s) for benchmarked tests"
           file_pattern: "tests/**/.DURATION demos/**/.DURATION"
