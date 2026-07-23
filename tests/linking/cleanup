@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
+killm f
 rm -f ionexelinks.dot  ionliblinks.dot

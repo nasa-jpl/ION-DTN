@@ -275,7 +275,7 @@ The test program starts without the ION stack running (cleanup has already been 
 
 **Important conventions:**
 
-- **EXIT trap required**: Every `dotest` script must include `trap 'killm f' EXIT` near the top of the file (after the shebang). This ensures ION processes and IPC resources are cleaned up on every exit path — normal exit, error exit, skip, and unexpected termination. The `runtests` harness also calls `killm f` as a safety net after `dotest` returns, but scripts must not rely on this.
+- **EXIT trap recommended**: Every `dotest` script should include `trap 'killm f' EXIT` near the top of the file (after the shebang). This ensures ION processes and IPC resources are cleaned up on every exit path — normal exit, error exit, skip, and unexpected termination. The `runtests` harness only calls `killm f` directly on the timeout and interrupt paths — on a normal pass the post-test `killm f` comes from `./cleanup`, and on failure/skip nothing is killed — so a test that omits the trap must handle its own teardown on every exit path (e.g. an explicit `ionstop`/`killm f`); it must not rely on the harness for teardown.
 
 - **Mid-test resets**: If your test runs multiple sub-scenarios that each require a fresh ION instance, call `killm f` between them to ensure full cleanup before restarting ION. The `f` flag is necessary because multi-node tests set `ION_NODE_LIST_DIR`, which causes bare `killm` to operate in node-only mode.
 
@@ -285,6 +285,19 @@ The test program starts without the ION stack running (cleanup has already been 
   ```bash
   trap 'rm -f "$TMPFILE"; killm f' EXIT
   ```
+
+#### Why the EXIT trap is recommended — and its one trade-off
+
+The trap is redundant on the paths the harness already handles: a passing test is reaped by `./cleanup`, and timeouts and Ctrl-C are reaped by `runtests` itself. Its value is concentrated on the paths where `runtests` runs **neither** `./cleanup` **nor** `killm f`:
+
+- **Self-`exit 1` (failure), `exit 2` after starting ION (skip), and mid-script aborts / uncaught errors.** The failure branch deliberately preserves logs and never kills ION, so without the trap the daemons the test started stay alive after `dotest` returns — until the *next* test's pre-test cleanup (or indefinitely, if this was the last or only test).
+- **Standalone `./dotest` runs — the trap's primary benefit.** Run by hand there is no harness wrapping the test with pre/post cleanup, so the trap is the *only* thing that reaps ION on exit.
+
+In practice the standalone case is where the trap earns its keep: under `runtests` a leak from a self-`exit 1` is usually swept by the next test's pre-test cleanup, but a direct `./dotest` invocation — the common way to develop and debug a single test — has no such safety net. Without the trap, every hand-run of a test that starts ION would leave daemons and IPC resources behind.
+
+This makes each `dotest` self-contained and leak-free: a failed or hand-run test does not orphan ION daemons that keep holding the SDR working-memory segment (key `0xFF00`), the named semaphores, and the wmKey — stale copies of which can collide with and corrupt the next ION start. It also gives a single guaranteed teardown point instead of a `killm f` on every `exit` branch.
+
+**The one gap — missed live-daemon capture on a self-`exit 1`:** the trap's `killm f` fires *inside* `dotest` before `runtests` reaches its failure-path diagnostics, so `ion-diagnostics` can no longer attach to the now-dead daemons — live-daemon stack traces (`gdb -p`) and live statistics are lost for that case. Everything durable is still captured: crash **core files** (`killm f` does not delete them; they are gdb'd post-mortem), `ion.log`, and — on a **timeout/hang** — full live capture, because there `runtests` collects diagnostics from the still-running test *before* anything kills it. If a test specifically needs live-daemon state on failure, capture it *before* returning rather than relying on post-return collection.
 
 **Example dotest structure:**
 ```bash

@@ -154,7 +154,7 @@ if [ "$MAX_TOTAL_SECONDS" -gt 0 ] 2>/dev/null; then
         sleep $MAX_TOTAL_SECONDS
         echo ""
         echo "OVERALL TIMEOUT: Test exceeded ${MAX_TOTAL_SECONDS}s. Aborting."
-        killm 2>/dev/null
+        killm f 2>/dev/null
         kill $$ 2>/dev/null
     ) &
     WATCHDOG_PID=$!

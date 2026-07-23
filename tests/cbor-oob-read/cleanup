@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 #
 # Pre-test cleanup for cbor-oob-read.  The test runs a pure decoder
-# harness (no ION attach), so this only removes any log file left by a
-# prior run.
+# harness (no ION attach), so killm f only reaps stray IPC resources
+# for testset consistency (a no-op here); the log file left by a prior
+# run is then removed.
 #
 
+killm f
 rm -f ion.log
