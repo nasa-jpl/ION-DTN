@@ -26,6 +26,20 @@ case "${1:-build}" in
         cd "$BSL_DIR"
         ./build.sh clean
         ./build.sh deps
+        # BSL gates its unit tests on BUILD_UNITTEST (default ON), not on
+        # BUILD_TESTING.  Leaving it on pulls in the Unity test tooling, which
+        # hard-requires ruby, so an ION build that wants no tests still fails
+        # on hosts without it.
+        NOTEST_OPTS="-DBUILD_TESTING=OFF -DBUILD_UNITTEST=OFF"
+
+        # BSL's resources/prep.sh hardcodes "-G Ninja".  Fall back to Unix
+        # Makefiles when ninja isn't installed; a later -G overrides the
+        # earlier one.
+        NEED_MAKE_GENERATOR=no
+        if ! command -v ninja >/dev/null 2>&1; then
+            NEED_MAKE_GENERATOR=yes
+        fi
+
         if [ "$(uname)" = "SunOS" ]; then
             export CFLAGS="$CFLAGS -D__EXTENSIONS__"
             JANSSON_OPTS=""
@@ -35,9 +49,11 @@ case "${1:-build}" in
                     break
                 fi
             done
-            ./build.sh prep -DBUILD_TESTING=OFF -DTEST_MEMCHECK=OFF -G "Unix Makefiles" $JANSSON_OPTS
+            ./build.sh prep $NOTEST_OPTS -DTEST_MEMCHECK=OFF -G "Unix Makefiles" $JANSSON_OPTS
+        elif [ "$NEED_MAKE_GENERATOR" = yes ]; then
+            ./build.sh prep $NOTEST_OPTS -G "Unix Makefiles"
         else
-            ./build.sh prep -DBUILD_TESTING=OFF
+            ./build.sh prep $NOTEST_OPTS
         fi
         ./build.sh
         ./build.sh install
