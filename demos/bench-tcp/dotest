@@ -22,9 +22,6 @@ TOTALBYTES=10${MB}
 # MAX number of bundles for any test (too many causes non-ION losses)
 # This really only affects really small size bundles
 MAXBUNDLES=10000
-# how many total seconds to allow each individual test to run before giving up
-# 5 minutes is probably plenty
-MAXSECONDS=300
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
 # (NUMBUNDLES is calculated from TOTALBYTES and BUNDLESIZE, and will be at least 1 for each iteration)
@@ -160,10 +157,8 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
     # Wait for transmission to finish.
     echo "Waiting for transmission to finish..."
     RUNNING=1
-    TIMER=0
     while [ "$RUNNING" -eq 1 ]
     do
-        TIMER=$((++TIMER))
         sleep 1
         echo "...receiving..."
         # some ps don't like -p syntax, most do.
@@ -178,53 +173,13 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
             echo "...transmission finished."
             RUNNING=0
         fi
-        if [ "$TIMER" -gt 300 ]
-        then
-            #infinite loop protection
-            echo "...5 minutes passed; giving up."
-            RUNNING=0
-            RETVAL=1
-        fi
     done
-
-    if [ "$RETVAL" -eq 1 ]
-    then
-        echo "Test did not complete."
-        echo "Killing bpcounter..."
-        kill -9 $BPCOUNTER_PID $BPDRIVER_PID
-        sleep 10
-        echo "Stopping ION..."
-        #(cd 2.bench.tcp; ./ionstop) &
-        #(cd 3.bench.tcp; ./ionstop) &
-        sleep 3
-        killm f
-        sleep 3
-        echo "Re-starting ION..."
-        (cd 2.bench.tcp; ./ionstart)
-        (cd 2.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
-        if [ $? -ne 2 ]; then
-            echo "Node 2 not started after restart: Aborting Test"
-            exit 1
-        fi
-        (cd 3.bench.tcp; ./ionstart)
-        (cd 3.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
-        if [ $? -ne 2 ]; then
-            echo "Node 3 not started after restart: Aborting Test"
-            exit 1
-        fi
-        RETVAL=0;   # allow next test to proceed
-    fi
 
     # loop to next bundle size
     done
 
     # loop to next iteration
     done
-
-if [ "$RETVAL" -eq 1 ]
-then
-    echo "Test did not complete correctly."
-fi
 
 echo "Stopping ION..."
 #(cd 2.bench.tcp; ./ionstop) &

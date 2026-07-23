@@ -22,8 +22,6 @@ MAXBUNDLES=500000
 # how many total seconds to allow each individual test to run before giving up
 # 5 minutes is probably plenty
 MAXSECONDS=120
-# how many total seconds to allow the entire test script to run before aborting
-MAX_TOTAL_SECONDS=1800
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 #THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
@@ -146,19 +144,6 @@ if [ "$(uname -s)" = "Linux" ]; then
         echo "Skipping test."
         exit 2
     fi
-fi
-
-# Start overall timeout watchdog
-if [ "$MAX_TOTAL_SECONDS" -gt 0 ] 2>/dev/null; then
-    (
-        sleep $MAX_TOTAL_SECONDS
-        echo ""
-        echo "OVERALL TIMEOUT: Test exceeded ${MAX_TOTAL_SECONDS}s. Aborting."
-        killm f 2>/dev/null
-        kill $$ 2>/dev/null
-    ) &
-    WATCHDOG_PID=$!
-    trap "kill $WATCHDOG_PID 2>/dev/null; exit 1" TERM
 fi
 
 ITERNUM=0
@@ -316,9 +301,6 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
     echo "#########################################################################"
     echo "  Test has completed"
     echo "#########################################################################"
-
-# Cancel the overall timeout watchdog
-[ -n "$WATCHDOG_PID" ] && kill $WATCHDOG_PID 2>/dev/null
 
 sleep 3
 
