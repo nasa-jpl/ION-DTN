@@ -17,6 +17,8 @@ on:
       - "charts/**"
       - "images/**"
       - ".github/**"
+      - "tests/**"
+      - "demos/**"
   pull_request:
     branches:
       - integration
@@ -147,3 +149,24 @@ jobs:
             echo "⚠️  KICS results file not found"
             exit 1
           fi
+
+  teardown-convention:
+    name: Test teardown convention (advisory, non-blocking)
+    runs-on: arc-runner-set-ol9
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Get changed cleanup and dotest files
+        id: changed-files
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            tests/**/cleanup
+            tests/**/dotest
+            demos/**/cleanup
+            demos/**/dotest
+
+      - name: Lint changed scripts
+        shell: bash
+        run: bash .github/scripts/lint-test-conventions.sh ${{ steps.changed-files.outputs.all_changed_files }}
