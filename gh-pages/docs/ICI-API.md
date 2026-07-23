@@ -304,7 +304,7 @@ The number of SDR-related APIs is significant, and most are used by ION internal
 Function Prototype
 
 ```c
-SdrObject sdr_malloc(Sdr sdr, unsigned long size)
+SdrObject sdr_malloc(Sdr sdr, size_t size)
 ```
 
 Parameters
@@ -350,7 +350,7 @@ Allocates a block of space from the indicated SDR's heap. The maximum size is 1/
 Function Prototype
 
 ```c
-SdrObject sdr_insert(Sdr sdr, char *from, unsigned long size)
+SdrObject sdr_insert(Sdr sdr, char *from, size_t size)
 ```
 
 Parameters
@@ -459,7 +459,7 @@ Frees the heap space occupied by an object at *object*. The space freed is put b
 Function Prototype
 
 ```c
-void sdr_read(Sdr sdr, char *into, SdrAddress from, int length)
+void sdr_read(Sdr sdr, char *into, SdrAddress from, size_t length)
 ```
 
 Parameters
@@ -484,7 +484,7 @@ Copies length characters from (a location in the indicated SDR) to the memory lo
 Function Prototype
 
 ```c
-void sdr_stage(Sdr sdr, char *into, SdrObject from, int length)
+void sdr_stage(Sdr sdr, char *into, SdrObject from, size_t length)
 ```
 
 Parameters
@@ -511,8 +511,7 @@ Like `sdr_read`, this function will copy length characters from (a location in t
 Function Prototype
 
 ```c
-void sdr_write(Sdr sdr, SdrAddress into, char *from, int length)
-
+void sdr_write(Sdr sdr, SdrAddress into, char *from, size_t length)
 ```
 
 Parameters
@@ -779,7 +778,7 @@ Creates a new list object in the SDR; the new list object initially contains no 
 Function Prototype
 
 ```c
-int sdr_list_length(Sdr sdr, SdrObject list)
+size_t sdr_list_length(Sdr sdr, SdrObject list)
 ```
 
 Parameters
