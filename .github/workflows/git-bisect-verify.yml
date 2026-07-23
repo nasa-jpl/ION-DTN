@@ -1,0 +1,150 @@
+name: Commit-by-Commit Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_list:
+        description: "List of commits to check against, needs to be in a format for git rev-list (BASE..HEAD)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  VM_WORK_DIR: /var/tmp/ion-gh-workspace
+  PYTHON_VERSION: "3.11.15"
+
+jobs:
+  validate-commits-linux:
+    runs-on: arc-runner-set-u24
+
+    steps:
+      - name: Checkout Code
+        # fetch-depth: 0 is strictly required so git rev-list has the full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate timestamp for artifacts
+        id: generate-timestamp
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated timestamp: $TIMESTAMP"
+
+      - name: Validate PR Commits Sequentially
+        env:
+          COMMITS: ${{ inputs.commit_list }}
+        run: |
+          COMMITS="${COMMITS:-origin/integration..HEAD}"
+
+          .github/scripts/validate-commits.sh "$COMMITS"
+
+      - name: Publish Validation Report
+        if: ${{ always() }}
+        run: |
+          if [ -f "commit-logs/validation-report.md" ]; then
+            cat commit-logs/validation-report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload validation logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: commit-validation-logs-linux-${{ steps.generate-timestamp.outputs.timestamp }}
+          path: commit-logs/
+          if-no-files-found: warn
+
+  validate-commits-solaris:
+    runs-on: arc-runner-set-ol9
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate timestamp for artifacts
+        id: generate-timestamp
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Setup Solaris SSH Configuration
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
+
+      - name: Select Available VM
+        run: |
+          # Simplified connectivity check to select dsoc3 or dsoc4
+          if ssh -o ConnectTimeout=10 github-runner@dsoc3 'echo "Connected"' 2>/dev/null; then
+            echo "VM_IP=dsoc3" >> $GITHUB_ENV
+          elif ssh -o ConnectTimeout=10 github-runner@dsoc4 'echo "Connected"' 2>/dev/null; then
+            echo "VM_IP=dsoc4" >> $GITHUB_ENV
+          else
+            echo "::error::No VMs are available for building!"
+            exit 1
+          fi
+
+      - name: Copy code to Solaris VM
+        env:
+          ANSIBLE_CONFIG: .github/ansible/ansible.cfg
+        run: |
+          cd .github/ansible
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook copy-code.yml \
+            -i "$VM_IP," \
+            -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
+            -e "VM_WORK_DIR=${{ env.VM_WORK_DIR }}" \
+            -v
+
+      - name: Run Commit Validation Script on Solaris
+        env:
+          COMMITS: ${{ inputs.commit_list }}
+        run: |
+          COMMITS="${COMMITS:-origin/integration..HEAD}"
+
+          ssh github-runner@$VM_IP "
+            cd ${{ env.VM_WORK_DIR }}/ion-ios-dev
+            export MAKE_CMD=gmake
+            sh .github/scripts/validate-commits.sh '$COMMITS'
+          "
+
+      - name: Collect Logs from Solaris
+        if: ${{ always() }}
+        run: |
+          # Pull the generated logs back to the GitHub Runner for artifact generation
+          mkdir -p commit-logs
+          scp -r github-runner@$VM_IP:${{ env.VM_WORK_DIR }}/ion-ios-dev/commit-logs/* ./commit-logs/ || echo "No logs to copy."
+
+      - name: Publish Validation Report
+        if: ${{ always() }}
+        run: |
+          if [ -f "commit-logs/validation-report.md" ]; then
+            cat commit-logs/validation-report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload validation logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: commit-validation-logs-solaris-${{ steps.generate-timestamp.outputs.timestamp }}
+          path: commit-logs/
+          if-no-files-found: warn
+
+      - name: Clean up Solaris VM workspace
+        if: ${{ always() }}
+        run: |
+          if [ -n "$VM_IP" ]; then
+            echo "Cleaning up ${{ env.VM_WORK_DIR }}/ion-ios-dev on $VM_IP..."
+            # Use SSH to remove the temporary code directory on the remote Solaris machine
+            ssh github-runner@$VM_IP "rm -rf ${{ env.VM_WORK_DIR }}/ion-ios-dev"
+            echo "Cleanup complete."
+          else
+            echo "VM_IP is not set. The VM selection likely failed earlier, so there is nothing to clean up."
+          fi
