@@ -220,31 +220,19 @@ If no test names are passed, cleanup runs against every test that `runtests` wou
 
 #### Multi-node cleanup and `ION_NODE_LIST_DIR`
 
-For multi-node tests, `killm f` uses the `ION_NODE_LIST_DIR` environment variable to locate the `ion_nodes` file. When set, `killm f` iterates over each node's working directory and runs `ionexit` per node for a graceful shutdown before falling back to process termination and IPC cleanup.
+`killm f` treats the run as multi-node when `ION_NODE_LIST_DIR` is set **and** `$ION_NODE_LIST_DIR/ion_nodes` exists and is non-empty.
 
-Because of the subprocess isolation described above, the cleanup script must export `ION_NODE_LIST_DIR` itself — it cannot rely on the value set by `dotest`. Without it, `killm f` cannot find the `ion_nodes` file and will skip the per-node graceful shutdown, falling back to brute-force process termination.
+In multi-node mode, `killm f` deliberately **skips** graceful `ionexit` and goes straight to SIGTERM → SIGKILL across all ION processes, followed by unconditional `ipcrm`/semaphore cleanup. It does **not** walk the node directories or run `ionexit` per node. If you need an orderly shutdown that keeps other nodes running, use per-node `ionexit k n` (see the [ION Shutdown Guide](ION-Shutdown-Guide.md)) instead of `killm f`.
 
-#### Multi-node shutdown order and shared resources
+That is the behavior a test harness wants: cleanup is after a clean slate, not an orderly handover. Only a `dotest` that stops one node while others keep running needs the graceful path.
 
-In a multi-node-per-host configuration, all ION instances share two global resources:
+Because of the subprocess isolation described above, a multi-node test's cleanup script must export `ION_NODE_LIST_DIR` itself — it cannot rely on the value set by `dotest`. Without it, `killm f` takes its single-node path and first attempts a bare `ionexit` from the cleanup directory, which is not a registered node directory; that attempt fails and can burn up to 15 seconds of timeout before the signal sweep runs. The end state is the same — the signal sweep and IPC cleanup still happen — but the run is slower and noisier.
 
-1. **SDR working memory** (shared memory segment, typically key `0xFF00`): Used by `ionAttach()` to locate and connect to any ION instance.
-2. **Global named semaphores** (`ion:GLOBAL:*`): Used by all ION processes to gate access to shared memory and to poll the stop flag during shutdown.
+#### Multi-node shutdown order
 
-When shutting down multiple nodes, these shared resources must be preserved until the very last node is stopped. Destroying either one prematurely prevents `ionexit` from attaching to the remaining nodes:
+ION instances sharing a host also share the SDR working memory segment and the global `ion:GLOBAL:*` semaphores, so when nodes are stopped individually the order matters and `ionexit n` is **not** a substitute for `ionexit k n`. Tests that tear everything down at once with `killm f` do not need to care, because it kills every node's processes and clears the shared IPC in one pass. Tests that stop nodes individually do.
 
-- `ionTerminate(1)` (triggered by `ionexit` without the `k` flag) destroys the global SDR working memory. Subsequent `ionexit` calls on other nodes fail with `"Can't get shared memory segment"` and `"Unable to attach to ION"`.
-- `sm_ipc_stop()` (triggered by `ionexit` without the `n` flag) destroys the global semaphores. Non-clock processes (CLAs, forwarders, admin endpoints) that rely on semaphore-gated polling of the stop flag can no longer detect the shutdown and hang indefinitely.
-
-For this reason, `killm f` uses the following shutdown sequence:
-
-1. **All-but-last node**: `ionexit k n` — issues `bpStop()`, `ltpStop()`, `rfx_stop()` to signal each node's daemons, but keeps SDR (`k`) and preserves IPC (`n`) so subsequent nodes can still attach.
-2. **Last node**: `ionexit` — full cleanup including SDR deletion and IPC teardown.
-3. **Polling loop**: Waits up to 5 seconds for flag-polled processes to detect the stop and exit.
-4. **SIGTERM/SIGKILL fallback**: Catches any processes that did not respond to the graceful shutdown.
-5. **IPC cleanup**: `ipcrm` removes any remaining shared memory segments, message queues, and semaphores. Named semaphore files are also deleted.
-
-This same principle applies to any script that shuts down a subset of ION instances on a shared host: always use `ionexit k n` for intermediate nodes to preserve the shared resources that the remaining instances depend on.
+Those rules, the per-path breakdown of what `killm` does with and without `f`, and the reasoning behind them live in the [ION Shutdown Guide](ION-Shutdown-Guide.md); they are deliberately not duplicated here.
 
 **Example cleanup script (single-node):**
 ```bash
