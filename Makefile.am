@@ -139,8 +139,12 @@ endif
 if ENABLE_BSL
 install-exec-hook:
 	@echo "Installing BSL shared libraries to $(DESTDIR)$(libdir)..."
-	@cp -pPR $(srcdir)/external/BSL/testroot/usr/lib/libbsl_*.so* $(DESTDIR)$(libdir)/
-	@cp -pPR $(srcdir)/external/BSL/testroot/usr/lib/libqcbor.so* $(DESTDIR)$(libdir)/
+	@for d in $(BSL_LIB_DIR64) $(BSL_LIB_DIR32); do \
+		test -d "$$d" || continue; \
+		cp -pPR "$$d"/libbsl_*.so* $(DESTDIR)$(libdir)/; \
+		cp -pPR "$$d"/libqcbor.so* $(DESTDIR)$(libdir)/; \
+		break; \
+	done
 endif
 
 # This hook contains the final message after a successful installation.
@@ -1546,7 +1550,7 @@ libbp_la_SOURCES += \
 	bpv7/bsl/ionpatch.c
 
 libbp_la_LIBADD += $(BSL_LIBS)
-libbp_la_LDFLAGS = $(AM_LDFLAGS) -Wl,-rpath,$(BSL_HOME)/lib
+libbp_la_LDFLAGS = $(AM_LDFLAGS) -Wl,-rpath,$(BSL_LIB_DIR64) -Wl,-rpath,$(BSL_LIB_DIR32)
 endif # end ENABLE_BSL
 
 

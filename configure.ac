@@ -657,14 +657,53 @@ AS_IF([test "x$enable_bsl" = xyes],
       AC_MSG_RESULT([yes])
       ENABLE_BSL=yes
 
+      # BSL carries its own submodules under deps/.  A non-recursive
+      # "git submodule update --init external/BSL" registers them without
+      # populating them, and the resulting CMake failure ("deps/QCBOR does
+      # not appear to contain CMakeLists.txt") does not identify the cause.
+      AC_MSG_CHECKING([for BSL bundled dependencies])
+      bsl_missing_deps=
+      for bsl_dep in QCBOR mlib unity; do
+        if ! ls "$srcdir/external/BSL/deps/$bsl_dep"/* >/dev/null 2>&1; then
+          bsl_missing_deps="$bsl_missing_deps deps/$bsl_dep"
+        fi
+      done
+      if test -n "$bsl_missing_deps"; then
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([BSL dependencies not initialized:$bsl_missing_deps
+  Initialize them with:
+    git submodule update --init --recursive external/BSL])
+      fi
+      AC_MSG_RESULT([yes])
+
       # Set BSL_HOME to default location
       if test -z "${BSL_HOME}";
       then
         BSL_HOME="${srcdir}/external/BSL/testroot/usr"
       fi
 
-      # Force BSL_HOME to be an absolute path to satisfy libtool
-      BSL_HOME=`cd "$BSL_HOME" && pwd`
+      # Force BSL_HOME to be an absolute path to satisfy libtool.  It must
+      # not be required to exist yet: "make" builds BSL as part of "all"
+      # (see the all-bsl rule in Makefile.am) and "make clean" removes it
+      # again, so configure legitimately runs both before and after BSL
+      # exists.  Resolving this with `cd "$BSL_HOME" && pwd` assigned the
+      # empty result of a failed cd, silently degrading every flag below to
+      # -I/include/... and -L/lib and failing much later on a missing
+      # header, so build the absolute path textually instead.
+      case "$BSL_HOME" in
+        /*) ;;
+        *)  BSL_HOME="`pwd`/$BSL_HOME" ;;
+      esac
+      # Collapse the "/./" that a srcdir of "." would otherwise leave in
+      # every -I, -L and -rpath built from this path.
+      BSL_HOME=`echo "$BSL_HOME" | sed -e 's|/\./|/|g'`
+
+      # BSL installs its libraries into lib64 on some platforms (RHEL
+      # family) and lib on others, and which one it will use is not known
+      # until BSL has been built.  Reference both; a -L or -rpath naming a
+      # directory that does not exist is ignored.
+      BSL_LIB_DIR64="${BSL_HOME}/lib64"
+      BSL_LIB_DIR32="${BSL_HOME}/lib"
 
       # Add preprocessor flag for conditional compilation
       AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
@@ -690,8 +729,8 @@ AS_IF([test "x$enable_bsl" = xyes],
         CFLAGS="$CFLAGS -D__EXTENSIONS__"
       fi
 
-      # Set BSL library flags
-      BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
+      # Set BSL library flags.  -L must precede the -l options it applies to.
+      BSL_LIBS="-L${BSL_LIB_DIR64} -L${BSL_LIB_DIR32} -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson"
 
       # Executables linking against libbp need rpath-link to resolve
       # BSL's transitive dependencies (e.g. libqcbor) at link time
@@ -699,11 +738,11 @@ AS_IF([test "x$enable_bsl" = xyes],
       case $host_os in
         solaris*)
           # Solaris linker uses -R for runtime library path
-          AM_LDFLAGS="$AM_LDFLAGS -R${BSL_HOME}/lib"
+          AM_LDFLAGS="$AM_LDFLAGS -R${BSL_LIB_DIR64} -R${BSL_LIB_DIR32}"
           ;;
         *)
           # GNU ld (Linux, BSD, etc.) uses -rpath-link
-          AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+          AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_LIB_DIR64} -Wl,-rpath-link,${BSL_LIB_DIR32}"
           ;;
       esac
 
@@ -711,7 +750,8 @@ AS_IF([test "x$enable_bsl" = xyes],
       AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
     else
       AC_MSG_RESULT([no])
-      AC_MSG_ERROR([BSL submodule not found. Initialize with: git submodule update --init external/BSL])
+      AC_MSG_ERROR([BSL submodule not found. Initialize with:
+    git submodule update --init --recursive external/BSL])
     fi
   ],
   [echo "BSL disabled (using ION native BPSec)"
@@ -738,9 +778,13 @@ if test "x$ENABLE_BSL" = "xyes"; then
 
   AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
   AC_SUBST([BSL_HOME], ["$BSL_HOME"])
+  AC_SUBST([BSL_LIB_DIR64], ["$BSL_LIB_DIR64"])
+  AC_SUBST([BSL_LIB_DIR32], ["$BSL_LIB_DIR32"])
 else
   AC_SUBST([BSL_LIBS], [""])
   AC_SUBST([BSL_HOME], [""])
+  AC_SUBST([BSL_LIB_DIR64], [""])
+  AC_SUBST([BSL_LIB_DIR32], [""])
 fi
 
 #
