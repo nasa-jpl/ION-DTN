@@ -692,7 +692,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	}
 
 	oK(decodeSdnv(&recordLength, newRecord->length.text));
-	outAdu.aggrLength += (int) recordLength;
+	outAdu.aggrLength += recordLength;
 
 	if (sap->elisionFn != NULL)
 	{
@@ -708,7 +708,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 			return 0;
 		}
 
-		outAdu.aggrLength = (int) newLength;
+		outAdu.aggrLength = newLength;
 	}
 
 	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));

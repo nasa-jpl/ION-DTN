@@ -1,4 +1,5 @@
 #!/bin/sh
+trap 'killm f' EXIT
 #
 # DTPC throughput benchmark.
 #
@@ -16,7 +17,6 @@ MAX_RATE=200000000      # 200 Mbit/s — dtpcsend's built-in rate cap
 WAIT_AFTER_SEND=3       # aggrTimeLimit=1s + processing slack
 
 # Source shared test helpers for polling.
-# shellcheck disable=SC1091
 . ../../tests/test_utils.sh
 
 CONFIGFILES=" \
@@ -176,7 +176,6 @@ echo "Bench wall time: $((BENCH_END - BENCH_START)) s"
 
 echo ""
 echo "Shutting down..."
-killm
 echo ""
 echo "DTPC bench complete."
 exit $RETVAL
