@@ -7,7 +7,19 @@
 set -e
 
 BSL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/external/BSL" && pwd)"
-MARKER="${BSL_DIR}/testroot/usr/lib/libbsl_front.so"
+
+# BSL installs its libraries into lib64/ on some platforms (RHEL family)
+# and lib/ on others.  Checking only one of them makes this script treat an
+# installed BSL as missing and rebuild it on every "make".
+bsl_is_installed() {
+    for libdir in lib64 lib; do
+        if ls "${BSL_DIR}/testroot/usr/${libdir}"/libbsl_front.* \
+                >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 case "${1:-build}" in
     clean)
@@ -17,7 +29,7 @@ case "${1:-build}" in
         echo "BSL uninstalled."
         ;;
     build)
-        if [ -f "$MARKER" ]; then
+        if bsl_is_installed; then
             echo "BSL already installed at ${BSL_DIR}/testroot — skipping build."
             echo "Run '$0 clean' first to force a rebuild."
             exit 0
