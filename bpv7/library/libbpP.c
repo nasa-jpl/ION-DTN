@@ -13208,11 +13208,21 @@ static BpSAP	_bpadminSap(BpSAP *newSap)
 
 static void	shutDownAdminApp(int signum)
 {
+	BpSAP	sap = _bpadminSap(NULL);
+
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 
 	isignal(SIGTERM, shutDownAdminApp);
-	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);
+
+	/*	The SAP is closed before the admin app exits, so a
+	 *	SIGTERM that arrives during shutdown finds no SAP to
+	 *	end; ending a released SAP's semaphore would crash.	*/
+
+	if (sap)
+	{
+		sm_SemEnd(sap->recvSemaphore);
+	}
 }
 
 static int	defaultSrh(BpDelivery *dlv, unsigned char *cursor,
@@ -13231,6 +13241,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 	Sdr		sdr = getIonsdr();
 	int		running = 1;
 	BpSAP		sap;
+	BpSAP		noSap;
 	BpDelivery	dlv;
 	vast		recordLen;
 	ZcoReader	reader;
@@ -13472,6 +13483,16 @@ failed.", NULL);
 		sm_TaskYield();
 	}
 
+	/*	bpStop ends the endpoint semaphores before it sends
+	 *	SIGTERM to the admin app, so that SIGTERM can arrive
+	 *	after the reception loop has already ended.  Disarm the
+	 *	handler and forget the SAP before releasing it, so that
+	 *	a late SIGTERM can't reach freed memory -- or, once the
+	 *	app has detached from ION, unmapped shared memory.	*/
+
+	isignal(SIGTERM, SIG_IGN);
+	noSap = NULL;
+	oK(_bpadminSap(&noSap));
 	bp_close(sap);
 	writeMemo("[i] Administrative endpoint terminated.");
 	writeErrmsgMemos();
