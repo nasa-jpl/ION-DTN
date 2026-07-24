@@ -1388,6 +1388,75 @@ int	orderBpEvents(PsmPartition partition, PsmAddress nodeData,
 	return 0;
 }
 
+/*	Discards a volatile database that was still being constructed,
+ *	releasing whatever parts of it had been built.  Unlike dropVdb
+ *	this tolerates a partially initialized database, in which any
+ *	given collection may not have been created yet, and it is only
+ *	ever applied to a database that was never catalogued and so was
+ *	never visible to any other task.				*/
+
+static void	dropNascentVdb(PsmPartition wm, PsmAddress vdbAddress)
+{
+	BpVdb		*vdb = (BpVdb *) psp(wm, vdbAddress);
+	PsmAddress	elt;
+
+	if (vdb->schemes)
+	{
+		while ((elt = sm_list_first(wm, vdb->schemes)) != 0)
+		{
+			dropScheme((VScheme *) psp(wm,
+					sm_list_data(wm, elt)), elt);
+		}
+
+		sm_list_destroy(wm, vdb->schemes, NULL, NULL);
+	}
+
+	if (vdb->plans)
+	{
+		while ((elt = sm_list_first(wm, vdb->plans)) != 0)
+		{
+			dropPlan((VPlan *) psp(wm,
+					sm_list_data(wm, elt)), elt);
+		}
+
+		sm_list_destroy(wm, vdb->plans, NULL, NULL);
+	}
+
+	if (vdb->inducts)
+	{
+		while ((elt = sm_list_first(wm, vdb->inducts)) != 0)
+		{
+			dropInduct((VInduct *) psp(wm,
+					sm_list_data(wm, elt)), elt);
+		}
+
+		sm_list_destroy(wm, vdb->inducts, NULL, NULL);
+	}
+
+	if (vdb->outducts)
+	{
+		while ((elt = sm_list_first(wm, vdb->outducts)) != 0)
+		{
+			dropOutduct((VOutduct *) psp(wm,
+					sm_list_data(wm, elt)), elt);
+		}
+
+		sm_list_destroy(wm, vdb->outducts, NULL, NULL);
+	}
+
+	if (vdb->discoveries)
+	{
+		sm_list_destroy(wm, vdb->discoveries, NULL, NULL);
+	}
+
+	if (vdb->timeline)
+	{
+		sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
+	}
+
+	psm_free(wm, vdbAddress);
+}
+
 static BpVdb	*_bpvdb(char **name)
 {
 	static BpVdb	*vdb = NULL;
@@ -1396,6 +1465,7 @@ static BpVdb	*_bpvdb(char **name)
 	PsmAddress	elt;
 	Sdr		sdr;
 	BpDB		*db;
+	BpVdb		*newVdb;
 	Object		sdrElt;
 	Object		addr;
 	BpEvent		event;
@@ -1426,6 +1496,28 @@ static BpVdb	*_bpvdb(char **name)
 		/*	BP volatile database doesn't exist yet.		*/
 		sdr = getIonsdr();
 		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
+
+		/*	The search above was performed without holding
+		 *	the memory lock, so another task may have created
+		 *	the volatile database in the interim.  Search
+		 *	again now that the lock is held; otherwise both
+		 *	tasks would construct a database and one of them
+		 *	would have to be discarded.			*/
+
+		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Failed searching for vdb.", NULL);
+			return NULL;
+		}
+
+		if (elt)
+		{
+			vdb = (BpVdb *) psp(wm, vdbAddress);
+			sdr_exit_xn(sdr);
+			return vdb;
+		}
+
 		vdbAddress = psm_zalloc(wm, sizeof(BpVdb));
 		if (vdbAddress == 0)
 		{
@@ -1434,69 +1526,89 @@ static BpVdb	*_bpvdb(char **name)
 			return NULL;
 		}
 
+		/*	Construct the database in newVdb.  Its address is
+		 *	published to the static vdb pointer just before the
+		 *	schemes are raised (see below), and is reset to NULL
+		 *	on every failure path, so bpAttach is never left with
+		 *	a stale pointer to a discarded database.		*/
+
 		db = _bpConstants();
-		vdb = (BpVdb *) psp(wm, vdbAddress);
-		memset((char *) vdb, 0, sizeof(BpVdb));
-		vdb->sourceStats = db->sourceStats;
-		vdb->recvStats = db->recvStats;
-		vdb->discardStats = db->discardStats;
-		vdb->xmitStats = db->xmitStats;
-		vdb->delStats = db->delStats;
-		vdb->dbStats = db->dbStats;
-		vdb->updateStats = db->updateStats;
+		newVdb = (BpVdb *) psp(wm, vdbAddress);
+		memset((char *) newVdb, 0, sizeof(BpVdb));
+		newVdb->sourceStats = db->sourceStats;
+		newVdb->recvStats = db->recvStats;
+		newVdb->discardStats = db->discardStats;
+		newVdb->xmitStats = db->xmitStats;
+		newVdb->delStats = db->delStats;
+		newVdb->dbStats = db->dbStats;
+		newVdb->updateStats = db->updateStats;
 		{
 			int	i;
 
 			for (i = 0; i < 3; i++)
 			{
-				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaCount, 0);
-				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaBytes, 0);
-				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
-				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
-				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaCount, 0);
-				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaBytes, 0);
-				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
-				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&newVdb->sourceDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&newVdb->sourceDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&newVdb->recvDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&newVdb->recvDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&newVdb->discardDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&newVdb->discardDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&newVdb->xmitDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&newVdb->xmitDeltas[i].deltaBytes, 0);
 			}
 
 			for (i = 0; i < BP_REASON_STATS; i++)
 			{
-				ion_ipc_atomic_init(&vdb->delDeltas[i], 0);
+				ion_ipc_atomic_init(&newVdb->delDeltas[i], 0);
 			}
 
 			for (i = 0; i < BP_DB_STATS; i++)
 			{
-				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
-				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&newVdb->dbDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&newVdb->dbDeltas[i].deltaBytes, 0);
 			}
 		}
 
-		vdb->bundleCounter = 0;
-		vdb->clockPid = ERROR;
-		vdb->cpsdPid = ERROR;
-		vdb->transitSemaphore = SM_SEM_NONE;
-		vdb->transitPid = ERROR;
-		vdb->watching = db->watching;
-		if ((vdb->schemes = sm_list_create(wm)) == 0
-		|| (vdb->plans = sm_list_create(wm)) == 0
-		|| (vdb->inducts = sm_list_create(wm)) == 0
-		|| (vdb->outducts = sm_list_create(wm)) == 0
-		|| (vdb->discoveries = sm_list_create(wm)) == 0
-		|| (vdb->timeline = sm_rbt_create(wm)) == 0
-		|| psm_catlg(wm, *name, vdbAddress) < 0)
+		newVdb->bundleCounter = 0;
+		newVdb->clockPid = ERROR;
+		newVdb->cpsdPid = ERROR;
+		newVdb->transitSemaphore = SM_SEM_NONE;
+		newVdb->transitPid = ERROR;
+		newVdb->watching = db->watching;
+		if ((newVdb->schemes = sm_list_create(wm)) == 0
+		|| (newVdb->plans = sm_list_create(wm)) == 0
+		|| (newVdb->inducts = sm_list_create(wm)) == 0
+		|| (newVdb->outducts = sm_list_create(wm)) == 0
+		|| (newVdb->discoveries = sm_list_create(wm)) == 0
+		|| (newVdb->timeline = sm_rbt_create(wm)) == 0)
 		{
+			dropNascentVdb(wm, vdbAddress);
 			sdr_exit_xn(sdr);
 			putErrmsg("Can't initialize volatile database.", NULL);
 			return NULL;
 		}
+
+		/*	Publish the in-progress database to this task's own
+		 *	static pointer before raising anything: raiseScheme,
+		 *	raisePlan and raiseProtocol call findScheme(),
+		 *	findPlan(), etc., which dereference getBpVdb().
+		 *	Without this those lookups would dereference a NULL
+		 *	vdb and crash.  The pointer is task-private -- other
+		 *	tasks still find the database only by name, after the
+		 *	psm_catlg below -- and is reset to NULL on every
+		 *	failure path so a discarded database never dangles.	*/
+
+		vdb = newVdb;
 
 		/*	Raise all schemes and all of their endpoints.	*/
 
 		for (sdrElt = sdr_list_first(sdr, db->schemes); sdrElt;
 				sdrElt = sdr_list_next(sdr, sdrElt))
 		{
-			if (raiseScheme(sdrElt, vdb) < 0)
+			if (raiseScheme(sdrElt, newVdb) < 0)
 			{
+				dropNascentVdb(wm, vdbAddress);
+				vdb = NULL;
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all schemes.", NULL);
 				return NULL;
@@ -1508,8 +1620,10 @@ static BpVdb	*_bpvdb(char **name)
 		for (sdrElt = sdr_list_first(sdr, db->plans); sdrElt;
 				sdrElt = sdr_list_next(sdr, sdrElt))
 		{
-			if (raisePlan(sdrElt, vdb) < 0)
+			if (raisePlan(sdrElt, newVdb) < 0)
 			{
+				dropNascentVdb(wm, vdbAddress);
+				vdb = NULL;
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all plans.", NULL);
 				return NULL;
@@ -1522,8 +1636,10 @@ static BpVdb	*_bpvdb(char **name)
 				sdrElt = sdr_list_next(sdr, sdrElt))
 		{
 			addr = sdr_list_data(sdr, sdrElt);
-			if (raiseProtocol(addr, vdb) < 0)
+			if (raiseProtocol(addr, newVdb) < 0)
 			{
+				dropNascentVdb(wm, vdbAddress);
+				vdb = NULL;
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all protocols.", NULL);
 				return NULL;
@@ -1537,13 +1653,44 @@ static BpVdb	*_bpvdb(char **name)
 		{
 			addr = sdr_list_data(sdr, sdrElt);
 			sdr_read(sdr, (char *) &event, addr, sizeof(BpEvent));
-			if (sm_rbt_insert(wm, vdb->timeline, (PsmAddress)
+			if (sm_rbt_insert(wm, newVdb->timeline, (PsmAddress)
 					sdrElt, orderBpEvents, &event) == 0)
 			{
+				dropNascentVdb(wm, vdbAddress);
+				vdb = NULL;
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't stage event timeline.", NULL);
 				return NULL;
 			}
+		}
+
+		/*	The database is now fully constructed, so publish
+		 *	it.  Cataloguing it earlier would expose it, by
+		 *	name, to a task searching without the memory lock
+		 *	before its schemes, plans, ducts and timeline had
+		 *	been raised.					*/
+
+		if (psm_catlg(wm, *name, vdbAddress) < 0)
+		{
+			/*	Another task catalogued a volatile
+			 *	database under this name despite the
+			 *	memory lock.  Its database is the real
+			 *	one, so discard ours and adopt it.	*/
+
+			dropNascentVdb(wm, vdbAddress);
+			vdb = NULL;
+			if (psm_locate(wm, *name, &vdbAddress, &elt) < 0
+			|| elt == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("Can't catalog volatile database.",
+						NULL);
+				return NULL;
+			}
+
+			vdb = (BpVdb *) psp(wm, vdbAddress);
+			sdr_exit_xn(sdr);
+			return vdb;
 		}
 
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
