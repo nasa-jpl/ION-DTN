@@ -1,0 +1,184 @@
+#!/bin/sh
+trap 'killm f' EXIT
+#
+# DTPC throughput benchmark.
+#
+# Two-node loopback setup: sender (node 2) feeds a stream of DTPC
+# payload records to the DTPC daemon, which aggregates them into bundles
+# that are carried to node 3.
+# The receiver (node 3) runs dtpcreceive, which counts delivered payloads
+# and reports per-second throughput.
+#
+
+set -u
+
+TOPDIR=$(pwd)
+MAX_RATE=200000000 # 200 Mbit/s — dtpcsend's built-in rate cap
+WAIT_AFTER_SEND=3  # aggrTimeLimit=1s + processing slack
+
+# Source shared test helpers for polling.
+. ../../tests/test_utils.sh
+
+CONFIGFILES=" \
+./2.bench.dtpc/bench.bprc \
+./2.bench.dtpc/bench.dtpcrc \
+./2.bench.dtpc/bench.ionconfig \
+./2.bench.dtpc/bench.ionrc \
+./2.bench.dtpc/bench.ionsecrc \
+./2.bench.dtpc/bench.ipnrc \
+./3.bench.dtpc/bench.bprc \
+./3.bench.dtpc/bench.dtpcrc \
+./3.bench.dtpc/bench.ionconfig \
+./3.bench.dtpc/bench.ionrc \
+./3.bench.dtpc/bench.ionsecrc \
+./3.bench.dtpc/bench.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: measure DTPC throughput for various use-case patterns"
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES; do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Per-test sender wall time and receiver throughput."
+echo
+echo "########################################"
+
+./cleanup
+
+echo "Checking for additional memory needed for this demo..."
+if ! ./check_memory; then
+    echo "Can't run, need additional system resources"
+    exit 1
+fi
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR="$PWD"
+rm -f ./ion_nodes
+
+cd "$TOPDIR/2.bench.dtpc" || exit 1
+./ionstart
+cd "$TOPDIR/3.bench.dtpc" || exit 1
+./ionstart
+cd "$TOPDIR" || exit 1
+
+RETVAL=0
+
+# run_test TESTNUM LABEL CYCLES RECLEN TOPIC PROFILE [SEND_RATE] [ELISION]
+#
+# Starts dtpcreceive on node 3 for the given topic, runs dtpcsend on
+# node 2 for the requested cycle count, waits WAIT_AFTER_SEND seconds for
+# the aggregation-time-limit flush to land, then interrupts the receiver
+# so it prints its final tally.  ELISION=1 enables the built-in
+# duplicate-length elision function; any other value disables it.
+run_test() {
+    TESTNUM=$1
+    LABEL=$2
+    CYCLES=$3
+    RECLEN=$4
+    TOPIC=$5
+    PROFILE=$6
+    RATE=${7:-$MAX_RATE}
+    ELISION=${8:-0}
+
+    echo ""
+    echo "========================================"
+    echo "Test ${TESTNUM}: ${LABEL}"
+    echo "  cycles=${CYCLES} reclen=${RECLEN} topic=${TOPIC} profile=${PROFILE}"
+    echo "========================================"
+
+    RECV_LOG="$TOPDIR/3.bench.dtpc/recv.${TESTNUM}.log"
+    SEND_LOG="$TOPDIR/2.bench.dtpc/send.${TESTNUM}.log"
+    rm -f "$RECV_LOG" "$SEND_LOG"
+
+    cd "$TOPDIR/3.bench.dtpc" || exit 1
+    dtpcreceive "$TOPIC" >"$RECV_LOG" 2>&1 &
+    RCVPID=$!
+    waitForPidReady "$RCVPID" 2000 50 || {
+        RETVAL=1
+        return 1
+    }
+
+    cd "$TOPDIR/2.bench.dtpc" || exit 1
+    START=$(date +%s)
+    dtpcsend "$CYCLES" "$RATE" "$RECLEN" "$TOPIC" "$PROFILE" "ipn:3.129" \
+        "$ELISION" >"$SEND_LOG" 2>&1
+    SEND_END=$(date +%s)
+    SEND_S=$((SEND_END - START))
+
+    sleep "$WAIT_AFTER_SEND"
+    killAndWaitForPidToDie "$RCVPID" 2 2000
+
+    echo "--- Sender ---"
+    grep -E 'Time \(seconds\)|Total payloads|Total bytes|Throughput' \
+        "$SEND_LOG" || tail -5 "$SEND_LOG"
+    echo "Sender wall time: ${SEND_S} s"
+
+    echo "--- Receiver ---"
+    grep -E 'Time \(seconds\)|Throughput|Final tally' "$RECV_LOG" ||
+        tail -10 "$RECV_LOG"
+
+    final=$(sed -n \
+        's/.*Final tally of payloads received: \([0-9][0-9]*\).*/\1/p' \
+        "$RECV_LOG" | tail -1)
+    final=${final:-0}
+    if [ "$ELISION" = "1" ]; then
+        echo "Receiver saw ${final}/${CYCLES} payloads (elision enabled)"
+        if [ "$final" -lt 1 ]; then
+            RETVAL=1
+        fi
+    elif [ "$final" -lt "$CYCLES" ]; then
+        echo "WARNING: receiver saw ${final}/${CYCLES} payloads"
+        RETVAL=1
+    fi
+
+    cd "$TOPDIR" || exit 1
+}
+
+BENCH_START=$(date +%s)
+
+# ----- Test 1: many tiny records, large aggregation ADU -------------------
+# Profile 3: aggrSizeLimit=10 MB.  50000 records of 50 bytes fit into a
+# single aggregated ADU, so every insertRecord() walks the whole in-progress
+# ADU via estimateLength().  This is where the O(records^2) cost lives.
+run_test 1 "50000 x 50B records, large-aggr profile" \
+    50000 50 11 3
+
+# ----- Test 2: small records, medium aggregation --------------------------
+# Profile 2: 1 MB aggregation cap.  500-byte records pack ~2000 per ADU;
+# a realistic pattern for telemetry / sensor streams.
+run_test 2 "1000 x 500B records, medium-aggr profile" \
+    1000 500 11 2
+
+# ----- Test 3: medium records, small aggregation --------------------------
+# Profile 1: 65 KB aggregation cap — roughly 6 records per bundle.  Tests
+# the ADU-flush frequency path (createAdu / sendAdu fire often).
+run_test 3 "100 x 10KB records, small-aggr profile" \
+    100 10000 11 1
+
+# ----- Test 4: records larger than aggregation limit ----------------------
+# Each record exceeds profile 1's aggrSizeLimit (65 KB), so every
+# insertRecord() immediately triggers createAdu() — no aggregation.
+run_test 4 "20 x 100KB records, no aggregation" \
+    20 100000 11 1
+
+cd "$TOPDIR" || exit 1
+
+BENCH_END=$(date +%s)
+echo ""
+echo "Bench wall time: $((BENCH_END - BENCH_START)) s"
+
+echo ""
+echo "Shutting down..."
+echo ""
+echo "DTPC bench complete."
+exit $RETVAL

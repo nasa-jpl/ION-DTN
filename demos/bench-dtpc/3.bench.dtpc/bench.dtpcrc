@@ -1,0 +1,5 @@
+1
+a profile 1 0 65000    1 600 0.1 dtn:none
+a profile 2 0 1000000  1 600 0.1 dtn:none
+a profile 3 0 10000000 1 600 0.1 dtn:none
+s

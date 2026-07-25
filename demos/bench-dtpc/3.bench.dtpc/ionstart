@@ -1,0 +1,10 @@
+#!/bin/sh
+# shell script to get node running
+
+ionadmin bench.ionrc
+sleep 1
+ionsecadmin bench.ionsecrc
+sleep 1
+bpadmin bench.bprc
+sleep 1
+dtpcadmin bench.dtpcrc
