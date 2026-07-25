@@ -669,6 +669,19 @@ int	main(void)
 		 *	whose executions times have now been reached.	*/
 
 		snooze(1);
+
+		/*	A restart -- e.g. ionrestart recovering from an
+		 *	unrecoverable SDR error -- halts the heap and tears
+		 *	it down out from under this polling loop, so our next
+		 *	sdr_begin_xn would fail and trip the CHK fast-fail
+		 *	(SIGABRT + core).  Stop cleanly when the heap is
+		 *	halted; the restart relaunches bpclock.			*/
+
+		if (sdr_heap_is_halted(sdr))
+		{
+			break;
+		}
+
 		currentTime = getCtime();
 		if (dispatchEvents(sdr, bpConstants->timeline, currentTime) < 0)
 		{
