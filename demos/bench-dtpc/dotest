@@ -107,11 +107,11 @@ run_test() {
     waitForPidReady "$RCVPID" 2000 50 || { RETVAL=1; return 1; }
 
     cd "$TOPDIR/2.bench.dtpc" || exit 1
-    START=$(date +%s%3N)
+    START=$(date +%s)
     dtpcsend "$CYCLES" "$RATE" "$RECLEN" "$TOPIC" "$PROFILE" "ipn:3.129" \
         "$ELISION" > "$SEND_LOG" 2>&1
-    SEND_END=$(date +%s%3N)
-    SEND_MS=$((SEND_END - START))
+    SEND_END=$(date +%s)
+    SEND_S=$((SEND_END - START))
 
     sleep "$WAIT_AFTER_SEND"
     killAndWaitForPidToDie "$RCVPID" 2 2000
@@ -119,14 +119,15 @@ run_test() {
     echo "--- Sender ---"
     grep -E 'Time \(seconds\)|Total payloads|Total bytes|Throughput' \
         "$SEND_LOG" || tail -5 "$SEND_LOG"
-    echo "Sender wall time: ${SEND_MS} ms"
+    echo "Sender wall time: ${SEND_S} s"
 
     echo "--- Receiver ---"
     grep -E 'Time \(seconds\)|Throughput|Final tally' "$RECV_LOG" \
         || tail -10 "$RECV_LOG"
 
-    final=$(grep -o 'Final tally of payloads received: [0-9]*' "$RECV_LOG" \
-        | tail -1 | awk '{print $NF}')
+    final=$(sed -n \
+        's/.*Final tally of payloads received: \([0-9][0-9]*\).*/\1/p' \
+        "$RECV_LOG" | tail -1)
     final=${final:-0}
     if [ "$ELISION" = "1" ]; then
         echo "Receiver saw ${final}/${CYCLES} payloads (elision enabled)"
