@@ -311,6 +311,8 @@ static IonVdb	*_ionvdb(char **name)
 		vdb->wmMemProtectPercent = iondb.wmMemProtectPercent;
 		vdb->heapThresholdBreached = 0;
 		vdb->wmThresholdBreached = 0;
+		vdb->routingStrategy = iondb.routingStrategy;
+		vdb->allowRoutingDelayMsec = iondb.allowRoutingDelayMsec;
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
@@ -966,6 +968,9 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		iondbBuf.clockIsSynchronized = 1;
 		iondbBuf.heapMemProtectPercent = 10;
 		iondbBuf.wmMemProtectPercent = 10;
+		iondbBuf.routingStrategy = IonRoutingShortestPbat;
+		iondbBuf.allowRoutingDelayMsec =
+				ION_DEFAULT_ALLOW_ROUTING_DELAY_MSEC;
 		memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
@@ -2955,6 +2960,92 @@ void	ionGetMemProtect(int *heapPct, int *wmPct)
 	CHKVOID(vdb);
 	*heapPct = vdb->heapMemProtectPercent;
 	*wmPct = vdb->wmMemProtectPercent;
+}
+
+int	ionSetRoutingStrategy(int strategy)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonVdb	*vdb = getIonVdb();
+	IonDB	iondb;
+	char	buffer[128];
+
+	if (strategy != IonRoutingShortestPbat && strategy != IonRoutingFair)
+	{
+		putErrmsg("Unknown routing strategy.", itoa(strategy));
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.routingStrategy = strategy;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set routing strategy.", NULL);
+		return -1;
+	}
+
+	vdb->routingStrategy = strategy;
+	isprintf(buffer, sizeof buffer, "[i] Routing strategy set: %s.",
+			strategy == IonRoutingFair ?
+				"fair-routing" : "shortest-pbat");
+	writeMemo(buffer);
+	return 0;
+}
+
+int	ionGetRoutingStrategy(void)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	if (vdb == NULL)
+	{
+		return IonRoutingShortestPbat;
+	}
+
+	return vdb->routingStrategy;
+}
+
+int	ionSetAllowRoutingDelayMsec(int msec)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonVdb	*vdb = getIonVdb();
+	IonDB	iondb;
+	char	buffer[128];
+
+	if (msec < 0)
+	{
+		msec = 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.allowRoutingDelayMsec = msec;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set allow-routing-delay.", NULL);
+		return -1;
+	}
+
+	vdb->allowRoutingDelayMsec = msec;
+	isprintf(buffer, sizeof buffer,
+			"[i] Allow-routing-delay set: %d ms.", msec);
+	writeMemo(buffer);
+	return 0;
+}
+
+int	ionGetAllowRoutingDelayMsec(void)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	if (vdb == NULL)
+	{
+		return ION_DEFAULT_ALLOW_ROUTING_DELAY_MSEC;
+	}
+
+	return vdb->allowRoutingDelayMsec;
 }
 
 int	ionHeapMemProtected(Sdr sdr)

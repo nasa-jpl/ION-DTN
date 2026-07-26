@@ -187,6 +187,8 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m memprotect <heapPercent> <wmPercent>");
+	PUTS("\t   m routing-strategy { shortest-pbat | fair-routing }");
+	PUTS("\t   m allow-routing-delay <msec>");
 	PUTS("\t   m usage");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
@@ -1219,6 +1221,55 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 	printText(buffer);
 }
 
+static void	manageRoutingStrategy(int tokenCount, char **tokens)
+{
+	int	strategy;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "shortest-pbat") == 0)
+	{
+		strategy = IonRoutingShortestPbat;
+	}
+	else if (strcmp(tokens[2], "fair-routing") == 0)
+	{
+		strategy = IonRoutingFair;
+	}
+	else
+	{
+		putErrmsg("Routing strategy must be 'shortest-pbat' or "
+				"'fair-routing'.", tokens[2]);
+		return;
+	}
+
+	oK(ionSetRoutingStrategy(strategy));
+}
+
+static void	manageAllowRoutingDelay(int tokenCount, char **tokens)
+{
+	int	msec;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	msec = atoi(tokens[2]);
+	if (msec < 0)
+	{
+		putErrmsg("Allow-routing-delay must be non-negative.",
+				tokens[2]);
+		return;
+	}
+
+	oK(ionSetAllowRoutingDelayMsec(msec));
+}
+
 static void	manageMemProtect(int tokenCount, char **tokens)
 {
 	int	heapPct;
@@ -1332,6 +1383,18 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "memprotect") == 0)
 	{
 		manageMemProtect(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "routing-strategy") == 0)
+	{
+		manageRoutingStrategy(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "allow-routing-delay") == 0)
+	{
+		manageAllowRoutingDelay(tokenCount, tokens);
 		return;
 	}
 
