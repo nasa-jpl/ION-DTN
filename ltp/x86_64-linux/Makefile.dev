@@ -11,7 +11,7 @@ ICI_LIB = ../../ici/x86_64-linux/lib
 
 # OPT = -O -D__linux__
 OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(API)/ext -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -127,8 +127,8 @@ xlso.o:		$(XLSA)/xlso.c
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltp.so:	libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
-		$(LD) -o libltp.so libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
+libltp.so:	libltp.o libltpP.o ltpsec.o ltpei.o libltpnm.o libsda.o
+		$(LD) -o libltp.so libltp.o libltpP.o ltpsec.o ltpei.o libltpnm.o libsda.o
 		cp libltp.so ./lib
 
 libxlsa.so:	libxlsa.o xport_shm.o libltp.so
@@ -144,9 +144,6 @@ xport_shm.o:	$(XLSA)/xport_shm.c
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
-		$(CC) -c $<
-
-%.o:		$(API)/ext/auth/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c
