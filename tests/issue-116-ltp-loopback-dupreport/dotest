@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for issue #116: duplicate TTL-expiry deletion status reports.
+#
+# On a single node running LTP as a loopback convergence layer, a locally
+# sourced bundle is dequeued for transmission with convergence-layer
+# stewardship accepted (LTP is a reliable CLA), so the sender copy is retained
+# pending an LTP transmission-success notice.  Because the CLA loops back to
+# this same node, a second (received) copy of the same bundle is acquired and
+# catalogued while the sender copy is still retained; the two copies share the
+# same bundle-ID hash key, which zeroes BundleSet.bundleObj.  Before the fix,
+# the LTP success notice could no longer locate the retained sender copy
+# (findBundle returned bundleObj == 0), so that copy was never destroyed and
+# survived to TTL expiry -- at which point it emitted a SECOND deletion status
+# report (SrLifetimeExpired) in addition to the legitimate one produced when
+# the received copy was abandoned (SrNoKnownRoute).
+#
+# The bundle is addressed to ipn:1.2, a locally-owned but UNREGISTERED
+# endpoint, so the received copy is abandoned "no route to destination"; the
+# report-to endpoint is ipn:1.3.  We send TRIALS bundles and require exactly
+# TRIALS deletion reports total (one per bundle).  Any TTL-expiry ("TTL
+# expired") deletion report is a regression.
+#
+# NOTE: this bug only manifests under single-node loopback LTP (one SDR, one
+# bundles hash).  A multi-node topology keeps the sender and received copies in
+# separate SDRs, so it cannot reproduce this defect -- hence a loopback config.
+
+CONFIGFILES=" \
+./loopback.ionrc \
+./loopback.ionsecrc \
+./loopback.ltprc \
+./loopback.bprc \
+./loopback.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that a TTL-expiry deletion status report is not emitted"
+echo "         twice for a single bundle under loopback LTP (issue #116)."
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+# Number of bundles to send.  The defect is racy (~50% per send before the
+# fix), so several trials are used to make a regression very likely to show.
+TRIALS=12
+TTL=5
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+ionadmin loopback.ionrc
+sleep 1
+ionadmin loopback.ionrc
+sleep 1
+ionsecadmin loopback.ionsecrc
+sleep 1
+ltpadmin loopback.ltprc
+sleep 1
+bpadmin loopback.bprc
+sleep 1
+ipnadmin loopback.ipnrc
+sleep 2
+
+# Confirm BP came up.
+if ! ps -eo comm | grep -q bpclock
+then
+    echo "ERROR: BP daemons did not start."
+    exit 1
+fi
+
+echo "Starting deletion-report listener on ipn:1.3 ..."
+: > listen.out
+bptrace -listen ipn:1.3 > listen.out 2>&1 &
+LISTEN_PID=$!
+sleep 1
+
+echo "Sending $TRIALS traced bundles (ttl $TTL, deletion report) to the"
+echo "locally-owned but unregistered endpoint ipn:1.2 ..."
+for i in $(seq 1 $TRIALS)
+do
+    bptrace -v -ttl $TTL -flags del -msg "expiry-test-$i" \
+            ipn:1.1 ipn:1.2 ipn:1.3 >/dev/null 2>&1
+    # Space the sends out past the TTL so each bundle's reports land in a
+    # distinct window; keeps the accounting simple and deterministic.
+    sleep $((TTL + 2))
+done
+
+# Give the last bundle's TTL time to expire (if the bug were present, the
+# spurious TTL report would arrive up to TTL seconds after the send).
+sleep $((TTL + 3))
+
+kill $LISTEN_PID >/dev/null 2>&1
+
+echo
+echo "Listener output:"
+echo "----------------"
+cat listen.out
+echo "----------------"
+
+# Count deletion reports.  Each "del at ... '<reason>'." line is one report.
+DEL_TOTAL=$(grep -c "del at " listen.out)
+DEL_TTL=$(grep "del at " listen.out | grep -c "TTL expired")
+DEL_NOROUTE=$(grep "del at " listen.out | grep -c "no route to destination")
+
+echo
+echo "Deletion reports received:  total=$DEL_TOTAL  (no-route=$DEL_NOROUTE  ttl-expired=$DEL_TTL)"
+echo "Expected exactly $TRIALS deletion reports (one 'no route to destination' per bundle)."
+
+RETVAL=0
+
+if [ "$DEL_TTL" -ne 0 ]
+then
+    echo "FAILURE: $DEL_TTL spurious TTL-expiry deletion report(s) observed."
+    echo "         The stewardship-retained sender copy was not released on"
+    echo "         convergence-layer success and leaked to TTL (issue #116)."
+    RETVAL=1
+fi
+
+if [ "$DEL_TOTAL" -ne "$TRIALS" ]
+then
+    echo "FAILURE: expected $TRIALS deletion reports, got $DEL_TOTAL."
+    RETVAL=1
+fi
+
+if [ "$RETVAL" -eq 0 ]
+then
+    echo "SUCCESS: exactly one deletion report per bundle; no duplicates."
+fi
+
+echo "Stopping ION..."
+ionstop
+
+exit $RETVAL

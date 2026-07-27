@@ -1,0 +1,1 @@
+Regression test for issue #116: verify that a bundle requesting a deletion status report which expires undelivered under loopback LTP produces exactly one deletion report, not two (no spurious TTL-expiry report from a stewardship-retained sender copy that leaked because a same-key received copy made its bundle-ID hash key ambiguous).

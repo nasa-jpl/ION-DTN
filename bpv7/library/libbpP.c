@@ -3127,6 +3127,19 @@ incomplete bundle.", NULL);
 				bundle.hashEntry);
 		sdr_stage(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
 		bset.count--;
+
+		/*	If this was the steward copy of the key, clear the
+		 *	steward pointer so no later transmission notice can
+		 *	resolve to this freed object.  (General restoration of
+		 *	bset.bundleObj when count returns to 1 is deliberately
+		 *	not attempted here; it is not needed for stewardship
+		 *	resolution.)					*/
+
+		if (bset.stewardObj == bundleObj)
+		{
+			bset.stewardObj = 0;
+		}
+
 		if (bset.count == 0)
 		{
 			sdr_hash_delete_entry(sdr, bundle.hashEntry);
@@ -3307,6 +3320,58 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 	default:
 		sdr_read(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
 		*bundleAddr = bset.bundleObj;
+		return bset.count;
+	}
+}
+
+static int	findBundleForSteward(char *sourceEid, BpTimestamp *creationTime,
+			unsigned int fragmentOffset, unsigned int fragmentLength,
+			Object *bundleAddr)
+{
+	Sdr		sdr = getIonsdr();
+	char		key[BUNDLES_HASH_KEY_BUFLEN];
+	Address		bsetObj;
+	Object		hashElt;
+	BundleSet	bset;
+
+	/*	Like findBundle(), but when the bundle-ID key is non-unique
+	 *	(count > 1, so bset.bundleObj has been zeroed) this falls
+	 *	back to bset.stewardObj -- the one copy, if any, that was
+	 *	dequeued with convergence-layer stewardship accepted.  Used
+	 *	only by the stewardship-resolution path so that an LTP (or
+	 *	other reliable CLA) transmission notice can still locate the
+	 *	retained bundle object even after a same-key copy has made
+	 *	the key ambiguous.  The public findBundle() keeps its
+	 *	original contract (ambiguous key -> 0).			*/
+
+	CHKERR(sourceEid && creationTime && bundleAddr);
+	*bundleAddr = 0;	/*	Default: not found.		*/
+	CHKERR(ionLocked());
+	if (constructBundleHashKey(key, sourceEid, creationTime->msec,
+			creationTime->count, fragmentOffset, fragmentLength)
+			> BUNDLES_HASH_KEY_LEN)
+	{
+		return 0;	/*	Can't be in hash table.		*/
+	}
+
+	switch (sdr_hash_retrieve(sdr, (_bpConstants())->bundles, key,
+			&bsetObj, &hashElt))
+	{
+	case -1:
+		putErrmsg("Failed locating bundle in hash table.", NULL);
+		return -1;
+
+	case 0:
+		return 0;	/*	No such entry in hash table.	*/
+
+	default:
+		sdr_read(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
+		*bundleAddr = bset.bundleObj;
+		if (*bundleAddr == 0 && bset.stewardObj != 0)
+		{
+			*bundleAddr = bset.stewardObj;
+		}
+
 		return bset.count;
 	}
 }
@@ -5891,6 +5956,17 @@ cannot be retrieved by key", bundleKey);
 		sdr_stage(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
 		bset.bundleObj = 0;
 		bset.count++;
+
+		/*	Note: we deliberately do NOT touch bset.stewardObj
+		 *	here.  If an earlier copy of this bundle was dequeued
+		 *	with stewardship accepted (e.g. the sender copy on an
+		 *	LTP loopback), bset.stewardObj points at that copy so
+		 *	that its convergence-layer transmission-success/failure
+		 *	notice can still resolve to a bundle object even though
+		 *	the ambiguous key has zeroed bset.bundleObj.  Wiping it
+		 *	when this second copy arrives would strand the steward
+		 *	copy until TTL expiry.				*/
+
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
 		break;
@@ -5906,6 +5982,7 @@ cannot be retrieved by key", bundleKey);
 
 		bset.bundleObj = bundleObj;
 		bset.count = 1;
+		bset.stewardObj = 0;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		if (sdr_hash_insert(sdr, bundles, bundleKey, bsetObj,
 				&(bundle->hashEntry)) < 0)
@@ -12617,6 +12694,32 @@ bundle.", NULL);
 		stewardshipAccepted = 0;
 	}
 
+	/*	If stewardship is definitively accepted for this bundle
+	 *	then, at this instant, its bundle-ID key is unique
+	 *	(the checks above declined stewardship for any ambiguous,
+	 *	anonymous or critical bundle).  Record this object as the
+	 *	steward copy of the key so that, should a same-key copy be
+	 *	catalogued later (e.g. the received copy on an LTP loopback)
+	 *	and zero bset.bundleObj, the transmission-success/failure
+	 *	notice can still resolve back to this retained object via
+	 *	findBundleForSteward() rather than leaking it to TTL.	*/
+
+	if (stewardshipAccepted && bundle.hashEntry)
+	{
+		Object	stewardBsetObj;
+
+		stewardBsetObj = sdr_hash_entry_value(sdr,
+				(_bpConstants())->bundles, bundle.hashEntry);
+		sdr_stage(sdr, (char *) &bset, stewardBsetObj,
+				sizeof(BundleSet));
+		if (bset.bundleObj == bundleObj)
+		{
+			bset.stewardObj = bundleObj;
+			sdr_write(sdr, stewardBsetObj, (char *) &bset,
+					sizeof(BundleSet));
+		}
+	}
+
 	/*	Note that when stewardship is not accepted, the bundle
 	 *	is subject to destruction immediately.
 	 *
@@ -13058,9 +13161,14 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 		return -1;
 	}
 
-	/*	Now use this bundle ID to retrieve the bundle.		*/
+	/*	Now use this bundle ID to retrieve the bundle.  We use
+	 *	findBundleForSteward() rather than findBundle() so that a
+	 *	bundle whose key became non-unique after stewardship was
+	 *	accepted (e.g. an LTP loopback sender copy) can still be
+	 *	located via bset.stewardObj and destroyed/reforwarded on
+	 *	the transmission notice.				*/
 
-	result = findBundle(sourceEid, &image.id.creationTime,
+	result = findBundleForSteward(sourceEid, &image.id.creationTime,
 			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
 			: image.payload.length, bundleObj);
 	MRELEASE(sourceEid);

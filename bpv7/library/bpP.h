@@ -672,6 +672,7 @@ typedef struct
 {
 	Object		bundleObj;	/*	0 if count > 1.		*/
 	unsigned int	count;
+	Object		stewardObj;	/*	Steward copy if count > 1.	*/
 } BundleSet;
 
 typedef struct
