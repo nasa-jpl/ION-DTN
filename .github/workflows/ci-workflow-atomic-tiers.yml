@@ -375,11 +375,8 @@ jobs:
 
   # --------------------------------------------------------------------------
   # arm64-linux-tiers: single job that runs on the shared Mac ARM64 runner.
-  # Iterates the selected tiers serially in an arm64 Linux Docker container
-  # that bind-mounts the checked-out ION source from the Mac host.  We use a
-  # shell loop rather than a matrix because only one physical Mac host is
-  # available, so matrix-level parallelism buys nothing and adds scheduling
-  # overhead.
+  # Iterates the selected tiers serially in an arm64 Linux container
+  # that bind-mounts the checked-out ION source from the Mac host.
   # --------------------------------------------------------------------------
   arm64-linux-tiers:
     needs: setup
@@ -416,58 +413,26 @@ jobs:
           uname -a
           sw_vers || true
           df -h . || true
-          docker version || { echo "Docker not running on host"; exit 1; }
-          docker info --format '{{.ServerVersion}}' || true
 
-      - name: Docker state hygiene
+          # Start the container system service (required for Apple's container CLI)
+          container system start || true
+
+          container --version || { echo "Container tool not running on host"; exit 1; }
+
+      - name: Container state hygiene
         run: |
           # Force-remove any still-running containers left behind by a
-          # previous run of this workflow (e.g. a cancelled job on this
-          # self-hosted runner).  `docker run --rm` only removes the
-          # container when the docker CLI client exits cleanly; on
-          # cancellation the client is SIGKILLed and the container
-          # keeps running, holding the bind-mount and consuming VM
-          # resources, which can cause later runs to hang.
-          LEFTOVER=$(docker ps -aq --filter label=ion-ci=atomic-tier)
+          # previous run of this workflow. Since --filter is unsupported,
+          # we grep the output for our predictable container naming convention.
+          LEFTOVER=$(container ls -a | grep "ion-atomic-tier" | awk '{print $1}' || true)
           if [ -n "$LEFTOVER" ]; then
             echo "Removing leftover containers from prior runs:"
-            docker ps -a --filter label=ion-ci=atomic-tier \
-              --format 'table {{.ID}}\t{{.Status}}\t{{.Labels}}' || true
-            docker rm -f $LEFTOVER || true
+            echo "$LEFTOVER" | xargs -n 1 container rm -f || true
           else
-            echo "No leftover ion-ci=atomic-tier containers."
+            echo "No leftover ion-atomic-tier containers."
           fi
 
-          # Reap orphaned containers, dangling volumes, networks.
-          # Do NOT prune images - re-pulling ubuntu:22.04 every run is wasteful.
-          docker system prune -f --volumes || true
-
-      - name: Bypass macOS keychain for Docker
-        run: |
-          # The macOS keychain is locked in non-interactive CI sessions,
-          # causing Docker commands to fail with "keychain cannot be accessed".
-          # Docker Desktop on macOS has a compiled-in default that tries
-          # osxkeychain even when config.json has no credsStore key.
-          # Setting credsStore to "" explicitly disables all credential helpers.
-          DOCKER_CFG="${RUNNER_TEMP}/docker-ci-cfg"
-          mkdir -p "$DOCKER_CFG"
-          echo '{"credsStore":""}' > "${DOCKER_CFG}/config.json"
-          echo "DOCKER_CONFIG=${DOCKER_CFG}" >> "$GITHUB_ENV"
-
-      - name: Verify ubuntu:22.04 arm64 image exists locally
-        run: |
-          # Skip docker pull to avoid macOS keychain issues in non-interactive
-          # CI sessions.  The image must be pre-pulled on the host manually:
-          #   docker pull --platform=linux/arm64 ubuntu:22.04
-          if docker image inspect ubuntu:22.04 >/dev/null 2>&1; then
-            echo "ubuntu:22.04 image found locally."
-            docker image inspect ubuntu:22.04 --format '{{.Architecture}} {{.Os}} {{.Size}}' || true
-          else
-            echo "::error::ubuntu:22.04 arm64 image not found locally. Pre-pull it on the Mac host: docker pull --platform=linux/arm64 ubuntu:22.04"
-            exit 1
-          fi
-
-      - name: Generate
+      - name: Generate timestamp
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
@@ -517,35 +482,22 @@ jobs:
             LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
 
             set +e
-            # Do NOT pipe docker's stdout (e.g. `| tee`).  Piping makes
-            # Docker's client-side stdout a pipe, which triggers 64 KB
-            # block buffering and hides all progress in the Actions UI
-            # until the buffer fills.  Instead, let Docker write directly
-            # to the console (line-buffered), and have the container tee
-            # its own output to a log file on the bind mount.
-            # Labels allow the hygiene step (start) and force-cleanup
-            # step (end, if: always) to find and reap this container
-            # across workflow runs — `--rm` alone is unreliable on
-            # cancellation because it is client-side.
-            docker run --rm --pull=never --init \
+            # Use Apple's container CLI to run the container natively on macOS
+            container run --rm \
               --name "ion-atomic-tier-${GITHUB_RUN_ID}-${TIER}" \
               --label ion-ci=atomic-tier \
               --label ion-ci-run="${GITHUB_RUN_ID}" \
               --label ion-ci-tier="${TIER}" \
-              --platform=linux/arm64 \
-              -e TIER_CFLAGS="$CF" \
-              -e TIER_AC_CV_C11="$ACC11" \
-              -e TEST_SCOPE="$TEST_SCOPE" \
-              -e SMOKE_SUBSET="$SMOKE_SUBSET" \
-              -e LOGFILE="/src/arm64-logs/tier-${TIER}-build-and-test.log" \
-              -e HOST_USER="$USER" \
+              --env TIER_CFLAGS="$CF" \
+              --env TIER_AC_CV_C11="$ACC11" \
+              --env TEST_SCOPE="$TEST_SCOPE" \
+              --env SMOKE_SUBSET="$SMOKE_SUBSET" \
+              --env LOGFILE="/src/arm64-logs/tier-${TIER}-build-and-test.log" \
               -v "$GITHUB_WORKSPACE:/src" \
               -w /src \
               ubuntu:22.04 \
               bash -c '
                 set -e
-                # Tee all output to both the console (→ Actions UI) and
-                # a log file on the bind mount for artifact upload.
                 exec > >(tee -a "$LOGFILE") 2>&1
 
                 progress() { echo ""; echo ">>> [$(date +%H:%M:%S)] $*"; echo ""; }
@@ -559,56 +511,38 @@ jobs:
                 echo "Compiler:"
                 gcc --version | head -1
 
-                progress "Creating non-root user $HOST_USER with passwordless sudo"
-                useradd -m -s /bin/bash "$HOST_USER"
-                echo "$HOST_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$HOST_USER"
-                chmod 0440 /etc/sudoers.d/"$HOST_USER"
-                # Skip .git — VirtioFS denies chown on host-owned pack files,
-                # and the build never needs .git anyway.
-                find /src -path /src/.git -prune -o -print0 | xargs -0 chown "$HOST_USER":"$HOST_USER"
+                progress "Running autoreconf"
+                autoreconf -fi
 
-                # Switch to non-root user for remaining steps
-                su - "$HOST_USER" -c "
-                  set -e
-                  cd /src
-                  export TIER_CFLAGS=\"$TIER_CFLAGS\"
-                  export TIER_AC_CV_C11=\"$TIER_AC_CV_C11\"
-                  export TEST_SCOPE=\"$TEST_SCOPE\"
-                  export SMOKE_SUBSET=\"$SMOKE_SUBSET\"
-                  export ION_RUN_EXPERT=yes
+                progress "Running configure with ac_cv_c11=$TIER_AC_CV_C11 CFLAGS=$TIER_CFLAGS"
+                ./configure ac_cv_c11="$TIER_AC_CV_C11" \
+                    --enable-bpsec-debugging \
+                    --disable-silent-rules \
+                    --disable-dependency-tracking \
+                    CFLAGS="$TIER_CFLAGS"
 
-                  progress() { echo \"\"; echo \">>> [\$(date +%H:%M:%S)] \$*\"; echo \"\"; }
+                progress "Building ION (make -j$(nproc) all buildcheck)"
+                export ION_RUN_EXPERT=yes
+                make -j"$(nproc)" all buildcheck > /dev/null
 
-                  progress \"Running autoreconf\"
-                  autoreconf -fi
+                progress "Installing ION"
+                make install > /dev/null
+                ldconfig
 
-                  progress \"Running configure with ac_cv_c11=\$TIER_AC_CV_C11 CFLAGS=\$TIER_CFLAGS\"
-                  ./configure ac_cv_c11=\"\$TIER_AC_CV_C11\" \
-                      --enable-bpsec-debugging \
-                      --disable-silent-rules \
-                      CFLAGS=\"\$TIER_CFLAGS\"
-
-                  progress \"Building ION (make -j\$(nproc) all buildcheck)\"
-                  make -j\"\$(nproc)\" all buildcheck > /dev/null
-
-                  progress \"Installing ION\"
-                  sudo make install > /dev/null
-                  sudo ldconfig
-
-                  progress \"Starting regression tests (scope: \$TEST_SCOPE)\"
-                  cd tests
-                  export RUNTESTS_OUTPUTDIR=/src/arm64-logs
-                  mkdir -p \"\$RUNTESTS_OUTPUTDIR\"
-                  if [ \"\$TEST_SCOPE\" = \"smoke\" ]; then
-                    echo \"Smoke subset: \$SMOKE_SUBSET\"
-                    ./runtests \$SMOKE_SUBSET
-                  else
-                    echo \"Running full regression suite\"
-                    ./runtests
-                  fi
-                  progress \"Tests complete\"
-                "
+                progress "Starting regression tests (scope: $TEST_SCOPE)"
+                cd tests
+                export RUNTESTS_OUTPUTDIR=/src/arm64-logs
+                mkdir -p "$RUNTESTS_OUTPUTDIR"
+                if [ "$TEST_SCOPE" = "smoke" ]; then
+                  echo "Smoke subset: $SMOKE_SUBSET"
+                  ./runtests $SMOKE_SUBSET
+                else
+                  echo "Running full regression suite"
+                  ./runtests
+                fi
+                progress "Tests complete"
               '
+
             TIER_STATUS=$?
             set -e
 
@@ -621,23 +555,18 @@ jobs:
               OVERALL_STATUS=1
             fi
 
-            # Parse tests/progress (left behind by the container on the bind mount)
             FAILED_TESTS=$(awk '/^failed: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
             [ -z "$FAILED_TESTS" ] && FAILED_TESTS="-"
             SKIPPED_TESTS=$(awk '/^skipped: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
             [ -z "$SKIPPED_TESTS" ] && SKIPPED_TESTS="-"
 
-            echo "| arm64-linux-docker | $TIER | - | $ICON $RESULT | $FAILED_TESTS | $SKIPPED_TESTS |" \
+            echo "| arm64-linux-native-container | $TIER | - | $ICON $RESULT | $FAILED_TESTS | $SKIPPED_TESTS |" \
                 > "arm64-status/arm64-${TIER}.txt"
 
-            # Preserve tests/progress for this tier before the next tier overwrites it
             if [ -f ./tests/progress ]; then
               cp ./tests/progress "arm64-logs/tier-${TIER}-progress.txt"
             fi
 
-            # Collect any ion-system.log files from timed-out or failed tests.
-            # Search from repo root so demos/ and tutorials/ tests (run via
-            # ../demos/foo from tests/) are included, not just tests/foo.
             find . -path ./.git -prune -o -path ./external -prune \
                    -o -path ./arm64-logs -prune -o -path ./arm64-status -prune \
                    -o -name "ion-system.log" -type f -print | while IFS= read -r diag; do
@@ -646,7 +575,6 @@ jobs:
               cp "$diag" "arm64-logs/tier-${TIER}-${unique_name}-ion-system.log"
             done
 
-            # Between-tier cleanup: remove any ion_nodes tracking, wipe staging
             rm -f ./tests/ion_nodes || true
           done
 
@@ -673,16 +601,13 @@ jobs:
       - name: Force-remove this run's containers
         if: ${{ always() }}
         run: |
-          # Must run before Workspace cleanup: a still-running container
-          # holds the bind-mount open, which blocks the rm -rf below.
-          OURS=$(docker ps -aq --filter label=ion-ci-run="${GITHUB_RUN_ID}")
+          # Grep specifically for this GITHUB_RUN_ID
+          OURS=$(container ls -a | grep "ion-atomic-tier-${GITHUB_RUN_ID}" | awk '{print $1}' || true)
           if [ -n "$OURS" ]; then
             echo "Force-removing this run's containers:"
-            docker ps -a --filter label=ion-ci-run="${GITHUB_RUN_ID}" \
-              --format 'table {{.ID}}\t{{.Status}}\t{{.Names}}' || true
-            docker rm -f $OURS || true
+            echo "$OURS" | xargs -n 1 container rm -f || true
           else
-            echo "No ion-ci-run=${GITHUB_RUN_ID} containers to remove."
+            echo "No containers to remove for this run."
           fi
 
       - name: Workspace cleanup
