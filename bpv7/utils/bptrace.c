@@ -67,6 +67,13 @@ static statusReport **reports = NULL;
 
 static BptestState state = { NULL, 1 };
 
+/*	Set from the signal handler to request a clean stop.  Writing a
+ *	volatile sig_atomic_t is async-signal-safe; the receive loops poll
+ *	it at a transaction boundary and unwind normally (releasing the SDR
+ *	transaction lock and any nested PSM locks) instead of tearing the
+ *	process down from signal context while a transaction is open.	*/
+static volatile sig_atomic_t stopRequested = 0;
+
 const size_t datelen = 32;//strlen("YYYY-MM-DDThh:mm:ss.sss")+1 + 8; // 8 is purely for safety
 
 char* dtnTimeToDate(uvast time){
@@ -184,11 +191,13 @@ void print_reports(void) {
 
 
 void sighandler(int signum) {
-	printDBG(3, "signal number: %d\n", signum);
-	print_reports();
-	bp_close(state.sap);
-	bp_detach();
-	exit(signum);
+	/*	Async-signal-safe: only request a stop.  The receive loops
+	 *	poll stopRequested at a transaction boundary and then unwind
+	 *	through their normal cleanup (print_reports/bp_close/bp_detach),
+	 *	so no SDR transaction lock or nested PSM lock is ever orphaned
+	 *	by tearing the process down mid-transaction from here.	*/
+	(void) signum;
+	stopRequested = 1;
 }
 #endif
 
@@ -720,6 +729,7 @@ static int run_listen_bptrace(char *listenEid)
 {
 	signal(SIGABRT, sighandler);
 	signal(SIGINT, sighandler);
+	signal(SIGTERM, sighandler);
 	reports = (statusReport **)malloc(sizeof(statusReport)*128);
 
 	printDBG(1, "running listen-only mode\n");
@@ -757,7 +767,7 @@ static int run_listen_bptrace(char *listenEid)
 	fflush(stdout);
 
 	/* Listen indefinitely until interrupted or 128 reports received */
-	while(state.running && n_rpts < 128){
+	while(state.running && !stopRequested && n_rpts < 128){
 		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
 		{
 			printf("Bundle reception failed, continuing\n");
@@ -772,8 +782,13 @@ static int run_listen_bptrace(char *listenEid)
 			case BpEndpointStopped:
 				printf("endpoint has been stopped\n");
 				state.running = 0;
-				/*	Intentional fall-through to default.	*/
+				continue;	/*	Loop exits below.	*/
 			default:
+				/*	Nothing ready in non-blocking mode:
+				 *	yield briefly instead of spinning, so
+				 *	we are not repeatedly taking and
+				 *	releasing the SDR transaction lock.	*/
+				microsnooze(10000);
 				continue;
 		}
 
@@ -962,6 +977,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			int rtt, uvast seqId){
 	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
 	signal(SIGINT, sighandler);
+	signal(SIGTERM, sighandler);
 	reports = (statusReport **)malloc(sizeof(statusReport)*128); // allow storage of up to 128 reports.
 
 	printDBG(1, "running new code for terminal summary\n");
@@ -1012,7 +1028,8 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
 
-	while(state.running && curTime.tv_sec < timeoutTime.tv_sec && n_rpts < 128){
+	while(state.running && !stopRequested
+			&& curTime.tv_sec < timeoutTime.tv_sec && n_rpts < 128){
 		getCurrentTime(&curTime); // update the current time
 		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
 		{
@@ -1028,8 +1045,11 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		case BpEndpointStopped:
 			printf("endpoint has been stopped\n");
 			state.running = 0;
-			/*	Intentional fall-through to default.	*/
+			continue;	/*	Loop exits below.	*/
 		default:
+			/*	Nothing ready in non-blocking mode: yield
+			 *	briefly instead of spinning on the SDR lock.	*/
+			microsnooze(10000);
 			continue;
 		}
 
