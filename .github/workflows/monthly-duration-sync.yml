@@ -116,6 +116,8 @@ jobs:
   build:
     needs: setup
     runs-on: arc-runner-set-u22
+    env:
+      REASON: ${{ inputs.reason }}
 
     steps:
       - name: Checkout Code
@@ -256,6 +258,8 @@ jobs:
     name: "Merge Duration Files and Create PR"
     needs: [setup, build, benchmark]
     runs-on: arc-runner-set-u22
+    env:
+      REASON: ${{ inputs.reason }}
     if: ${{ always() }}
 
     steps:
@@ -336,7 +340,7 @@ jobs:
 
             This PR contains the monthly regeneration of all `.DURATION` files for ION tests and demos.
 
-            **Triggered:** ${{ github.event_name == 'schedule' && 'Automated monthly cron' || format('Manual trigger: {0}', inputs.reason) }}
+            **Triggered:** ${{ github.event_name == 'schedule' && 'Automated monthly cron' || format('Manual trigger: {0}', env.REASON) }}
             **Timestamp:** ${{ needs.setup.outputs.timestamp }}
             **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -366,7 +370,7 @@ jobs:
           echo "## 📊 Monthly Duration Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** ${{ needs.setup.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger:** ${{ github.event_name == 'schedule' && '⏰ Automated monthly cron' || format('👤 Manual trigger: {0}', inputs.reason) }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name == 'schedule' && '⏰ Automated monthly cron' || format('👤 Manual trigger: {0}', env.REASON) }}" >> $GITHUB_STEP_SUMMARY
           echo "**Parallel Batches:** ${{ needs.setup.outputs.num_batches }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 

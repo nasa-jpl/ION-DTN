@@ -397,12 +397,15 @@ jobs:
 
       - name: Run tests
         id: tests
+        env:
+          ENV_VARS: ${{ inputs.env_vars }}
+          RETEST: ${{ inputs.enable_retest }}
         run: |
-          CONSTRUCTED_ENV_VARS="${{ inputs.env_vars }}"
+          CONSTRUCTED_ENV_VARS="${{ env.ENV_VARS }}"
           if echo "$CONSTRUCTED_ENV_VARS" | grep -qE '(^|[[:space:]])ENABLE_RETEST='; then
             echo "ENABLE_RETEST already set in env_vars, honoring explicit value"
           else
-            if [ "${{ inputs.enable_retest }}" = "true" ]; then
+            if [ "${{ env.RETEST }}" = "true" ]; then
               CONSTRUCTED_ENV_VARS="ENABLE_RETEST=1 $CONSTRUCTED_ENV_VARS"
             else
               CONSTRUCTED_ENV_VARS="ENABLE_RETEST=0 $CONSTRUCTED_ENV_VARS"

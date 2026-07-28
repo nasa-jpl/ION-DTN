@@ -173,14 +173,21 @@ jobs:
 
       - name: Build Runner Matrix
         id: build-runners
+        env:
+          U22: ${{ inputs.runner_u22 }}
+          U24: ${{ inputs.runner_u24 }}
+          OL8: ${{ inputs.runner_ol8 }}
+          OL9: ${{ inputs.runner_ol9 }}
+          RHEL8: ${{ inputs.runner_rhel8 }}
+          RHEL9: ${{ inputs.runner_rhel9 }}
         run: |
           RUNNERS=$(./.github/scripts/build-runner-matrix.sh \
-          --ubuntu_22=${{ inputs.runner_u22 }} \
-          --ubuntu_24=${{ inputs.runner_u24 }} \
-            --oracle_linux_8=${{ inputs.runner_ol8 }} \
-            --oracle_linux_9=${{ inputs.runner_ol9 }} \
-            --rhel_8=${{ inputs.runner_rhel8 }} \
-            --rhel_9=${{ inputs.runner_rhel9 }})
+          --ubuntu_22=$U22 \
+          --ubuntu_24=$U24 \
+            --oracle_linux_8=$OL8 \
+            --oracle_linux_9=$OL9 \
+            --rhel_8=$RHEL8 \
+            --rhel_9=$RHEL9)
 
           # Map short names (u22, u24, etc.) to full runner names (arc-runner-set-u22, etc.)
           FULL_RUNNERS=$(echo "$RUNNERS" | jq -c 'map("arc-runner-set-" + .)')
@@ -343,6 +350,9 @@ jobs:
       - name: Install ION and run tests
         if: ${{ steps.cache-restore-1.outputs.cache-matched-key != '' || steps.cache-restore-2.outputs.cache-matched-key != '' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
+        env:
+          ENV_VARS: ${{ inputs.env_vars }}
+          RETEST: ${{ inputs.enable_retest }}
         run: |
           {
             echo "Starting test installation and execution at $(date)"
@@ -354,11 +364,11 @@ jobs:
             sudo ldconfig
             cd tests
             # Construct ENABLE_RETEST based on enable_retest input (unless already in env_vars)
-            CONSTRUCTED_ENV_VARS="${{ inputs.env_vars }}"
+            CONSTRUCTED_ENV_VARS="${{ env.ENV_VARS }}"
             if echo "$CONSTRUCTED_ENV_VARS" | grep -qE '(^|[[:space:]])ENABLE_RETEST='; then
               echo "ENABLE_RETEST already set in env_vars, honoring explicit value"
             else
-              if [ "${{ inputs.enable_retest }}" = "true" ]; then
+              if [ "${{ env.RETEST }}" = "true" ]; then
                 CONSTRUCTED_ENV_VARS="ENABLE_RETEST=1 $CONSTRUCTED_ENV_VARS"
               else
                 CONSTRUCTED_ENV_VARS="ENABLE_RETEST=0 $CONSTRUCTED_ENV_VARS"

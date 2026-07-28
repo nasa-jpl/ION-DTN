@@ -9,22 +9,22 @@ permissions:
 on:
   pull_request:
     paths:
-      - '**.dev'
-      - '**/Makefile.dev'
-      - 'enable_manual_build.sh'
-      - '**.c'
-      - '**.h'
-      - '.github/workflows/dev-makefile-build.yml'
+      - "**.dev"
+      - "**/Makefile.dev"
+      - "enable_manual_build.sh"
+      - "**.c"
+      - "**.h"
+      - ".github/workflows/dev-makefile-build.yml"
 
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to test (leave empty to use current branch)'
+        description: "PR number to test (leave empty to use current branch)"
         required: false
         type: string
         default: ""
       ref:
-        description: 'Git ref to checkout (branch/tag/commit, leave empty for default)'
+        description: "Git ref to checkout (branch/tag/commit, leave empty for default)"
         required: false
         type: string
         default: ""
@@ -38,14 +38,17 @@ jobs:
     steps:
       - name: Determine checkout ref
         id: determine-ref
+        env:
+          PR: ${{ inputs.pr_number }}
+          REF: ${{ inputs.ref }}
         run: |
-          if [ -n "${{ inputs.pr_number }}" ]; then
-            echo "Fetching PR #${{ inputs.pr_number }}"
-            echo "ref=refs/pull/${{ inputs.pr_number }}/merge" >> $GITHUB_OUTPUT
-            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
-          elif [ -n "${{ inputs.ref }}" ]; then
-            echo "Using provided ref: ${{ inputs.ref }}"
-            echo "ref=${{ inputs.ref }}" >> $GITHUB_OUTPUT
+          if [ -n "${{ env.PR }}" ]; then
+            echo "Fetching PR #${{ env.PR }}"
+            echo "ref=refs/pull/${{ env.PR }}/merge" >> $GITHUB_OUTPUT
+            echo "pr_number=${{ env.PR }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ env.REF}}" ]; then
+            echo "Using provided ref: ${{ env.REF}}"
+            echo "ref=${{ env.REF}}" >> $GITHUB_OUTPUT
             echo "pr_number=" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Using PR merge ref"

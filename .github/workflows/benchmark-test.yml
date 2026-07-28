@@ -111,6 +111,9 @@ jobs:
 
       - name: Install and run benchmark
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        env:
+          TESTS_TO_RUN: ${{ inputs.tests_to_run }}
+          FORCE_UPDATE: ${{ inputs.force_update }}
         run: |
           {
             echo "Starting test installation and execution at $(date)"
@@ -122,15 +125,15 @@ jobs:
             sudo make install
             sudo ldconfig
 
-            if [ -n "${{ inputs.tests_to_run }}" ]; then
-              if [ "${{ inputs.force_update }}" == "true" ]; then
-                echo "Force updating benchmarks for: ${{ inputs.tests_to_run }}"
-                ./tests/benchmark.py -p ${{ inputs.tests_to_run }} -f
+            if [ -n "$TESTS_TO_RUN" ]; then
+              if [ "$FORCE_UPDATE" == "true" ]; then
+                echo "Force updating benchmarks for: $TESTS_TO_RUN"
+                ./tests/benchmark.py -p $TESTS_TO_RUN -f
               else
-                ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+                ./tests/benchmark.py -p $TESTS_TO_RUN
               fi
             else
-              if [ "${{ inputs.force_update }}" == "true" ]; then
+              if [ "$FORCE_UPDATE" == "true" ]; then
                 echo "⚠️ Warning: Force update ignored - only works when specific tests are provided via tests_to_run"
               fi
               ./tests/benchmark.py

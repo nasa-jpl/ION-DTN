@@ -87,6 +87,8 @@ jobs:
 
       - name: Run build and tests, capture stdout
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
+        env:
+          TESTS_TO_RUN: ${{ inputs.tests_to_run }}
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             echo "Starting build and tests at $(date)" &&
@@ -105,9 +107,9 @@ jobs:
             gmake buildcheck &&
             sudo ldconfig &&
             cd tests &&
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
-              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
-              ./runtests ${{ github.event.inputs.tests_to_run }}
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$TESTS_TO_RUN" ]; then
+              echo "Running specific tests: $TESTS_TO_RUN" &&
+              ./runtests ${{ env.TESTS_TO_RUN }}
             else
               echo "Running all tests" &&
               ./runtests

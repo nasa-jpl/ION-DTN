@@ -32,28 +32,33 @@ runs:
     - name: Generate base matrix
       id: generate
       shell: bash
+      env:
+        IS_SOLARIS: ${{ inputs.is_solaris }}
+        TESTS_TO_RUN: ${{ inputs.tests_to_run }}
+        RUNNERS: ${{ inputs.num_runners }}
+        OPTIONAL: ${{ inputs.exclude_optional }}
       run: |
         # Set the Solaris flag if applicable
         SOLARIS_FLAG=""
-        if [ "${{ inputs.is_solaris }}" == "true" ]; then
+        if [ "$IS_SOLARIS" == "true" ]; then
           SOLARIS_FLAG="-s"
         fi
 
         # Set the exclude-optional flag if applicable
         EXCLUDE_OPTIONAL_FLAG=""
-        if [ "${{ inputs.exclude_optional }}" == "true" ]; then
+        if [ "$OPTIONAL" == "true" ]; then
           EXCLUDE_OPTIONAL_FLAG="--exclude-optional"
         fi
 
         # Run the python script to get the base distribution
-        if [ -n "${{ inputs.tests_to_run }}" ]; then
-          TESTSET=$(python3 ./tests/git_matrix.py -r ${{ inputs.num_runners }} $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG -t ${{ inputs.tests_to_run }})
+        if [ -n "$TESTS_TO_RUN" ]; then
+          TESTSET=$(python3 ./tests/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG -t $TESTS_TO_RUN)
         else
-          TESTSET=$(python3 ./tests/git_matrix.py -r ${{ inputs.num_runners }} $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG)
+          TESTSET=$(python3 ./tests/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG)
         fi
 
         # Apply specific jq transformations based on the platform target
-        if [ "${{ inputs.is_solaris }}" == "true" ]; then
+        if [ "$IS_SOLARIS" == "true" ]; then
           MATRIX_JSON=$(echo "$TESTSET" | jq -c '
             [to_entries | .[] |
               {

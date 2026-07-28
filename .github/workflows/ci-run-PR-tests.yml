@@ -64,11 +64,13 @@ jobs:
 
       - name: Set final needs-tests
         id: final-needs-tests
+        env:
+          IS_DRAFT: ${{ github.event.pull_request.draft }}
         run: |
           NEEDS_TESTS="${{ steps.filter.outputs.relevant_changes }}"
 
           # Force tests to skip if the PR is currently marked as a draft
-          if [ "${{ github.event.pull_request.draft }}" == "true" ]; then
+          if [ "$IS_DRAFT" == "true" ]; then
             echo "Draft status detected. Forcing tests to skip."
             NEEDS_TESTS="false"
           fi
@@ -79,6 +81,7 @@ jobs:
         id: determine-tests
         env:
           GH_TOKEN: ${{ github.token }}
+          TESTS_TO_RUN: ${{ inputs.tests_to_run }}
         run: |
           TESTS=""
 
@@ -98,7 +101,7 @@ jobs:
           echo "Constructed ENABLE_RETEST: $ENABLE_RETEST_VALUE"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TESTS="${{ inputs.tests_to_run }}"
+            TESTS="${{ env.TESTS_TO_RUN }}"
             echo "Manual trigger detected. Tests to run: $TESTS"
 
           elif [ "$IS_TEST_MODS" == "true" ]; then

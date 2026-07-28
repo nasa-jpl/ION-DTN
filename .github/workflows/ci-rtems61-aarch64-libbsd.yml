@@ -55,6 +55,11 @@ on:
     branches:
       - integration
 
+env:
+  WORKSPACE: ${{ github.workspace }}
+  RUN_ID: ${{ github.run_id }}
+  PR_NUMBER: ${{ github.event.inputs.pr_number }} # Capture input parameter directly into an env var
+
 jobs:
   rtems-build-and-test:
     runs-on: [self-hosted, karuna]
@@ -85,8 +90,10 @@ jobs:
           fi
 
       - name: Display runner information
+        env:
+          RUNNER: ${{ runner.name }}
         run: |
-          echo "Runner: ${{ runner.name }}"
+          echo "Runner: $RUNNER"
           echo "OS: $(cat /etc/os-release | grep PRETTY_NAME)"
           echo "Arch: $(uname -m)"
           echo "User: $(whoami)"
@@ -119,8 +126,8 @@ jobs:
 
           # Launch Docker container with ION source mounted
           CONTAINER_ID=$(docker run -d \
-            --name rtems-ion-build-${{ github.run_id }} \
-            -v "${{ github.workspace }}:/workspace" \
+            --name rtems-ion-build-${{ env.RUN_ID }} \
+            -v "${{ env.WORKSPACE }}:/workspace" \
             -w /workspace/arch-rtems \
             rtems-6.1-dev-aarch64-libbsd \
             sleep infinity)
@@ -163,8 +170,8 @@ jobs:
 
           # Launch container for QEMU verification (works with both fresh build and cached build)
           TEST_CONTAINER_ID=$(docker run -d \
-            --name rtems-ion-test-${{ github.run_id }} \
-            -v "${{ github.workspace }}:/workspace" \
+            --name rtems-ion-test-${{ env.RUN_ID }} \
+            -v "${{ env.WORKSPACE }}:/workspace" \
             -w /workspace/arch-rtems \
             rtems-6.1-dev-aarch64-libbsd \
             sleep infinity)
@@ -213,8 +220,8 @@ jobs:
           RTEMS 6.1 ARM64 ION Test Summary
           ================================
           Date: $(date)
-          Workflow Run: ${{ github.run_id }}
-          PR Number: ${{ inputs.pr_number }}
+          Workflow Run: ${{ env.RUN_ID }}
+          PR Number: ${PR_NUMBER}
           Commit: ${{ github.sha }}
           Branch: ${{ github.ref_name }}
 
@@ -245,17 +252,17 @@ jobs:
         if: always()
         run: |
           # Clean up both build and test containers (if they exist)
-          echo "Cleaning up containers for run ${{ github.run_id }}"
-          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker stop || true
-          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm || true
-          docker ps -a --filter "name=rtems-ion-test-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker stop || true
-          docker ps -a --filter "name=rtems-ion-test-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm || true
+          echo "Cleaning up containers for run ${{ env.RUN_ID }}"
+          docker ps -a --filter "name=rtems-ion-build-${{ env.RUN_ID }}" --format "{{.ID}}" | xargs -r docker stop || true
+          docker ps -a --filter "name=rtems-ion-build-${{ env.RUN_ID }}" --format "{{.ID}}" | xargs -r docker rm || true
+          docker ps -a --filter "name=rtems-ion-test-${{ env.RUN_ID }}" --format "{{.ID}}" | xargs -r docker stop || true
+          docker ps -a --filter "name=rtems-ion-test-${{ env.RUN_ID }}" --format "{{.ID}}" | xargs -r docker rm || true
 
       - name: Clean up workspace
         if: always()
         run: |
           # Clean waf lock files but preserve build/ (cached by GitHub Actions)
-          cd ${{ github.workspace }}/arch-rtems
+          cd ${{ env.WORKSPACE }}/arch-rtems
           ./waf clean || true
           rm -rf .lock-waf* .waf-* .waf3-* || true
 
@@ -278,10 +285,12 @@ jobs:
       - name: Set PR status
         if: ${{ always() && inputs.pr_number != '' }}
         uses: actions/github-script@v9
+        env:
+          PR: ${{ inputs.pr_number }}
         with:
           script: |
             const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
-            const prNumber = parseInt("${{ inputs.pr_number }}", 10);
+            const prNumber = parseInt("$PR", 10);
 
             let pr;
             try {
@@ -303,5 +312,5 @@ jobs:
               state: conclusion,
               context: "ci/rtems61-aarch64-libbsd",
               description: `RTEMS 6.1 ARM64 build and test ${conclusion === "success" ? "passed" : "failed"}`,
-              target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ env.RUN_ID }}"
             });

@@ -10,7 +10,7 @@ on:
 
 jobs:
   mirror:
-    runs-on: [self-hosted, linux, x64, karuna]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:

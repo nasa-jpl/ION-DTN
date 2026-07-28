@@ -69,6 +69,9 @@ jobs:
 
       - name: Run build and tests, capture stdout
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
+        env:
+          TESTS_TO_RUN: ${{ inputs.tests_to_run }}
+          ENV_VARS: ${{ inputs.env_vars }}
         run: |
           {
             echo "Starting build and tests at $(date)"
@@ -86,15 +89,15 @@ jobs:
             make buildcheck
             cd tests
             # Set environment variables if provided
-            if [ -n "${{ github.event.inputs.env_vars }}" ]; then
-              echo "Setting environment variables: ${{ github.event.inputs.env_vars }}"
-              for env_var in ${{ github.event.inputs.env_vars }}; do
+            if [ -n "${{ env.ENV_VARS }}" ]; then
+              echo "Setting environment variables: ${{ env.ENV_VARS }}"
+              for env_var in ${{ env.ENV_VARS }}; do
                 export "$env_var"
               done
             fi
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
-              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}"
-              ./runtests ${{ github.event.inputs.tests_to_run }}
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ env.TESTS_TO_RUN }}" ]; then
+              echo "Running specific tests: ${{ env.TESTS_TO_RUN }}"
+              ./runtests ${{ env.TESTS_TO_RUN }}
             else
               echo "Running all tests"
               ./runtests

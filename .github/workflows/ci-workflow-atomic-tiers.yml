@@ -101,8 +101,10 @@ jobs:
     steps:
       - name: Resolve test_branch
         id: resolve
+        env:
+          TEST_BRANCH: ${{ inputs.test_branch || '' }}
         run: |
-          REF="${{ inputs.test_branch || '' }}"
+          REF="${{ env.TEST_BRANCH }}"
           if [ -z "$REF" ]; then
             REF="${{ github.ref_name }}"
           fi
@@ -116,19 +118,25 @@ jobs:
 
       - name: Compute tier lists
         id: tiers
-        run: .github/scripts/compute-atomic-tiers.sh --tier-filter="${{ inputs.tier_filter || 'fallbacks' }}" --platforms="${{ inputs.platforms || 'both' }}"
+        env:
+          TIER_FILTER: ${{ inputs.tier_filter || 'fallbacks' }}
+          PLATFORMS: ${{ inputs.platforms || 'both' }}
+        run: .github/scripts/compute-atomic-tiers.sh --tier-filter="${{ env.TIER_FILTER }}" --platforms="${{ env.PLATFORMS }}"
 
       - name: Get test batches
         id: dataStep
+        env:
+          TESTS_TO_RUN: ${{ inputs.tests_to_run }}
+          RUNNERS: ${{ inputs.num_runners || 7 }}
         run: |
           # If tests_to_run is non-empty, restrict the matrix to that set
           # via git_matrix.py --tests; otherwise generate the full matrix.
-          if [ -n "${{ inputs.tests_to_run }}" ]; then
-            echo "Restricting test matrix to: ${{ inputs.tests_to_run }}"
-            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }} \
-                      -t ${{ inputs.tests_to_run }})
+          if [ -n "${{ env.TESTS_TO_RUN }}" ]; then
+            echo "Restricting test matrix to: ${{ env.TESTS_TO_RUN }}"
+            TESTSET=$(./tests/git_matrix.py -r ${{ env.RUNNERS }} \
+                      -t ${{ env.TESTS_TO_RUN }})
           else
-            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }})
+            TESTSET=$(./tests/git_matrix.py -r ${{ env.RUNNERS }})
           fi
           # Transform the array into objects with a 1-based batch index
           TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
@@ -636,15 +644,19 @@ jobs:
           merge-multiple: false
 
       - name: Generate Final Summary Table
+        env:
+          TIER_FILTER: ${{ inputs.tier_filter || 'fallbacks (nightly default)' }}
+          PLATFORMS: ${{ inputs.platforms || 'both (nightly default)' }}
+          TEST_SCOPE: ${{ inputs.test_scope || 'smoke (nightly default)' }}
         run: |
           {
             echo "## 📊 Atomic Tier Regression Overview"
             echo ""
             echo "- **Source ref:** \`${{ needs.setup.outputs.resolved_ref }}\`"
             echo "- **Event:** \`${{ github.event_name }}\`"
-            echo "- **Tier filter:** \`${{ inputs.tier_filter || 'fallbacks (nightly default)' }}\`"
-            echo "- **Platforms:** \`${{ inputs.platforms || 'both (nightly default)' }}\`"
-            echo "- **arm64 test scope:** \`${{ inputs.test_scope || 'smoke (nightly default)' }}\`"
+            echo "- **Tier filter:** \`${{ env.TIER_FILTER }}\`"
+            echo "- **Platforms:** \`${{ env.PLATFORMS }}\`"
+            echo "- **arm64 test scope:** \`${{ env.TEST_SCOPE }}\`"
             echo ""
             echo "| Runner | Tier | Batch | Result | Failed Tests | Skipped Tests |"
             echo "|--------|------|-------|--------|--------------|---------------|"

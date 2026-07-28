@@ -27,9 +27,12 @@ runs:
 
     - name: Configure /etc/hosts for Solaris VMs
       shell: bash
+      env:
+        HOST1: ${{ inputs.host_1_ip }}
+        HOST2: ${{ inputs.host_2_ip }}
       run: |
-        echo "${{ inputs.host_1_ip }} dsoc3" | sudo tee -a /etc/hosts
-        echo "${{ inputs.host_2_ip }} dsoc4" | sudo tee -a /etc/hosts
+        echo "$HOST1 dsoc3" | sudo tee -a /etc/hosts
+        echo "$HOST2 dsoc4" | sudo tee -a /etc/hosts
 
     - name: Configure robust SSH settings
       shell: bash
