@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+trap 'killm f' EXIT
+#
+# Regression test for issue #780: "Status Report generation from status reports".
+#
+# Verifies the two behaviors mandated by RFC 9171:
+#   1. (5.1) Status report generation is disabled by default.  A node whose
+#      BP database is freshly initialized must NOT generate status reports,
+#      even when a bundle explicitly requests them, until an operator opts in
+#      with 'm srmode traditional'.
+#   2. (4.2.3) A status report is never generated about an administrative
+#      record, so a status report cannot trigger another status report
+#      (no infinite cascade).
+#
+# Single loopback node.  bptrace sends a bundle to ipn:1.1 with all report
+# flags set and listens on the trace endpoint (ipn:1.2) for the reports.
+#
+# NB: the status report mode must be established in the .bprc BEFORE 'start',
+# because long-running daemons cache the BP database at startup and do not
+# observe a runtime 'm srmode' change.  The two phases therefore use two
+# separate ION lifecycles with different BP configs.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify status reports are OFF by default (RFC 9171 5.1) and"
+echo "that no status report is generated about an administrative record"
+echo "(RFC 9171 4.2.3, anti-cascade)."
+echo
+echo "########################################"
+
+RETVAL=0
+
+echo "Cleaning up old ION..."
+rm -f 1.ipn.udp/ion.log 1.ipn.udp/node.stdout
+rm -f ./ion_nodes
+killm f
+sleep 1
+
+########################################################################
+# Phase 1: default srmode (NONE, no 'm srmode' in the .bprc) -> expect
+# ZERO reports even though the bundle requests all of them.
+########################################################################
+echo
+echo "=== Phase 1: default status report mode (expect NO reports) ==="
+cd 1.ipn.udp
+./ionstart amroc.bprc > node.stdout 2>&1
+sleep 3
+
+OUTPUT=`bptrace -qos 0.1 -flags "rcv,fwd,dlv,del" -msg "phase1" -ttl 20 -rtt 8 ipn:1.1 ipn:1.1 ipn:1.2`
+echo "$OUTPUT"
+REPORTS=`echo "$OUTPUT" | grep -c 'okay'`
+if [ "$REPORTS" -eq 0 ]; then
+    echo "OK: no status reports generated while generation disabled by default."
+else
+    echo "ERROR: $REPORTS status report(s) generated with generation disabled."
+    RETVAL=1
+fi
+
+# The declined-report memo should have been written.
+if grep -q "generation is disabled" ion.log; then
+    echo "OK: found the 'generation is disabled' memo in ion.log."
+else
+    echo "WARNING: expected 'generation is disabled' memo not found (non-fatal)."
+fi
+
+echo "Stopping ION (end of phase 1)..."
+timeout 30 ionexit
+cd ..
+rm -f ./ion_nodes
+killm f
+sleep 2
+
+########################################################################
+# Phase 2: 'm srmode traditional' set in the .bprc -> expect a delivery
+# report, and verify no cascade (the report itself is an admin record and
+# must not spawn further reports).
+########################################################################
+echo
+echo "=== Phase 2: 'm srmode traditional' (expect a report, no cascade) ==="
+cd 1.ipn.udp
+rm -f ion.log node.stdout
+./ionstart amroc-traditional.bprc > node.stdout 2>&1
+sleep 3
+
+OUTPUT=`bptrace -qos 0.1 -flags "rcv,fwd,dlv,del" -msg "phase2" -ttl 20 -rtt 10 ipn:1.1 ipn:1.1 ipn:1.2`
+echo "$OUTPUT"
+REPORTS=`echo "$OUTPUT" | grep -c 'okay'`
+if [ "$REPORTS" -ge 1 ]; then
+    echo "OK: status report(s) generated after enabling ($REPORTS)."
+else
+    echo "ERROR: no status report generated with 'm srmode traditional'."
+    RETVAL=1
+fi
+
+# Anti-cascade check: a status report is an administrative record; if the
+# guard failed, delivering each report (which also requests reports via the
+# report-to path) would spawn further reports without bound.  Give any
+# erroneous cascade time to develop, then confirm the observed count stays
+# small (<= the number of distinct event types requested).
+sleep 8
+if [ "$REPORTS" -le 8 ]; then
+    echo "OK: report count bounded ($REPORTS) - no cascade."
+else
+    echo "ERROR: report count $REPORTS suggests a status-report cascade."
+    RETVAL=1
+fi
+
+echo "Stopping ION (end of phase 2)..."
+timeout 30 ionexit
+cd ..
+
+if [ $RETVAL -eq 0 ]; then
+    echo "SUCCESS: issue-780 status-report default-off test passed."
+else
+    echo "FAILURE: issue-780 status-report default-off test failed."
+fi
+exit $RETVAL

@@ -15,5 +15,6 @@ a outduct ltp 2 ltpclo
 a outduct ltp 3 ltpclo
 
 r 'ipnadmin amroc.ipnrc'
+m srmode traditional
 w 1
 s

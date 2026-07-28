@@ -520,7 +520,7 @@ int	cbr_setStatusReportMode(Sdr sdr, int mode)
 	Object		bpDbObj;
 	BpDB		bpDb;
 
-	CHKERR(mode >= BP_SR_MODE_TRADITIONAL && mode <= BP_SR_MODE_BOTH);
+	CHKERR(mode >= BP_SR_MODE_TRADITIONAL && mode <= BP_SR_MODE_NONE);
 
 	bpDbObj = getBpDbObject();
 	if (bpDbObj == 0)

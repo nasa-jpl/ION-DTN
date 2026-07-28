@@ -119,10 +119,16 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
 
 The default mode is B<none>.
 
-=item B<m srmode> { traditional | compressed | both }
+=item B<m srmode> { none | traditional | compressed | both }
 
 The B<manage status report mode> command.  This command sets the status
 report generation mode for the local node.  The available modes are:
+
+B<none>          Do not generate any status reports.  Bundle status report
+                 request flags are honored as requests, not commands: the
+                 local node's policy overrides them, so no report is
+                 generated even for bundles that request one.  Bundle
+                 forwarding and delivery are unaffected.
 
 B<traditional>   Generate standard BPv7 status reports only.
 
@@ -132,7 +138,27 @@ B<compressed>    Generate Compressed Reporting Signals (CRS) only, as
 B<both>          Generate both traditional status reports and compressed
                  reporting signals.
 
-The default mode is B<traditional>.
+The default mode is B<none>.  RFC 9171 5.1 requires that status report
+generation be disabled by default and enabled only when the risk of
+excessive network traffic is deemed acceptable, because requesting reports
+for a single bundle can generate up to (1 + 2 * (N - 1)) report bundles,
+where N is the number of nodes on the path.  Set B<m srmode traditional>
+to restore standard BPv7 status reporting.
+
+Note: a node whose BP database was initialized by an earlier ION release
+retains its previously configured mode across upgrade; only newly
+initialized nodes default to B<none>.
+
+Note: the status report mode is read from the BP database when each ION
+daemon starts and is cached for the life of that process, so it is not
+reliably changed at run time.  Set B<m srmode> in the B<.bprc> before the
+B<s> (start) command; changing it after the node is running will not take
+effect in the already-running forwarder and convergence-layer daemons
+until the node is restarted.
+
+Regardless of the selected mode, a status report is never generated about
+a bundle whose ADU is itself an administrative record (RFC 9171 4.2.3),
+preventing a status report from triggering another status report.
 
 This command requires B<m custodymode orangebook> to be effective for
 compressed reporting.

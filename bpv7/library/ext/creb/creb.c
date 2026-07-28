@@ -132,9 +132,11 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return 0;
 	}
 
-	if (mode == BP_SR_MODE_TRADITIONAL)
+	if (mode == BP_SR_MODE_TRADITIONAL || mode == BP_SR_MODE_NONE)
 	{
-		/*	Traditional mode: don't attach CREB.		*/
+		/*	Traditional mode emits standard status reports and
+		 *	NONE disables generation entirely; neither attaches
+		 *	a CREB block (CREB drives compressed reporting).	*/
 		return 0;
 	}
 

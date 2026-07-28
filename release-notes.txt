@@ -1,6 +1,48 @@
 = Release Notes for ION =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= ION 4.2.0 - Status Report Generation Disabled By Default =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Bundle status report generation is now DISABLED by default on newly
+initialized BP nodes, in conformance with RFC 9171 Section 5.1, which
+requires that "the generation of status reports MUST be disabled by
+default and enabled only when the risk of excessive network traffic is
+deemed acceptable."
+
+BEHAVIOR CHANGE:
+- A freshly initialized node no longer generates status reports, even for
+  bundles whose status-report-request flags are set.  A bundle's request
+  flags are honored as a request, not a command: the node's local policy
+  (RFC 9171 5.1 / 5.4-5.10) overrides them.  Bundle forwarding and delivery
+  are unaffected; only the diagnostic report bundles are suppressed.
+- A new status report mode, "none", has been added to the existing
+  "m srmode" command (alongside traditional, compressed, and both) and is
+  the default for newly initialized nodes.
+- A node whose BP database was initialized by an EARLIER ION release keeps
+  its previously configured mode across upgrade; only newly initialized
+  nodes default to "none".
+
+ANTI-CASCADE HARDENING (RFC 9171 4.2.3):
+- A status report is now never generated about a bundle whose ADU is an
+  administrative record, preventing a status report from triggering
+  another status report.  BIBE PDUs remain exempt, as BIBE custody
+  transfer legitimately relies on administrative bundles.
+
+TO RESTORE PREVIOUS BEHAVIOR:
+- Add "m srmode traditional" to the node's .bprc BEFORE the "s" (start)
+  command.  The status report mode is read and cached when each ION daemon
+  starts, so it must be set before startup; changing it at run time will
+  not affect already-running daemons until the node is restarted.
+
+AFFECTED TOOLS:
+- Tools that solicit status reports (bptrace, bpsendfile with report
+  flags, bping -f, and any application setting SRR flags) will observe no
+  returned reports until the destination and intermediate nodes are
+  configured with "m srmode traditional".  Reliability mechanisms (custody
+  transfer, BIBE, LTP) do not depend on status reports and are unaffected.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = ION 4.2.0 - DCCP Deprecation =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

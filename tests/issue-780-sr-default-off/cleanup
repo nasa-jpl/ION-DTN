@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+(cd 1.ipn.udp 2>/dev/null && timeout 20 ionexit) &
+sleep 2
+killm f
+rm -f ./ion_nodes
+rm -f 1.ipn.udp/ion.log 1.ipn.udp/node.stdout
+ipcrm -M 78001 2>/dev/null
+exit 0

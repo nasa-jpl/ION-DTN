@@ -1803,6 +1803,14 @@ int	bpInit(void)
 
 		bpdbBuf.startTime = getCtime();
 		bpdbBuf.updateStats = 1;	/*	Default.	*/
+
+		/*	Per RFC 9171 5.1, status report generation must
+		 *	be disabled by default and enabled only when the
+		 *	risk of excessive network traffic is deemed
+		 *	acceptable.  Operators re-enable with the bpadmin
+		 *	'm srmode' command.				*/
+
+		bpdbBuf.statusRptMode = BP_SR_MODE_NONE;
 		sdr_write(sdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(sdr, _bpdbName(), 0, bpdbObject);
 		if (sdr_end_xn(sdr))
@@ -10782,8 +10790,22 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 	return 0;
 }
 
+static void	clearNotedStatusRpt(Bundle *bundle)
+{
+	/*	Erase flags and times in case another status report
+	 *	for the same bundle needs to be noted later.		*/
+
+	bundle->statusRpt.flags = 0;
+	bundle->statusRpt.reasonCode = 0;
+	bundle->statusRpt.receiptTime = 0;
+	bundle->statusRpt.forwardTime = 0;
+	bundle->statusRpt.deliveryTime = 0;
+	bundle->statusRpt.deletionTime = 0;
+}
+
 int	sendStatusRpt(Bundle *bundle)
 {
+	static int	loggedSrDisabled = 0;
 	Sdr		sdr = getIonsdr();
 	int		srMode;
 	int		priority = bundle->priority;
@@ -10795,9 +10817,44 @@ int	sendStatusRpt(Bundle *bundle)
 
 	CHKERR(bundle);
 
+	/*	Never generate a status report about an administrative
+	 *	record.  RFC 9171 4.2.3 requires all status report request
+	 *	flags to be zero in a bundle whose ADU is an administrative
+	 *	record, so a conforming report can't request reports; this
+	 *	guard is defense-in-depth against a non-conforming or
+	 *	locally mis-noted report cascading into an infinite chain
+	 *	of status reports about status reports.  BIBE PDUs are
+	 *	exempted because BIBE custody transfer legitimately relies
+	 *	on status reporting for its administrative bundles.	*/
+
+	if ((bundle->bundleProcFlags & BDL_IS_ADMIN)
+	&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0)
+	{
+		clearNotedStatusRpt(bundle);
+		return 0;
+	}
+
 	/*	Check status report mode and send appropriate report.	*/
 
 	srMode = cbr_getStatusReportMode(sdr);
+	if (srMode == BP_SR_MODE_NONE)
+	{
+		/*	Per RFC 9171 5.1, status report generation is
+		 *	disabled by default.  The bundle's report request
+		 *	flags are a request, not a command: the node's
+		 *	local policy overrides them, so decline silently.	*/
+
+		if (!loggedSrDisabled)
+		{
+			loggedSrDisabled = 1;
+			writeMemo("[i] Status report requested but generation \
+is disabled (bpadmin: 'm srmode traditional' to enable).");
+		}
+
+		clearNotedStatusRpt(bundle);
+		return 0;
+	}
+
 	if (srMode == BP_SR_MODE_COMPRESSED)
 	{
 		/*	Send CRS instead of traditional status report.	*/
@@ -10806,12 +10863,7 @@ int	sendStatusRpt(Bundle *bundle)
 
 		/*	Clear status report flags after processing.	*/
 
-		bundle->statusRpt.flags = 0;
-		bundle->statusRpt.reasonCode = 0;
-		bundle->statusRpt.receiptTime = 0;
-		bundle->statusRpt.forwardTime = 0;
-		bundle->statusRpt.deliveryTime = 0;
-		bundle->statusRpt.deletionTime = 0;
+		clearNotedStatusRpt(bundle);
 		return result;
 	}
 
@@ -10850,15 +10902,7 @@ int	sendStatusRpt(Bundle *bundle)
 		break;
 	}
 
-	/*	Erase flags and times in case another status report for
-	 *	the same bundle needs to be sent later.			*/
-
-	bundle->statusRpt.flags = 0;
-	bundle->statusRpt.reasonCode = 0;
-	bundle->statusRpt.receiptTime = 0;
-	bundle->statusRpt.forwardTime = 0;
-	bundle->statusRpt.deliveryTime = 0;
-	bundle->statusRpt.deletionTime = 0;
+	clearNotedStatusRpt(bundle);
 	return 0;
 }
 

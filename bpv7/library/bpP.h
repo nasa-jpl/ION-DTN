@@ -651,7 +651,8 @@ typedef enum
 {
 	BP_SR_MODE_TRADITIONAL = 0,	/*	Standard status reports only	*/
 	BP_SR_MODE_COMPRESSED  = 1,	/*	CREB/CRS only			*/
-	BP_SR_MODE_BOTH        = 2	/*	Both (for testing)		*/
+	BP_SR_MODE_BOTH        = 2,	/*	Both (for testing)		*/
+	BP_SR_MODE_NONE        = 3	/*	Generation disabled (default)	*/
 } BpStatusReportMode;
 
 typedef enum

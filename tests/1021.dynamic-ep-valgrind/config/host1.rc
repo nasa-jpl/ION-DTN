@@ -62,6 +62,11 @@ a induct udp 0.0.0.0:4556 udpcli
 # for the destination address, then this clo can send to any udp cli)
 a outduct udp 127.0.0.1:4556 udpclo
 
+# Enable traditional status report generation (default is now 'none' per
+# RFC 9171 5.1); this test sends bundles with report-request flags and
+# verifies the resulting status reports.
+m srmode traditional
+
 s
 ## end bpadmin
 

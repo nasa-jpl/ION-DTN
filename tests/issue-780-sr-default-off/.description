@@ -1,0 +1,1 @@
+Verify status reports are off by default (RFC 9171 5.1) and never generated about an administrative record (RFC 9171 4.2.3, anti-cascade).

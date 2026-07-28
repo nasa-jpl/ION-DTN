@@ -132,7 +132,7 @@ payload length");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\t   m bsl <local ipn eid> <key reg. file path name> <policy config. file pathname>");
 	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
-	PUTS("\t   m srmode <status report mode: traditional | compressed | both>");
+	PUTS("\t   m srmode <status report mode: none | traditional | compressed | both>");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
@@ -2270,7 +2270,11 @@ static void	manageSrMode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[2], "traditional") == 0)
+	if (strcmp(tokens[2], "none") == 0)
+	{
+		mode = BP_SR_MODE_NONE;
+	}
+	else if (strcmp(tokens[2], "traditional") == 0)
 	{
 		mode = BP_SR_MODE_TRADITIONAL;
 	}
@@ -2284,7 +2288,7 @@ static void	manageSrMode(int tokenCount, char **tokens)
 	}
 	else
 	{
-		printText("Status report mode must be 'traditional', 'compressed', or 'both'.");
+		printText("Status report mode must be 'none', 'traditional', 'compressed', or 'both'.");
 		return;
 	}
 
@@ -2295,6 +2299,11 @@ static void	manageSrMode(int tokenCount, char **tokens)
 	else
 	{
 		printText("Status report mode set.");
+		if (bp_agent_is_started())
+		{
+			printText("Note: status report mode is cached by \
+running daemons; restart the node for this change to take effect.");
+		}
 	}
 }
 
