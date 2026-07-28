@@ -105,7 +105,26 @@ done
 # spurious TTL report would arrive up to TTL seconds after the send).
 sleep $((TTL + 3))
 
+# Stop the listener GRACEFULLY.  bptrace -listen now treats SIGTERM (and
+# SIGINT) as a stop request: it sets a flag and unwinds at a transaction
+# boundary, releasing the SDR transaction lock and any nested PSM locks
+# before exiting.  A hard kill mid-transaction would orphan those locks; on
+# platforms with the robust SDR mutex the subsequent shutdown then deadlocks
+# in recoverOrphanedXn on the non-robust nested PSM lock (see issue #1265),
+# which is exactly how this test used to time out on Solaris.  Send SIGTERM,
+# then wait for a clean exit; fall back to SIGKILL only if it does not stop.
 kill $LISTEN_PID >/dev/null 2>&1
+for _ in $(seq 1 20)
+do
+    kill -0 $LISTEN_PID >/dev/null 2>&1 || break
+    sleep 0.5
+done
+if kill -0 $LISTEN_PID >/dev/null 2>&1
+then
+    echo "WARNING: listener did not exit gracefully; forcing."
+    kill -9 $LISTEN_PID >/dev/null 2>&1
+fi
+wait $LISTEN_PID 2>/dev/null
 
 echo
 echo "Listener output:"
