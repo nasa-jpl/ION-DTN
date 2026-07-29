@@ -1741,7 +1741,14 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 #endif
 
 	sdr->sdrOwnerTask = -1;
-	sdr->logEntries = sm_list_create(sdrwm);
+	/*	logEntries is only ever accessed while the SDR transaction
+	 *	mutex (or, at load/destroy time, the control-header lock) is
+	 *	held, so its own per-list semaphore is redundant.  Create it
+	 *	unlocked: a locked logEntries would leave that inner, non-
+	 *	robust semaphore orphaned if the owner died mid-transaction,
+	 *	deadlocking robust-mutex recovery in wipeList (issue #1265).	*/
+
+	sdr->logEntries = sm_list_create_unlocked(sdrwm);
 	if (sdr->logEntries == 0)
 	{
 		putErrmsg("Can't create log entries list for SDR.", NULL);
