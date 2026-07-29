@@ -25,6 +25,12 @@ trap 'killm f' EXIT
 # NOTE: this bug only manifests under single-node loopback LTP (one SDR, one
 # bundles hash).  A multi-node topology keeps the sender and received copies in
 # separate SDRs, so it cannot reproduce this defect -- hence a loopback config.
+#
+# NOTE: this test detects the regression by counting deletion status reports, so
+# it requires status report generation to be enabled.  Since RFC 9171 5.1
+# compliance made 'none' the default mode, loopback.bprc must set
+# 'm srmode traditional' before 's'; without it no reports are emitted and the
+# test would pass vacuously, silently retiring the issue #116 guard.
 
 CONFIGFILES=" \
 ./loopback.ionrc \
