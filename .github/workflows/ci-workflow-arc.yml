@@ -329,9 +329,16 @@ jobs:
           restore-keys: |
             ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
 
+      # Re-checkout the correct ref with clean:false: this resets all tracked
+      # files (tests/, demos/, killm, ...) to this job's ref regardless of the
+      # state the restored build cache left the working tree in, while
+      # preserving the untracked compiled test binaries that `make buildcheck`
+      # produced in the cached tree.
       - name: Overlay fresh tests and scripts
         if: ${{ steps.cache-restore-1.outputs.cache-matched-key != '' || steps.cache-restore-2.outputs.cache-matched-key != '' }}
-        run: git checkout HEAD -- tests/ demos/ killm
+        uses: actions/checkout@v6
+        with:
+          clean: false
 
       - name: Install ION and run tests
         if: ${{ steps.cache-restore-1.outputs.cache-matched-key != '' || steps.cache-restore-2.outputs.cache-matched-key != '' }}
