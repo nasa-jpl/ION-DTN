@@ -72,7 +72,7 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 	Sdr		sdr = getIonsdr();
 	vast		bpduLength;
 	ZcoReader	reader;
-	unsigned char	headerBuf[18];
+	unsigned char	headerBuf[45];
 	unsigned int	bytesToParse;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
@@ -86,7 +86,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 	 *	header.							*/
 
 	bpduLength = zco_source_data_length(sdr, bpduZco);
-	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Read and strip off the BPDU message's header:
 	 *	-	array open (up to 9 bytes)
@@ -101,7 +100,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 	if (bytesToParse < 4)
 	{
 		writeMemo("[?] bcli can't receive BPDU header.");
-		oK(sdr_end_xn(sdr));
 		return 0;
 	}
 
@@ -111,7 +109,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] BIBE can't decode BPDU array open.");
-		oK(sdr_end_xn(sdr));
 		return 0;
 	}
 
@@ -128,7 +125,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 				transferId, sourceBundleLength, offset) < 0)
 		{
 			writeMemo("[?] Unintelligible BPDU segment header.");
-			oK(sdr_end_xn(sdr));
 			return 0;
 		}
 
@@ -136,7 +132,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 
 	default:
 		writeMemoNote("[?] Invalid BPDU array length ", itoa(uvtemp));
-		oK(sdr_end_xn(sdr));
 		return 0;
 	}
 
@@ -144,7 +139,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 	if (cbor_decode_byte_string(NULL, &uvtemp, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] BIBE can't decode BPDU encapsulated bundle.");
-		oK(sdr_end_xn(sdr));
 		return 0;
 	}
 
@@ -156,7 +150,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 		writeMemoNote("[?]     bpduLength  ", itoa(bpduLength));
 		writeMemoNote("[?]     headerLength", itoa(headerLength));
 		writeMemoNote("[?]     segmentLength", itoa(*segmentLength));
-		oK(sdr_end_xn(sdr));
 		return 0;
 	}
 
@@ -165,12 +158,6 @@ static int	stripBpduHeader(Object bpduZco, uvast *transferId,
 
 	zco_delimit_source(sdr, bpduZco, headerLength, *segmentLength);
 	zco_strip(sdr, bpduZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Failed stripping header of BPDU.", NULL);
-		return -1;
-	}
-
 	return 1;
 }
 
