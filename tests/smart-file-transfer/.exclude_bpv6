@@ -1,1 +1,0 @@
-This test is disabled for bpv6 because the sendfile and recvfile programs are not built for BP version 6.
