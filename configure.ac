@@ -355,18 +355,18 @@ AS_IF([test "x$enable_dgr" != xno],
 AM_CONDITIONAL([ENABLE_DGR], [test "x$enable_dgr" != xno])
 
 #
-# allow the user running configure to disable BSSP
+# allow the user running configure to enable BSSP (deprecated, off by default)
 #
 AC_ARG_ENABLE([bssp],
-  [AS_HELP_STRING([--disable-bssp], [disable BSSP convergence layer])],
+  [AS_HELP_STRING([--enable-bssp], [enable BSSP convergence layer (deprecated)])],
   [AS_CASE(["$enableval"],
      [yes|no], [],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-bssp])])],
-  [enable_bssp=yes])
-AS_IF([test "x$enable_bssp" != xno],
+  [enable_bssp=no])
+AS_IF([test "x$enable_bssp" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DENABLE_BSSP"
    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_BSSP"])
-AM_CONDITIONAL([ENABLE_BSSP], [test "x$enable_bssp" != xno])
+AM_CONDITIONAL([ENABLE_BSSP], [test "x$enable_bssp" = xyes])
 
 #
 # allow the user running configure to disable DTPC
@@ -1351,7 +1351,7 @@ ION Configuration Summary
 
   To enable BSL:    ./configure --enable-bsl
   To disable DGR:   ./configure --disable-dgr
-  To disable BSSP:  ./configure --disable-bssp
+  To enable BSSP:   ./configure --enable-bssp
   To disable DTPC:  ./configure --disable-dtpc
   To disable TC:    ./configure --disable-tc
 

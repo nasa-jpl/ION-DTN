@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+#
+# BSSP is deprecated: configure defaults to BSSP-off, so bsspadmin and the
+# BSSP convergence-layer daemons are absent unless the tree was built with
+# --enable-bssp.  Gate on that rather than excluding the benchmark outright,
+# so it still exercises BSSP wherever BSSP is actually built and reports
+# "skipped" (exit 2) everywhere else, until the BSSP code is removed in 4.2.1.
+#
+# The gate precedes the killm trap deliberately: a skip must not tear down
+# IPC resources it never created.
+if ! command -v bsspadmin > /dev/null 2>&1; then
+    echo "bsspadmin not found: BSSP is not built in this configuration."
+    echo "Skipping; build with --enable-bssp to run this benchmark."
+    exit 2
+fi
+
 trap 'killm f' EXIT
 #
 # Scott Burleigh
