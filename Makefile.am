@@ -638,6 +638,7 @@ icimans = \
 	ici/doc/smlistsh.1 \
 	ici/doc/smrbtsh.1 \
 	ici/doc/ion.3 \
+	ici/doc/ion_admin.3 \
 	ici/doc/llcv.3 \
 	ici/doc/lyst.3 \
 	ici/doc/memmgr.3 \
