@@ -103,21 +103,19 @@ the problem and restart BIBE.
 
 =item [i] bibeclo outduct closed.
 
+=item [i] bibeclo duct has ended.
+
 Nominal shutdown message.
 
 =item Can't prepend header; CLO stopping.
 
-System error.  Check ION log; correct the problem and restart BIBE.
-
 =item Can't destroy old ZCO; CLO stopping.
-
-System error.  Check ION log; correct the problem and restart BIBE.
 
 =item Can't send encapsulated bundle.
 
-System error.  Check ION log; correct the problem and restart BIBE.
-
 =item Can't track bundle.
+
+=item Can't release ZCO; CLO stopping.
 
 System error.  Check ION log; correct the problem and restart BIBE.
 
@@ -125,14 +123,6 @@ System error.  Check ION log; correct the problem and restart BIBE.
 
 Malformed bundle issuance request, which might be a software error.  Contact
 technical support.
-
-=item Can't release ZCO; CLO stopping.
-
-System error.  Check ION log; correct the problem and restart BIBE.
-
-=item [i] bibeclo duct has ended.
-
-Nominal shutdown message.
 
 =back
 

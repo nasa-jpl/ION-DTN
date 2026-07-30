@@ -57,7 +57,8 @@ the space formerly occupied by that object to the appropriate free block list.
 
 =item B<u>
 
-The B<usage> command.  Prints a partition usage report, as per psm_report() (see psm(3)).
+The B<usage> command.  Prints a partition usage report, as per psm_report()
+(see psm(3)).
 
 =item B<q>
 

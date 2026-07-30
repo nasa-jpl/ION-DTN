@@ -81,8 +81,12 @@ Usage
 -----
     python3 tools/check_doc_consistency.py            # check (CI mode)
     python3 tools/check_doc_consistency.py --all      # list every finding
+    python3 tools/check_doc_consistency.py --check diag   # one check only
     python3 tools/check_doc_consistency.py --update-baseline
     python3 tools/check_doc_consistency.py --root /path/to/ion
+
+The unit tests for this script are in tools/test_check_doc_consistency.py
+(`python3 tools/test_check_doc_consistency.py`, or via unittest discovery).
 """
 
 import argparse
@@ -487,7 +491,83 @@ def diagnostic_is_documented(diag_tokens, src_token_sets):
 
 
 # --------------------------------------------------------------------------- #
-# Driver                                                                      #
+# Finding builders (pure: parsed input in, finding strings out)               #
+# --------------------------------------------------------------------------- #
+
+def admin_command_findings(pod, ptext, stext):
+    """Command-letter parity findings for one pod5/admin-source pair."""
+    doc, code = pod_command_letters(ptext), top_level_case_letters(stext)
+    return ([f"[admin] {pod}: command '{c}' implemented but undocumented"
+             for c in sorted(code - doc)]
+            + [f"[admin] {pod}: command '{c}' documented but not implemented"
+               for c in sorted(doc - code)])
+
+
+def manage_subcommand_findings(pod, ptext, stext):
+    """`m` sub-command parity findings for one pod5/admin-source pair."""
+    doc, code = pod_manage_subcommands(ptext), manage_subcommands_in_src(stext)
+    return ([f"[manage] {pod}: 'm {s}' implemented but undocumented"
+             for s in sorted(code - doc)]
+            + [f"[manage] {pod}: 'm {s}' documented but not implemented"
+               for s in sorted(doc - code)])
+
+
+def api_findings(pod, documented, declared):
+    """Function parity findings for one pod3 page. The 'declared but
+    undocumented' direction is limited to the pod's own namespace and skips
+    ALL-CAPS names (constants/macros)."""
+    findings = [f"[api] {pod}: '{f}' documented but not declared in header(s)"
+                for f in sorted(documented - declared)]
+    prefixes = namespace_prefixes(documented)
+    for f in sorted(declared - documented):
+        if f == f.upper():
+            continue
+        if prefixes and not any(f.startswith(p) for p in prefixes):
+            continue
+        findings.append(f"[api] {pod}: '{f}' declared in header(s) but undocumented")
+    return findings
+
+
+def cross_reference_findings(rel, refs, avail_ns, avail_name):
+    """Findings for the (name, section) references of one pod, given the
+    inventory of pods in the repo: `avail_ns` as (name, section) pairs and
+    `avail_name` as bare page names."""
+    findings = []
+    for name, sec in sorted(refs):
+        tag = f"{name}({sec})"
+        if (name, sec) in avail_ns or tag in EXTERNAL_MANPAGES \
+                or tag in INTERNAL_NO_MANPAGE:
+            continue
+        if name in avail_name:
+            findings.append(
+                f"[xref] {rel}: '{tag}' refers to an existing page at the "
+                f"wrong section")
+        else:
+            findings.append(
+                f"[xref] {rel}: '{tag}' has no matching pod (broken "
+                f"cross-reference)")
+    return findings
+
+
+def admin_rc_findings(rel, name, named_files):
+    """Findings for an admin page whose dos2unix note names a config file other
+    than the one the program actually reads (<name> minus "admin", plus "rc")."""
+    expected = name[:-len("admin")] + "rc"
+    return [f"[adminrc] {rel}: config-file note names '{named}' but "
+            f"{name} reads '{expected}'"
+            for named in sorted(named_files) if named != expected]
+
+
+def diagnostics_findings(rel, name, diags, src_token_sets):
+    """Findings for documented diagnostics with no matching source string."""
+    return [f"[diag] {rel}: documented diagnostic not found in source: \"{d}\""
+            for d in diags
+            if not diagnostic_is_documented(_diag_tokens(d, name),
+                                            src_token_sets)]
+
+
+# --------------------------------------------------------------------------- #
+# Repository traversal                                                        #
 # --------------------------------------------------------------------------- #
 
 def read(root, rel):
@@ -496,139 +576,45 @@ def read(root, rel):
         return fh.read()
 
 
-def collect_findings(root):
-    """Return a sorted list of finding strings (stable keys for baselining)."""
-    findings = []
+def missing(root, rel):
+    return not os.path.exists(os.path.join(root, rel))
 
-    def missing(rel):
-        return not os.path.exists(os.path.join(root, rel))
 
-    # 1 + 2: admin command and manage-subcommand parity
-    for pod, src in ADMIN_PAIRS:
-        if missing(pod) or missing(src):
-            findings.append(f"[admin] MISSING FILE: {pod} or {src}")
-            continue
-        ptext, stext = read(root, pod), read(root, src)
-        doc_cmds, code_cmds = pod_command_letters(ptext), top_level_case_letters(stext)
-        for c in sorted(code_cmds - doc_cmds):
-            findings.append(f"[admin] {pod}: command '{c}' implemented but undocumented")
-        for c in sorted(doc_cmds - code_cmds):
-            findings.append(f"[admin] {pod}: command '{c}' documented but not implemented")
-
-        doc_m, code_m = pod_manage_subcommands(ptext), manage_subcommands_in_src(stext)
-        for s in sorted(code_m - doc_m):
-            findings.append(f"[manage] {pod}: 'm {s}' implemented but undocumented")
-        for s in sorted(doc_m - code_m):
-            findings.append(f"[manage] {pod}: 'm {s}' documented but not implemented")
-
-    # 3: pod3 API parity
-    for pod, headers in sorted(POD3_API.items()):
-        if missing(pod):
-            findings.append(f"[api] MISSING FILE: {pod}")
-            continue
-        doc = pod_api_functions(read(root, pod))
-        hdr = set()
-        for h in headers:
-            if missing(h):
-                findings.append(f"[api] MISSING HEADER: {h} (for {pod})")
-                continue
-            hdr |= header_functions(read(root, h))
-        for f in sorted(doc - hdr):
-            findings.append(f"[api] {pod}: '{f}' documented but not declared in header(s)")
-        # Reverse direction: only flag real functions in this pod's namespace,
-        # excluding ALL-CAPS constants/macros.
-        prefixes = namespace_prefixes(doc)
-        for f in sorted(hdr - doc):
-            if f == f.upper():
-                continue
-            if prefixes and not any(f.startswith(p) for p in prefixes):
-                continue
-            findings.append(f"[api] {pod}: '{f}' declared in header(s) but undocumented")
-
-    # 4: pod1 SYNOPSIS presence
+def pod_files(root, marker):
+    """Yield repo-relative paths of .pod files under directories whose path
+    contains `marker` (e.g. "pod1", or "doc/pod" for every pod section),
+    sorted within each directory for stable output."""
+    marker = marker.replace("/", os.sep)
     for dirpath, _dirs, files in os.walk(root):
-        if os.sep + "pod1" not in dirpath + os.sep:
+        if os.sep + marker not in dirpath + os.sep:
             continue
         for fn in sorted(files):
-            if not fn.endswith(".pod"):
-                continue
-            name = fn[:-4]
-            if name in POD1_SYNOPSIS_SKIP:
-                continue
-            rel = os.path.relpath(os.path.join(dirpath, fn), root)
-            if not pod_has_synopsis(read(root, rel)):
-                findings.append(f"[pod1] {rel}: missing '=head1 SYNOPSIS' section")
-
-    # 5: man-page cross-references
-    all_pods = []
-    for dirpath, _dirs, files in os.walk(root):
-        if os.sep + "doc" + os.sep + "pod" not in dirpath + os.sep:
-            continue
-        for fn in files:
             if fn.endswith(".pod"):
-                all_pods.append(os.path.relpath(os.path.join(dirpath, fn), root))
-    # inventory: which (name, section) pages exist, and which names exist anywhere
+                yield os.path.relpath(os.path.join(dirpath, fn), root)
+
+
+def pod_inventory(pods):
+    """Split a list of pod paths into ((name, section) set, name set)."""
     avail_ns, avail_name = set(), set()
-    for rel in all_pods:
+    for rel in pods:
         name = os.path.basename(rel)[:-4]
         avail_name.add(name)
         m = re.search(r"[\\/]pod(\d)[\\/]", rel)
         if m:
             avail_ns.add((name, m.group(1)))
-    for rel in sorted(all_pods):
-        for name, sec in sorted(pod_cross_references(read(root, rel))):
-            tag = f"{name}({sec})"
-            if (name, sec) in avail_ns or tag in EXTERNAL_MANPAGES \
-                    or tag in INTERNAL_NO_MANPAGE:
-                continue
-            if name in avail_name:
-                findings.append(
-                    f"[xref] {rel}: '{tag}' refers to an existing page at the "
-                    f"wrong section")
-            else:
-                findings.append(
-                    f"[xref] {rel}: '{tag}' has no matching pod (broken "
-                    f"cross-reference)")
+    return avail_ns, avail_name
 
-    # 6: admin program page <-> its own rc config file
-    for dirpath, _dirs, files in os.walk(root):
-        if os.sep + "pod1" not in dirpath + os.sep:
-            continue
-        for fn in sorted(files):
-            if not fn.endswith("admin.pod"):
-                continue
-            name = fn[:-4]                          # e.g. "ionsecadmin"
-            expected = name[:-len("admin")] + "rc"  # -> "ionsecrc"
-            rel = os.path.relpath(os.path.join(dirpath, fn), root)
-            for named in sorted(admin_config_file_refs(read(root, rel))):
-                if named != expected:
-                    findings.append(
-                        f"[adminrc] {rel}: config-file note names '{named}' but "
-                        f"{name} reads '{expected}'")
 
-    # 7: pod1 DIAGNOSTICS vs source error strings.
-    #
-    # NOTE: this check is ONE-DIRECTIONAL (pod -> source). It verifies that each
-    # documented diagnostic corresponds to a real source string, catching
-    # fictional/stale/misattributed entries. It does NOT check completeness:
-    # source error strings (putErrmsg/putSysErrmsg/writeMemo) that are missing
-    # from the pod's DIAGNOSTICS section are NOT flagged. ION pods intentionally
-    # summarize ("...a variety of other diagnostics may also be reported."), so a
-    # strict source -> pod completeness check would be very noisy.
-    # TODO: optionally add a soft, report-only completeness mode that lists
-    # undocumented operator-facing source strings per program (advisory, not a
-    # CI failure) so a human can pick the relevant ones to document.
-    #
-    # A program's diagnostics may be emitted by its own .c OR by library code it
-    # links, so the corpus is the program's top-level module plus the shared
-    # ici/ foundation - NOT the global tree, which would mask genuine copy-paste
-    # bugs (an lgagent message that really lives in an unrelated module). Test
-    # directories are kept OUT of the bulk corpus so one test program's strings
-    # cannot mask a sibling's bug, but a program's *own* source is always
-    # included even when it lives under test/.
-    SKIP_DIRS = {"tests", "test", "arch-rtems", "build"}
-    module_c = {}                  # module -> [rel .c paths] (no test scaffolding)
-    prog_paths = {}                # basename -> [rel .c paths] (incl. test progs)
+# Directories excluded from the bulk diagnostics corpus: test scaffolding (one
+# test program's strings must not mask a sibling's bug) and non-native builds.
+SKIP_DIRS = {"tests", "test", "arch-rtems", "build"}
+
+
+def source_index(root):
+    """Scan the tree once for .c files, returning
+    (module -> [rel paths] without test scaffolding,
+     basename -> [rel paths] including test programs)."""
+    module_c, prog_paths = {}, {}
     for dirpath, _dirs, files in os.walk(root):
         parts = set(dirpath.split(os.sep))
         if "arch-rtems" in parts or "build" in parts:
@@ -643,45 +629,160 @@ def collect_findings(root):
             prog_paths.setdefault(fn[:-2], []).append(rel)
             if not in_test:
                 module_c.setdefault(module, []).append(rel)
+    return module_c, prog_paths
 
-    module_tokens = {}             # module -> [token set per source literal]
-    def tokens_for(module):
-        if module not in module_tokens:
-            sets = []
-            for sc in set(module_c.get(module, []) + module_c.get("ici", [])):
-                for lit in source_error_strings(read(root, sc)):
-                    sets.append(set(_words(lit)))
-            module_tokens[module] = sets
-        return module_tokens[module]
 
-    for dirpath, _dirs, files in os.walk(root):
-        if os.sep + "pod1" not in dirpath + os.sep:
+class SourceTokens:
+    """Word sets of the C string literals of a module, cached per module.
+
+    A program's diagnostics may be emitted by its own .c OR by library code it
+    links, so a module's corpus is that module plus the shared ici/ foundation -
+    NOT the global tree, which would mask genuine copy-paste bugs (an lgagent
+    message that really lives in an unrelated module)."""
+
+    def __init__(self, root, module_c):
+        self.root = root
+        self.module_c = module_c
+        self._cache = {}
+
+    def paths(self, paths):
+        sets = []
+        for sc in paths:
+            for lit in source_error_strings(read(self.root, sc)):
+                sets.append(set(_words(lit)))
+        return sets
+
+    def module(self, module):
+        if module not in self._cache:
+            self._cache[module] = self.paths(
+                set(self.module_c.get(module, []) + self.module_c.get("ici", [])))
+        return self._cache[module]
+
+
+# --------------------------------------------------------------------------- #
+# Checks                                                                      #
+# --------------------------------------------------------------------------- #
+
+def check_admin_commands(root):
+    """Checks 1 + 2: admin command and manage-subcommand parity."""
+    findings = []
+    for pod, src in ADMIN_PAIRS:
+        if missing(root, pod) or missing(root, src):
+            findings.append(f"[admin] MISSING FILE: {pod} or {src}")
             continue
-        module = os.path.relpath(dirpath, root).split(os.sep)[0]
-        in_module = set(module_c.get(module, []))
-        for fn in sorted(files):
-            if not fn.endswith(".pod"):
-                continue
-            name = fn[:-4]
-            if name not in prog_paths:         # no <name>.c -> not a program
-                continue
-            rel = os.path.relpath(os.path.join(dirpath, fn), root)
-            diags = pod_diagnostics(read(root, rel))
-            if not diags:
-                continue
-            src_tokens = list(tokens_for(module))
-            for sc in prog_paths[name]:        # always fold in the program's own
-                if sc in in_module:            # source (test programs aren't yet)
-                    continue
-                for lit in source_error_strings(read(root, sc)):
-                    src_tokens.append(set(_words(lit)))
-            for d in diags:
-                if not diagnostic_is_documented(_diag_tokens(d, name),
-                                                src_tokens):
-                    findings.append(
-                        f"[diag] {rel}: documented diagnostic not found in "
-                        f"source: \"{d}\"")
+        ptext, stext = read(root, pod), read(root, src)
+        findings += admin_command_findings(pod, ptext, stext)
+        findings += manage_subcommand_findings(pod, ptext, stext)
+    return findings
 
+
+def check_pod3_api(root):
+    """Check 3: pod3 API parity against the declaring header(s)."""
+    findings = []
+    for pod, headers in sorted(POD3_API.items()):
+        if missing(root, pod):
+            findings.append(f"[api] MISSING FILE: {pod}")
+            continue
+        declared = set()
+        for h in headers:
+            if missing(root, h):
+                findings.append(f"[api] MISSING HEADER: {h} (for {pod})")
+                continue
+            declared |= header_functions(read(root, h))
+        findings += api_findings(pod, pod_api_functions(read(root, pod)), declared)
+    return findings
+
+
+def check_pod1_synopsis(root):
+    """Check 4: every section-1 man page has a SYNOPSIS block."""
+    findings = []
+    for rel in pod_files(root, "pod1"):
+        if os.path.basename(rel)[:-4] in POD1_SYNOPSIS_SKIP:
+            continue
+        if not pod_has_synopsis(read(root, rel)):
+            findings.append(f"[pod1] {rel}: missing '=head1 SYNOPSIS' section")
+    return findings
+
+
+def check_cross_references(root):
+    """Check 5: every name(section) reference resolves to a pod or a known
+    external man page."""
+    pods = sorted(pod_files(root, os.path.join("doc", "pod")))
+    avail_ns, avail_name = pod_inventory(pods)
+    findings = []
+    for rel in pods:
+        findings += cross_reference_findings(
+            rel, pod_cross_references(read(root, rel)), avail_ns, avail_name)
+    return findings
+
+
+def check_admin_rc_pairing(root):
+    """Check 6: an admin page's dos2unix note names that program's own rc
+    file."""
+    findings = []
+    for rel in pod_files(root, "pod1"):
+        name = os.path.basename(rel)[:-4]       # e.g. "ionsecadmin"
+        if not name.endswith("admin"):
+            continue
+        findings += admin_rc_findings(rel, name,
+                                      admin_config_file_refs(read(root, rel)))
+    return findings
+
+
+def check_diagnostics(root):
+    """Check 7: pod1 DIAGNOSTICS entries vs the program's source strings.
+
+    NOTE: this check is ONE-DIRECTIONAL (pod -> source). It verifies that each
+    documented diagnostic corresponds to a real source string, catching
+    fictional/stale/misattributed entries. It does NOT check completeness:
+    source error strings (putErrmsg/putSysErrmsg/writeMemo) that are missing
+    from the pod's DIAGNOSTICS section are NOT flagged. ION pods intentionally
+    summarize ("...a variety of other diagnostics may also be reported."), so a
+    strict source -> pod completeness check would be very noisy.
+    TODO: optionally add a soft, report-only completeness mode that lists
+    undocumented operator-facing source strings per program (advisory, not a
+    CI failure) so a human can pick the relevant ones to document."""
+    module_c, prog_paths = source_index(root)
+    tokens = SourceTokens(root, module_c)
+    findings = []
+    for rel in pod_files(root, "pod1"):
+        name = os.path.basename(rel)[:-4]
+        if name not in prog_paths:              # no <name>.c -> not a program
+            continue
+        diags = pod_diagnostics(read(root, rel))
+        if not diags:
+            continue
+        module = rel.split(os.sep)[0]
+        in_module = set(module_c.get(module, []))
+        # always fold in the program's own source, even when it is a test
+        # program and therefore not part of the module corpus
+        own = [sc for sc in prog_paths[name] if sc not in in_module]
+        src_tokens = tokens.module(module) + tokens.paths(own)
+        findings += diagnostics_findings(rel, name, diags, src_tokens)
+    return findings
+
+
+CHECKS = {
+    "admin":   check_admin_commands,
+    "api":     check_pod3_api,
+    "pod1":    check_pod1_synopsis,
+    "xref":    check_cross_references,
+    "adminrc": check_admin_rc_pairing,
+    "diag":    check_diagnostics,
+}
+
+
+# --------------------------------------------------------------------------- #
+# Driver                                                                      #
+# --------------------------------------------------------------------------- #
+
+def collect_findings(root, checks=None):
+    """Return a sorted list of finding strings (stable keys for baselining).
+    `checks` optionally restricts the run to a subset of CHECKS names."""
+    names = sorted(CHECKS) if checks is None else checks
+    findings = []
+    for name in names:
+        findings += CHECKS[name](root)
     return sorted(set(findings))
 
 
@@ -703,10 +804,17 @@ def main():
                     help="write current findings to the baseline and exit 0")
     ap.add_argument("--all", action="store_true",
                     help="print every finding, including baselined ones")
+    ap.add_argument("--check", action="append", choices=sorted(CHECKS),
+                    help="run only the named check (repeatable); implies --all "
+                         "reporting over that subset and never updates the "
+                         "baseline for the checks that did not run")
     args = ap.parse_args()
 
+    if args.check and args.update_baseline:
+        ap.error("--check cannot be combined with --update-baseline")
+
     root = find_root(args.root)
-    findings = collect_findings(root)
+    findings = collect_findings(root, args.check)
     baseline_path = os.path.join(root, BASELINE_FILE)
 
     if args.update_baseline:
@@ -723,9 +831,11 @@ def main():
     baseline_set = set(baseline)
 
     new = [f for f in findings if f not in baseline_set]
-    stale = [f for f in baseline if f not in set(findings)]
+    # a partial run cannot tell a pruned finding from one of the checks it
+    # skipped, so the stale report is only meaningful for a full run
+    stale = [] if args.check else [f for f in baseline if f not in set(findings)]
 
-    if args.all:
+    if args.all or args.check:
         print(f"All findings ({len(findings)}):")
         for f in findings:
             tag = " " if f in baseline_set else "*"

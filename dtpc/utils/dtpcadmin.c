@@ -91,6 +91,8 @@ static void     printUsage(void)
 	PUTS("\tl\tList");
 	PUTS("\t   l profile");
 	PUTS("\ts\tStart");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   w { 0 | 1 | <activity spec> }");
 	PUTS("\t\tActivity spec is a string of all requested activity \

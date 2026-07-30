@@ -59,7 +59,8 @@ int ipn_remove_all_plans(void);
 
 The B<bp_admin> library provides a set of functions for programmatically configuring and managing an ION (Interplanetary Overlay Network) node's Bundle Protocol (BP) agent. This API serves as an alternative to using the interactive I<bpadmin>(1) command-line utility, allowing applications to automate the setup, control, and monitoring of the BP service.
 
-All functions in this library require that the application first attach to the BP agent by calling I<bp_attach>() (see bp(3)).
+All functions in this library require that the application first attach to the
+BP agent by calling I<bp_attach>() (see bp(3)).
 
 =head1 NAMING CONVENTION
 
@@ -377,7 +378,7 @@ System lifecycle functions (C<bp_init()>, C<bp_start()>, C<ipn_init()>) return 0
 
 =head1 SEE ALSO
 
-bpadmin(1), bp(3), ipnadmin(1)
+bpadmin(1), bp(3), ion_admin(3)
 
 =head1 COPYRIGHT
 

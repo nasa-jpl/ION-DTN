@@ -98,6 +98,8 @@ See man(5) for bssprc.");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s '<BE-BSI command>' '<RL-BSI command>'");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\tw\tWatch BSSP activity");

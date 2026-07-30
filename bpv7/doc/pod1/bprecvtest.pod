@@ -61,26 +61,18 @@ open; the easiest workaround is to select a different source endpoint.
 
 =item bprecvtest bundle reception failed.
 
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
-
-=item bprecvtest: can't open test file
-
-File system error.  B<bprecvtest> terminates.
-
 =item bprecvtest: can't receive bundle content.
-
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
-
-=item bprecvtest: can't write to test file
-
-File system error.  B<bprecvtest> terminates.
 
 =item bprecvtest cannot continue.
 
 BP system error.  Check for earlier diagnostic messages describing the
 cause of the error; correct problem and rerun.
+
+=item bprecvtest: can't open test file
+
+=item bprecvtest: can't write to test file
+
+File system error.  B<bprecvtest> terminates.
 
 =back
 

@@ -196,12 +196,11 @@ formats.  It is the same as the B<?> command.
 
 The B<quit> command.  Terminates the program immediately.
 
-=item B<t> [ B<p> [I<timeout>] ]
+=item B<t> [B<p> [I<timeout>]]
 
 The startup-test command.  Reports whether the BSSP engine is started and sets
 the program's exit code accordingly.  With B<p> ("poll") it waits up to
-I<timeout> seconds (a built-in default if omitted) for startup before giving
-up.
+I<timeout> seconds (a built-in default if omitted) for startup before giving up.
 
 =back
 

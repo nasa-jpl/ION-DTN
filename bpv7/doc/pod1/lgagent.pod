@@ -79,8 +79,6 @@ Investigate and correct before restarting.
 
 =item lgagent: no space for bundle content.
 
-ION system problem: have exhausted available SDR data store reserves.
-
 =item lgagent: can't receive bundle content.
 
 ION system problem: have exhausted available SDR data store reserves.
