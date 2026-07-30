@@ -195,7 +195,8 @@ int	main(int argc, char *argv[])
 	/*
 	if (openSharedLibrary(sharedLibPath, funcHandle) == -1)
 	{
-		putErrmsg("sppclo can not open shared protocol library.", sharedLibPath);
+		putErrmsg("sppcli can not open shared protocol library.",
+				sharedLibPath);
 		return -1;
 	}*/
 
