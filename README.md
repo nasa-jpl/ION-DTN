@@ -53,11 +53,15 @@ Both Web-based and Command Line Interfaces for automated generation of ION confi
 
 ION uses a versioning scheme of the form `X.Y.Z[-suffix].N`, where:
 
-- `X` is the major version number, incremented for significant changes that may include backward-incompatible changes.
-- `Y` is the minor version number, incremented for backward-compatible feature additions and improvements.
-- `Z` is the patch version number, incremented for backward-compatible bug fixes.
+- `X` is the major version number, incremented for very major shifts.
+- `Y` is the minor version number, incremented for substantial shifts.
+- `Z` is the patch version number, incremented when milestones are reached.
 - `[-suffix]` is an optional suffix that may include additional information such as pre-release identifiers ('a' for alpha, 'b' for beta) or build metadata.
 - `N` is the build number, incremented for each build of a given `X.Y.Z[-suffix]` version.
+
+> [!NOTE]
+> ION does not follow semantic versioning.
+> Breaking changes can occur for any updates.
 
 - Each stable release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z`.
 - Each alpha and beta release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z-suffix.1`. A release package is created for the first build of each alpha and beta release (i.e., build number `1`).
