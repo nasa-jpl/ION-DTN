@@ -170,3 +170,26 @@ jobs:
       - name: Lint changed scripts
         shell: bash
         run: bash .github/scripts/lint-test-conventions.sh ${{ steps.changed-files.outputs.all_changed_files }}
+
+  pod-doc-check:
+    name: Verify pod documentation consistency
+    runs-on: arc-runner-set-ol9
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run pod doc check
+        run: |
+          echo "### 📝 Documentation Consistency Report" >> $GITHUB_STEP_SUMMARY
+
+          # Open a code block
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+
+          # Capture the exit code so the workflow still fails if the script fails
+          python3 .github/scripts/check_doc_consistency.py >> $GITHUB_STEP_SUMMARY 2>&1 || EXIT_CODE=$?
+
+          # Close the code block
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # Exit with the script's original exit code
+          exit ${EXIT_CODE:-0}
