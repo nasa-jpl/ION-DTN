@@ -256,7 +256,7 @@ compute-tier-cflags.sh --tier=__atomic
 **Notes:**
 Fallback tiers require both language mode (C99 via -std=c99 and ac_cv_c11=no)
 and tier dispatch (ION_TEST_FORCE_FALLBACK macros).
-See the coding-guide.md ["Testing the Fallback Tiers"](../../site-docs/docs/coding-guide.md#testing-the-fallback-tiers)
+See the atomic-operations.md ["Testing the Fallback Tiers"](../../site-docs/docs/atomic-operations.md#testing-the-fallback-tiers)
 for details.
 
 ---

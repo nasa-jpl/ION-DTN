@@ -109,7 +109,7 @@
  *         → genuine C99 + Tier 3 (__sync), what a pre-GCC-4.7
  *           flight toolchain would see
  *
- * See site-docs/docs/coding-guide.md "Testing the Fallback
+ * See site-docs/docs/atomic-operations.md "Testing the Fallback
  * Tiers" for the complete recipe matrix and rationale.
  *
  * Author: ION team, JPL
