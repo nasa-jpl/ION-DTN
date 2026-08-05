@@ -587,6 +587,20 @@ else
 fi
 
 #
+# Test-only: use the fixed RFC 9173 Appendix A content-encryption key and
+# IV vectors instead of a CSPRNG.  Requires --enable-bsl.  NOT for
+# operational use (see -DBSL_TEST_VECTORS handling below).  Defined before
+# the --enable-bsl block so $enable_bsl_test_vectors is set when that
+# block's action runs.
+#
+AC_ARG_ENABLE([bsl-test-vectors],
+  [AS_HELP_STRING([--enable-bsl-test-vectors],[(BSL, test only) use fixed RFC 9173 Appendix A key/IV vectors instead of a CSPRNG; NOT for operational use])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-bsl-test-vectors])])],
+  [enable_bsl_test_vectors=no])
+
+#
 # Allow user to enable BSL (Bundle Protocol Security Library)
 #
 # To Enable BSL, use "./configure --enable-bsl"
@@ -612,6 +626,17 @@ AC_ARG_ENABLE(
       # Add preprocessor flag for conditional compilation
       AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
+
+      # BSL test vectors: replace the CSPRNG-backed content-encryption key
+      # and IV generator with the fixed RFC 9173 Appendix A test vectors.
+      # For interop/regression reproduction of the Appendix A byte-exact
+      # vectors ONLY.  A build with this flag reuses a fixed key and IV,
+      # which defeats confidentiality, so it must never be used
+      # operationally; it is off unless explicitly requested.
+      if test "x$enable_bsl_test_vectors" = xyes; then
+        AM_CFLAGS="$AM_CFLAGS -DBSL_TEST_VECTORS=1"
+        AC_MSG_WARN([BSL_TEST_VECTORS enabled: content-encryption keys and IVs are FIXED RFC 9173 test vectors, not random.  Do not use this build operationally.])
+      fi
 
       # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
       AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${BSL_HOME}/include/m-lib -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration"
@@ -661,6 +686,11 @@ AC_ARG_ENABLE(
    ENABLE_BSL=no])
 
 AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
+
+# --enable-bsl-test-vectors only has an effect inside the --enable-bsl
+# action above; reject it on its own so it never silently does nothing.
+AS_IF([test "x$enable_bsl_test_vectors" = xyes && test "x$ENABLE_BSL" != xyes],
+  [AC_MSG_ERROR([--enable-bsl-test-vectors requires --enable-bsl])])
 
 if test "x$ENABLE_BSL" = "xyes"; then
   # Apply AM_CFLAGS to CFLAGS for header checks

@@ -1407,23 +1407,60 @@ static bool	ion_bsl_eidpat_match(const BSL_HostEIDPattern_t *patWrapper,
 
 /******************* Functions that load BSL policies *******************/
 
+#ifdef BSL_TEST_VECTORS
+/*	Deterministic content-encryption key and IV generator that returns
+ *	the fixed RFC 9173 Appendix A test vectors instead of random bytes.
+ *	This exists ONLY to reproduce the RFC 9173 Appendix A byte-exact
+ *	vectors in interop testing; it is never installed in a normal build.
+ *	Reusing a fixed key and IV defeats confidentiality and violates the
+ *	per-invocation-IV requirement of RFC 9173, so it is gated behind the
+ *	BSL_TEST_VECTORS build flag and must never reach an operational node.
+ *
+ *	The generator is a single hook shared by BSL_Crypto_GenKey and
+ *	BSL_Crypto_GenIV, disambiguated only by the requested length: a
+ *	12-byte request is the IV, anything else is the content-encryption
+ *	key.							*/
+
 static int	rfc9173_bcb_cek(unsigned char *buf, int len)
 {
 	/*	Lifted verbatim from mock_bpa_rfc9173_bcb_cek.		*/
 
+	static const uint8_t	iv[] = { 0x54, 0x77, 0x65, 0x6c, 0x76,
+			0x65, 0x31, 0x32, 0x31, 0x32, 0x31, 0x32 };
+	static const uint8_t	rfc9173A3_key[] = { 0x71, 0x77, 0x65,
+			0x72, 0x74, 0x79, 0x75, 0x69, 0x6f, 0x70, 0x61,
+			0x73, 0x64, 0x66, 0x67, 0x68 };
+
+	if (len < 0)
+	{
+		return 0;
+	}
+
 	if (len == 12) // IV
 	{
-		uint8_t iv[] = { 0x54, 0x77, 0x65, 0x6c, 0x76, 0x65, 0x31, 0x32, 0x31, 0x32, 0x31, 0x32 };
-		memcpy(buf, iv, 12);
+		memcpy(buf, iv, sizeof iv);
 	}
 	else // A3 KEY
 	{
-		uint8_t rfc9173A3_key[] = { 0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69, 0x6f, 0x70, 0x61, 0x73, 0x64, 0x66, 0x67, 0x68 };
-		memcpy(buf, rfc9173A3_key, len);
+		/*	rfc9173A3_key is 16 bytes; a caller requesting a
+		 *	32-byte key (AES-256, the RFC 9173 default when no
+		 *	AES variant is specified) must not read past it.
+		 *	Copy what we have and zero-fill the remainder.	*/
+
+		size_t	avail = sizeof rfc9173A3_key;
+		size_t	want = (size_t) len;
+		size_t	n = want < avail ? want : avail;
+
+		memcpy(buf, rfc9173A3_key, n);
+		if (want > n)
+		{
+			memset(buf + n, 0, want - n);
+		}
 	}
 
 	return 1;
 }
+#endif	/* BSL_TEST_VECTORS */
 
 
 /*************** Functions called by the host process *******************/
@@ -1937,7 +1974,17 @@ disabled.  Use 'm bsl' in bprc to enable.");
 	/*	BSL initialization parameters are now loaded.		*/
 
 	BSL_CryptoInit();
+#ifdef BSL_TEST_VECTORS
+	/*	Override the CSPRNG with fixed RFC 9173 Appendix A vectors.
+	 *	Test-only: defeats confidentiality and reuses the IV, so it
+	 *	is compiled in only under BSL_TEST_VECTORS.  BSL_CryptoInit
+	 *	has already installed OpenSSL RAND_bytes as the default; we
+	 *	replace it here for byte-exact vector reproduction.	*/
+
+	writeMemo("[!] BSL_TEST_VECTORS build: content-encryption keys and \
+IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 	BSL_Crypto_SetRngGenerator(rfc9173_bcb_cek);
+#endif
 	if (initializeAgent(agent) < 0)
 	{
 		writeMemo("[?] Bsl agent initialization failed.");
