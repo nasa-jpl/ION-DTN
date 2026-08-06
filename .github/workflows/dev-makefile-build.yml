@@ -194,6 +194,7 @@ jobs:
             const warnings = '${{ steps.build.outputs.warnings }}';
             const errors = '${{ steps.build.outputs.errors }}';
             const missingBins = '${{ steps.verify.outputs.missing_binaries }}';
+            const issueNumber = ${{ steps.pr-context.outputs.pr_number }};
 
             let statusIcon = '✅';
             let statusText = 'Success';
@@ -211,18 +212,47 @@ jobs:
               details = `\n\n**Build Statistics:**\n- Warnings: ${warnings}\n- Errors: ${errors}\n\nAll key binaries and libraries verified successfully.`;
             }
 
-            await github.rest.issues.createComment({
+            // Define a unique hidden marker to identify our specific bot comment
+            const marker = '<!-- dev-makefile-build-report -->';
+
+            const messageBody = `${marker}
+            ## ${statusIcon} Development Makefile Build ${statusText}
+
+            **Workflow:** ${context.workflow}
+            **Run:** ${context.runNumber}
+            **Commit:** ${context.sha.substring(0, 7)}${details}
+
+            [View full workflow run →](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            // Fetch existing comments on the PR
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.pr-context.outputs.pr_number }},
-              body: `## ${statusIcon} Development Makefile Build ${statusText}
-
-              **Workflow:** ${context.workflow}
-              **Run:** ${context.runNumber}
-              **Commit:** ${context.sha.substring(0, 7)}${details}
-
-              [View full workflow run →](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+              issue_number: issueNumber,
             });
+
+            // Look for a comment containing our hidden marker
+            const existingComment = comments.find(comment => comment.body.includes(marker));
+
+            if (existingComment) {
+              // Update the existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: messageBody
+              });
+              console.log(`Updated existing comment ${existingComment.id}`);
+            } else {
+              // Create a new comment if one doesn't exist
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: messageBody
+              });
+              console.log('Created new comment');
+            }
 
       - name: Upload build log on failure
         if: failure()
