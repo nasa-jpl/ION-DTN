@@ -21,6 +21,17 @@ trap 'killm f' EXIT
 #   Node 2 (source):
 #     - BIB source on primary (tgt 0) for 2->3 and 2->4
 #     - BCB source on payload (tgt 1) for 2->3 and 2->4
+#     - BIB source on the bundle age block (tgt 7) and the previous node
+#       block (tgt 6), both of which ION does not fill in until the
+#       bundle is dequeued for transmission.  These two rules must be
+#       DECLINED: there is no settled content to protect while the
+#       bundle is at rest, and ION would overwrite it at dequeue.  They
+#       are a regression guard - offering such a block to BSL as a
+#       zero-length target used to crash the sending process, and it
+#       took two of them to do it, since the first zero-length target
+#       left BSL's stack copy of the BTSD null and only the second
+#       reached it as a garbage pointer.  Every test below must still
+#       pass with these rules in place.
 #   Node 3 (waypoint/dest for 2->3, relay for 2->4):
 #     - BCB verifier at CLIN (validates ASB, does NOT decrypt)
 #     - BIB acceptor at APPOUT for primary (verifies HMAC)

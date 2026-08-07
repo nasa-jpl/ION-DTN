@@ -30,9 +30,81 @@
 #include "text_util.h"
 #endif
 
+/*	Reasons a block cannot be the target of a security operation,
+ *	as reported by reportIneligibleTarget below.			*/
+
+#define	CONTENT_DEFERRED	"is rewritten when the bundle is dequeued \
+for transmission and has no settled content while the bundle is at rest"
+#define	CONTENT_EMPTY		"has zero length and no content to protect"
+
 /****** bsl "descriptors" - ION implementations of BSL callbacks ********/
 
 /*	*	Functions that operate on bundles and blocks	*	*/
+
+/*	Some ION extension blocks are rewritten at transmission time,
+ *	so they have no settled content while the bundle is at rest.
+ *	The offer functions for the previous-node block and the bundle
+ *	age block, for example, reserve the block but leave its
+ *	type-specific data empty; the content is produced when the
+ *	bundle is dequeued for transmission, and the previous-node
+ *	block may even be suppressed at that point if no proximate
+ *	node EID applies.
+ *
+ *	A block in that state cannot carry a security service.  There
+ *	is nothing to sign or encrypt yet, and whatever ION writes at
+ *	dequeue time would replace the bytes a BIB or BCB was computed
+ *	over, so the security result would never verify at the
+ *	receiving node.
+ *
+ *	Blocks in this state are therefore withheld from the list of
+ *	canonical blocks presented to BSL, and are reported as
+ *	ineligible if their metadata is requested by block number, so
+ *	that a policy rule naming such a block is declined instead of
+ *	driving a zero-length BTSD read.				*/
+
+/*	Note: a security block that BSL has just created also has a
+ *	dataLength of zero until BSL writes its BTSD, but ION has
+ *	already reserved storage for that block's bytes.  Keying on the
+ *	absence of that storage - rather than on dataLength - keeps the
+ *	newly created security block visible to BSL while withholding
+ *	the blocks whose content ION has not yet produced.		*/
+
+static int	sdrBlockHasNoBtsd(ExtensionBlock *blk)
+{
+	return (blk->bytes == 0);
+}
+
+static int	ramBlockHasNoBtsd(AcqExtBlock *blk)
+{
+	return (blk->length == 0);
+}
+
+/*	Every locally sourced bundle carries these blocks, so reporting
+ *	each one on each pass would flood the log with a fact that does
+ *	not change.  One memo per block type per process is enough to
+ *	explain the "Cannot find target block type" warnings that BSL
+ *	logs when a policy rule names one of them.			*/
+
+static void	reportIneligibleTarget(unsigned int blockNbr,
+			unsigned int blockType, const char *reason)
+{
+	static char	reported[256];
+	char		msgbuf[256];
+
+	if (blockType < sizeof reported)
+	{
+		if (reported[blockType])
+		{
+			return;
+		}
+
+		reported[blockType] = 1;
+	}
+
+	isprintf(msgbuf, sizeof msgbuf, "[i] BSL: block %u (type %u) %s, so it \
+cannot be the target of a BIB or BCB.", blockNbr, blockType, reason);
+	writeMemo(msgbuf);
+}
 
 static int	getBlockNumbersFromSdr(Bundle *bundle,
 			BSL_PrimaryBlock_t *result_primary_block)
@@ -45,7 +117,6 @@ static int	getBlockNumbersFromSdr(Bundle *bundle,
 		OBJ_POINTER(ExtensionBlock, blk);
 
 	canonicalBlockCount = 1	+ sdr_list_length(sdr, bundle->extensions);
-	result_primary_block->block_count = canonicalBlockCount;
 	result_primary_block->block_numbers = BSL_CALLOC(canonicalBlockCount,
 			sizeof(uint64_t));
 	if (!result_primary_block->block_numbers)
@@ -54,14 +125,23 @@ static int	getBlockNumbersFromSdr(Bundle *bundle,
 	}
 
 	for (elt = sdr_list_first(sdr, bundle->extensions), i= 0; elt;
-			elt = sdr_list_next(sdr, elt), i++)
+			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
+		if (sdrBlockHasNoBtsd(blk))
+		{
+			reportIneligibleTarget(blk->number, blk->type,
+				CONTENT_DEFERRED);
+			continue;
+		}
+
 		result_primary_block->block_numbers[i] = blk->number;
+		i++;
 	}
 
 	result_primary_block->block_numbers[i] = 1;	/*	payload	*/
+	result_primary_block->block_count = i + 1;
 	return 0;
 }
 
@@ -74,7 +154,6 @@ static int	getBlockNumbersFromRAM(AcqWorkArea *work,
 	AcqExtBlock	*blk;
 
 	canonicalBlockCount = 1	+ lyst_length(work->extBlocks);
-	result_primary_block->block_count = canonicalBlockCount;
 	result_primary_block->block_numbers = BSL_CALLOC(canonicalBlockCount,
 			sizeof(uint64_t));
 	if (!result_primary_block->block_numbers)
@@ -83,13 +162,22 @@ static int	getBlockNumbersFromRAM(AcqWorkArea *work,
 	}
 
 	for (elt = lyst_first(work->extBlocks), i= 0; elt;
-			elt = lyst_next(elt), i++)
+			elt = lyst_next(elt))
 	{
 		blk = (AcqExtBlock *) lyst_data(elt);
+		if (ramBlockHasNoBtsd(blk))
+		{
+			reportIneligibleTarget(blk->number, blk->type,
+				CONTENT_DEFERRED);
+			continue;
+		}
+
 		result_primary_block->block_numbers[i] = blk->number;
+		i++;
 	}
 
 	result_primary_block->block_numbers[i] = 1;	/*	payload	*/
+	result_primary_block->block_count = i + 1;
 	return 0;
 }
 
@@ -216,6 +304,13 @@ static int	getBlockMetadataFromSdr(Bundle *bundle, uint64_t block_num,
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
+	if (sdrBlockHasNoBtsd(blk))
+	{
+		reportIneligibleTarget(blk->number, blk->type,
+				CONTENT_DEFERRED);
+		return -1;
+	}
+
 	result_canonical_block->block_num = blk->number;
 	result_canonical_block->flags     = blk->blkProcFlags;
 	result_canonical_block->crc_type  = blk->crcType;
@@ -237,6 +332,13 @@ static int	getBlockMetadataFromRAM(AcqWorkArea *work, uint64_t block_num,
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
+	if (ramBlockHasNoBtsd(blk))
+	{
+		reportIneligibleTarget(blk->number, blk->type,
+				CONTENT_DEFERRED);
+		return -1;
+	}
+
 	result_canonical_block->block_num = blk->number;
 	result_canonical_block->flags     = blk->blkProcFlags;
 	result_canonical_block->crc_type  = blk->crcType;
@@ -260,6 +362,18 @@ static int	ion_bsl_GetBlockMetadata(const BSL_BundleRef_t *bundle_ref,
 	memset(result_canonical_block, 0, sizeof(*result_canonical_block));
 	if (block_num == 1)	/*	Payload block			*/
 	{
+		/*	bpSend() accepts an application data unit of
+		 *	zero length, and a payload block of zero length
+		 *	is likewise ineligible: there are no bytes to
+		 *	sign or encrypt.  Decline it here rather than
+		 *	report a target whose BTSD is empty.		*/
+
+		if (bundle->payload.length == 0)
+		{
+			reportIneligibleTarget(1, PayloadBlk, CONTENT_EMPTY);
+			return -3;
+		}
+
 		result_canonical_block->block_num = 1;
 		result_canonical_block->flags = bundle->payloadBlockProcFlags;
 		result_canonical_block->crc_type = bundle->payload.crcType;
@@ -683,6 +797,7 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	SdrObject	addr;
 			OBJ_POINTER(ExtensionBlock, blk);
 	SdrAddress	startOfBTSD;
+	size_t		bytesAvailable;
 
 	work = ref->work;
 	bundle = &(work->bundle);
@@ -718,6 +833,30 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
 
+	/*	Never read outside the block.  A block whose content
+	 *	ION has not yet produced has nothing to read at all,
+	 *	and a caller that asks for more bytes than the block
+	 *	holds gets only the bytes that are actually there;
+	 *	otherwise the read would run into unrelated SDR heap.	*/
+
+	if (sdrBlockHasNoBtsd(blk) || blk->length < blk->dataLength)
+	{
+		*bufsize = 0;
+		return -3;
+	}
+
+	if (ref->position >= blk->dataLength)
+	{
+		*bufsize = 0;	/*	End of BTSD.			*/
+		return 0;
+	}
+
+	bytesAvailable = blk->dataLength - ref->position;
+	if (*bufsize > bytesAvailable)
+	{
+		*bufsize = bytesAvailable;
+	}
+
 	/*	blk->bytes contains the full CBOR extension block
 	 *	(array header + fields + BTSD byte string + CRC).
 	 *	The BTSD content starts at offset
@@ -740,6 +879,7 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	LystElt		elt;
 	AcqExtBlock	*blk;
 	unsigned char	*startOfBTSD;
+	size_t		bytesAvailable;
 
 	work = ref->work;
 	bundle = &(work->bundle);
@@ -774,6 +914,26 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 
 	blk = (AcqExtBlock *) lyst_data(elt);
 
+	/*	Never read outside the block; see readBTSDfromSdr().	*/
+
+	if (ramBlockHasNoBtsd(blk) || blk->length < blk->dataLength)
+	{
+		*bufsize = 0;
+		return -3;
+	}
+
+	if (ref->position >= blk->dataLength)
+	{
+		*bufsize = 0;	/*	End of BTSD.			*/
+		return 0;
+	}
+
+	bytesAvailable = blk->dataLength - ref->position;
+	if (*bufsize > bytesAvailable)
+	{
+		*bufsize = bytesAvailable;
+	}
+
 	/*	blk->bytes contains the full CBOR extension block
 	 *	(array header + fields + BTSD byte string + CRC).
 	 *	The BTSD content starts at offset
@@ -807,8 +967,9 @@ static int	readBTSD(void *user_data, void *buf, size_t *bufsize)
 static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 					*bundle_ref, uint64_t block_num)
 {
-	BSL_SeqReader_t	*reader;
-	BtsdIoRef	*ref;
+	BSL_SeqReader_t		*reader;
+	BtsdIoRef		*ref;
+	BSL_CanonicalBlock_t	metadata;
 
 	CHKNULL(bundle_ref);
 	CHKNULL(block_num > 0);
@@ -816,6 +977,15 @@ static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 	/*	Note: this function reads only canonical blocks
 	 *	(extension blocks and payload), not primary block.
 	 *	The primary block has no BTSD.				*/
+
+	/*	Decline to open a reader on a block that has no BTSD
+	 *	to read, so that a caller cannot be handed a reader
+	 *	that can only fail.					*/
+
+	if (ion_bsl_GetBlockMetadata(bundle_ref, block_num, &metadata) != 0)
+	{
+		return NULL;
+	}
 
 	reader = (BSL_SeqReader_t *) BSL_CALLOC(1, sizeof(BSL_SeqReader_t));
 	CHKNULL(reader);
