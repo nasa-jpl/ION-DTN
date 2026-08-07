@@ -113,5 +113,30 @@
       },
       "policy_action_on_fail": "delete_bundle"
     }
+  },
+  {
+      "policyrule": {
+      "desc": "Regression: BIB source at CLOUT while relaying ipn:2.* -> ipn:4.*.  CLOUT is the second location at which BSL can source a security block; one created here must still be CBOR-encoded and counted in the bundle's extensions length before the bundle is serialized, or node 4 never receives it.",
+      "filter": {
+        "rule_id": "5",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 0,
+        "loc": "clout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
   }]
 }

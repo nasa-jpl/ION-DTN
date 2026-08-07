@@ -7000,6 +7000,17 @@ when asking for status reports.");
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
+
+		/*	BSL's callbacks operate on the bundle they are
+		 *	given, which is the copy above: creating a
+		 *	security block grows extensionsLength and
+		 *	dbOverhead, and a failed security operation may
+		 *	mark the bundle insecure.  Carry the result back,
+		 *	or the bundle that gets stored and serialized
+		 *	will not account for the blocks just added.	*/
+
+		memcpy((char *) &bundle, (char *) &nullWorkArea.bundle,
+				sizeof(Bundle));
 	}
 #endif
 
@@ -12597,6 +12608,14 @@ bundle.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
+
+		/*	Carry back what BSL changed; see the note at the
+		 *	APPIN invocation in bpSend().  The insecure flag
+		 *	matters here in particular, as the check below
+		 *	is what stops an insecure bundle being sent.	*/
+
+		memcpy((char *) &bundle, (char *) &nullWorkArea.bundle,
+				sizeof(Bundle));
 	}
 #else
 	if (bpsec_encrypt(&bundle) < 0)

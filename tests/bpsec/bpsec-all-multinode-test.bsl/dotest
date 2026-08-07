@@ -37,6 +37,14 @@ trap 'killm f' EXIT
 #     - BIB acceptor at APPOUT for primary (verifies HMAC)
 #     - BCB acceptor at APPOUT for payload (decrypts)
 #     - BCB relay verifier at CLIN for 2->4 transit traffic
+#     - BIB source at CLOUT on primary for 2->4 transit traffic.
+#       CLOUT is the second location at which BSL can source a
+#       security block, and the only one exercised after the
+#       bundle already carries security blocks of its own.  A
+#       block sourced here must be CBOR-encoded and counted in
+#       the bundle's extensions length before serialization,
+#       while the blocks node 2 already added must be left
+#       alone.  Tests 6 and 8 fail if either half regresses.
 #   Node 4 (dest for 2->4):
 #     - BCB verifier at CLIN (validates ASB, does NOT decrypt)
 #     - BIB acceptor at APPOUT for primary (verifies HMAC)

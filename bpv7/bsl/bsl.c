@@ -2280,9 +2280,16 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	 *	blk->bytes, but ION expects blk->bytes to contain the
 	 *	fully CBOR-encoded extension block (header + BTSD as
 	 *	CBOR byte string + CRC). serializeExtBlk() performs
-	 *	this encoding.						*/
+	 *	this encoding.
+	 *
+	 *	Both of the locations at which BSL can source a block -
+	 *	APPIN for a locally sourced bundle, CLOUT for a bundle
+	 *	being forwarded - need this pass.  Blocks that arrived
+	 *	in the bundle, or that an earlier pass already encoded,
+	 *	must be left alone; the loop below identifies them.	*/
 
-	if (returncode == 0 && loc == BSL_POLICYLOCATION_APPIN)
+	if (returncode == 0 && (loc == BSL_POLICYLOCATION_APPIN
+			|| loc == BSL_POLICYLOCATION_CLOUT))
 	{
 		Sdr		sdr = getIonsdr();
 		AcqWorkArea	*work;
@@ -2307,7 +2314,20 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 				continue;
 			}
 
-			if (blk.bytes == 0 || blk.length <= 1)
+			/*	ion_bsl_ReallocBTSD sets a block's
+			 *	length equal to the size of the raw BTSD
+			 *	that BSL is about to write into it, so a
+			 *	block still awaiting encoding has length
+			 *	equal to dataLength.  A block that has
+			 *	already been encoded carries a CBOR
+			 *	header as well, so its length exceeds
+			 *	its dataLength.  Encode only the former:
+			 *	at CLOUT the bundle can already hold
+			 *	security blocks, and encoding one twice
+			 *	would wrap it in a second CBOR header.	*/
+
+			if (blk.bytes == 0 || blk.dataLength == 0
+			|| blk.length != blk.dataLength)
 			{
 				continue;
 			}
