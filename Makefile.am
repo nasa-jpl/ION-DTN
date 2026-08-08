@@ -2900,6 +2900,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/admin_public_api/ltp_span_crash_recovery/dotest \
 	tests/admin_public_api/tcp_2nodes/dotest \
 	tests/admin_public_api/bulk_removal/dotest \
+	tests/bp_receive_concurrent_timer/dotest \
 	tests/bp_sap_thread_ownership/dotest \
 	tests/eid-format-preservation/dotest
 #	tests/nm-unit/primitives/ari/dotest
@@ -2948,6 +2949,10 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_eid_format_preservation_dotest_SOURCES = tests/eid-format-preservation/dotest.c
 tests_eid_format_preservation_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_eid_format_preservation_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_bp_receive_concurrent_timer_dotest_SOURCES = tests/bp_receive_concurrent_timer/dotest.c
+tests_bp_receive_concurrent_timer_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
+tests_bp_receive_concurrent_timer_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_bp_sap_thread_ownership_dotest_SOURCES = tests/bp_sap_thread_ownership/dotest.c
 tests_bp_sap_thread_ownership_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread

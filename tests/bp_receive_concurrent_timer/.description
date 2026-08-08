@@ -1,0 +1,1 @@
+Concurrent deadline-bearing bp_receive() calls on two SAPs must not cross each other's timeout state (regression test for the bp_receive() interval-timer thread-safety defect).

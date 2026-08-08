@@ -1898,6 +1898,25 @@ static void	*timerMain(void *parm)
 	return NULL;
 }
 
+static void stopBprcvTimer(pthread_t timerThread, int timeoutSeconds)
+{
+	/*
+	 * A timer thread is started only for a receive() with a positive
+	 * deadline; BP_BLOCKING and BP_POLL start none. Cancelling and joining
+	 * a timer thread that has already terminated on its own is harmless,
+	 * so this is safe on every exit path once the thread has been started.
+	 * The join is mandatory: it reaps the thread and, together with the
+	 * (non-static) stack-local TimerParms in bp_receive(), guarantees the
+	 * timer never outlives its argument or races a concurrent receiver in
+	 * another thread.
+	 */
+	if (timeoutSeconds > 0)
+	{
+		pthread_end(timerThread);
+		pthread_join(timerThread, NULL);
+	}
+}
+
 int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 {
 	Sdr		sdr = getIonsdr();
@@ -1906,7 +1925,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	SdrObject	dlvElt;
 	SdrObject	bundleAddr;
 	Bundle		bundle;
-	static TimerParms	timerParms;
+	TimerParms	timerParms;
 	pthread_t	timerThread;
 	int		result;
 
@@ -1978,12 +1997,14 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 		if (sm_SemTake(vpoint->semaphore) < 0)
 		{
+			stopBprcvTimer(timerThread, timeoutSeconds);
 			putErrmsg("Can't take endpoint semaphore.", NULL);
 			return -1;
 		}
 
 		if (sm_SemEnded(vpoint->semaphore))
 		{
+			stopBprcvTimer(timerThread, timeoutSeconds);
 			writeMemo("[i] Endpoint has been stopped.");
 			dlvBuffer->result = BpEndpointStopped;
 
@@ -1994,7 +2015,13 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 
 		/*	Have taken the semaphore, one way or another.	*/
 
-		CHKERR(sdr_begin_xn(sdr));
+		result = sdr_begin_xn(sdr);
+		if (result == 0)
+		{
+			stopBprcvTimer(timerThread, timeoutSeconds);
+		}
+
+		CHKERR(result);
 		dlvElt = sdr_list_first(sdr, endpoint->deliveryQueue);
 		if (dlvElt == 0)	/*	Still nothing.		*/
 		{
