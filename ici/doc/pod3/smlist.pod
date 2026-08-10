@@ -35,6 +35,17 @@ Create a new list object without any elements in it, within the memory
 segment identified by I<partition>.  Returns the PsmAddress of the list,
 or 0 on any error.
 
+=item PsmAddress sm_list_create_unlocked(PsmPartition partition)
+
+Same as sm_list_create(), except that the new list is created without a
+list-level mutex semaphore; sm_list operations on it perform no locking.
+This variant exists to conserve semaphores (see platform(3)) on nodes that
+create very large numbers of lists.  It is safe to use B<only> when the
+caller guarantees that all access to the list is serialized by some other
+means, such as a surrounding SDR transaction; otherwise the list is not
+protected against concurrent modification.  Returns the PsmAddress of the
+list, or 0 on any error.
+
 =item void sm_list_unwedge(PsmPartition partition, PsmAddress list, int interval)
 
 Unwedge, as necessary, the mutex semaphore protecting shared access to the
@@ -162,6 +173,18 @@ NOT deleted.
 
 Warning: changing the data value of an element of an ordered list may ruin
 the ordering of the list.
+
+=item int sm_list_header_sane(PsmPartition partition, PsmAddress list)
+
+Return 1 if the list header identified by I<list> is structurally sane, 0
+otherwise.  The header is considered sane if its lock field is either
+SM_SEM_NONE (an unlocked list) or a valid semaphore index.  This function
+does not take the list's lock and does not assert; it merely inspects the
+header in place.  It is intended as a use-after-free guard for a I<list>
+handle whose PsmAddress still round-trips through psa()/psp() but whose
+backing memory may have been freed and recycled, in which case the lock
+field holds whatever bytes the recycler wrote.  Returns 0 if I<partition>
+is NULL or I<list> is 0.
 
 =back
 
