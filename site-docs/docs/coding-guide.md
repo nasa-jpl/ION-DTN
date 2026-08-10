@@ -99,20 +99,6 @@ Some subdirectories pin to a specific standard in their own Makefiles:
   PRs and issues will not be accepted for this.
   To use it with Claude Code, create a symlink to it named `CLAUDE.md`.
 
-### Operating System Support Matrix for Space Processors
-
-The following table summarizes C standard support across operating systems
-commonly used on space-qualified hardware.
-ION's C99 fallback path ensures compatibility with all of these environments.
-
-| Operating System | Supported Standard | Hardware Targets | Key Space Features |
-|---|---|---|---|
-| VxWorks 6.x/7 | C99, C11, C17, C++17 | RAD750, RAD5545, ARM | Determinism, safety-certifiable, container support. |
-| RTEMS 4/5/6 | C99, C11, C18, Ada | LEON, SPARC, PowerPC | Open-source, POSIX API, SMP support. |
-| Linux (Yocto) | C11, C17, C23 | ARM, NVIDIA Orin, Xilinx | High-throughput, extensive libraries, Space 2.0. |
-| Zephyr RTOS | C11 | LEON, ARM, RISC-V | Lightweight, growing aerospace community. |
-| Bare-Metal (BCC) | C99 | LEON, SPARC | Minimal overhead for simple controllers. |
-
 ## Application Behavior
 
 Every process should return an exit code on termination.
