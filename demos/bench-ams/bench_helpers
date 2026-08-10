@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Shared helper functions for AMS bench scripts.
+
+# Wait for a specific string to appear in a log file.
+# Usage: wait_for_log_event <logfile> <pattern> [timeout] [label]
+#   logfile  - path to the log file to monitor
+#   pattern  - grep pattern to wait for
+#   timeout  - seconds to wait before giving up (default: 30)
+#   label    - human-readable label for status messages (default: pattern)
+# Returns 0 on success, 1 on timeout.
+wait_for_log_event() {
+    local logfile=$1
+    local pattern=$2
+    local timeout=${3:-30}
+    local label=${4:-$pattern}
+
+    echo "Waiting for ${label}..."
+    local count=0
+    while [ $count -lt "$timeout" ]; do
+        if grep -q "$pattern" "$logfile" 2>/dev/null; then
+            echo "${label} - done."
+            return 0
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+    echo "WARNING: ${label} timeout after ${timeout}s, proceeding anyway."
+    return 1
+}

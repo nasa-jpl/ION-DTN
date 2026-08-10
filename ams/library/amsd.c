@@ -936,6 +936,10 @@ static void	processHeartbeatCycle(RsState *rsState, int *cycleCount,
 		if (rsState->csEndpoint != NULL || rsState->cellHeartbeats > 0)
 		{
 			rsState->cellHeartbeats++;
+			if (rsState->cellHeartbeats == N6_COUNT + 1)
+			{
+				writeMemo("[i] Registrar cell census completed.");
+			}
 		}
 
 		/*	Send heartbeats to all modules in own cell.	*/

@@ -5,7 +5,8 @@ trap 'killm f' EXIT
 
 # Benchtest variables-------------------------------------------------
 COUNT=1000
-MESSAGE_SIZE=1000
+MESSAGE_SIZE_MIN=1000
+MESSAGE_SIZE_MAX=1000
 
 
 # Shut down routine---------------------------------------------------
@@ -94,7 +95,7 @@ fi
 
 cd ../node2
 echo -e "Starting amsbench sender:"
-amsbenchs $COUNT $MESSAGE_SIZE 2>/dev/null &
+amsbenchs $COUNT $MESSAGE_SIZE_MAX $MESSAGE_SIZE_MIN 2>/dev/null &
 sleep 3
 
 # Wait for the receiver to finish or timeout -------------------------

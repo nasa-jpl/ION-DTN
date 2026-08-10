@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source "$(dirname "$0")/../bench_helpers"
 
 echo > ion.log
 echo -e "\nStarting ION Node 2 on localhost"
@@ -17,13 +18,8 @@ bpadmin		bench.bprc
 #start ams daemon as config server and registrar
 amsd mib.amsrc 127.0.0.1:2502 amsdemo test "" &
 
-#observe the MANDATORY cell census period here!!!
-echo "Waiting for AMS cell census (9 seconds left)..."
-sleep 3
-echo "Waiting for AMS cell census (6 seconds left)..."
-sleep 3
-echo "Waiting for AMS cell census (3 seconds left)..."
-sleep 3
+#wait for registrar cell census to complete
+wait_for_log_event ion.log "cell census completed" 30 "AMS cell census"
 
 #start ramsgate daemon
 ramsgate amsdemo test 300 &
