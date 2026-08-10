@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# August 7, 2021
+
+echo "Cleaning up old ION..."
+rm -f ion_nodes *.ipn.tcp/ion.log *.ipn.tcp/testfile* *.ipn.tcp/bpacq.* *.ipn.tcp/node.* 22.ipn.tcp/ionst* 23.ipn.tcp/ionst* 24.ipn.tcp/ionst* 25.ipn.tcp/ionst* 26.ipn.tcp/ionst* 27.ipn.tcp/ionst*
+rm -f 21.ipn.tcp/contacts.* 22.ipn.tcp/contacts.* 23.ipn.tcp/contacts.* 24.ipn.tcp/contacts.* 25.ipn.tcp/contacts.* 26.ipn.tcp/contacts.* 27.ipn.tcp/contacts.*
+rm -f 21.ipn.tcp/passageways.* 22.ipn.tcp/passageways.* 23.ipn.tcp/passageways.* 24.ipn.tcp/passageways.* 25.ipn.tcp/passageways.* 26.ipn.tcp/passageways.* 27.ipn.tcp/passageways.*
+rm -f 21.ipn.tcp/ranges.* 22.ipn.tcp/ranges.* 23.ipn.tcp/ranges.* 24.ipn.tcp/ranges.* 25.ipn.tcp/ranges.* 26.ipn.tcp/ranges.* 27.ipn.tcp/ranges.*
+rm -f 21.ipn.tcp/leaveA.ionrc 22.ipn.tcp/leaveA.ionrc 23.ipn.tcp/leaveA.ionrc 24.ipn.tcp/leaveA.ionrc 25.ipn.tcp/leaveA.ionrc 26.ipn.tcp/leaveA.ionrc 27.ipn.tcp/leaveA.ionrc
+rm -f 21.ipn.tcp/leaveB.ionrc 22.ipn.tcp/leaveB.ionrc 23.ipn.tcp/leaveB.ionrc 24.ipn.tcp/leaveB.ionrc 25.ipn.tcp/leaveB.ionrc 26.ipn.tcp/leaveB.ionrc 27.ipn.tcp/leaveB.ionrc
+rm -f 21.ipn.tcp/join.ionrc 22.ipn.tcp/join.ionrc 23.ipn.tcp/join.ionrc 24.ipn.tcp/join.ionrc 25.ipn.tcp/join.ionrc 26.ipn.tcp/join.ionrc 27.ipn.tcp/join.ionrc
+rm -f 21.ipn.tcp/dtka.ionsecrc 22.ipn.tcp/dtka.ionsecrc 23.ipn.tcp/dtka.ionsecrc 24.ipn.tcp/dtka.ionsecrc 25.ipn.tcp/dtka.ionsecrc 26.ipn.tcp/dtka.ionsecrc 27.ipn.tcp/dtka.ionsecrc
+# dnacp gives DNAC nodes file-backed SDRs (/tmp/ionNN.sdr) that killm leaves
+# behind; remove them so each run starts from a fresh SDR, not stale state.
+rm -f /tmp/ion2[1-7].sdr*
+killm

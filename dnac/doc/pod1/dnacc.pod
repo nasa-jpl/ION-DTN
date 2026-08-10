@@ -1,0 +1,59 @@
+=head1 NAME
+
+dnacc - child agent for DTN node auto-configuration
+
+=head1 SYNOPSIS
+
+B<dnacc> I<port_nbr> I<password_path_name>
+
+=head1 DESCRIPTION
+
+B<dnacc> is a utility program that runs as an application in an ION
+node that has been automatically configured by the dnacp utility running
+in a separate "sponsor" node on the same computer.  Its purpose is to
+generate the new node's public/private key pair and pass the public
+key back to the sponsor node, which will be listening for that information
+on the TCP socket identified by I<port_nbr>.  This enables the sponsor
+node to attest to the new node's authenticity by asserting its public
+key to the network's delay-tolerant public key infrastructure.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dnacc> has terminated.
+
+=back
+
+=head1 FILES
+
+The file identified by I<password_path_name> is expected to contain the
+passphrase that will enable the newly computed private key to be stored
+in encrypted representation.  The file MUST be accessible only to the
+owner of the B<dnacc> executable.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dnacc can't attach to DTKA system.
+
+B<dtka> has not yet been initialized.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+dnacp(1), dtka(1), dtkaadmin(1), dtkarc(5)

@@ -392,8 +392,32 @@ fflush(stdout);
 			return -1;
 		}
 
+		/*	IMC petition propagation across a passageway uses
+		 *	the two-region (slots 0 and 1) model and a count
+		 *	array of size 2.  A node that bridges more than two
+		 *	regions is outside that model, so skip propagation
+		 *	rather than index out of bounds.		*/
+
+		if (sourceRegionIdx > 1)
+		{
+			sdr_write(sdr, groupAddr, (char *) &group,
+					sizeof(ImcGroup));
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Failed handling petition.", NULL);
+				return -1;
+			}
+
+			return 0;
+		}
+
+		/*	Propagate the petition into the passageway's
+		 *	other region (the one the petition did not arrive
+		 *	from).  For a node that bridges two regions this is
+		 *	simply the other of slots 0 and 1.		*/
+
 		destinationRegionNbr =
-				iondb.regions[0 - sourceRegionIdx].regionNbr;
+				iondb.regions[1 - sourceRegionIdx].regionNbr;
 		if (petition.isMember == 1)		/*	Join	*/
 		{
 			group.count[sourceRegionIdx] += 1;

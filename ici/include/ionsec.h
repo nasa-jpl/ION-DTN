@@ -115,6 +115,11 @@ extern int	sec_removeOwnPublicKey(time_t effectiveTime);
 extern int	sec_addPrivateKey(time_t effectiveTime, int datLen,
 			unsigned char *data);
 extern int	sec_removePrivateKey(time_t effectiveTime);
+extern int	sec_generate_key_pair(unsigned char *pubKeyBuf,
+			unsigned short pubKeyBufLen, unsigned char **publicKey,
+			unsigned short *publicKeyLen, unsigned char *privKeyBuf,
+			unsigned short privKeyBufLen, unsigned char **privateKey,
+			unsigned short *privateKeyLen);
 
 extern int	sec_get_public_key(uvast fqnn, time_t effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);

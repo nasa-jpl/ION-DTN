@@ -321,6 +321,17 @@ If a Boolean argument is provided when the command is executed, the
 characterization of the machine's clock is revised to conform with
 the asserted value.  The default value is 1.
 
+=item B<m bridge> [ { 1 | 0 } ]
+
+This management command reports whether or not the local node is allowed to
+serve as a passageway (bridge) for inter-regional forwarding.  A node that is
+a member of two or more regions only relays bundles between those regions when
+this flag is set; the default value is 0 (opt-in).  A node may originate
+inter-regional bundles regardless of this flag.
+
+If a Boolean argument is provided when the command is executed, the flag is
+revised to conform with the asserted value.
+
 =item B<m production> I<planned_data_production_rate>
 
 This management command sets ION's expectation of the mean rate of continuous

@@ -1,0 +1,135 @@
+=head1 NAME
+
+irfrc - Inter-regional forwarding (IRF) administration commands file
+
+=head1 DESCRIPTION
+
+IRF administration commands are passed to B<irfadmin> either in a file of
+text lines or interactively at B<irfadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.
+
+IRF administration commands are of two general classes.
+
+1.  Region registration commands effect the local node's registration or
+unregistration in regions.
+
+A region is the set of all, and only, those nodes that are cited as the
+senders or receivers of contacts in any single contact plan.
+
+For the purpose of inter-regional forwarding (enabling a BP node to send 
+bundles to nodes for which its contact plan contains no contacts - that
+is, nodes in other regions), regions are interconnected by nodes termed
+"passageways".  Each passageway node is a member of exactly two regions,
+making those two regions topologically adjacent, and is therefore able
+to forward (using ordinary contact graph routing) into one region a bundle
+that it received in the other region.
+
+To prevent forwarding loops, region topology is structured as a tree.  Every
+region (except the region that is the root of the tree) has exactly one
+super-region; every region has zero or more sub-regions.  Every passageway
+interconnects a region either with its super-region or with one of its
+sub-regions.
+
+Regions are numbered.  Regions are always identified by region numbers
+that are larger than the numbers identifying their super-regions; the
+region at the root of the tree is region 1.
+
+Any node may be a member of just one region, its "home" region, in
+which case it is termed a "terminal" node, or it may be a member of
+exactly two regions, its "home region" and that region's super-region,
+in which case the node is a passageway.
+
+A node joins (registers in) a region when the first contact citing that
+node is added to the contact plan corresponding to that region; it leaves
+(unregisters in) a region when the last contact citing that node is removed
+from the contact plan corresponding to that region.
+
+A terminal node becomes a passageway either by joining its home region's
+super-region or by joining one of its home region's sub-regions; in
+the former case the super-region becomes the node's "outer" region,
+while in the latter case the node's home region becomes its outer
+region and the sub-region becomes the node's new home region.  A
+passageway becomes a terminal node either by leaving its outer region
+or by leaving its current home region (in which case its outer region
+becomes its new home region).
+
+When a node joins a sub-region of its home region that does not yet exist,
+that sub-region is implicitly created.  This is the mechanism by which
+the region tree is constructed.
+
+Joining and leaving regions are somewhat complex operations accomplished
+by the invocation of other ION administration utilities.  The IRF
+administration commands automate the construction of the command files
+that must be passed to those utilities for this purpose.
+
+2.  IRF status reporting commands simply list either (a) the nodes that reside
+in one or the other of the regions in which the local node resides or else
+(b) all nodes that are candidate passageways for inter-regional forwarding
+to a specified destination node.
+
+The formats and effects of the IRF administration commands are described below.
+
+=head1 GENERAL COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by irfadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 IRF COMMANDS
+
+=over 4
+
+=item B<+> I<region_number>
+
+The B<join> command.  This command constructs all command files needed in
+order to insert the local node into the region identified by I<region_number>.
+
+=item B<-> I<region_number>
+
+The B<leave> command.  This command constructs all command files needed in
+order to remove the local node from the region identified by I<region_number>.
+
+=item B<l> I<nodes>
+
+This command lists all nodes residing in either of the regions in which
+the local node resides.
+
+=item B<l> I<passageways> I<destination_node_nbr>
+
+This command lists all nodes that are candidate passageways for inter-regional
+forwarding to a specified destination node.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item + 31
+
+Causes the local node to become a member of region 31.
+
+=back
+
+=head1 SEE ALSO
+
+irfadmin(1), irfd(1)

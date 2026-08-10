@@ -1,0 +1,20 @@
+1
+a scheme ipn ipnfw ipnadminep
+a endpoint ipn:24.0 x
+a endpoint ipn:24.1 x
+a endpoint ipn:24.271 q
+a scheme imc imcfw imcadminep
+a endpoint imc:0.1 q
+a endpoint imc:0.271 q
+a endpoint imc:203.0 q
+a protocol stcp
+a induct stcp localhost:16408 stcpcli
+a outduct stcp localhost:16408 stcpclo
+a outduct stcp localhost:5021 stcpclo
+a plan ipn:24.0
+a planduct ipn:24.0 stcp localhost:16408
+a plan ipn:21.0
+a planduct ipn:21.0 stcp localhost:5021
+a endpoint ipn:24.2 x
+a induct stcp localhost:5024 stcpcli
+w 1

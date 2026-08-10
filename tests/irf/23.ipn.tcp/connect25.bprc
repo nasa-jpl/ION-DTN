@@ -1,0 +1,5 @@
+a outduct stcp localhost:5025 stcpclo
+a plan ipn:25.0
+a planduct ipn:25.0 stcp localhost:5025
+s outduct stcp localhost:5025
+s plan ipn:25.0

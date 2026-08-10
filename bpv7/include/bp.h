@@ -305,6 +305,7 @@ typedef enum
 	BlockConfidentialityBlk = 12,
 	CustodyTransferBlk = 13,		/*	CTEB per Orange Book	*/
 	CompressedReportingBlk = 14,		/*	CREB per Orange Book	*/
+	IrfPassagewaysBlk = 191,		/*	IRF passageway trace	*/
 	DataLabelBlk = 192,
 	QualityOfServiceBlk = 193,
 	SnwPermitsBlk = 194,

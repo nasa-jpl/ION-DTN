@@ -1168,6 +1168,8 @@ if ENABLE_IMC
 bpcflags += -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/library/ext/imc
 endif # end ENABLE_IMC
 
+bpcflags += -I$(BP_SRC_DIR)/irf -I$(BP_SRC_DIR)/library/ext/ipt
+
 bpbin = \
 	bibeadmin \
 	bibeclo \
@@ -1199,6 +1201,8 @@ bpbin = \
 	brsccla \
 	brsscla \
 	cgrfetch \
+	irfadmin \
+	irfd \
 	dtn2admin \
 	dtn2adminep \
 	dtn2fw \
@@ -1494,6 +1498,10 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/pnb/pnb.c \
 	bpv7/library/ext/pnb/pnb.h \
 	bpv7/library/ext/snw/snw.c \
+	bpv7/library/ext/ipt/ipt.c \
+	bpv7/library/ext/ipt/ipt.h \
+	bpv7/library/irf.h \
+	bpv7/irf/libirf.c \
 	bpv7/ipn/libipnfw.c \
 	bpv7/saga/saga.c \
 	bpv7/utils/jsmn.c \
@@ -1911,6 +1919,14 @@ cpsd_LDADD = libici.la $(bplib)
 cpsd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
+irfadmin_SOURCES = bpv7/irf/irfadmin.c
+irfadmin_LDADD = libici.la $(bplib)
+irfadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+irfd_SOURCES = bpv7/daemon/irfd.c
+irfd_LDADD = libici.la $(bplib)
+irfd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 ############################
 #
 # TRUSTED COLLECTIVE SECTION
@@ -1929,6 +1945,8 @@ tccflags = -I$(srcdir)/tc/authority -I$(srcdir)/tc/client -I$(srcdir)/tc/include
 tcbin = \
 	dtka \
 	dtkaadmin \
+	dnacp \
+	dnacc \
 	tcaadmin \
 	tcaboot \
 	tcacompile \
@@ -2041,6 +2059,16 @@ libionfec_la_LIBADD = libjerasure.la libgfcomplete.la
 dtka_SOURCES = tc/dtka/dtka.c
 dtka_LDADD = libici.la $(tclib) $(bplib) -lm
 dtka_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+dnacflags = $(bpcflags) $(tccflags) -I$(srcdir)/tc/dtka
+
+dnacp_SOURCES = dnac/dnac/dnacp.c
+dnacp_LDADD = libici.la $(tclib) $(bplib) -lm
+dnacp_CFLAGS = $(dnacflags) $(AM_CFLAGS)
+
+dnacc_SOURCES = dnac/dnac/dnacc.c
+dnacc_LDADD = libici.la $(tclib) $(bplib) -lm
+dnacc_CFLAGS = $(dnacflags) $(AM_CFLAGS)
 
 dtkaadmin_SOURCES = tc/dtka/dtkaadmin.c
 dtkaadmin_LDADD = libici.la $(tclib) $(bplib) -lm

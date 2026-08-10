@@ -144,6 +144,8 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
+extern void		rfx_brief_passageways(uint32_t regionNbr);
+
 extern void		rfx_brief_ranges(void);
 			/*	Writes a file of commands that will
 			 *	recreate the current list of IonRange
@@ -194,6 +196,9 @@ extern void		rfx_stop(void);
 
 extern void		rfx_contact_state(uvast fqnn, size_t *secRemaining,
 				size_t *xmitRate);
+
+extern Object		findLocalNode(uvast nodeNbr, RegionMember *member,
+				Object *memberElt);
 
 extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast fqnn,
 				PsmAddress *nextElt);

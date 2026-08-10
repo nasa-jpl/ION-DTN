@@ -187,6 +187,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m memprotect <heapPercent> <wmPercent>");
+	PUTS("\t   m bridge { 0 | 1 }");
 	PUTS("\t   m usage");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
@@ -866,6 +867,36 @@ static void	manageClockSync(int tokenCount, char **tokens)
 	printText(buffer);
 }
 
+static void	manageBridge(int tokenCount, char **tokens)
+{
+	int	newFlag;
+	char	buffer[128];
+	char	errMsg[256];
+
+	if (tokenCount < 2 || tokenCount > 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (tokenCount == 3)
+	{
+		if (platform_parse_int(tokens[2], &newFlag) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid bridge flag: %s", tokens[2]);
+			PUTS(errMsg); writeMemo(errMsg);
+			return;
+		}
+
+		ionSetBridgeAllowed(newFlag);
+	}
+
+	isprintf(buffer, sizeof buffer, "bridge allowed = %d",
+			ionBridgeAllowed());
+	printText(buffer);
+}
+
 static void	manageProduction(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -1276,6 +1307,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "clocksync") == 0)
 	{
 		manageClockSync(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "bridge") == 0)
+	{
+		manageBridge(tokenCount, tokens);
 		return;
 	}
 

@@ -1,0 +1,714 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# August 7, 2021
+#
+# Tests inter-regional forwarding.
+#
+# This test exercises management of a multi-regional network created
+# by DTN Node Auto-Configuration and the flow of unicast messages over
+# such a network.
+#
+# First we create node 21 in region 1 in the usual way.  Then we use DNAC
+# to create nodes 22, 23, and 24 as children of node 21.
+#
+# Then we register node 21 in (new) subregion 11, making it a passageway
+# between regions 1 and 11.  We also register node 22 in (new) subregion 12,
+# making it a passageway between regions 1 and 12.
+#
+# We then make node 23 a "terminal" node in region 11.  We do this by
+# registering it in region 11 (making it a second passageway to 11) and
+# then unregistering it in region 1.  We similarly make node 24 a "terminal"
+# node in region 12 by registering it in region 12 (making it a second
+# passageway to 12) and then unregistering it in region 1.  These changes
+# move nodes 23 and 24 "lower" in the region hierarchy.
+#
+# We then test inter-regional forwarding by sending a small file in a bundle
+# from node 23 to node 24 and, 10 seconds later, sending a second small file
+# in a bundle from node 23 to node 24.  The second file should follow a
+# path through only whitelisted passageways.
+# 
+# We then use DNAC to create node 25 as a child of passageway node 21
+# within subregion 11 (making it a "native" of that region, unlike nodes
+# 21 and 23).  We also use DNAC to create node 26 as a child of terminal
+# node 24 within subregion 12 (making it a "native" of that region,
+# unlike nodes 22 and 24).
+#
+# Then we register node 25 in (new) subregion 111, making it a passageway
+# between regions 11 and 111.
+#
+# We then use DNAC to create node 27 as a child of node 25 within
+# subregion 111 (making it a "native" of that region, unlike node 25).
+#
+# Now we send a small file in a bundle from node 27 to node 26; 10 seconds
+# later we send a second such small file from node 27 to node 26.  The
+# second file should follow a path through only whitelisted passageways.
+#
+# Next we register node 24 (which is currently terminal in region 12) in
+# region 1, making it once again a second passageway between regions 1 and 12.
+# 
+# With this change completed, we send a small file in a bundle from node
+# 26 to node 27.  10 seconds later we send a second small file from node
+# 26 to node 27.  The second file should follow a path through only
+# whitelisted passageways.
+#
+# Next we unregister node 22 in region 12, making it a terminal node in
+# region 1.  This moves node 22 "higher" in the region hierarchy.
+#
+# With this change completed, we send bundles from node 24 to node 25 and
+# from node 23 to node 22.
+#
+# Finally, as an initial exercise of trans-regional multicast, we use
+# bptrace to multicast a small text message from node 21 to group 76,
+# of which nodes 26 and 27 are members; bpsink running on those two
+# nodes should print the text.
+#
+# The test is passed if all files were received.
+
+function getStatsCounter() {
+	TYPE=$1
+	PRI=$2
+	FILE=$3
+
+	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
+}
+
+# Verify a freshly-created DNAC node actually came up, recovering from the
+# startup races inherent in dnacp's asynchronous (pseudoshell) launch.  ION
+# selects the node by current directory (ion_nodes), so the check must run in
+# the node's own directory.  Two races are handled:
+#  1. dnacp fires config and start commands asynchronously and returns at once;
+#     under load the BP resume (bpadmin !) can run before config settles and
+#     silently skip bpStart, leaving BP unstarted.  Re-running the node's
+#     resume-only ionstart script (idempotent) re-attempts the start.
+#  2. bpadmin reports BP started before the ipnfw forwarder pseudoshell has
+#     forked; that fork can be dropped, leaving the node with no forwarder.
+#     Re-issuing "s scheme ipn" re-spawns only a forwarder that is not running.
+function verify_node() {
+	NODE=$1
+	DIR=$2
+	SPONSOR=$3
+
+	cd "$DIR"
+
+	ATTEMPT=0
+	while [ $ATTEMPT -lt 3 ]
+	do
+		../../../system_up -i "p 30" -b "p 30"
+		if [ $? -eq 2 ]
+		then
+			break
+		fi
+		ATTEMPT=$((ATTEMPT + 1))
+		echo "Node $NODE not fully up; re-running ionstart (retry $ATTEMPT)"
+		./ionstart >/dev/null 2>&1
+		sleep 2
+	done
+
+	if [ $ATTEMPT -ge 3 ]
+	then
+		echo "Node $NODE not started: Aborting Test"
+		exit 1
+	fi
+
+	I=0
+	while [ $I -lt 15 ]
+	do
+		if grep -q "ipnfw is running" ion.log 2>/dev/null
+		then
+			break
+		fi
+		echo "s scheme ipn" | bpadmin >/dev/null 2>&1
+		sleep 1
+		I=$((I + 1))
+	done
+
+	cd "$SPONSOR"
+}
+
+./cleanup
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+sleep 1
+
+echo ""
+echo "Step 1: start nodes 21, 22, 23, 24 in default region 1"
+
+cd 21.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 21 not started: Aborting Test"
+	exit 1
+fi
+
+sleep 10
+
+dnacp $ION_NODE_LIST_DIR 22 ../22.ipn.tcp "" ../passwd
+verify_node 22 ../22.ipn.tcp ../21.ipn.tcp
+
+sleep 2
+
+dnacp $ION_NODE_LIST_DIR 23 ../23.ipn.tcp "" ../passwd
+verify_node 23 ../23.ipn.tcp ../21.ipn.tcp
+
+sleep 2
+
+dnacp $ION_NODE_LIST_DIR 24 ../24.ipn.tcp "" ../passwd
+verify_node 24 ../24.ipn.tcp ../21.ipn.tcp
+
+echo "Sleeping 15 sec to give keepalive threads time to detect open sockets..."
+sleep 15
+
+echo ""
+echo "Step 2: convert nodes 21 and 22 into passageways; create regions 11 & 12"
+
+cd ../21.ipn.tcp
+ionadmin seed11.ionrc
+
+sleep 5
+
+cd ../22.ipn.tcp
+ionadmin seed12.ionrc
+
+sleep 3
+
+echo ""
+echo "(printing rolodexes for nodes 21-24)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 3a: relocate node 23 into region 11"
+
+cd ../21.ipn.tcp
+#	Note: ducts between 21 and 23 already exist.
+ionadmin connect23.ionrc
+ionadmin brief11.ionrc
+cp contacts.11.ionrc ../23.ipn.tcp
+#	Note: range between 21 and 23 is already known by both.
+
+sleep 2
+
+echo ""
+echo "(node 23 operations)"
+
+cd ../23.ipn.tcp
+ionadmin ../list.ionrc
+irfadmin join11.irfrc
+sleep 2
+irfadmin leave1.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 3b: relocate node 24 into region 12"
+
+cd ../22.ipn.tcp
+bpadmin connect24.bprc
+ionadmin connect24.ionrc
+ionadmin brief12.ionrc
+cp contacts.12.ionrc ../24.ipn.tcp
+cp ranges.ionrc ../24.ipn.tcp
+
+sleep 2
+
+echo ""
+echo "(node 24 operations)"
+
+cd ../24.ipn.tcp
+irfadmin join12.irfrc
+
+sleep 2
+
+irfadmin leave1.irfrc
+
+sleep 2
+
+echo ""
+echo "(printing rolodexes for nodes 21-24)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 1
+
+echo ""
+echo "Step 4: send files from 23 to 24"
+echo "Should go from 23 to passageway 21 to passageway 22 to 24."
+
+cd ../24.ipn.tcp
+bprecvfile ipn:24.2 2 &
+
+sleep 1
+
+cd ../23.ipn.tcp
+bpsendfile ipn:23.1 ipn:24.2 fileA
+sleep 10
+bpsendfile ipn:23.1 ipn:24.2 fileB
+
+sleep 3
+
+echo ""
+cd ../21.ipn.tcp
+bpstats
+cd ../22.ipn.tcp
+bpstats
+cd ../23.ipn.tcp
+bpstats
+cd ../24.ipn.tcp
+bpstats
+
+sleep 3
+
+echo ""
+echo "Step 5: start nodes 25 and 26 in regions 11 and 12"
+
+cd ../21.ipn.tcp
+dnacp $ION_NODE_LIST_DIR 25 ../25.ipn.tcp "" ../passwd
+verify_node 25 ../25.ipn.tcp ../21.ipn.tcp
+
+sleep 1
+
+cd ../24.ipn.tcp
+dnacp $ION_NODE_LIST_DIR 26 ../26.ipn.tcp "" ../passwd
+verify_node 26 ../26.ipn.tcp ../24.ipn.tcp
+
+echo "Sleeping 15 sec to give keepalive threads time to detect open sockets..."
+sleep 15
+
+echo ""
+echo "Step 6: convert node 25 into a passageway, creating region 111"
+
+cd ../25.ipn.tcp
+ionadmin seed111.ionrc
+
+sleep 3
+
+echo ""
+echo "(printing rolodexes for nodes 21-26)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../25.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../26.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 7: start node 27 in region 111"
+
+cd ../25.ipn.tcp
+dnacp $ION_NODE_LIST_DIR 27 ../27.ipn.tcp "" ../passwd
+verify_node 27 ../27.ipn.tcp ../25.ipn.tcp
+
+echo "Sleeping 10 sec to give keepalive threads time to detect open sockets..."
+sleep 10
+
+echo ""
+echo "(printing rolodexes for nodes 21-27)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../25.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../26.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../27.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 8: send files from 27 to 26"
+echo "Should go from 27 to passageway 25 to passageway 21 to passageway 22 to 24 to 26."
+
+cd ../26.ipn.tcp
+bprecvfile ipn:26.2 2 &
+
+sleep 1
+
+cd ../27.ipn.tcp
+bpsendfile ipn:27.1 ipn:26.2 fileA
+sleep 10
+bpsendfile ipn:27.1 ipn:26.2 fileB 0.1.0.0.0.0.1 300 ipn:26.0
+
+sleep 1
+
+echo "NOTE: an IRF path trace report should now be in node 26's ion.log file."
+
+sleep 2
+
+echo ""
+echo "Step 9: convert node 24 into a passageway back up to region 1"
+
+echo ""
+echo "(Briefing prints region-1 contacts at node 21.)"
+
+cd ../21.ipn.tcp
+ionadmin brief1.ionrc
+cp contacts.1.ionrc ../24.ipn.tcp
+cp ranges.ionrc ../24.ipn.tcp
+
+sleep 2
+
+cd ../24.ipn.tcp
+echo "m bridge 1" | ionadmin
+irfadmin join1.irfrc
+
+sleep 2
+
+#	Node 24 just became a passageway between regions 12 and 1.
+#	In a flat (non-hierarchical) region mesh this membership change
+#	is announced only within region 1, so region-12 members (e.g.
+#	node 26) would not otherwise learn that node 24 is now a usable
+#	passageway.  Re-brief region 12 from node 24 (which knows its
+#	own full membership) so node 26 can route outbound through it.
+ionadmin brief12.ionrc
+cp contacts.12.ionrc ../26.ipn.tcp
+cd ../26.ipn.tcp
+ionadmin contacts.12.ionrc
+cd ../24.ipn.tcp
+
+sleep 2
+
+echo ""
+echo "(printing rolodexes for nodes 21-27)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../25.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../26.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../27.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 10: send files from 26 to 27"
+echo "Should go from 26 to passageways 22 and 24 to passageway 21 to passageway 25 to 27."
+
+sleep 2
+
+cd ../27.ipn.tcp
+bprecvfile ipn:27.2 2 &
+
+sleep 1
+
+cd ../26.ipn.tcp
+bpsendfile ipn:26.1 ipn:27.2 fileA
+sleep 10
+bpsendfile ipn:26.1 ipn:27.2 fileB
+
+sleep 10
+
+echo ""
+echo "Step 11: convert node 22 into a terminal node in region 1 and open direct contact between nodes 23 and 25"
+
+cd ../22.ipn.tcp
+irfadmin leave12.irfrc
+
+sleep 2
+
+cd ../23.ipn.tcp
+bpadmin connect25.bprc
+ionadmin connect25.ionrc
+
+sleep 2
+
+cd ../25.ipn.tcp
+ionadmin connect23.ionrc
+bpadmin connect23.bprc
+
+sleep 5
+
+echo ""
+echo "(printing rolodexes for nodes 21-27)"
+cd ../21.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../22.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../23.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../24.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../25.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../26.ipn.tcp
+irfadmin ../rolodex.irfrc
+cd ../27.ipn.tcp
+irfadmin ../rolodex.irfrc
+
+sleep 2
+
+echo ""
+echo "Step 12: send files from 24 to 25 and from 23 to 22"
+echo "File from 24 should go from 24 to passageway 21 to 25."
+echo "File from 23 should go from 23 to passageways 25 (a dead end) and 21,"
+echo "and from 21 to 22."
+
+cd ../25.ipn.tcp
+bprecvfile ipn:25.2 2 &
+
+cd ../22.ipn.tcp
+bprecvfile ipn:22.2 2 &
+
+sleep 1
+
+cd ../24.ipn.tcp
+bpsendfile ipn:24.1 ipn:25.2 fileA
+
+sleep 5
+
+bpsendfile ipn:24.1 ipn:25.2 fileB
+
+sleep 5
+
+cd ../23.ipn.tcp
+bpsendfile ipn:23.1 ipn:22.2 fileA
+
+sleep 5
+
+bpsendfile ipn:23.1 ipn:22.2 fileB
+
+sleep 5
+
+echo ""
+echo "Step 13: finally, use bptrace to send text from node 21 to multicast"
+echo "group 76, whose members are nodes 26 and 27.  The bundle should"
+echo "travel from 21 to 27 via passageway 25 and to 26 via passageway 24."
+
+cd ../26.ipn.tcp
+bpadmin subscribe76.bprc
+
+sleep 1
+
+bpsink imc:76.0 &
+
+sleep 1
+
+cd ../27.ipn.tcp
+bpadmin subscribe76.bprc
+
+sleep 1
+
+bpsink imc:76.0 &
+
+sleep 1
+echo ""
+
+cd ../21.ipn.tcp
+bptrace ipn:21.2 imc:76.0 dtn:none 60 0.1 "Hello, group 76."
+
+sleep 3
+
+echo ""
+echo "Now checking to see if all files arrived"
+
+cd ../22.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 22 got first file."
+else
+	echo ""
+	echo "Error: node 22 didn't get first file."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 22 got second file."
+else
+	echo ""
+	echo "Error: node 22 didn't get second file."
+	RETVAL=1
+fi
+
+cd ../24.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 24 got first file."
+else
+	echo ""
+	echo "Error: node 24 didn't get first file."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 24 got second file."
+else
+	echo ""
+	echo "Error: node 24 didn't get second file."
+	RETVAL=1
+fi
+
+cd ../25.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 25 got first file."
+else
+	echo ""
+	echo "Error: node 25 didn't get first file."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 25 got second file."
+else
+	echo ""
+	echo "Error: node 25 didn't get second file."
+	RETVAL=1
+fi
+
+cd ../26.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 26 got first file."
+else
+	echo ""
+	echo "Error: node 26 didn't get first file."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 26 got second file."
+else
+	echo ""
+	echo "Error: node 26 didn't get second file."
+	RETVAL=1
+fi
+
+cd ../27.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 27 got first file."
+else
+	echo ""
+	echo "Error: node 27 didn't get first file."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 27 got second file."
+else
+	echo ""
+	echo "Error: node 27 didn't get second file."
+	RETVAL=1
+fi
+
+# Print bplists for debugging purposes
+echo ""
+echo "bplist for node 21:"
+cd ../21.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 22:"
+cd ../22.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 23:"
+cd ../23.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 24:"
+cd ../24.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 25:"
+cd ../25.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 26:"
+cd ../26.ipn.tcp
+bplist
+echo ""
+echo "bplist for node 27:"
+cd ../27.ipn.tcp
+bplist
+
+echo ""
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../21.ipn.tcp
+./ionstop &
+cd ../22.ipn.tcp
+./ionstop &
+cd ../23.ipn.tcp
+./ionstop &
+cd ../24.ipn.tcp
+./ionstop &
+cd ../25.ipn.tcp
+./ionstop &
+cd ../26.ipn.tcp
+./ionstop &
+cd ../27.ipn.tcp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "IRF test completed."
+exit $RETVAL
