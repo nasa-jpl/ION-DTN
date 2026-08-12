@@ -1303,7 +1303,7 @@ dnl ---- helper macro --------------------------------------------
 m4_define([ADD_PODMAN],[
   AC_CONFIG_COMMANDS([$1/doc/podman.mk],[
     AS_MKDIR_P([$1/doc])
-    $srcdir/generate-podman-rules.sh $1 > $1/doc/podman.mk
+    $srcdir/generate-podman-rules.sh $srcdir $1 > $1/doc/podman.mk
   ],[srcdir=$srcdir])
 ])dnl -------------------------------------------------------------
 
