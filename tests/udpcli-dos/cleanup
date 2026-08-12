@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+rm -f ion.log ionsendfile.txt ionreceivefile.txt ion.sdr ion.sdrlog
+
+killm f

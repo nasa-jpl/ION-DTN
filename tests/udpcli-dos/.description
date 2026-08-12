@@ -1,0 +1,1 @@
+Ensure udpcli doesn't stop on short/empty datagrams (GHSA-5qr2-pgwp-vf8r)

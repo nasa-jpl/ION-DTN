@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# udpcli-dos regression test for GHSA-5qr2-pgwp-vf8r.
+#
+# Before the fix, udpcli's receiver decided whether to stop by the length
+# returned from receiveUdpClaDatagram():
+#
+#   case -1/0: putErrmsg + ionKillMainThread   (FALLTHROUGH)
+#   case 1:    rtp->running = 0                 (stop)
+#
+# receiveUdpClaDatagram() returns 0 for an empty datagram and 1 for any
+# 1-byte datagram (only *is_shutdown* distinguishes the loopback-verified
+# stop from a stray byte).  So a single unauthenticated remote 0-byte or
+# 1-byte UDP packet either killed the induct or stopped the receiver --
+# a remote denial of service.
+#
+# This test sends both a 1-byte and a 0-byte datagram from an ordinary
+# ephemeral source port (never the induct's own port, so they are NOT
+# loopback-verified shutdown signals) and then asserts that the induct is
+# still alive by delivering a normal bundle through it.
+
+. ../test_utils.sh
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ensure udpcli does not stop or crash when it receives a
+    short (1-byte) or empty (0-byte) UDP datagram from a non-loopback
+    source.  Such datagrams are not bundles and are not the
+    loopback-verified shutdown signal, so the induct must ignore them and
+    keep receiving (GHSA-5qr2-pgwp-vf8r)."
+echo
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping." >&2
+    exit 2
+fi
+
+UDP_HOST=127.0.0.1
+UDP_PORT=4556
+
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+echo "Cleaning up old ION ..."
+./cleanup >/dev/null 2>&1
+
+echo "Starting ION..."
+ionstart -I ./loopback-udp.rc
+
+# Wait for the UDP induct to come up.
+waitForLog "udpcli is running" ion.log 30000 || {
+    echo "udpcli induct did not start; aborting." >&2
+    exit 1
+}
+echo "udpcli induct is up."
+
+# --- Baseline: confirm delivery works before the attack. --------------
+echo "Baseline delivery check..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || {
+    echo "bpsink failed to start" >&2
+    exit 1
+}
+
+printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000 || {
+    echo "Baseline delivery failed; environment problem, aborting." >&2
+    kill -9 $BPSOURCEPID $BPSINKPID >/dev/null 2>&1
+    exit 1
+}
+echo "Baseline delivery OK."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+: > $IONRECEIVEFILE
+
+# --- Attack: 1-byte and 0-byte datagrams from ephemeral ports. --------
+echo "Sending a stray 1-byte datagram to the induct..."
+python3 ./send_datagram.py $UDP_HOST $UDP_PORT 1 || {
+    echo "failed to send 1-byte datagram" >&2
+    exit 1
+}
+sleep 1
+
+echo "Sending an empty (0-byte) datagram to the induct..."
+python3 ./send_datagram.py $UDP_HOST $UDP_PORT 0 || {
+    echo "failed to send 0-byte datagram" >&2
+    exit 1
+}
+sleep 2
+
+# --- Liveness: the induct must still deliver a bundle. ----------------
+echo "Post-attack delivery check..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || {
+    echo "bpsink failed to start after attack" >&2
+    exit 1
+}
+
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000
+then
+    echo "Induct survived the short/empty datagrams; bundle delivered."
+    RETVAL=0
+else
+    echo
+    echo "FAIL: induct did not deliver a bundle after receiving a"
+    echo "short/empty datagram -- udpcli was stopped or killed"
+    echo "(GHSA-5qr2-pgwp-vf8r regression)."
+    RETVAL=1
+fi
+
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+
+echo "Stopping ION..."
+ionstop
+
+exit $RETVAL
