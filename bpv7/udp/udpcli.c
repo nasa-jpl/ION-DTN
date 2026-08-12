@@ -14,6 +14,7 @@
 #include "dtn2fw.h"
 #include "ipnfw.h"
 #include "udpcla.h"
+#include "ion_atomic.h"
 
 /*	*	*	Receiver thread functions	*	*	*/
 
@@ -21,7 +22,7 @@ typedef struct
 {
 	VInduct     *vduct;
 	UdpClaSocket claSock; /* Dual-stack socket with shutdown support */
-	int          running;
+	ion_atomic_t running;
 } ReceiverThreadParms;
 
 static void *handleDatagrams(void *parm)
@@ -56,17 +57,22 @@ static void *handleDatagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the CLI.						*/
 
-	while (rtp->running)
+	while (ion_atomic_get(&rtp->running))
 	{
 		/* Use dual-stack receive with automatic shutdown detection */
 		bundleLength = receiveUdpClaDatagram(&rtp->claSock, buffer,
 				UDPCLA_BUFSZ, &fromAddr, &is_shutdown);
 
-		/* Handle shutdown signal */
+		/*
+		 * Handle shutdown signal.
+		 * NOTE: receiveUdpClaDatagram returns 1 for both valid loopback
+		 * shutdowns and stray 1-byte packets. We must evaluate is_shutdown
+		 * prior to the switch statement below to prevent a remote DoS.
+		 */
 		if (is_shutdown)
 		{
 			writeMemo("[i] udpcli received shutdown signal");
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -74,18 +80,36 @@ static void *handleDatagrams(void *parm)
 		switch (bundleLength)
 		{
 		case -1:
-		case 0:
+			/*	Unrecoverable socket error.		*/
+
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
+			ion_atomic_set(&rtp->running, 0);
+			continue;
 
-			/* FALLTHROUGH */
+		case 0:
+			/*	Interrupted receive (EINTR) or an empty
+			 *	datagram from a remote sender.  Neither is
+			 *	a bundle, and the only legitimate shutdown
+			 *	is the loopback-verified one handled via
+			 *	is_shutdown above, so ignore it rather than
+			 *	killing the induct.			*/
 
-		case 1: /*	Normal stop.	*/
-			rtp->running = 0;
+			continue;
+
+		case 1:
+			/*	A one-byte datagram: either the legacy
+			 *	loopback shutdown signal (already handled
+			 *	via is_shutdown above) or a stray byte too
+			 *	short to be a bundle.  Ignore it -- stopping
+			 *	here would let any unauthenticated remote
+			 *	sender shut the induct down with a single
+			 *	byte.					*/
+
 			continue;
 
 		default:
-			break; /*	Out of switch.	*/
+			break; /*	>= 2 bytes: attempt acquisition.	*/
 		}
 
 		if (bpBeginAcq(work, 0, NULL) < 0
@@ -95,7 +119,7 @@ static void *handleDatagrams(void *parm)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -114,19 +138,17 @@ static void *handleDatagrams(void *parm)
 	return NULL;
 }
 
-/* Global reference for signal-based shutdown */
-static UdpClaSocket *global_cla_socket = NULL;
-
 static void interruptThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 
-	/* Send shutdown signal instead of just setting flags */
-	if (global_cla_socket != NULL)
-	{
-		sendUdpClaShutdown(global_cla_socket);
-	}
+	/*	Just wake the main thread; it drives the orderly
+	 *	shutdown (clearing rtp.running and sending the
+	 *	loopback-verified shutdown datagram) after
+	 *	ionPauseMainThread returns.  We deliberately do no
+	 *	async-signal-unsafe work (no locks, no writeMemo,
+	 *	no sendUdpClaShutdown) here.			*/
 
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("udpcli");
@@ -216,16 +238,16 @@ int main(int argc, char *argv[])
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("udpcli");
-	/* Register socket for signal-based shutdown */
-	global_cla_socket = &rtp.claSock;
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
 
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
+
 	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
 	{
 		cleanupUdpClaSocket(&rtp.claSock);
+		ion_atomic_mutex_destroy(&rtp.running);
 		putSysErrmsg("udpcli can't create receiver thread", NULL);
 		return -1;
 	}
@@ -252,9 +274,7 @@ int main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	writeMemo("[i] udpcli shutting down...");
-	rtp.running = 0;
-	/* Unregister socket */
-	global_cla_socket = NULL;
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Send shutdown signal to wake up receiver thread cleanly	*/
 	if (sendUdpClaShutdown(&rtp.claSock) < 0)
@@ -270,6 +290,7 @@ int main(int argc, char *argv[])
 
 	/*	Clean up dual-stack socket	*/
 	cleanupUdpClaSocket(&rtp.claSock);
+	ion_atomic_mutex_destroy(&rtp.running);
 
 	writeErrmsgMemos();
 	writeMemo("[i] udpcli duct has ended.");
