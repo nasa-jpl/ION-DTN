@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+ionstop 2>/dev/null
+sleep 1
+killm
+rm -f ion.log ion_nodes loopback.ionconfig

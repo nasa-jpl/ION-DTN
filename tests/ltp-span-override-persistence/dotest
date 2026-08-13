@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for per-span LTP parameter override persistence.
+#
+# Overrides set by "m span <engine ID> maxseglossrate" and the related
+# commands, and by "m span <engine ID> inactivity", used to live only in
+# the volatile span object.  raiseSpan rebuilds that object from the SDR
+# on every startup, so the overrides were discarded by any ionrestart
+# and by any restart that did not re-read the ltprc file.
+#
+# Every check below fails on a build without the fix.
+#
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+
+echo "########################################"
+echo
+echo "NAME: ltp-span-override-persistence"
+echo
+echo "PURPOSE: Verify that per-span LTP parameter overrides are recorded"
+echo "  in the LTP database and survive an ionrestart, that an inactivity"
+echo "  limit explicitly set to zero is preserved as zero rather than"
+echo "  being read back as 'not configured', that 'm span <engine ID>"
+echo "  clearoverride' discards an override permanently, that the"
+echo "  deprecated 'm maxber' command clears the recorded copy as well as"
+echo "  the volatile one, and that a global manage command still declines"
+echo "  to overwrite an overridden span after a restart."
+echo
+echo "########################################"
+
+RETVAL=0
+
+# Report a check result.  check <description> <actual> <expected>
+check () {
+	if [ "$2" = "$3" ]; then
+		echo "PASS: $1 ($2)"
+	else
+		echo "ERROR: $1 -- got '$2', expected '$3'"
+		RETVAL=1
+	fi
+}
+
+# Resolved values read back from the ltpadmin span listing.  The
+# loopback configuration defines a single span, engine 1, so the lone
+# match in "l span" output is that span.
+lossrate ()   { ltpadmin <<< "l span" 2>/dev/null \
+		| sed -n 's/.*xmitSegLossRate: \([0-9.]*\).*/\1/p' | tail -1; }
+inactivity () { ltpadmin <<< "l span" 2>/dev/null \
+		| sed -n 's/.*sessionInactivityLimit: \([0-9]*\).*/\1/p' | tail -1; }
+override ()   { ltpadmin <<< "l span" 2>/dev/null \
+		| sed -n 's/.*hasSpanOverride: \([0-9]*\).*/\1/p' | tail -1; }
+
+# Issue ltpadmin commands from stdin.
+ltp () { ltpadmin > /dev/null 2>&1; }
+
+restart () {
+	ionrestart
+	sleep 3
+}
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+rm -f ion.log
+
+echo "Starting ION..."
+ln -sf "${CONFIGDIR}/loopback.ionconfig" loopback.ionconfig
+ionstart -i "${CONFIGDIR}/loopback.ionrc" \
+	-l "${CONFIGDIR}/loopback.ltprc" \
+	-b "${CONFIGDIR}/loopback.bprc" \
+	-p "${CONFIGDIR}/loopback.ipnrc" \
+	-s "${CONFIGDIR}/loopback.ionsecrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+sleep 3
+
+echo ""
+echo "=== Preflight: the span listing must report per-span configuration ==="
+echo ""
+
+# Every check below reads its value out of "l span".  An ltpadmin that
+# predates this feature does not print those lines, so the readbacks
+# would come back empty and each check would fail with a confusing
+# empty-versus-expected message.  The usual cause is an installed ION
+# earlier on PATH than the build under test: pretest-script.sh appends
+# the build directory to PATH rather than prepending it.
+if [ -z "$(override)" ]; then
+	echo "ERROR: 'l span' does not report hasSpanOverride."
+	echo "  ltpadmin in use: $(command -v ltpadmin)"
+	echo "  That build does not support per-span configuration reporting."
+	echo "  Install the build under test, or place it ahead of any"
+	echo "  installed ION on PATH."
+	exit 1
+fi
+
+echo "PASS: span listing reports per-span configuration."
+
+echo ""
+echo "=== P6: a span with no overrides uses the global defaults ==="
+echo ""
+
+check "initial loss rate is the global default" "$(lossrate)" "0.010000"
+check "initial override flag is clear"          "$(override)" "0"
+
+echo ""
+echo "=== P1: a per-span override survives ionrestart ==="
+echo ""
+
+ltp <<'EOF'
+m span 1 maxseglossrate 0.05
+EOF
+check "override applied"     "$(lossrate)" "0.050000"
+check "override flag is set" "$(override)" "1"
+
+echo "Restarting ION (ionrestart does not re-read the ltprc file)..."
+restart
+check "override survives restart"      "$(lossrate)" "0.050000"
+check "override flag survives restart" "$(override)" "1"
+
+echo ""
+echo "=== P5: a global command still declines to overwrite the span ==="
+echo ""
+
+ltp <<'EOF'
+m maxseglossrate 0.03
+EOF
+check "overridden span ignores the global change" "$(lossrate)" "0.050000"
+
+echo ""
+echo "=== P3: clearoverride discards the override permanently ==="
+echo ""
+
+ltp <<'EOF'
+m span 1 clearoverride
+EOF
+check "cleared span takes the current global" "$(lossrate)" "0.030000"
+check "override flag cleared"                 "$(override)" "0"
+
+restart
+check "clear survives restart"              "$(lossrate)" "0.030000"
+check "cleared flag survives restart"       "$(override)" "0"
+
+echo ""
+echo "=== P2: an inactivity limit survives restart, zero included ==="
+echo ""
+
+ltp <<'EOF'
+m span 1 inactivity 300
+EOF
+check "inactivity limit applied" "$(inactivity)" "300"
+restart
+check "inactivity limit survives restart" "$(inactivity)" "300"
+
+# Zero is a valid setting -- it disables the timer -- so it must be
+# distinguishable from "never configured", which is also zero.  A build
+# that uses zero as the "unset" sentinel passes the check above and
+# fails this one.
+ltp <<'EOF'
+m span 1 inactivity 0
+EOF
+check "inactivity limit set to zero" "$(inactivity)" "0"
+restart
+check "explicit zero survives restart as zero" "$(inactivity)" "0"
+
+ltp <<'EOF'
+m span 1 inactivity 120
+EOF
+restart
+check "inactivity limit reconfigurable after zero" "$(inactivity)" "120"
+
+echo ""
+echo "=== P4: deprecated 'm maxber' clears the recorded override ==="
+echo ""
+
+ltp <<'EOF'
+m span 1 maxseglossrate 0.07
+EOF
+check "override re-applied" "$(lossrate)" "0.070000"
+
+# m maxber clears every span's override as a side effect.  If it clears
+# only the volatile copy, the override returns at the next restart.
+ltp <<'EOF'
+m maxber 0.000001
+EOF
+restart
+check "override does not return after restart" "$(override)" "0"
+check "loss rate back to the global default"   "$(lossrate)" "0.030000"
+
+echo ""
+echo "=== ion.log sanity ==="
+echo ""
+
+if grep -q "Can't clear span override" ion.log 2>/dev/null; then
+	echo "ERROR: ion.log reports a failed clearoverride."
+	RETVAL=1
+else
+	echo "PASS: no clearoverride failures in ion.log."
+fi
+
+echo ""
+echo "Stopping ION..."
+ionstop
+sleep 2
+
+if [ $RETVAL -eq 0 ]; then
+	echo ""
+	echo "ALL TESTS PASSED."
+else
+	echo ""
+	echo "SOME TESTS FAILED."
+fi
+
+exit $RETVAL

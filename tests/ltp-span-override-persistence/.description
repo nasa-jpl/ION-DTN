@@ -1,0 +1,1 @@
+Verifies that per-span LTP parameter overrides, including the session inactivity limit, are recorded in the LTP database and survive an ionrestart, and that clearoverride discards them permanently.
