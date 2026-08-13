@@ -164,7 +164,12 @@ the seat identified by 'I<LSI_command>'.
 
 =item B<l span>
 
-This command lists all declared LTP data interchange spans.
+This command lists all declared LTP data interchange spans.  For each span
+the listing reports the resolved retransmission configuration in effect --
+whether a per-span override is present, the unified or split mode setting,
+the transmit and receive segment loss rates, the control segment timeout
+limit, and the session inactivity limit -- so that the configurations of
+two engines can be compared directly.
 
 =item B<l seat>
 

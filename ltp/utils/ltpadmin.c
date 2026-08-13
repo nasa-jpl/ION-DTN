@@ -561,6 +561,21 @@ owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, vspan->localXmitRate,
 			vspan->owltInbound, vspan->remoteXmitRate);
 	sdr_exit_xn(sdr);
 	printText(buffer);
+
+	/*	Resolved retransmission configuration, so that two
+	 *	engines' settings can be compared directly and so that
+	 *	a per-span override is visible rather than inferred.	*/
+
+	isprintf(buffer, sizeof buffer, "\thasSpanOverride: %d  useSplitMode: \
+%d  maxTimeouts: %u", vspan->hasSpanOverride, vspan->useSplitMode,
+			vspan->maxTimeouts);
+	printText(buffer);
+	isprintf(buffer, sizeof buffer, "\txmitSegLossRate: %f  \
+recvSegLossRate: %f", vspan->xmitSegLossRate, vspan->recvSegLossRate);
+	printText(buffer);
+	isprintf(buffer, sizeof buffer, "\tsessionInactivityLimit: %u",
+			vspan->sessionInactivityLimit);
+	printText(buffer);
 }
 
 static void	infoSeat(int tokenCount, char **tokens)
