@@ -117,6 +117,7 @@ See man(5) for ltprc.");
 	PUTS("\t   m span <engine ID> maxseglossratexmit <value>");
 	PUTS("\t   m span <engine ID> maxseglossraterecv <value>");
 	PUTS("\t   m span <engine ID> inactivity <seconds>");
+	PUTS("\t   m span <engine ID> clearoverride");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s ['<LSI command>']");
@@ -858,6 +859,36 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	}
 }
 
+/*	Discards the recorded retransmission parameter override for a
+ *	single span, leaving its session inactivity limit alone: that
+ *	is an independent per-span setting, not part of the
+ *	retransmission configuration this is revising.  Must be called
+ *	within a transaction; the caller updates the volatile copies.
+ *
+ *	Clearing a span's overrides on operator request is the whole
+ *	of clearSpanOverride() in libltpP.c; this narrower helper
+ *	exists only for the sweep in manageMaxBER, which is already
+ *	holding a transaction and iterating volatile spans.		*/
+
+static void	unrecordSpanRetransmissionOverride(LtpVspan *vspan)
+{
+	Sdr	sdr = getIonsdr();
+	SdrObject	spanObj;
+	LtpSpan	span;
+
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 0;
+	span.useSplitMode = 0;
+	span.maxRetries = 0;
+	span.maxSegmentLossRate = 0.0;
+	span.maxRetriesXmit = 0;
+	span.maxRetriesRecv = 0;
+	span.maxSegLossRateXmit = 0.0;
+	span.maxSegLossRateRecv = 0.0;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
+}
+
 static void	manageMaxBER(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
@@ -908,6 +939,12 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 		vspan->useExplicitConfig = 0;	/*	Legacy mode.	*/
 		vspan->hasSpanOverride = 0;	/*	Clear override.	*/
 		computeRetransmissionLimits(vspan);
+
+		/*	Per-span overrides are recorded in the LtpSpan
+		 *	and would otherwise be restored by raiseSpan on
+		 *	the next restart, undoing this command.		*/
+
+		unrecordSpanRetransmissionOverride(vspan);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -1289,10 +1326,13 @@ static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
 
 static void	manageSpanMaxRetries(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	unsigned int	newMaxRetries;
 	int		found = 0;
@@ -1342,21 +1382,38 @@ static void	manageSpanMaxRetries(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 0;  /* Unified mode. */
+	span.maxRetries = newMaxRetries;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 0;  /* Unified mode. */
 	vspan->maxRetries = newMaxRetries;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxretries.", utoa(engineId));
+	}
 }
 
 static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	unsigned int	newMaxRetriesXmit;
 	int		found = 0;
@@ -1406,21 +1463,38 @@ static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 1;  /* Split mode. */
+	span.maxRetriesXmit = newMaxRetriesXmit;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 1;  /* Split mode. */
 	vspan->maxRetriesXmit = newMaxRetriesXmit;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxretriesxmit.", utoa(engineId));
+	}
 }
 
 static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	unsigned int	newMaxRetriesRecv;
 	int		found = 0;
@@ -1470,21 +1544,38 @@ static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 1;  /* Split mode. */
+	span.maxRetriesRecv = newMaxRetriesRecv;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 1;  /* Split mode. */
 	vspan->maxRetriesRecv = newMaxRetriesRecv;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxretriesrecv.", utoa(engineId));
+	}
 }
 
 static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	float		newLossRate;
 	double		parsed_double;
@@ -1526,21 +1617,38 @@ static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 0;  /* Unified mode. */
+	span.maxSegmentLossRate = newLossRate;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 0;  /* Unified mode. */
 	vspan->maxSegmentLossRate = newLossRate;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxseglossrate.", utoa(engineId));
+	}
 }
 
 static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	float		newLossRateXmit;
 	double		parsed_double;
@@ -1582,21 +1690,38 @@ static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 1;  /* Split mode. */
+	span.maxSegLossRateXmit = newLossRateXmit;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 1;  /* Split mode. */
 	vspan->maxSegLossRateXmit = newLossRateXmit;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxseglossratexmit.", utoa(engineId));
+	}
 }
 
 static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	float		newLossRateRecv;
 	double		parsed_double;
@@ -1638,21 +1763,55 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the
+	 *	working copy in the volatile span and the value
+	 *	of record in the LtpSpan, which outlives it.	*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 1;
+	span.useSplitMode = 1;  /* Split mode. */
+	span.maxSegLossRateRecv = newLossRateRecv;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	vspan->hasSpanOverride = 1;
 	vspan->useExplicitConfig = 1;
 	vspan->useSplitMode = 1;  /* Split mode. */
 	vspan->maxSegLossRateRecv = newLossRateRecv;
 	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span maxseglossraterecv.", utoa(engineId));
+	}
+}
+
+static void	manageSpanClearOverride(int tokenCount, char **tokens)
+{
+	uvast	engineId;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = getFqn(tokens[2]);
+	if (clearSpanOverride(engineId) < 0)
+	{
+		putErrmsg("Can't clear span override.", utoa(engineId));
+	}
 }
 
 static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	LtpVdb		*vdb = getLtpVdb();
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	SdrObject		spanObj;
+	LtpSpan		span;
 	uvast		engineId;
 	unsigned int	newLimit;
 	int		found = 0;
@@ -1698,9 +1857,26 @@ static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 		return;
 	}
 
-	/*	Update span-specific configuration (volatile only).	*/
+	/*	Update span-specific configuration, both the working
+	 *	copy in the volatile span and the value of record in
+	 *	the LtpSpan, which outlives it.  Zero is a valid limit
+	 *	here -- it disables the inactivity timer -- so the
+	 *	LtpSpan carries a separate flag to distinguish "set to
+	 *	zero" from "never configured".			*/
 
+	CHKVOID(sdr_begin_xn(sdr));
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.sessionInactivityLimit = newLimit;
+	span.inactivityLimitSet = 1;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 	vspan->sessionInactivityLimit = newLimit;
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span inactivity limit.", utoa(engineId));
+		return;
+	}
+
 	putFqn(nbrBuf, engineId);
 	isprintf(msgBuf, sizeof msgBuf,
 		"[i] Span %s sessionInactivityLimit set to %u seconds",
@@ -1875,6 +2051,12 @@ static void	executeManage(int tokenCount, char **tokens)
 		if (strcmp(tokens[3], "inactivity") == 0)
 		{
 			manageSpanInactivityLimit(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "clearoverride") == 0)
+		{
+			manageSpanClearOverride(tokenCount, tokens);
 			return;
 		}
 

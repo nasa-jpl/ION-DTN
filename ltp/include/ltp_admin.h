@@ -132,6 +132,22 @@ extern int update_span(uvast engine_id,
 extern int remove_span(uvast engine_id);
 
 /*
+ * Discard a span's per-span parameter overrides.
+ *
+ * Per-span overrides set by "m span <engine ID> maxretries" and the
+ * related commands, and by "m span <engine ID> inactivity", are
+ * recorded in the LTP database and survive a restart.  This is the
+ * supported way to remove them: the span reverts to the current
+ * global defaults, immediately and across subsequent restarts.
+ *
+ * Parameters:
+ *   engine_id - Remote LTP engine identifier
+ *
+ * Returns: 1 on success, 0 if span not found, -1 on error
+ */
+extern int clear_span_override(uvast engine_id);
+
+/*
  * Start transmission on a span.
  * Starts the LSO process for the specified span.
  *

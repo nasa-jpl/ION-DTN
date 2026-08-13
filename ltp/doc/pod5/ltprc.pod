@@ -347,6 +347,9 @@ of retransmission attempts for the specified span in unified mode.  The value
 must be at least 3.  This creates a per-span override that takes precedence
 over global configuration.
 
+The override is recorded in the LTP database and persists across a restart.
+Use B<m span> I<peer_engine_nbr> B<clearoverride> to remove it.
+
 =item B<m span> I<peer_engine_nbr> B<maxseglossrate> I<max_segment_loss_rate>
 
 The B<manage span max segment loss rate> command.  This command sets the
@@ -354,33 +357,44 @@ expected maximum segment loss rate for the specified span in unified mode.
 The value must be in the range [0.0, 0.99].  This creates a per-span override
 that takes precedence over global configuration.
 
+The override is recorded in the LTP database and persists across a restart.
+Use B<m span> I<peer_engine_nbr> B<clearoverride> to remove it.
+
 =item B<m span> I<peer_engine_nbr> B<maxretriesxmit> I<max_retransmission_attempts_transmit>
 
 The B<manage span max retries transmit> command.  This command sets the maximum
 number of retransmission attempts for the specified span in the transmit
 direction only (split mode).  The value must be at least 3.  This creates a
-per-span override for asymmetric link configuration.
+per-span override for asymmetric link configuration, recorded in the LTP
+database and persisting across a restart; use B<m span> I<peer_engine_nbr>
+B<clearoverride> to remove it.
 
 =item B<m span> I<peer_engine_nbr> B<maxretriesrecv> I<max_retransmission_attempts_receive>
 
 The B<manage span max retries receive> command.  This command sets the maximum
 number of retransmission attempts for the specified span in the receive
 direction only (split mode).  The value must be at least 3.  This creates a
-per-span override for asymmetric link configuration.
+per-span override for asymmetric link configuration, recorded in the LTP
+database and persisting across a restart; use B<m span> I<peer_engine_nbr>
+B<clearoverride> to remove it.
 
 =item B<m span> I<peer_engine_nbr> B<maxseglossratexmit> I<max_segment_loss_rate_transmit>
 
 The B<manage span max segment loss rate transmit> command.  This command sets
 the expected maximum segment loss rate for the specified span in the transmit
 direction only (split mode).  The value must be in the range [0.0, 0.99].
-This creates a per-span override for asymmetric link configuration.
+This creates a per-span override for asymmetric link configuration, recorded
+in the LTP database and persisting across a restart; use B<m span>
+I<peer_engine_nbr> B<clearoverride> to remove it.
 
 =item B<m span> I<peer_engine_nbr> B<maxseglossraterecv> I<max_segment_loss_rate_receive>
 
 The B<manage span max segment loss rate receive> command.  This command sets
 the expected maximum segment loss rate for the specified span in the receive
 direction only (split mode).  The value must be in the range [0.0, 0.99].
-This creates a per-span override for asymmetric link configuration.
+This creates a per-span override for asymmetric link configuration, recorded
+in the LTP database and persisting across a restart; use B<m span>
+I<peer_engine_nbr> B<clearoverride> to remove it.
 
 =item B<m span> I<peer_engine_nbr> B<inactivity> I<seconds>
 
@@ -399,9 +413,21 @@ before sending checkpoint/EORP/EOB segments).  Without this timeout, such
 sessions would remain in the database indefinitely, consuming buffer slots
 and eventually causing "can't start new session" errors.
 
-B<NOTE:> This setting is stored in volatile memory only and must be
-reconfigured after each restart of the LTP engine.  It does not affect
-the public span API.
+This setting is recorded in the LTP database and persists across a restart.
+Note that a value of 0 set explicitly is retained as 0, disabling the
+timeout for the span; it is not treated as "not configured".  Use B<m span>
+I<peer_engine_nbr> B<clearoverride> to return the span to the default.
+
+=item B<m span> I<peer_engine_nbr> B<clearoverride>
+
+The B<clear span override> command.  This command discards all per-span
+parameter overrides for the indicated span -- those established by the
+B<m span> commands above, including B<inactivity> -- returning the span to
+the current global default configuration.
+
+Because per-span overrides are recorded in the LTP database and survive a
+restart, this is the supported way to remove one.  Restarting the node does
+not discard an override.
 
 =item B<m maxbacklog> I<max_delivery_backlog>
 

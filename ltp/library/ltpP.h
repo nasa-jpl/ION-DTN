@@ -475,6 +475,42 @@ typedef struct
 	SdrObject importSessionsHash;
 	SdrObject closedImports; /* SDR list: session nbr */
 	SdrObject deadImports;	 /* SDR list: ImportSession */
+
+	/*	NOTE: members added to LtpSpan belong here, at the end
+	 *	of the structure.  Nothing validates a recovered
+	 *	database against sizeof(LtpSpan) -- ltpInit passes NULL
+	 *	for the type argument of sdr_find and no size is
+	 *	checked anywhere -- so a node started against a
+	 *	database written by an earlier release reads past the
+	 *	end of each span object.  That is unsupported, and the
+	 *	release notes require a new database, but appending
+	 *	confines the damage to the new members rather than
+	 *	displacing the SDR list handles above.			*/
+
+	/*	Persistent per-span configuration overrides.  The
+	 *	working copies of these values live in LtpVspan and
+	 *	are rebuilt from here by raiseSpan on every startup;
+	 *	these are the values of record.  A zero value means
+	 *	"not overridden", i.e. take the global default from
+	 *	LtpDB, matching the convention already applied to the
+	 *	volatile copies when a span is raised.			*/
+
+	int		hasSpanOverride;/*	0=global, 1=override	*/
+	int		useSplitMode;	/*	0=unified, 1=split	*/
+	unsigned int	maxRetries;	/*	Both directions.	*/
+	float		maxSegmentLossRate;/*	Both directions.	*/
+	unsigned int	maxRetriesXmit;	/*	Outbound data segments.	*/
+	unsigned int	maxRetriesRecv;	/*	Inbound reports.	*/
+	float		maxSegLossRateXmit;/*	Outbound loss rate.	*/
+	float		maxSegLossRateRecv;/*	Inbound loss rate.	*/
+
+	/*	The session inactivity limit needs its own "is set"
+	 *	flag rather than the zero convention above: zero is
+	 *	itself a valid configured value there, disabling the
+	 *	inactivity timer for the span.				*/
+
+	unsigned int	sessionInactivityLimit;	/*	Seconds, 0=off.	*/
+	int		inactivityLimitSet;/*	Boolean.		*/
 } LtpSpan;
 
 /* LtpSeat structure characterizes one of the link-service-layer input
@@ -825,6 +861,13 @@ extern int		enqueueNotice(LtpVclient *client,
 				SdrObject data);
 
 extern void		computeRetransmissionLimits(LtpVspan *vspan);
+
+/*	Discards a span's recorded per-span parameter overrides,
+ *	returning it to the current global defaults both immediately
+ *	and across subsequent restarts.  Returns 1 on success, 0 if
+ *	the span is unknown, -1 on any other failure.			*/
+
+extern int		clearSpanOverride(uvast engineId);
 extern int		getMaxReports(int redPartLength,
 				LtpVspan *vspan,
 				int asReceiver);

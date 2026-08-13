@@ -674,6 +674,80 @@ rate %f, recv segment loss rate %f, max timeouts %d.", nbrBuf, maxBER,
 	writeMemo(buf);
 }
 
+int	clearSpanOverride(uvast engineId)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	SdrObject	spanObj;
+	LtpSpan		span;
+	char		nbrBuf[FQN_MAX_LENGTH];
+	char		msgBuf[256];
+	OBJ_POINTER(LtpDB, ltpdb);
+
+	CHKERR(sdr_begin_xn(sdr));
+	findSpan(engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown span", utoa(engineId));
+		return 0;
+	}
+
+	/*	Discard the values of record, so that the span does
+	 *	not reacquire its overrides at the next restart.	*/
+
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.hasSpanOverride = 0;
+	span.useSplitMode = 0;
+	span.maxRetries = 0;
+	span.maxSegmentLossRate = 0.0;
+	span.maxRetriesXmit = 0;
+	span.maxRetriesRecv = 0;
+	span.maxSegLossRateXmit = 0.0;
+	span.maxSegLossRateRecv = 0.0;
+	span.sessionInactivityLimit = 0;
+	span.inactivityLimitSet = 0;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
+
+	/*	Then rebuild the working configuration from the global
+	 *	defaults, as raiseSpan does for a span that has no
+	 *	overrides recorded.					*/
+
+	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, getLtpDbObject());
+	vspan->hasSpanOverride = 0;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = ltpdb->useGlobalSplitMode;
+	if (ltpdb->useGlobalSplitMode)
+	{
+		vspan->maxRetriesXmit = ltpdb->defaultMaxRetriesXmit;
+		vspan->maxRetriesRecv = ltpdb->defaultMaxRetriesRecv;
+		vspan->maxSegLossRateXmit = ltpdb->defaultMaxSegLossRateXmit;
+		vspan->maxSegLossRateRecv = ltpdb->defaultMaxSegLossRateRecv;
+	}
+	else
+	{
+		vspan->maxRetries = ltpdb->defaultMaxRetries;
+		vspan->maxSegmentLossRate = ltpdb->defaultMaxSegLossRate;
+	}
+
+	vspan->sessionInactivityLimit = 0;
+	computeRetransmissionLimits(vspan);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't clear span override.", utoa(engineId));
+		return -1;
+	}
+
+	putFqn(nbrBuf, engineId);
+	isprintf(msgBuf, sizeof msgBuf,
+		"[i] Span %s overrides cleared; span now uses global defaults.",
+		nbrBuf);
+	writeMemo(msgBuf);
+	return 1;
+}
+
 static int raiseSpan(SdrObject spanElt, LtpVdb *ltpvdb)
 {
 	Sdr		sdr = getIonsdr();
@@ -775,6 +849,67 @@ mode defaults: maxRetries=%u, maxSegmentLossRate=%.4f",
 				nbrBuf, vspan->maxRetries,
 				vspan->maxSegmentLossRate);
 			writeMemo(msgBuf);
+		}
+
+		/*	Now overlay any per-span overrides recorded in
+		 *	the LtpSpan, which take precedence over the
+		 *	global defaults applied above.  Only the values
+		 *	actually overridden are non-zero, so the rest of
+		 *	the span's configuration continues to track the
+		 *	global defaults across restarts.		*/
+
+		if (span.hasSpanOverride)
+		{
+			vspan->hasSpanOverride = 1;
+			vspan->useSplitMode = span.useSplitMode;
+			if (span.maxRetries)
+			{
+				vspan->maxRetries = span.maxRetries;
+			}
+
+			if (span.maxSegmentLossRate != 0.0)
+			{
+				vspan->maxSegmentLossRate =
+						span.maxSegmentLossRate;
+			}
+
+			if (span.maxRetriesXmit)
+			{
+				vspan->maxRetriesXmit = span.maxRetriesXmit;
+			}
+
+			if (span.maxRetriesRecv)
+			{
+				vspan->maxRetriesRecv = span.maxRetriesRecv;
+			}
+
+			if (span.maxSegLossRateXmit != 0.0)
+			{
+				vspan->maxSegLossRateXmit =
+						span.maxSegLossRateXmit;
+			}
+
+			if (span.maxSegLossRateRecv != 0.0)
+			{
+				vspan->maxSegLossRateRecv =
+						span.maxSegLossRateRecv;
+			}
+
+			isprintf(msgBuf, sizeof msgBuf,
+				"[i] Span %s has per-span configuration \
+overrides; global defaults do not apply to the overridden parameters.",
+				nbrBuf);
+			writeMemo(msgBuf);
+		}
+
+		/*	The inactivity limit is independent of the
+		 *	override flag, and zero is a valid setting for
+		 *	it, so it carries its own "is set" flag.	*/
+
+		if (span.inactivityLimitSet)
+		{
+			vspan->sessionInactivityLimit =
+					span.sessionInactivityLimit;
 		}
 	}
 

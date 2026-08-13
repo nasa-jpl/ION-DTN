@@ -470,6 +470,11 @@ int	remove_span(uvast engine_id)
 	return removeSpan(engine_id);
 }
 
+int	clear_span_override(uvast engine_id)
+{
+	return clearSpanOverride(engine_id);
+}
+
 int	ltp_start_span(uvast engine_id)
 {
 	return ltpStartSpan(engine_id);
