@@ -281,6 +281,7 @@ tests/results\.*
 
 # Compiled test binaries (or libtool wrappers)
 tests/1000.loopback/dotest
+tests/ltp-budget-unit/dotest
 tests/1300.loopback-tcp/dotest
 tests/1400.loopback-stcp/dotest
 tests/1500.loopback-brs/dotest
@@ -646,3 +647,6 @@ kics-results.*
 AGENTS.md
 CLAUDE.md
 !site-docs/docs/AGENTS.md
+tests/ltp-repair-rounds/loopback.ionconfig
+tests/ltp-span-override-persistence/loopback.ionconfig
+tests/bp_sap_thread_ownership/dotest

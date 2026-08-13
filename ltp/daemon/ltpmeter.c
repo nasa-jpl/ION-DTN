@@ -36,6 +36,7 @@ int	main(int argc, char *argv[])
 	LtpExportExtent		*extent;
 	unsigned int		ckptSerialNbr;
 	int			result;
+	OBJ_POINTER(LtpDB, ltpdb);
 
 	if (remoteEngineId == 0)
 	{
@@ -149,8 +150,16 @@ engine %s is stopped.", nbrBuf);
 		 *	determines the maximum number of checkpoints
 		 *	we will send.					*/
 
+		/*	The database is read on each pass rather than
+		 *	once outside the loop, so that a change to the
+		 *	global default takes effect on the next block.
+		 *	Within the transaction already open here this
+		 *	costs an address computation.			*/
+
+		GET_OBJ_POINTER(sdr, LtpDB, ltpdb, getLtpDbObject());
 		session.maxCheckpoints = getMaxReports(session.redPartLength,
-				vspan, 0);
+				vspan, 0,
+				resolveMaxRepairRounds(ltpdb, &span));
 		if ((extents = lyst_create_using(getIonMemoryMgr())) == NULL
 		|| (extent = (LtpExportExtent *) MTAKE(sizeof(LtpExportExtent)))
 				== NULL

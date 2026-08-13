@@ -116,6 +116,8 @@ See man(5) for ltprc.");
 	PUTS("\t   m span <engine ID> maxretriesrecv <value>");
 	PUTS("\t   m span <engine ID> maxseglossratexmit <value>");
 	PUTS("\t   m span <engine ID> maxseglossraterecv <value>");
+	PUTS("\t   m maxrepairrounds <max repair rounds per session; default 8>");
+	PUTS("\t   m span <engine ID> maxrepairrounds <value>");
 	PUTS("\t   m span <engine ID> inactivity <seconds>");
 	PUTS("\t   m span <engine ID> clearoverride");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
@@ -533,6 +535,10 @@ static void	printSpan(LtpVspan *vspan)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(LtpSpan, span);
+		OBJ_POINTER(LtpSpan, spanCfg);
+		OBJ_POINTER(LtpDB, ltpdb);
+	int		nominal;
+	unsigned int	rounds;
 	char	nbrBuf[FQN_MAX_LENGTH];
 	char	cmd[SDRSTRING_BUFSZ];
 	char	buffer[256];
@@ -576,7 +582,50 @@ recvSegLossRate: %f", vspan->xmitSegLossRate, vspan->recvSegLossRate);
 	isprintf(buffer, sizeof buffer, "\tsessionInactivityLimit: %u",
 			vspan->sessionInactivityLimit);
 	printText(buffer);
+
+	/*	The resolved repair round limit, and the budget it
+	 *	produces for a nominal block, so that two engines'
+	 *	listings can be diffed against each other and the
+	 *	effect of a configuration change is visible without
+	 *	waiting for a session to need one.  The block size is
+	 *	stated in the output so the figures are not mistaken
+	 *	for a measurement of live traffic.			*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, getLtpDbObject());
+	GET_OBJ_POINTER(sdr, LtpSpan, spanCfg,
+			sdr_list_data(sdr, vspan->spanElt));
+	rounds = resolveMaxRepairRounds(ltpdb, spanCfg);
+	nominal = 65536;
+	if (vspan->maxRecvSegSize > 1)
+	{
+		isprintf(buffer, sizeof buffer, "\tmaxRepairRounds: %u  \
+budget for a %d-byte red part (segment size xmit %u, recv %u): \
+maxCheckpoints %d  maxReports %d", rounds, nominal, vspan->maxXmitSegSize,
+				vspan->maxRecvSegSize,
+				getMaxReports(nominal, vspan, 0, rounds),
+				getMaxReports(nominal, vspan, 1, rounds
+					+ LTP_RECV_BUDGET_HEADROOM));
+	}
+	else
+	{
+		/*	The receive segment size is learned from the
+		 *	first segment to arrive, not configured, so
+		 *	until traffic has been received a receiver-side
+		 *	budget would be computed over one-byte segments
+		 *	and would be nonsense.				*/
+
+		isprintf(buffer, sizeof buffer, "\tmaxRepairRounds: %u  \
+budget for a %d-byte red part (segment size xmit %u, recv not yet learned): \
+maxCheckpoints %d  maxReports unknown", rounds, nominal,
+				vspan->maxXmitSegSize,
+				getMaxReports(nominal, vspan, 0, rounds));
+	}
+
+	sdr_exit_xn(sdr);
+	printText(buffer);
 }
+
 
 static void	infoSeat(int tokenCount, char **tokens)
 {
@@ -1801,6 +1850,50 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxRepairRounds(int tokenCount, char **tokens)
+{
+	uvast	parsed;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (platform_parse_uvast(tokens[2], &parsed) < 0
+		|| parsed == 0 || parsed > LTP_MAX_REPAIR_ROUNDS)
+	{
+		writeMemoNote("[?] maxrepairrounds must be at least 1 and no \
+more than 256", tokens[2]);
+		return;
+	}
+
+	oK(setDefaultMaxRepairRounds((unsigned int) parsed));
+}
+
+static void	manageSpanMaxRepairRounds(int tokenCount, char **tokens)
+{
+	uvast	engineId;
+	uvast	parsed;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = getFqn(tokens[2]);
+	if (platform_parse_uvast(tokens[4], &parsed) < 0
+		|| parsed == 0 || parsed > LTP_MAX_REPAIR_ROUNDS)
+	{
+		writeMemoNote("[?] maxrepairrounds must be at least 1 and no \
+more than 256", tokens[4]);
+		return;
+	}
+
+	oK(setSpanMaxRepairRounds(engineId, (unsigned int) parsed));
+}
+
 static void	manageSpanClearOverride(int tokenCount, char **tokens)
 {
 	uvast	engineId;
@@ -2013,6 +2106,12 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "maxrepairrounds") == 0)
+	{
+		manageMaxRepairRounds(tokenCount, tokens);
+		return;
+	}
+
 	/*	Per-span commands (requires 'span <engineId> <param>').	*/
 
 	if (strcmp(tokens[1], "span") == 0)
@@ -2066,6 +2165,12 @@ static void	executeManage(int tokenCount, char **tokens)
 		if (strcmp(tokens[3], "inactivity") == 0)
 		{
 			manageSpanInactivityLimit(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "maxrepairrounds") == 0)
+		{
+			manageSpanMaxRepairRounds(tokenCount, tokens);
 			return;
 		}
 

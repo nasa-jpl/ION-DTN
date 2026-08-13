@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Integration test for the LTP repair round limit.
+#
+# Verifies that the parameter reaches the budget computation: that a
+# change to the round limit actually changes the number of checkpoints
+# a session is authorised to send, that a per-span setting overrides
+# the global one, that both survive a restart, that clearoverride
+# discards the per-span setting, and that out-of-range values are
+# rejected.
+#
+# What this test does NOT do is drive sessions to cancellation under
+# induced loss and measure the achieved cancellation rate.  That needs
+# an impairment facility -- netem, hence root -- which the test suite
+# does not have; the cancellation-rate arm belongs to a lab run.  The
+# model arithmetic behind the rate is covered by ltp-budget-unit.
+#
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+
+echo "########################################"
+echo
+echo "NAME: ltp-repair-rounds"
+echo
+echo "PURPOSE: Verify that the LTP repair round limit is resolved from"
+echo "  the per-span setting in preference to the global default, that"
+echo "  it reaches and changes the computed session budget, that both"
+echo "  settings survive an ionrestart, that clearoverride removes the"
+echo "  per-span setting, and that values outside 1..256 are rejected."
+echo
+echo "########################################"
+
+RETVAL=0
+
+check () {
+	if [ "$2" = "$3" ]; then
+		echo "PASS: $1 ($2)"
+	else
+		echo "ERROR: $1 -- got '$2', expected '$3'"
+		RETVAL=1
+	fi
+}
+
+# Resolved round limit and the budget it produces, from the span
+# listing.  The loopback configuration declares a single span.
+rounds () { ltpadmin <<< "l span" 2>/dev/null \
+		| sed -n 's/.*maxRepairRounds: \([0-9]*\).*/\1/p' | tail -1; }
+checkpoints () { ltpadmin <<< "l span" 2>/dev/null \
+		| sed -n 's/.*maxCheckpoints \([0-9]*\).*/\1/p' | tail -1; }
+
+ltp () { ltpadmin > /dev/null 2>&1; }
+restart () { ionrestart; sleep 3; }
+
+echo "Killing old ION..."
+killm
+sleep 1
+rm -f ion.log
+
+echo "Starting ION..."
+ln -sf "${CONFIGDIR}/loopback.ionconfig" loopback.ionconfig
+ionstart -i "${CONFIGDIR}/loopback.ionrc" \
+	-l "${CONFIGDIR}/loopback.ltprc" \
+	-b "${CONFIGDIR}/loopback.bprc" \
+	-p "${CONFIGDIR}/loopback.ipnrc" \
+	-s "${CONFIGDIR}/loopback.ionsecrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+sleep 3
+
+echo ""
+echo "=== Preflight ==="
+echo ""
+
+if [ -z "$(rounds)" ]; then
+	echo "ERROR: 'l span' does not report maxRepairRounds."
+	echo "  ltpadmin in use: $(command -v ltpadmin)"
+	echo "  That build does not support the repair round limit."
+	echo "  Install the build under test, or place it ahead of any"
+	echo "  installed ION on PATH."
+	exit 1
+fi
+
+echo "PASS: span listing reports the resolved round limit."
+
+echo ""
+echo "=== The default applies without any configuration ==="
+echo ""
+
+check "default round limit is applied, not opted into" "$(rounds)" "8"
+BASELINE=$(checkpoints)
+echo "baseline budget for a 64 KiB red part: $BASELINE checkpoints"
+
+echo ""
+echo "=== Fewer rounds shrink the budget, more rounds grow it ==="
+echo ""
+
+ltp <<'EOF'
+m maxrepairrounds 2
+EOF
+check "reduced limit resolved" "$(rounds)" "2"
+FEWER=$(checkpoints)
+if [ "$FEWER" -lt "$BASELINE" ]; then
+	echo "PASS: fewer rounds reduced the budget ($BASELINE -> $FEWER)"
+else
+	echo "ERROR: fewer rounds did not reduce the budget ($BASELINE -> $FEWER)"
+	RETVAL=1
+fi
+
+ltp <<'EOF'
+m maxrepairrounds 24
+EOF
+MORE=$(checkpoints)
+if [ "$MORE" -gt "$BASELINE" ]; then
+	echo "PASS: more rounds raised the budget ($BASELINE -> $MORE)"
+else
+	echo "ERROR: more rounds did not raise the budget ($BASELINE -> $MORE)"
+	RETVAL=1
+fi
+
+echo ""
+echo "=== A per-span setting overrides the global default ==="
+echo ""
+
+ltp <<'EOF'
+m maxrepairrounds 4
+m span 1 maxrepairrounds 12
+EOF
+check "per-span setting takes precedence" "$(rounds)" "12"
+SPANBUDGET=$(checkpoints)
+
+echo ""
+echo "=== Both survive a restart ==="
+echo ""
+
+restart
+check "per-span setting survives restart" "$(rounds)" "12"
+check "budget after restart is unchanged" "$(checkpoints)" "$SPANBUDGET"
+
+echo ""
+echo "=== clearoverride discards the per-span setting ==="
+echo ""
+
+ltp <<'EOF'
+m span 1 clearoverride
+EOF
+check "span falls back to the global default" "$(rounds)" "4"
+restart
+check "fallback survives restart" "$(rounds)" "4"
+
+echo ""
+echo "=== Values outside 1..256 are rejected ==="
+echo ""
+
+for BAD in 0 257 -1 abc; do
+	ltp <<EOF
+m maxrepairrounds $BAD
+EOF
+	check "rejected '$BAD', limit unchanged" "$(rounds)" "4"
+done
+
+# The boundaries themselves are accepted.
+ltp <<'EOF'
+m maxrepairrounds 1
+EOF
+check "a single round is accepted" "$(rounds)" "1"
+ltp <<'EOF'
+m maxrepairrounds 256
+EOF
+check "the maximum is accepted" "$(rounds)" "256"
+
+ltp <<'EOF'
+m maxrepairrounds 8
+EOF
+
+echo ""
+echo "=== ion.log sanity ==="
+echo ""
+
+if grep -q "Can't set default repair round limit\|Can't set span repair round limit" ion.log 2>/dev/null; then
+	echo "ERROR: ion.log reports a failed repair round limit update."
+	RETVAL=1
+else
+	echo "PASS: no repair round limit errors in ion.log."
+fi
+
+echo ""
+echo "Stopping ION..."
+ionstop
+sleep 2
+
+if [ $RETVAL -eq 0 ]; then
+	echo ""
+	echo "ALL TESTS PASSED."
+else
+	echo ""
+	echo "SOME TESTS FAILED."
+fi
+
+exit $RETVAL

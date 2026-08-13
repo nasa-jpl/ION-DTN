@@ -148,6 +148,50 @@ extern int remove_span(uvast engine_id);
 extern int clear_span_override(uvast engine_id);
 
 /*
+ * Set the global default limit on repair rounds per LTP session.
+ *
+ * A repair round is one exchange of reception report and retransmission.
+ * Each costs one acknowledgement deadline of elapsed time and holds a
+ * session slot for that long, so this limit is a statement about how
+ * long a session may live before the block is abandoned and left to BP
+ * to re-forward.
+ *
+ * The default of 8 is chosen against a design ceiling of 5% segment
+ * loss; a link losing more than that is too degraded to carry useful
+ * traffic.  At that ceiling, 8 rounds leave an expected residual below
+ * 3e-6 segments even for a 100 MiB block.
+ *
+ * The number of reception reports each round is allowed is computed
+ * from the block size and the expected segment loss rate; it is not
+ * configured.
+ *
+ * Parameters:
+ *   rounds - must be at least 1 and at most 256
+ *
+ * Returns: 1 on success, 0 if the value is out of range, -1 on error
+ */
+extern int set_default_repair_rounds(unsigned int rounds);
+
+/*
+ * Set the repair round limit for a single span, overriding the global
+ * default.  Recorded in the LTP database, so it persists across a
+ * restart; use clear_span_override() to remove it.
+ *
+ * A receiving engine allows itself additional rounds beyond the limit
+ * configured here, so that in normal operation the transmitting
+ * engine's limit governs and each engine need only be configured for
+ * the traffic it sends.
+ *
+ * Parameters:
+ *   engine_id - Remote LTP engine identifier
+ *   rounds    - must be at least 1 and at most 256
+ *
+ * Returns: 1 on success, 0 if span not found or value out of range,
+ *          -1 on error
+ */
+extern int set_span_repair_rounds(uvast engine_id, unsigned int rounds);
+
+/*
  * Start transmission on a span.
  * Starts the LSO process for the specified span.
  *

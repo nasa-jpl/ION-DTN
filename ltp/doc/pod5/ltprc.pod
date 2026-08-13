@@ -168,8 +168,12 @@ This command lists all declared LTP data interchange spans.  For each span
 the listing reports the resolved retransmission configuration in effect --
 whether a per-span override is present, the unified or split mode setting,
 the transmit and receive segment loss rates, the control segment timeout
-limit, and the session inactivity limit -- so that the configurations of
-two engines can be compared directly.
+limit, the session inactivity limit, and the repair round limit -- so that
+the configurations of two engines can be compared directly.  It also
+reports the session budget those settings produce for a nominal 64 KiB
+block, so that the effect of a configuration change can be seen without
+waiting for a session to need it.  The nominal block size is stated in the
+output; the figures are not a measurement of live traffic.
 
 =item B<l seat>
 
@@ -344,6 +348,68 @@ The value must be in the range [0.0, 0.99].  The default value is 0.01 (1%).
 This command applies globally to all spans that have not been configured with
 per-span overrides.  It switches spans to explicit split configuration mode
 for asymmetric links.
+
+=item B<m maxrepairrounds> I<max_repair_rounds_per_session>
+
+The B<manage max repair rounds> command.  This command sets the maximum
+number of repair rounds that any single LTP session may consume before
+the block is abandoned.  A repair round is one exchange of reception
+report and retransmission; each costs one acknowledgement deadline of
+elapsed time and holds a session slot for that long, so this parameter
+states how long a session may live before LTP gives up and leaves the
+block to BP to re-forward.
+
+The value must be at least 1 and no greater than 256.  The default is 8.
+
+That default is chosen against a design ceiling of 5% segment loss, on
+the reasoning that a space link losing more than that is too degraded to
+carry useful traffic and is better abandoned than repaired.  At that
+ceiling, eight rounds leave an expected residual of fewer than three
+undelivered segments in a million even for a 100 MiB block, and fewer
+than three in a hundred million for a 1 MiB block.
+
+The number of reception reports each round is allowed is not configured.
+It is computed from the size of the block and the expected segment loss
+rate, because a report can carry only a limited number of reception
+claims and a larger block leaves more gaps to enumerate.  A large block
+may therefore be authorised many reports across comparatively few
+rounds; it is the rounds that consume time.
+
+Raising this value costs nothing for sessions that complete without
+loss, because the limit is a ceiling rather than a schedule; only a
+session that would otherwise have been abandoned consumes the extra
+allowance.  The costs of a high value are the worst-case time taken to
+abandon a session on a link that has failed in a way the contact plan
+does not describe, which is this value multiplied by the acknowledgement
+deadline, and the corresponding retention of export session slots.
+
+=item B<m span> I<peer_engine_nbr> B<maxrepairrounds> I<max_repair_rounds_per_session>
+
+The B<manage span max repair rounds> command.  This command overrides
+the global repair round limit for a single span; a long-haul span whose
+acknowledgement deadline is measured in hours may warrant a different
+limit from a local one.  The value must be at least 1 and no greater
+than 256.
+
+The override is recorded in the LTP database and persists across a
+restart.  Use B<m span> I<peer_engine_nbr> B<clearoverride> to remove it.
+
+Note that this limit governs sessions in which this engine is the
+B<sender>.  When receiving, the engine allows itself additional rounds
+beyond the limit configured here, so that in normal operation the
+transmitting engine's limit is the one that governs; see the note on
+peer interaction below.  It is therefore sufficient to configure each
+engine for the traffic it sends.
+
+LTP negotiates none of these parameters between engines.  A sending
+engine computes its checkpoint budget from its own configuration and a
+receiving engine computes its reception report budget from its own; a
+session is abandoned as soon as either is exhausted.  For the repair
+round limit this is handled by the additional rounds a receiving engine
+allows itself, so no coordination is needed.  For B<maxseglossrate> no
+such allowance is made, and a value configured on only one of a pair of
+peers may have little effect on the observed rate of session
+cancellation.
 
 =item B<m span> I<peer_engine_nbr> B<maxretries> I<max_retransmission_attempts>
 

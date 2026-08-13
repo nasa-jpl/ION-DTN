@@ -105,6 +105,52 @@ extern "C" {
 #define MAX_CLAIMS_PER_RS	20
 #endif
 
+/*	Extra reception reports a receiving engine allows itself beyond
+ *	what its own configured session failure target calls for, so
+ *	that in normal operation the transmitting engine's budget is the
+ *	one that governs and each engine need only be configured for the
+ *	traffic it sends.  Each additional round absorbs a factor of
+ *	1/segmentLossRate of configuration mismatch between the peers.	*/
+
+/*	A session's repair budget is expressed directly, as the maximum
+ *	number of repair rounds it may consume.  Each round costs one
+ *	acknowledgement deadline of wall-clock time and holds an export
+ *	session slot for that long, so this is a statement about session
+ *	lifetime, which is what an operator can reason about.  An export
+ *	session has no inactivity timer -- unlike an import session -- so
+ *	for a sending session this is the only bound on its lifetime.
+ *
+ *	The default is chosen against a design ceiling of 5% segment loss:
+ *	a space link losing more than that is too degraded to carry useful
+ *	traffic, and the right response to it is to abandon the block and
+ *	let BP re-forward rather than to keep repairing.  Eight rounds at
+ *	that ceiling leaves an expected residual below 3e-6 segments even
+ *	for a 100 MiB block, and below 3e-8 for 1 MiB.
+ *
+ *	The number of report segments a round needs is computed rather
+ *	than configured: it follows from how many gaps must be enumerated
+ *	and how many reception claims fit in a segment, which is
+ *	arithmetic rather than a reliability model.			*/
+
+#ifndef LTP_DEFAULT_REPAIR_ROUNDS
+#define LTP_DEFAULT_REPAIR_ROUNDS	8
+#endif
+
+/*	Sanity ceiling on the configured value, so that a mistyped round
+ *	limit cannot authorise an unbounded session.			*/
+
+#ifndef LTP_MAX_REPAIR_ROUNDS
+#define LTP_MAX_REPAIR_ROUNDS		256
+#endif
+
+#ifndef LTP_RECV_BUDGET_HEADROOM
+#ifdef LTP_LEGACY_BUDGET
+#define LTP_RECV_BUDGET_HEADROOM	0
+#else
+#define LTP_RECV_BUDGET_HEADROOM	2
+#endif
+#endif
+
 /*	LTP segment structure definitions.				*/
 
 typedef struct
@@ -511,6 +557,14 @@ typedef struct
 
 	unsigned int	sessionInactivityLimit;	/*	Seconds, 0=off.	*/
 	int		inactivityLimitSet;/*	Boolean.		*/
+
+	/*	Maximum number of repair rounds a session over this
+	 *	span may consume.  Zero means "not overridden", i.e.
+	 *	take the global default from LtpDB.  Read directly
+	 *	from here by the two callers of getMaxReports; no
+	 *	volatile copy exists.				*/
+
+	unsigned int	maxRepairRounds;
 } LtpSpan;
 
 /* LtpSeat structure characterizes one of the link-service-layer input
@@ -760,6 +814,13 @@ typedef struct
 	unsigned long	heapBytesOccupied;
 	unsigned long	heapSpaceBytesReserved;
 	unsigned long	heapSpaceBytesOccupied;
+
+	/*	Global default repair round limit.  As with LtpSpan
+	 *	above, new members belong at the end of this
+	 *	structure: nothing validates a recovered database
+	 *	against sizeof(LtpDB).				*/
+
+	unsigned int	defaultMaxRepairRounds;
 } LtpDB;
 
 /* The volatile database object encapsulates the current volatile state
@@ -868,9 +929,20 @@ extern void		computeRetransmissionLimits(LtpVspan *vspan);
  *	the span is unknown, -1 on any other failure.			*/
 
 extern int		clearSpanOverride(uvast engineId);
+extern int		setDefaultMaxRepairRounds(unsigned int rounds);
+extern int		setSpanMaxRepairRounds(uvast engineId,
+				unsigned int rounds);
 extern int		getMaxReports(int redPartLength,
 				LtpVspan *vspan,
-				int asReceiver);
+				int asReceiver,
+				unsigned int maxRounds);
+
+/*	Resolves the repair round limit in effect for a span,
+ *	preferring the per-span override over the global default and
+ *	falling back to a safe value if neither is usable.  Not static
+ *	because ltpmeter computes the sender's budget.			*/
+
+extern unsigned int	resolveMaxRepairRounds(LtpDB *ltpdb, LtpSpan *span);
 
 extern int		ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
 extern int		ltpHandleInboundSegment(char *buf, int length);

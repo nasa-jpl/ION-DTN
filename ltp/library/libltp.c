@@ -475,6 +475,16 @@ int	clear_span_override(uvast engine_id)
 	return clearSpanOverride(engine_id);
 }
 
+int	set_default_repair_rounds(unsigned int rounds)
+{
+	return setDefaultMaxRepairRounds(rounds);
+}
+
+int	set_span_repair_rounds(uvast engine_id, unsigned int rounds)
+{
+	return setSpanMaxRepairRounds(engine_id, rounds);
+}
+
 int	ltp_start_span(uvast engine_id)
 {
 	return ltpStartSpan(engine_id);

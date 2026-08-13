@@ -1,0 +1,1 @@
+Unit tests for the LTP session budget model in getMaxReports: equivalence with the pre-parameter algorithm at a target of 1.0, monotonicity, the published budget table, receiver headroom dominance, the repair round cap, and a Monte Carlo check that the achieved cancellation rate respects the configured target.

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Unit test; attaches to no ION node and leaves nothing behind except
+# the memo getMaxReports writes when a target proves unachievable.
+rm -f ion.log

@@ -576,6 +576,40 @@ static void	resetSpan(LtpVspan *vspan)
 #endif
 }
 
+unsigned int	resolveMaxRepairRounds(LtpDB *ltpdb, LtpSpan *span)
+{
+	unsigned int	rounds;
+
+	/*	Both guards below are load-bearing.
+	 *
+	 *	GET_OBJ_POINTER yields NULL when the SDR is not
+	 *	DRAM-resident, so a file-only configuration hands back
+	 *	a NULL database pointer here.
+	 *
+	 *	A zero round limit would authorise no repair at all,
+	 *	so a database predating this field -- binaries
+	 *	upgraded without rebuilding the database -- must not
+	 *	be allowed to reach the algorithm.			*/
+
+	if (ltpdb == NULL || span == NULL)
+	{
+		return LTP_DEFAULT_REPAIR_ROUNDS;
+	}
+
+	rounds = span->maxRepairRounds;
+	if (rounds == 0)
+	{
+		rounds = ltpdb->defaultMaxRepairRounds;
+	}
+
+	if (rounds == 0 || rounds > LTP_MAX_REPAIR_ROUNDS)
+	{
+		rounds = LTP_DEFAULT_REPAIR_ROUNDS;
+	}
+
+	return rounds;
+}
+
 void	computeRetransmissionLimits(LtpVspan *vspan)
 {
 	OBJ_POINTER(LtpDB, ltpdb);
@@ -674,6 +708,70 @@ rate %f, recv segment loss rate %f, max timeouts %d.", nbrBuf, maxBER,
 	writeMemo(buf);
 }
 
+int	setDefaultMaxRepairRounds(unsigned int rounds)
+{
+	Sdr	sdr = getIonsdr();
+	SdrObject	ltpdbObj = getLtpDbObject();
+	LtpDB	ltpdb;
+
+	if (rounds == 0 || rounds > LTP_MAX_REPAIR_ROUNDS)
+	{
+		writeMemoNote("[?] Repair round limit out of range",
+				utoa(rounds));
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxRepairRounds = rounds;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set default repair round limit.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	setSpanMaxRepairRounds(uvast engineId, unsigned int rounds)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	SdrObject		spanObj;
+	LtpSpan		span;
+
+	if (rounds == 0 || rounds > LTP_MAX_REPAIR_ROUNDS)
+	{
+		writeMemoNote("[?] Repair round limit out of range",
+				utoa(rounds));
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	findSpan(engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown span", utoa(engineId));
+		return 0;
+	}
+
+	spanObj = (SdrObject) sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	span.maxRepairRounds = rounds;
+	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set span repair round limit.",
+				utoa(engineId));
+		return -1;
+	}
+
+	return 1;
+}
+
 int	clearSpanOverride(uvast engineId)
 {
 	Sdr		sdr = getIonsdr();
@@ -709,6 +807,7 @@ int	clearSpanOverride(uvast engineId)
 	span.maxSegLossRateRecv = 0.0;
 	span.sessionInactivityLimit = 0;
 	span.inactivityLimitSet = 0;
+	span.maxRepairRounds = 0;
 	sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 
 	/*	Then rebuild the working configuration from the global
@@ -1698,6 +1797,8 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.defaultMaxRetriesRecv = 5;
 		ltpdbBuf.defaultMaxSegLossRateXmit = 0.01;
 		ltpdbBuf.defaultMaxSegLossRateRecv = 0.01;
+		ltpdbBuf.defaultMaxRepairRounds =
+				LTP_DEFAULT_REPAIR_ROUNDS;
 
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
@@ -6373,23 +6474,31 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 	return segUpperBound;
 }
 
-int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
+int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver,
+		unsigned int maxRounds)
 {
 	/*	The limit on reports is never less than 2: at least
 	 *	one negative report, plus the final positive report.
-	 *	Additional reports may be authorized depending on the
-	 *	size of the transmitted block and the rate of segment
-	 *	loss.							*/
+	 *	Beyond that the session is authorised the reports it
+	 *	would take to enumerate the gaps left by each of the
+	 *	repair rounds it is allowed to consume.
+	 *
+	 *	How many rounds that is comes from configuration.  How
+	 *	many reports each round needs is computed here, and is
+	 *	arithmetic about gap enumeration rather than a model of
+	 *	link reliability: a large block simply has more gaps to
+	 *	describe.						*/
 
 	int		dataGapsPerReport = MAX_CLAIMS_PER_RS - 1;
 	float		segmentLossRate;
 	unsigned int	maxSegmentSize;
 	int		maxReportSegments;
-	int		xmitBytes;
-	int		xmitSegments;
-	float		lostSegments;
 	int		dataGaps;
 	int		reportsIssued;
+#ifndef LTP_LEGACY_BUDGET
+	float		residual;
+	unsigned int	round;
+#endif
 
 	if (asReceiver)
 	{
@@ -6403,15 +6512,54 @@ int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
 	}
 
 	maxReportSegments = 2;		/*	Minimum value.		*/
-	xmitBytes = redPartLength;	/*	Initial transmission.	*/
-	while (1)
+
+#ifdef LTP_LEGACY_BUDGET
+	/*	Restores the budget as it was computed before the
+	 *	repair round limit was introduced, when the number of
+	 *	rounds was derived from the block size and the loss
+	 *	rate rather than configured.  Reproduces the earlier
+	 *	behaviour exactly, including the truncation of the
+	 *	residual to a whole number of segments once per round,
+	 *	so that an A/B comparison can be run from a single
+	 *	build tree.  Deprecated on introduction.		*/
+
 	{
-		xmitSegments = xmitBytes / maxSegmentSize;
-		lostSegments = xmitSegments * segmentLossRate;
-		if (lostSegments < 1.0)
+		int	xmitBytes = redPartLength;
+		int	xmitSegments;
+		float	lostSegments;
+
+		(void) maxRounds;
+		while (1)
 		{
-			break;		/*	No more loss expected.	*/
+			xmitSegments = xmitBytes / maxSegmentSize;
+			lostSegments = xmitSegments * segmentLossRate;
+			if (lostSegments < 1.0)
+			{
+				break;
+			}
+
+			dataGaps = (int) lostSegments;
+			reportsIssued = dataGaps / dataGapsPerReport;
+			if (dataGaps % dataGapsPerReport > 0)
+			{
+				reportsIssued += 1;
+			}
+
+			maxReportSegments += reportsIssued;
+			xmitBytes = (int) (lostSegments * maxSegmentSize);
 		}
+
+		return maxReportSegments;
+	}
+#else
+	/*	residual is the expected number of segments of the
+	 *	block still undelivered after the rounds accounted for
+	 *	so far.						*/
+
+	residual = (float) (redPartLength / maxSegmentSize);
+	for (round = 0; round < maxRounds; round++)
+	{
+		residual *= segmentLossRate;
 
 		/*	Assume segment losses are uncorrelated, so
 		 *	each lost segment results in a gap in the
@@ -6420,7 +6568,17 @@ int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
 		 *	a single report is therefore 1 less than the
 		 *	maximum number of claims per report segment.	*/
 
-		dataGaps = (int) lostSegments;
+		dataGaps = (int) residual;
+
+		/*	A sub-unit expectation is still a possible
+		 *	round, and the round has been authorised, so
+		 *	it gets the one report that lets it be used.	*/
+
+		if (dataGaps < 1)
+		{
+			dataGaps = 1;
+		}
+
 		reportsIssued = dataGaps / dataGapsPerReport;
 		if (dataGaps % dataGapsPerReport > 0)
 		{
@@ -6428,17 +6586,14 @@ int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
 		}
 
 		maxReportSegments += reportsIssued;
-
-		/*	Compute next xmit: retransmission data volume.	*/
-
-		xmitBytes = (int) (lostSegments * maxSegmentSize);
 	}
+#endif
 
 #if LTPDEBUG
 char	buf[256];
-isprintf(buf, sizeof buf, "[i] Max report segments = %d for red part length %d, max segment \
-size %d, segment loss rate %f.", maxReportSegments, redPartLength,
-maxSegmentSize, segmentLossRate);
+isprintf(buf, sizeof buf, "[i] Max report segments = %d for red part length %d, \
+max segment size %d, segment loss rate %f, repair rounds %u.",
+maxReportSegments, redPartLength, maxSegmentSize, segmentLossRate, maxRounds);
 writeMemo(buf);
 #endif
 	return maxReportSegments;
@@ -7145,8 +7300,17 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			 *	number of report segments we can send back
 			 *	for this session.				*/
 
+			/*	The receiver allows itself extra rounds
+			 *	beyond what its own configuration calls
+			 *	for, so that in normal operation the
+			 *	sending engine's limit is the one that
+			 *	governs and each engine need only be
+			 *	configured for the traffic it sends.	*/
+
 			sessionBuf.maxReports = getMaxReports(sessionBuf.redPartLength,
-					vspan, 1);
+					vspan, 1,
+					resolveMaxRepairRounds(ltpdb, span)
+					+ LTP_RECV_BUDGET_HEADROOM);
 		}
 
 		if ((pdu->segTypeCode & LTP_FLAG_1)

@@ -1,0 +1,1 @@
+Verifies that the LTP repair round limit reaches the session budget computation, that a per-span setting overrides the global default, that both survive a restart, and that out-of-range values are rejected.
