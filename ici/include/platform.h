@@ -532,7 +532,8 @@ typedef void (*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
+			saddr, saddr, saddr);
 #endif				/*	End of #ifdef AESCFS	     ****/
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
