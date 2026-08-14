@@ -317,11 +317,34 @@ exit $RETVAL
 
 ## The test environment
 
-The `dotest` scripts are run in their test directory. The following environment variables are set as part of the test environment:
+The `dotest` scripts are run in their test directory.
 
-- `IONDIR` is the root of the local ION source directory.
+> **The suite runs the installed ION.
+> Run `make install` before running it.**
+> `runtests` refuses to start if `ionadmin` is not on `PATH`.
+> (`./runtests cleanup` is exempt.)
 
-- `PATH` has `IONDIR` prepended to it, ensuring ION executables in the local build directory are found first.
+`runtests` exports two variables that point into the source tree,
+for tests that reach source-tree resources
+(configuration files, link graphs) through them:
+
+- `IONDIR` — the root of the local ION source directory.
+
+- `CONFIGSROOT` — `$IONDIR/configs`.
+
+Before the first test runs,
+`runtests` reports the resolved environment
+to both stderr and the `progress` file,
+so a completed run records which ION it exercised:
+
+```
+# IONDIR: /path/to/ion
+# CONFIGSROOT: /path/to/ion/configs
+# PATH: /usr/local/bin:...
+# LD_LIBRARY_PATH: /usr/local/lib:...
+# ionadmin resolves to: /usr/local/bin/ionadmin
+# libici resolves to: /usr/local/lib/libici.so.0
+```
 
 ### Positional argument: the platform string
 

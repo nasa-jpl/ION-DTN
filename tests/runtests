@@ -84,7 +84,52 @@ on_interrupt () {
 trap on_interrupt INT TERM
 
 
-[ -f "$SCRIPT_DIR/pretest-script.sh" ] && . "$SCRIPT_DIR/pretest-script.sh"
+# IONDIR and CONFIGSROOT are exported because tests reach source-tree
+# resources (configs, link graphs) through them.
+IONDIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIGSROOT="$IONDIR/configs"
+export IONDIR CONFIGSROOT
+
+# Record the environment the tests will actually run in.  These settings
+# otherwise die with this shell, leaving a finished run with no evidence of
+# which ION it exercised -- and a stale or shadowing binary then looks
+# exactly like a source regression.
+function report_test_environment () {
+    # Resolving one representative executable and library answers the
+    # question these search paths are usually consulted for: is this the
+    # installed ION, or something shadowing it?
+    local resolved real
+    resolved="$(command -v ionadmin 2>/dev/null)"
+    # A name that resolves into a build tree is a libtool wrapper script,
+    # not the executable; the real one is the like-named file under .libs/.
+    # This is a misconfiguration here, and is reported so it is visible.
+    real="$resolved"
+    if [ -n "$resolved" ] \
+        && [ -e "$(dirname "$resolved")/.libs/$(basename "$resolved")" ]; then
+        real="$(dirname "$resolved")/.libs/$(basename "$resolved")"
+    fi
+
+    echo "# IONDIR: ${IONDIR:-<unset>}"
+    echo "# CONFIGSROOT: ${CONFIGSROOT:-<unset>}"
+    echo "# PATH: $PATH"
+    echo "# LD_LIBRARY_PATH: ${LD_LIBRARY_PATH:-<unset>}"
+    echo "# ionadmin resolves to: ${resolved:-<not found>}"
+    if [ "$real" != "$resolved" ]; then
+        echo "# WARNING: ionadmin is a libtool wrapper for $real."
+        echo "#          A build tree precedes the install on PATH; tests that"
+        echo "#          match daemons by exact process name will fail.  Run"
+        echo "#          'make install' and drop the build tree from PATH."
+    fi
+    if [ -n "$real" ]; then
+        echo "# libici resolves to: $(ldd "$real" 2>/dev/null \
+            | awk '$1 ~ /^libici/ {print $3; found=1}
+                   END {if (!found) print "<not found>"}')"
+    else
+        echo "# libici resolves to: <not found>"
+    fi
+}
+
+report_test_environment | tee -a "$PROGRESSFILE" >&2
 
 
 function find_tests_in () {
@@ -1122,6 +1167,15 @@ if [ -z "$TESTS" ]; then
     exit 1
 fi
 
+
+# The suite runs the installed ION, so refuse to start without one rather
+# than letting every test fail for a reason no single test can explain.
+# Cleanup mode is exempt: tearing down leftover state must work regardless.
+if [ -z "$CLEANUP" ] && ! command -v ionadmin > /dev/null 2>&1; then
+    echo "runtests: ionadmin not found on PATH." >&2
+    echo "runtests: the test suite runs the installed ION; run 'make install' first." >&2
+    exit 1
+fi
 
 if [ -z "$CLEANUP" ]; then
     if [ -n "$STRESS_MODE" ]; then

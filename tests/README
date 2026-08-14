@@ -107,9 +107,18 @@ The test environment
 
 The tests' dotest scripts are run in their test directory.
 
-The following environment variables are set as indicated:
+The suite runs the installed ION, so run "make install" before running
+it.  runtests refuses to start if ionadmin is not on PATH.  The
+"./runtests cleanup" mode is exempt.
+
+runtests exports two variables that point into the source tree, for
+tests that reach source-tree resources (configuration files, link
+graphs) through them:
 
     IONDIR is the root of the local ION source directory
 
-    PATH begins with IONDIR (this is where the local executables are
-    found)
+    CONFIGSROOT is IONDIR/configs
+
+Before the first test runs, runtests reports the resolved environment to
+both stderr and the progress file, so a completed run records which ION
+it exercised.
