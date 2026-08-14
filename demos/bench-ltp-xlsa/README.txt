@@ -95,7 +95,7 @@ exactly what xlsa exists to remove from the measurement.
 
 SEE ALSO
 --------
-    ltp/xlsa/doc/DESIGN.md      full analysis (also at gh-pages
+    ltp/xlsa/doc/DESIGN.md      full analysis (also at site-docs
                                 ION APIs -> "Generic LTP Link Service
                                 Template (xlso/xlsi)")
     ltp/xlsa/README.md          build & adaptation guide

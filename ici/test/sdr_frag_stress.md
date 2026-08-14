@@ -97,4 +97,4 @@ The `largestFreeBlock` field on `SdrUsageSummary`, which this
 benchmark exercises heavily, is also exposed to operators via
 `sdrwatch -t` as `largest free blk`. The deployment guide for
 fragmentation diagnostics is in
-`gh-pages/docs/ION-Monitoring-Guide.md`.
+`site-docs/docs/monitoring-guide.md`.

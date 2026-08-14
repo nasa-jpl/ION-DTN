@@ -6,7 +6,7 @@
 # NEVER exits non-zero: findings are emitted as GitHub warning annotations
 # and a step-summary table so they surface on the PR without blocking merge.
 #
-# Conventions checked (see gh-pages/docs/ION-TestSet-Readme.md):
+# Conventions checked (see site-docs/docs/testset-readme.md):
 #   A. A cleanup script that stops ION should use `killm f`, not bare
 #      `killm`.  In a multi-node environment bare `killm` only stops the
 #      current node (or refuses from a non-node directory) and leaves
@@ -22,7 +22,7 @@
 
 set -u +e
 
-DOC="gh-pages/docs/ION-TestSet-Readme.md"
+DOC="site-docs/docs/testset-readme.md"
 FINDINGS=0
 SUMMARY=""
 

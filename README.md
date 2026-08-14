@@ -13,7 +13,7 @@ ION DTN is suitable for both planetary and interplanetary environments succeptib
 
 ## Supported Platform
 
-ION Open Source supports Linux and Solaris. Please consult the [Quick Start](./gh-pages/docs/ION-Quick-Start-Guide.md) for detailed instruction.
+ION Open Source supports Linux and Solaris. Please consult the [Quick Start](./site-docs/docs/quick-start-guide.md) for detailed instruction.
 
 Support for `FreeBSD`, `macOS`, `Raspberry Pi OS` are provided on a best-effort, test and report (BETR) level. We will try, with reasonable effort, to test, document and fix issues related to these platforms but they are not officially supported.
 
@@ -74,7 +74,7 @@ Beginning with version 4.1.3, ION documentation is hosted here [online](https://
 
 Under the `doc` subfolder, there are older versions of ION documents kept for user's reference if needed, but they will not be updated going forward and may be removed without prior notice. Users are encouraged to use the online documentation in order to receive the most up-to-date information on ION features and issues.
 
-A template [`AGENT.md`](gh-pages/docs/AGENTS.md) file is provided with the documention.
+A template [`AGENT.md`](site-docs/docs/AGENTS.md) file is provided with the documention.
 
 The `release-notes.txt` file will continue to be updated for each stable release.
 

@@ -46,7 +46,7 @@ fi
 # Compute CFLAGS and ac_cv_c11 based on tier
 #
 # Each fallback tier needs BOTH levers set (see
-# gh-pages/docs/ION-Coding-Guide.md "Testing the Fallback Tiers"):
+# site-docs/docs/coding-guide.md "Testing the Fallback Tiers"):
 #   (A) language mode — short-circuit configure.ac's C18 probe with
 #       ac_cv_c11=no and pass -std=c99 in CFLAGS so AM_CFLAGS + user
 #       CFLAGS resolve to C99.

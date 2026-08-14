@@ -3,7 +3,7 @@
 > This file is the raw, reproducible benchmark data. For the curated,
 > cross-referenced summary that also covers LTP over UDP and the ION 4.1.2
 > baseline, see the **LTP Performance** page in the online documentation
-> (`gh-pages/docs/topics/LTP-Performance.md`).
+> (`site-docs/docs/topics/ltp-performance.md`).
 
 End-to-end goodput numbers for LTP carried over the xlsa shared-memory
 backend, compared to LTP over UDP loopback (`demos/bench-ltp/`), across

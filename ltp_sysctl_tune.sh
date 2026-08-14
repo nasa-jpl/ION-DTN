@@ -10,7 +10,7 @@
 #   sudo ./ltp_sysctl_tune.sh persist  # Install persistent config file
 #   sudo ./ltp_sysctl_tune.sh unpersist # Remove persistent config file
 #
-# See gh-pages/docs/topics/ltp-udp-multisend-tuning.md for details.
+# See site-docs/docs/topics/ltp-udp-multisend-tuning.md for details.
 
 set -e
 
@@ -92,7 +92,7 @@ case "${1:-}" in
         cat > "$PERSIST_FILE" <<EOF
 # ION LTP high-throughput UDP buffer settings
 # Installed by ltp_sysctl_tune.sh
-# See gh-pages/docs/topics/ltp-udp-multisend-tuning.md
+# See site-docs/docs/topics/ltp-udp-multisend-tuning.md
 net.core.rmem_max=$RMEM_MAX
 net.core.wmem_max=$WMEM_MAX
 net.core.rmem_default=$RMEM_DEFAULT
