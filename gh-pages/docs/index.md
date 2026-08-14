@@ -101,11 +101,7 @@ between nodes. The contact plan is also what drives transmission‑rate
 control, maintained on a timeline by the `rfxclock` daemon (see
 [Contact Graph Events and LTP Interaction](./Contact-Graph-Events-and-LTP.md)).
 Alongside CGR, ION supports **static routes** ("exits") and **per‑bundle
-routing overrides**. Routing is also **pluggable**: an externally‑developed
-router can be dropped in as a shared object to make the per‑bundle next‑hop
-decision in place of CGR, with an optional API for reading the contact
-graph — see [Bundle Forwarding Architecture](./Bundle-Forwarding-Architecture.md)
-and the [Writing a Custom Router](./Writing-a-Custom-Router.md) tutorial.
+routing overrides**.
 
 ### Convergence‑layer adapters (transports)
 
@@ -115,9 +111,6 @@ a broad set:
 - **LTP** — the Licklider Transmission Protocol (RFC 5326), ION's
   workhorse for reliable delivery over long‑delay, high‑error, one‑way
   space links, with contact‑plan‑driven rate control.
-- **TCPCLv4** — the TCP Convergence Layer version 4 (RFC 9174), with
-  optional **TLS 1.3** encryption, for reliable delivery over terrestrial/
-  IP links. See the [TCPCLv4 Guide](./TCPCLv4-Guide.md).
 - **TCP, STCP, UDP, DCCP** — simpler IP‑based convergence layers.
 - **BRS** — Bundle Relay Service, for reaching nodes behind firewalls/NAT.
 - **BSSP, SPP, EPP, and file** — the Bundle Streaming Service protocol,
@@ -225,8 +218,7 @@ available (currently being updated for BPv7).
 
 **Protocols and features**
 
-- [TCPCLv4 Guide](./TCPCLv4-Guide.md) — the RFC 9174 TCP convergence layer with TLS 1.3.
-- [Bundle Forwarding Architecture](./Bundle-Forwarding-Architecture.md) · [Writing a Custom Router](./Writing-a-Custom-Router.md) — routing internals and pluggable routers.
+- [Bundle Forwarding Architecture](./Bundle-Forwarding-Architecture.md) — routing internals.
 - [Contact Graph Events and LTP Interaction](./Contact-Graph-Events-and-LTP.md) — the contact plan and rate control.
 - [CBR/CT Tutorial](./CBR-CT-Tutorial.md) — compressed status reporting and custody transfer.
 - [BpSec Configuration Examples](./BpSec-Configuration-Examples.md) · [BSL Build & Install Guide](./BSL-Build-Install-Guide.md) — security.
