@@ -104,7 +104,7 @@ BpsecSerializeData bpsec_rfc9173utl_authDataBuild(sc_state *state, int parm_id, 
 	memset(&result, 0, sizeof(BpsecSerializeData));
 	if((bundle == NULL) && (wk==NULL))
 	{
-		BPSEC_DEBUG_ERR("Need bundle or work area.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Need bundle or work area.");
 		return result;
 	}
 	if((addData && (tgtBlk == PayloadBlk)) ||
@@ -363,7 +363,7 @@ int bpsec_rfc9173utl_outBlkHdrSerialize(Bundle *bundle, uint8_t blkNbr, uint8_t 
 
 	if(blkNbr == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot target Primary block.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot target Primary block.");
 		return ERROR;
 	}
 
@@ -414,7 +414,7 @@ int bpsec_rfc9173utl_outBlkHdrSerialize(Bundle *bundle, uint8_t blkNbr, uint8_t 
 	}
 
 	/* Step 3: Return the length of the buffer. */
-	BPSEC_DEBUG_PROC("--> %d", cursor-buffer);
+	BPSEC_DEBUG_PROC("--> " VAST_FIELDSPEC, (vast) (cursor - buffer));
 	return cursor - buffer;
 }
 
@@ -532,7 +532,7 @@ int bpsec_rfc9173utl_inBlkHdrSerialize(AcqWorkArea *wk, uint8_t blkNbr, uint8_t 
 
 	if(blkNbr == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot target Primary block.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot target Primary block.");
 		return ERROR;
 	}
 
@@ -581,7 +581,7 @@ int bpsec_rfc9173utl_inBlkHdrSerialize(AcqWorkArea *wk, uint8_t blkNbr, uint8_t 
 	}
 
 	/* Step 3: Return the length of the buffer. */
-	BPSEC_DEBUG_PROC("--> %d", cursor-buffer);
+	BPSEC_DEBUG_PROC("--> " VAST_FIELDSPEC, (vast) (cursor - buffer));
 	return cursor - buffer;
 }
 
@@ -626,7 +626,7 @@ int bpsec_rfc9173utl_sesKeyGet(sc_state *state, int kek_id, int wrap_id, int csi
 	/* Step 1: Grab the key-encrypting key we will use for decrypting.*/
 	if(bpsec_scutl_keyGet(state, kek_id,  &kek) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Unable to get key encrypting key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to get key encrypting key.");
 		return ERROR;
 	}
 	csi_kek.contents = kek.scRawValue.asPtr;
@@ -637,7 +637,7 @@ int bpsec_rfc9173utl_sesKeyGet(sc_state *state, int kek_id, int wrap_id, int csi
 	*sesKey = csi_crypt_parm_get(csi_suite, CSI_PARM_BEK);
 	if((sesKey->contents == NULL) || (sesKey->len == 0))
 	{
-		BPSEC_DEBUG_ERR("Can't get session key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get session key.");
 		bpsec_scv_clear(0, &kek);
 		return ERROR;
 	}
@@ -652,7 +652,7 @@ int bpsec_rfc9173utl_sesKeyGet(sc_state *state, int kek_id, int wrap_id, int csi
 	if ((csi_keywrap(1, csi_kek, *sesKey, &csi_encKey)) == ERROR)
 
 	{
-		BPSEC_DEBUG_ERR("Can't get encrypted session key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get encrypted session key.");
 		bpsec_scv_clear(0, &kek);
 		MRELEASE(sesKey->contents);
 		return ERROR;
@@ -666,7 +666,7 @@ int bpsec_rfc9173utl_sesKeyGet(sc_state *state, int kek_id, int wrap_id, int csi
 	/* STep 5: Build the wrapped key as an SC value. */
 	*encSesKey = bpsec_scv_memCsiConvert(csi_encKey, SC_VAL_TYPE_PARM, wrap_id);
 
-	BPSEC_DEBUG_PROC("--> 1", NULL);
+	BPSEC_DEBUG_PROC("%s", "--> 1");
 	return 1;
 }
 

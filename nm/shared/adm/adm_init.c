@@ -52,5 +52,5 @@ void adm_init(void)
 	dtn_bpsec_init();
 
 #endif
-	AMP_DEBUG_EXIT("adm_init","->.", NULL);
+   AMP_DEBUG_EXIT("adm_init", "%s", "->.");
 }

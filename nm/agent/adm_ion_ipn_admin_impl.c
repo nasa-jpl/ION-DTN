@@ -148,7 +148,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_exits(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_protocols", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_protocols", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -234,7 +235,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ipnadmin_tblt_plans", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ipnadmin_tblt_plans", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 

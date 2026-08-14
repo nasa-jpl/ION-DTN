@@ -2908,7 +2908,11 @@ int completeInFdu(InFdu *fduBuf, SdrObject fduObj, SdrObject fduElt,
 						fduBuf->workingFileName);
 
 				unlink(workingFileName);
-				isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File '%s' was deleted due to discardIncompleteFile.", condition, workingFileName);
+				isprintf(logMsg, sizeof logMsg,
+						"CFDP Error: Condition %d. "
+						"File '%s' was deleted due "
+						"to discardIncompleteFile.",
+						condition, workingFileName);
 				writeMemo(logMsg);
 				event.fileStatus = CfdpFileDiscarded;
 				event.deliveryCode = CfdpDataIncomplete;
@@ -2917,11 +2921,23 @@ int completeInFdu(InFdu *fduBuf, SdrObject fduObj, SdrObject fduElt,
 			{
 				if (fduBuf->destFileName)
 				{
-					isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File '%s' was retained as discardIncompleteFile is disabled.", condition, fduBuf->destFileName);
+					sdr_string_read(sdr, workingFileName,
+							fduBuf->destFileName);
+					isprintf(logMsg, sizeof logMsg,
+							"CFDP Error: Condition %d. File '%s' "
+							"was retained as discardIncompleteFile "
+							"is disabled.",
+							condition,
+							workingFileName);
 				}
 				else
 				{
-					isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File retention unknown as destFileName is NULL.", condition);
+					isprintf(logMsg, sizeof logMsg,
+							"CFDP Error: Condition "
+							"%d. File retention "
+							"unknown as destFileName"
+							" is NULL.",
+							condition);
 				}
 				writeMemo(logMsg);
 
@@ -2971,8 +2987,11 @@ int completeInFdu(InFdu *fduBuf, SdrObject fduObj, SdrObject fduElt,
 		}
 	}
 
-	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived = %u; declared file size = \
-%u; progress = %u", fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
+	isprintf(reportBuffer, sizeof reportBuffer,
+			"bytesReceived = " UVAST_FIELDSPEC "; declared file "
+			"size = " UVAST_FIELDSPEC "; progress = " UVAST_FIELDSPEC,
+			(uvast) fduBuf->bytesReceived, (uvast) fduBuf->fileSize,
+			(uvast) fduBuf->progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)

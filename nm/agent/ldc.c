@@ -62,7 +62,7 @@ tnv_t* ldc_collect(ari_t *id, tnvc_t *parms)
 
 	if(result == NULL)
 	{
-		AMP_DEBUG_ERR("ldc_collect","Can't collect value.", NULL);
+		AMP_DEBUG_ERR("ldc_collect", "%s", "Can't collect value.");
 	}
 
 	return result;
@@ -152,7 +152,7 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms)
 	var = VDB_FINDKEY_VAR(id);
 	if(var == NULL)
 	{
-		AMP_DEBUG_ERR("ldc_collect_var","Can't find ARI.", NULL);
+		AMP_DEBUG_ERR("ldc_collect_var", "%s", "Can't find ARI.");
 		return NULL;
 	}
 

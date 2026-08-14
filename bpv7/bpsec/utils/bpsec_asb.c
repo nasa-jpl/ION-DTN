@@ -95,7 +95,7 @@ static int bslasb_extractTargets(BpsecInboundASB *asb, int memIdx, unsigned char
 	arrayLength = 0;
 	if (cbor_decode_array_open(&arrayLength, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Can't decode bpsec block target array", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't decode bpsec block target array");
 		return 0;
 	}
 
@@ -105,19 +105,20 @@ static int bslasb_extractTargets(BpsecInboundASB *asb, int memIdx, unsigned char
 
 		if (cbor_decode_integer(&uvtemp, CborAny, cursor, unparsedBytes) < 1)
 		{
-			BPSEC_DEBUG_ERR("Can't decode bpsec block target nbr", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Can't decode bpsec block target nbr");
 			return 0;
 		}
 
 		if ((result = bpsec_asb_inboundTargetResultCreate(uvtemp, memIdx)) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Can't create target results.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't create target results.");
 			return 0;
 		}
 
 		if (lyst_insert_last(asb->scResults, result) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Can't add target results.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't add target results.");
 			return 0;
 		}
 
@@ -142,7 +143,7 @@ static int bslasb_extractContext(BpsecInboundASB *asb, int memIdx, unsigned char
 	/* Step 1: Extract the security context Id. */
 	if (cbor_decode_integer(&uvtemp, CborAny, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Can't decode bpsec block context ID", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't decode bpsec block context ID");
 		return 0;
 	}
 	asb->scId = uvtemp;
@@ -152,7 +153,7 @@ static int bslasb_extractContext(BpsecInboundASB *asb, int memIdx, unsigned char
 	/* Step 2: Extract the security context flags. */
 	if (cbor_decode_integer(&uvtemp, CborAny, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Can't decode bpsec block context flags", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't decode bpsec block context flags");
 		return 0;
 	}
 	asb->scFlags = uvtemp;
@@ -163,11 +164,11 @@ static int bslasb_extractContext(BpsecInboundASB *asb, int memIdx, unsigned char
 	switch (acquireEid(&(asb->scSource), cursor, unparsedBytes))
 	{
 	case -1:
-		BPSEC_DEBUG_ERR("No space for security source EID", NULL);
+		BPSEC_DEBUG_ERR("%s", "No space for security source EID");
 		return -1;
 
 	case 0:
-		BPSEC_DEBUG_ERR("Can't decode bpsec block security src", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't decode bpsec block security src");
 		return 0;
 	default:
 		break;
@@ -179,17 +180,19 @@ static int bslasb_extractContext(BpsecInboundASB *asb, int memIdx, unsigned char
 		uvast arrayLength = 0;
 		if (cbor_decode_array_open(&arrayLength, cursor, unparsedBytes) < 1)
 		{
-			BPSEC_DEBUG_ERR("Can't decode bpsec block parms array", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Can't decode bpsec block parms array");
 			return 0;
 		}
 
-		BPSEC_DEBUG_INFO("There are %d parms.", arrayLength);
+		BPSEC_DEBUG_INFO("There are " UVAST_FIELDSPEC " parms.",
+				(uvast) arrayLength);
 		while (arrayLength > 0)
 		{
 			if( ((tv = bpsec_scv_memDeserialize(asb->scId, SC_VAL_TYPE_PARM, cursor, unparsedBytes)) == NULL) ||
 				(lyst_insert_last(asb->scParms, tv) == NULL))
 			{
-				BPSEC_DEBUG_ERR("Cannot extract SCI Parm.", NULL);
+				BPSEC_DEBUG_ERR("%s", "Cannot extract SCI Parm.");
 				return -1;
 			}
 
@@ -200,7 +203,7 @@ static int bslasb_extractContext(BpsecInboundASB *asb, int memIdx, unsigned char
 	}
 	else
 	{
-		BPSEC_DEBUG_INFO("No parms noted.", NULL);
+		BPSEC_DEBUG_INFO("%s", "No parms noted.");
 	}
 
 	return 1;
@@ -251,19 +254,24 @@ static int bslasb_extractTargetResults(BpsecInboundASB *asb, int memIdx, unsigne
 
 	if (cbor_decode_array_open(&arrayLength, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Can't decode bpsec block results array", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't decode bpsec block results array");
 		return 0;
 	}
 
 	if(arrayLength != lyst_length(asb->scResults))
 	{
-		BPSEC_DEBUG_ERR("Expecting results for %d targets but instead have results for %d targets.",
-				lyst_length(asb->scResults), arrayLength);
+		BPSEC_DEBUG_ERR("Expecting results for " UVAST_FIELDSPEC
+				" targets but instead have results for " UVAST_FIELDSPEC
+				" targets.",
+				(uvast) lyst_length(asb->scResults),
+				(uvast) arrayLength);
 		return 0;
 	}
 	else
 	{
-		BPSEC_DEBUG_INFO("Attempting to extract results for %d target(s).", arrayLength);
+		BPSEC_DEBUG_INFO("Attempting to extract results for " UVAST_FIELDSPEC
+				 " target(s).",
+				(uvast) arrayLength);
 	}
 
 
@@ -284,11 +292,14 @@ static int bslasb_extractTargetResults(BpsecInboundASB *asb, int memIdx, unsigne
 		arrayLength = 0;
 		if (cbor_decode_array_open(&arrayLength, cursor, unparsedBytes) < 1)
 		{
-			BPSEC_DEBUG_ERR("Can't decode bpsec block result set", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Can't decode bpsec block result set");
 			return 0;
 		}
 
-		BPSEC_DEBUG_INFO("Extracting %d individual results for target set %d", arrayLength, i++);
+		BPSEC_DEBUG_INFO("Extracting " UVAST_FIELDSPEC
+				 " individual results for target set %d",
+				(uvast) arrayLength, (int) i++);
 
 		while (arrayLength > 0)
 		{
@@ -304,7 +315,8 @@ static int bslasb_extractTargetResults(BpsecInboundASB *asb, int memIdx, unsigne
 			}
 			else
 			{
-				BPSEC_DEBUG_ERR("Cannot extract SCI Result.", NULL);
+				BPSEC_DEBUG_ERR("%s",
+						"Cannot extract SCI Result.");
 				return -1;
 			}
 
@@ -339,7 +351,7 @@ static SdrObject bslasb_outboundCopyTargetResults(Sdr sdr, SdrObject oldResultLi
 	/* Step 1: Allocate the new list in the SDR. */
 	if((newResultList = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate SDR list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate SDR list.");
 		return newResultList;
 	}
 
@@ -419,7 +431,7 @@ BpsecInboundASB *bpsec_asb_inboundAsbCreate(int memIdx)
 
 	if((result = (BpsecInboundASB *) MTAKE(sizeof(BpsecInboundASB))) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate inbound ASB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate inbound ASB.");
 	}
 	else
 	{
@@ -429,7 +441,8 @@ BpsecInboundASB *bpsec_asb_inboundAsbCreate(int memIdx)
 
 		if((result->scParms == NULL) || (result->scResults == NULL))
 		{
-			BPSEC_DEBUG_ERR("Cannot allocate inbound ASB lists.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot allocate inbound ASB lists.");
 
 			lyst_destroy(result->scParms);
 			lyst_destroy(result->scResults);
@@ -530,8 +543,8 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned int     unparsedBytes = 0;
 	BpsecInboundASB *asb;
 
-	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) blk, (uaddr) wk);
-
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) blk,
+			(uaddr) wk);
 
 	/* Step 0: Sanity Checks. */
 	CHKERR(blk);
@@ -542,7 +555,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	/* Step 1: Create the Inbound ASB. */
 	if((asb = bpsec_asb_inboundAsbCreate(memIdx)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Could not create ASB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Could not create ASB.");
 		return -1;
 	}
 
@@ -564,7 +577,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	 */
 	if(bslasb_extractTargets(asb, memIdx, &cursor, &unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot extract target results.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot extract target results.");
 		bpsec_asb_inboundAsbDelete(asb);
 		return 0;
 	}
@@ -576,7 +589,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	 */
 	if(bslasb_extractContext(asb, memIdx, &cursor, &unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot extract security context info.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot extract security context info.");
 		bpsec_asb_inboundAsbDelete(asb);
 		return 0;
 	}
@@ -586,7 +599,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	 */
 	if(bslasb_extractTargetResults(asb, memIdx, &cursor, &unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot extract target results.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot extract target results.");
 		bpsec_asb_inboundAsbDelete(asb);
 		return 0;
 	}
@@ -594,9 +607,7 @@ int bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = sizeof(BpsecInboundASB);
 	blk->object = asb;
 
-
-
-	BPSEC_DEBUG_PROC("Returning 1", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning 1");
 	return 1;
 }
 
@@ -693,7 +704,7 @@ void bpsec_asb_inboundTargetResultRemove(LystElt tgtResultElt, LystElt secBlkElt
 		}
 	}
 
-	BPSEC_DEBUG_PROC("Returning...", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning...");
 }
 
 
@@ -745,14 +756,14 @@ int bpsec_asb_inboundAsbRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 	newAsb.scFlags = oldAsb->scFlags;
 	if((result = bpsec_util_EIDCopy(&newAsb.scSource, &oldAsb->scSource)) < 1)
 	{
-		BPSEC_DEBUG_ERR("Unable to copy EID.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to copy EID.");
 		return -1;
 	}
 
 	/* Step 4: Copy over the target results. */
 	if((newAsb.scResults = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Unable to create results list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to create results list.");
 		return -1;
 	}
 
@@ -798,8 +809,7 @@ int bpsec_asb_inboundAsbRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 	/* Step 7: Write the ASB to the SDR. */
 	sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof(newAsb));
 
-
-	BPSEC_DEBUG_PROC("Returning 0", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning 0");
 	return 0;
 }
 
@@ -882,7 +892,7 @@ void bpsec_asb_outboundAsbDelete(Sdr sdr, BpsecOutboundASB *asb)
 		sdr_list_destroy(sdr, asb->scParms, bpsec_scv_sdrListCbDel, NULL);
 		sdr_list_destroy(sdr, asb->scResults, bpsec_asb_outboundTargetResultsRelease, NULL);
 	}
-	BPSEC_DEBUG_PROC("Returning.", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning.");
 }
 
 // TODO: Document function.
@@ -890,7 +900,7 @@ void bpsec_asb_outboundAsbDeleteObj(Sdr sdr, SdrObject obj)
 {
 	BpsecOutboundASB asb;
 
-	BPSEC_DEBUG_PROC("(sdr, %d)", obj);
+	BPSEC_DEBUG_PROC("(sdr, " UVAST_FIELDSPEC ")", (uvast) obj);
 
 	if (obj)
 	{
@@ -924,8 +934,8 @@ int bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 1: Allocate the new copy of the block. */
 	if((newBlk->object = bpsec_asb_outboundAsbCreate(sdr, &(newBlk->size))) == 0)
 	{
-		BPSEC_DEBUG_ERR("Failed to allocate outbound ASB.", NULL);
-		BPSEC_DEBUG_PROC("Returning -1", NULL);
+		BPSEC_DEBUG_ERR("%s", "Failed to allocate outbound ASB.");
+		BPSEC_DEBUG_PROC("%s", "Returning -1");
 		return -1;
 	}
 
@@ -944,7 +954,7 @@ int bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 4: Deep copy the security source. */
 	if(bpsec_util_EIDCopy(&(newAsb.scSource), &(oldAsb.scSource)) < 1)
 	{
-		BPSEC_DEBUG_ERR("Error copying EID.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Error copying EID.");
 		bpsec_asb_outboundAsbDelete(sdr, &newAsb);
 		sdr_free(sdr, newBlk->object);
 		return -1;
@@ -953,7 +963,7 @@ int bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 5: Deep copy the security target results. */
 	if((newAsb.scResults = bslasb_outboundCopyTargetResults(sdr, oldAsb.scResults)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Error copying target results.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Error copying target results.");
 		bpsec_asb_outboundAsbDelete(sdr, &newAsb);
 		sdr_free(sdr, newBlk->object);
 		return -1;
@@ -962,7 +972,7 @@ int bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 6: Deep copy the security parameters. */
 	if((newAsb.scParms = bpsec_scv_sdrListCopy(sdr, oldAsb.scParms)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Error copying security parameters.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Error copying security parameters.");
 		bpsec_asb_outboundAsbDelete(sdr, &newAsb);
 		sdr_free(sdr, newBlk->object);
 		return -1;
@@ -970,7 +980,7 @@ int bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	/* Step 7 - Write copied block to the SDR. */
 	sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof(newAsb));
-	BPSEC_DEBUG_PROC("Returning 0", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning 0");
 	return 0;
 
 }
@@ -1047,7 +1057,8 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
 	cursor = tgtIds->scSerializedText;
 	if((tmpData = MTAKE(numTgts * sizeof(BpsecSerializeData))) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", numTgts * sizeof(BpsecSerializeData));
+		BPSEC_DEBUG_ERR("Cannot allocate " UVAST_FIELDSPEC " bytes.",
+				(uvast) (numTgts * sizeof(BpsecSerializeData)));
 		MRELEASE(tgtIds->scSerializedText);
 		return -1;
 	}
@@ -1076,7 +1087,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
 		/* Step 3.2: Serialize the target results for this target. */
 		if((tmpData[i].scSerializedText = bpsec_scv_sdrListSerialize(sdr, def, target->scIndTargetResults, &(tmpData[i].scSerializedLength))) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot serialize list.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot serialize list.");
 			MRELEASE(tgtIds->scSerializedText);
 			releaseTmpData(tmpData, i);
 			return -1;
@@ -1128,7 +1139,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
 
 	MRELEASE(tmpData);
 
-	BPSEC_DEBUG_PROC("-->1", NULL);
+	BPSEC_DEBUG_PROC("%s", "-->1");
 	return 1;
 }
 
@@ -1229,7 +1240,7 @@ uint8_t *bpsec_asb_outboundAsbSerialize(uint32_t *length, BpsecOutboundASB *asb)
 
 	if(bslasb_encodeTargets(sdr, asb, defPtr, &tgtIds, &tgtResults) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot serialize ASB target information.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot serialize ASB target information.");
 		return NULL;
 	}
 
@@ -1242,7 +1253,8 @@ uint8_t *bpsec_asb_outboundAsbSerialize(uint32_t *length, BpsecOutboundASB *asb)
 	{
 		asb->scFlags |= BPSEC_ASB_PARM;
 
-		BPSEC_DEBUG_INFO("Serializing %d parameters.", sdr_list_length(sdr, asb->scParms));
+		BPSEC_DEBUG_INFO("Serializing " UVAST_FIELDSPEC " parameters.",
+				(uvast) sdr_list_length(sdr, asb->scParms));
 
 		if((parms.scSerializedText = bpsec_scv_sdrListSerialize(sdr, defPtr, asb->scParms, &(parms.scSerializedLength))) == NULL)
 		{
@@ -1351,7 +1363,7 @@ int bpsec_asb_outboundParmsWrite(Sdr sdr, BpsecOutboundASB *asb, Lyst parms)
 
 	if(bpsec_scv_memListRecord(sdr, asb->scParms, parms) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot record list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot record list.");
 		return -1;
 	}
 
@@ -1450,14 +1462,14 @@ int bpsec_asb_outboundTargetInsert(Sdr sdr, BpsecOutboundASB *asb, uint8_t nbr)
 	tgtResult.scTargetId = nbr;
 	if ((tgtResult.scIndTargetResults = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Can't allocate SDR list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't allocate SDR list.");
 		return -1;
 	}
 
 	if ((obj = sdr_malloc(sdr, sizeof(BpsecOutboundTargetResult))) == 0)
 	{
 		sdr_list_destroy(sdr, tgtResult.scIndTargetResults, NULL, NULL);
-		BPSEC_DEBUG_ERR("Can't allocate target object.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't allocate target object.");
 		return -1;
 	}
 
@@ -1466,7 +1478,7 @@ int bpsec_asb_outboundTargetInsert(Sdr sdr, BpsecOutboundASB *asb, uint8_t nbr)
 	{
 		sdr_free(sdr, obj);
 		sdr_list_destroy(sdr, tgtResult.scIndTargetResults, NULL, NULL);
-		BPSEC_DEBUG_ERR("Can't append target to ASB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't append target to ASB.");
 		return -1;
 	}
 

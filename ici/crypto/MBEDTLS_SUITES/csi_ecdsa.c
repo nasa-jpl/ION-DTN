@@ -376,7 +376,8 @@ csi_ecdsa_ctx_t  *ecdsa_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid
 	/* Step 3: Create the ECDSA context. */
 	if((csi_ecdsa_ctx->ecdsa_ctx = ecdsa_ctx_build(suite, &key_info)) == NULL)
 	{
-		CSI_DEBUG_ERR("x ecdsa_ctx_init: Can't create EDSA context.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x ecdsa_ctx_init: Can't create EDSA context.");
 		ecdsa_ctx_free(suite, csi_ecdsa_ctx);
 		return NULL;
 	}
@@ -434,7 +435,7 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 
 	if(digest == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_finish: NULL result.", NULL);
+		CSI_DEBUG_ERR("%s", "x hsha_sign_finish: NULL result.");
 		return ERROR;
 	}
 
@@ -584,7 +585,8 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 	/* Step 1: Create the ECDSA context. */
 	if((ecdsa_ctx = ecdsa_ctx_build(suite, &key)) == NULL)
 	{
-		CSI_DEBUG_ERR("x ecdsa_sign_full: Can't create EDSA context.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x ecdsa_sign_full: Can't create EDSA context.");
 		ecdsa_ctx_free(suite, ecdsa_ctx);
 		return ERROR;
 	}
@@ -806,7 +808,8 @@ int8_t ecdsa_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_sv
 
 	if(csi_ecdsa_ctx == NULL)
 	{
-		CSI_DEBUG_ERR("x ecdsa_sign_update: NULL context provided.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x ecdsa_sign_update: NULL context provided.");
 		return ERROR;
 	}
 

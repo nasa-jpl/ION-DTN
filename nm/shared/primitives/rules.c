@@ -63,7 +63,9 @@ rule_t*   rule_copy_ptr(rule_t *src)
 
 	if((result = (rule_t *) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rule_copy_ptr","Can't Alloc %d bytes.", sizeof(rule_t));
+		AMP_DEBUG_ERR("rule_copy_ptr",
+				"Can't Alloc " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rule_t));
 		return NULL;
 	}
 
@@ -109,8 +111,10 @@ rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action)
 	/* Step 1: Allocate the message. */
 	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rule_create_sbr","Can't alloc %d bytes.", sizeof(rule_t));
-		AMP_DEBUG_EXIT("rule_create_sbr","->NULL",NULL);
+		AMP_DEBUG_ERR("rule_create_sbr",
+				"Can't alloc " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rule_t));
+		AMP_DEBUG_EXIT("rule_create_sbr", "%s", "->NULL");
 		return NULL;
 	}
 
@@ -146,8 +150,10 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 	/* Step 1: Allocate the message. */
 	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rule_create_tbr","Can't alloc %d bytes.", sizeof(rule_t));
-		AMP_DEBUG_EXIT("rule_create_tbr","->NULL",NULL);
+		AMP_DEBUG_ERR("rule_create_tbr",
+				"Can't alloc " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rule_t));
+		AMP_DEBUG_EXIT("rule_create_tbr", "%s", "->NULL");
 		return NULL;
 	}
 
@@ -155,7 +161,7 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 	result->id = ari_copy(id, &success);
 	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("rule_create_tbr", "Can't copy ID.", NULL);
+		AMP_DEBUG_ERR("rule_create_tbr", "%s", "Can't copy ID.");
 		SRELEASE(result);
 		return NULL;
 	}

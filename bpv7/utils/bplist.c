@@ -257,9 +257,10 @@ static void printBundle(SdrObject bundleObj)
 	}
 
 	isprintf(buf, sizeof buf,
-			"Creation msec (Epoch 2000)   " UVAST_FIELDSPEC "   count %10lu   \
-frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
-			bundle->id.fragmentOffset);
+			"Creation msec (Epoch 2000)   " UVAST_FIELDSPEC "   count "
+			"%10u   frag offset %10u",
+			bundle->id.creationTime.msec,
+			bundle->id.creationTime.count, bundle->id.fragmentOffset);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"- is a fragment:        %d", bundle->bundleProcFlags
@@ -283,8 +284,7 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 	PUTS(buf);
 
 	priority = bundle->priority;
-	isprintf(buf, sizeof buf,
-			"Priority                %lu", priority);
+	isprintf(buf, sizeof buf, "Priority                %d", priority);
 	PUTS(buf);
 
 	isprintf(buf, sizeof buf,
@@ -307,8 +307,7 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 	isprintf(buf, sizeof buf,
 			"Expiration (DTN Epoch 2000) msec " UVAST_FIELDSPEC, expirationTimeDtnMsec);
 	PUTS(buf);
-	isprintf(buf, sizeof buf,
-			"Total ADU len  %10lu", bundle->totalAduLength);
+	isprintf(buf, sizeof buf, "Total ADU len  %10u", bundle->totalAduLength);
 	PUTS(buf);
 	printExtensions(sdr, bundle->extensions);
 	isprintf(buf, sizeof buf,
@@ -342,7 +341,7 @@ static int printQueue(int detail, SdrObject queue, char *name)
 		printBundle(sdr_list_data(sdr, elt));
 	}
 
-	isprintf(msgbuf, sizeof msgbuf, "Queue count is %ld.", bundlesCount);
+	isprintf(msgbuf, sizeof msgbuf, "Queue count is %d.", bundlesCount);
 	PUTS(msgbuf);
 	return bundlesCount;
 }
@@ -529,7 +528,7 @@ all bundles.", rptType);
 	}
 
 	sdr_exit_xn(sdr);
-	isprintf(msgbuf, sizeof msgbuf, "\nReport count is %ld.", bundlesCount);
+	isprintf(msgbuf, sizeof msgbuf, "\nReport count is %d.", bundlesCount);
 	PUTS(msgbuf);
 	writeErrmsgMemos();
 	bp_detach();

@@ -128,7 +128,7 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms)
 
 	if(status != CTRL_SUCCESS)
 	{
-		AMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+		AMP_DEBUG_WARN("lcc_run_ctrl", "%s", "Error running control.");
 		tnv_release(retval, 1);
 	}
 	else if(retval != NULL)
@@ -227,11 +227,13 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	if(rpt_add_entry(report, retval) != AMP_OK)
 	{
 		rpt_release(report, 1);
-		AMP_DEBUG_ERR("lcc_send_retval", "Can't add retval to report.", NULL);
+		AMP_DEBUG_ERR("lcc_send_retval", "%s",
+				"Can't add retval to report.");
 	}
 	else if(msg_rpt_add_rpt(msg_rpt, report) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("lcc_send_retval", "Can't add report to msg_rpt.", NULL);
+		AMP_DEBUG_ERR("lcc_send_retval", "%s",
+				"Can't add report to msg_rpt.");
 		rpt_release(report, 1);
 	}
 

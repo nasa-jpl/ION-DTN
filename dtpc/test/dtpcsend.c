@@ -251,7 +251,7 @@ dtpcsend";
 	interval = endTime - startTime;
 	PUTMEMO("Time (seconds)", itoa(interval));
 	PUTMEMO("Total payloads", itoa(cycles - cyclesRemaining));
-	isprintf(totalbytes, sizeof totalbytes, "%li", bytesSent);
+	isprintf(totalbytes, sizeof totalbytes, "%d", bytesSent);
 	PUTMEMO("Total bytes", totalbytes);
 	if (interval <= 0)
 	{

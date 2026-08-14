@@ -64,14 +64,14 @@ tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 
 	if((id == NULL) || (stack == NULL))
 	{
-		AMP_DEBUG_ERR("expr_apply_op","Bad parms", NULL);
+		AMP_DEBUG_ERR("expr_apply_op", "%s", "Bad parms");
 		return NULL;
 	}
 
 	/* Grab the operator instance. */
 	if((op = VDB_FINDKEY_OP(id)) == NULL)
 	{
-		AMP_DEBUG_ERR("expr_apply_op","Can't find operator.", NULL);
+		AMP_DEBUG_ERR("expr_apply_op", "%s", "Can't find operator.");
 		return result;
 	}
 
@@ -80,7 +80,7 @@ tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 
 	if(result->type == AMP_TYPE_UNK)
 	{
-		AMP_DEBUG_ERR("expr_apply_op","Can't apply operator.", NULL);
+		AMP_DEBUG_ERR("expr_apply_op", "%s", "Can't apply operator.");
 	}
 
 	AMP_DEBUG_EXIT("expr_apply_op","->%d", result->type);
@@ -324,7 +324,7 @@ tnv_t *expr_eval(expr_t *expr)
 	/* Sanity Checks. */
 	if((expr == NULL) || ((max = vec_num_entries(expr->rpn.values)) == 0))
 	{
-		AMP_DEBUG_ERR("expr_eval","Bad args.", NULL);
+		AMP_DEBUG_ERR("expr_eval", "%s", "Bad args.");
 		return NULL;
 	}
 
@@ -335,7 +335,7 @@ tnv_t *expr_eval(expr_t *expr)
 	stack = vec_create(max, tnv_cb_del, tnv_cb_comp, tnv_cb_copy, VEC_FLAG_AS_STACK, &success);
 	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("expr_eval","Cannot create stack.", NULL);
+		AMP_DEBUG_ERR("expr_eval", "%s", "Cannot create stack.");
 		return NULL;
 	}
 
@@ -365,7 +365,8 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(result == NULL)
 		{
-			AMP_DEBUG_ERR("expr_eval","Cannot evaluate expression.", NULL);
+			AMP_DEBUG_ERR("expr_eval", "%s",
+					"Cannot evaluate expression.");
 
 			vec_release(&stack, 0);
 			return NULL;
@@ -394,7 +395,7 @@ tnv_t *expr_eval(expr_t *expr)
 
 	if((success != AMP_OK) || (result == NULL))
 	{
-		AMP_DEBUG_ERR("expr_eval", "Cannot convert type.", NULL);
+		AMP_DEBUG_ERR("expr_eval", "%s", "Cannot convert type.");
 		tnv_release(result, 1);
 		return NULL;
 	}
@@ -445,12 +446,13 @@ tnv_t *expr_get_atomic(ari_t *ari)
 
 		if(edd == NULL)
 		{
-			AMP_DEBUG_INFO("expr_get_edd","Can't find def.", NULL);
+			AMP_DEBUG_INFO("expr_get_edd", "%s", "Can't find def.");
 			return NULL;
 		}
 		else if(edd->def.collect == NULL)
 		{
-			AMP_DEBUG_INFO("expr_get_edd","No collect function defined.", NULL);
+			AMP_DEBUG_INFO("expr_get_edd", "%s",
+					"No collect function defined.");
 			return NULL;
 		}
 
@@ -503,7 +505,7 @@ tnv_t *expr_get_var(ari_t *ari)
 
 	if((var = VDB_FINDKEY_VAR(ari)) == NULL)
 	{
-		AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
+		AMP_DEBUG_ERR("expr_get_computed", "%s", "Can't find var.");
 		return result;
 	}
 
@@ -554,7 +556,7 @@ int expr_serialize(QCBOREncodeContext *encoder, void *item)
 
 	if((ac_data = ac_serialize_wrapper(&(expr->rpn))) == NULL)
 	{
-		AMP_DEBUG_ERR("expr_serialize","Can't serialize AC.", NULL);
+		AMP_DEBUG_ERR("expr_serialize", "%s", "Can't serialize AC.");
 		blob_release(result, 1);
 		return AMP_FAIL;
 	}
@@ -569,7 +571,7 @@ int expr_serialize(QCBOREncodeContext *encoder, void *item)
 	err = cut_enc_byte(encoder, expr->type);
 	if (err != AMP_OK)
 	{
-		AMP_DEBUG_ERR("expr_serialize", "Can't serialize type", NULL);
+		AMP_DEBUG_ERR("expr_serialize", "%s", "Can't serialize type");
 		return AMP_FAIL;
 	}
 	ac_serialize(encoder, &(expr->rpn));

@@ -199,7 +199,7 @@ int ui_build_control(agent_t* agent)
 
 	if (agent == NULL)
 	{
-		AMP_DEBUG_ERR("ui_build_control","No agent given.",NULL);
+		AMP_DEBUG_ERR("ui_build_control", "%s", "No agent given.");
 		return 0;
 	}
 
@@ -222,7 +222,7 @@ int ui_build_control(agent_t* agent)
 #endif
 	if((id = ui_input_ari("Control MID:", ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL))) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_build_control","Can't get control.",NULL);
+		AMP_DEBUG_ERR("ui_build_control", "%s", "Can't get control.");
 		return AMP_FAIL;
 	}
 
@@ -366,7 +366,7 @@ macdef_t *ui_create_macdef_from_parms(tnvc_t parms)
 
 	if((id == NULL) || (def == NULL))
 	{
-		AMP_DEBUG_ERR("ADD_MACRO", "Bad parameters for control", NULL);
+		AMP_DEBUG_ERR("ADD_MACRO", "%s", "Bad parameters for control");
 		return result;
 	}
 
@@ -396,7 +396,7 @@ rule_t *ui_create_tbr_from_parms(tnvc_t parms)
 
 	if((tbr = rule_create_tbr(*id, start, def, action)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		AMP_DEBUG_ERR("ADD_TBR", "%s", "Unable to create TBR structure.");
 		return tbr;
 	}
 
@@ -425,7 +425,7 @@ rule_t *ui_create_sbr_from_parms(tnvc_t parms)
 
 	if((sbr = rule_create_sbr(*id, start, def, action)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		AMP_DEBUG_ERR("ADD_TBR", "%s", "Unable to create TBR structure.");
 		return sbr;
 	}
 
@@ -722,7 +722,7 @@ void ui_automator_run(ion_atomic_t *running)
 		// Read Input Line
 		if(igets(fileno(stdin), line, MAX_INPUT_BYTES, &len) == NULL)
 		{
-			AMP_DEBUG_ERR("ui_automator_run", "igets failed.", NULL);
+			AMP_DEBUG_ERR("ui_automator_run", "%s", "igets failed.");
 			return;
 		}
 
@@ -972,7 +972,8 @@ void ui_postprocess_ctrl(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_ERR("ui_postprocess_ctrl","Unable to persist new VAR.", NULL);
+			AMP_DEBUG_ERR("ui_postprocess_ctrl", "%s",
+					"Unable to persist new VAR.");
 		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_VAR_STR) == 0)
@@ -1008,7 +1009,8 @@ void ui_postprocess_ctrl(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_ERR("ui_postprocess_ctrl","Unable to persist new RPTT.", NULL);
+			AMP_DEBUG_ERR("ui_postprocess_ctrl", "%s",
+					"Unable to persist new RPTT.");
 		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_RPTT_STR) == 0)
@@ -1039,11 +1041,13 @@ void ui_postprocess_ctrl(ari_t *id)
 		macdef_t *macro = ui_create_macdef_from_parms(id->u.as_reg.parms);
 		if(adm_add_macdef(macro) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ADD_MACRO", "Error adding new macro.", NULL);
+			AMP_DEBUG_ERR("ADD_MACRO", "%s",
+					"Error adding new macro.");
 		}
 		else if(db_persist_macdef(macro) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ADD_MACRO", "Unable to persist new macro.", NULL);
+			AMP_DEBUG_ERR("ADD_MACRO", "%s",
+					"Unable to persist new macro.");
 		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_MAC_STR) == 0)
@@ -1076,12 +1080,13 @@ void ui_postprocess_ctrl(ari_t *id)
 		int rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
 		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
 		{
-			AMP_DEBUG_ERR("ADD_SBR", "Unable to remember SBR.", NULL);
+			AMP_DEBUG_ERR("ADD_SBR", "%s", "Unable to remember SBR.");
 			rule_release(sbr, 1);
 		}
 		else if(db_persist_rule(sbr) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new rule.", NULL);
+			AMP_DEBUG_ERR("ADD_TBR", "%s",
+					"Unable to persist new rule.");
 		}
 	}
 	else if(strcmp(meta->name, AGENT_ADD_TBR_STR) == 0)
@@ -1091,12 +1096,13 @@ void ui_postprocess_ctrl(ari_t *id)
 		int rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
 		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
 		{
-			AMP_DEBUG_ERR("ADD_TBR", "Unable to remember TBR.", NULL);
+			AMP_DEBUG_ERR("ADD_TBR", "%s", "Unable to remember TBR.");
 			rule_release(tbr, 1);
 		}
 		else if(db_persist_rule(tbr) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new rule.", NULL);
+			AMP_DEBUG_ERR("ADD_TBR", "%s",
+					"Unable to persist new rule.");
 		}
 	}
 	else if( (strcmp(meta->name, AGENT_DEL_TBR_STR) == 0) ||
@@ -1148,7 +1154,7 @@ void ui_register_agent(char* msg)
 
 	memset(&agent_eid, 0, sizeof(agent_eid));
 
-	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
+	AMP_DEBUG_ENTRY("register_agent", "%s", "()");
 
 #ifdef USE_NCURSES
 	form_fields_t fields[] = {
@@ -1164,8 +1170,8 @@ void ui_register_agent(char* msg)
 	if(ui_input_get_line("Enter EID of new agent:", (char **)(void *)&line, AMP_MAX_EID_LEN-1) == 0)
 	{
 #endif
-		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
-		AMP_DEBUG_EXIT("register_agent","->.", NULL);
+	AMP_DEBUG_ERR("register_agent", "%s", "Unable to read user input.");
+	AMP_DEBUG_EXIT("register_agent", "%s", "->.");
 	if (msg != NULL)
 	{
 		/* length 128 per the caller: ui_eventLoop's static allocation of 128 bytes*/
@@ -1181,7 +1187,7 @@ void ui_register_agent(char* msg)
 	sscanf(line, "%15s", agent_eid.name);
 	agent_add(agent_eid);
 
-	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
+	AMP_DEBUG_EXIT("register_agent", "%s", "->.");
 	if (msg != NULL)
 	{
 		/*length 128 per the caller: ui_eventLoop's static allocation of 128 bytes*/
@@ -1265,8 +1271,8 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 
 	if((contents = ui_input_file_contents("Enter file name containing commands:")) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_send_file", "Can't read file contents.", NULL);
-		AMP_DEBUG_EXIT("ui_send_file","->.",NULL);
+		AMP_DEBUG_ERR("ui_send_file", "%s", "Can't read file contents.");
+		AMP_DEBUG_EXIT("ui_send_file", "%s", "->.");
 		return;
 	}
 
@@ -1362,7 +1368,7 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 
 	blob_release(contents, 1);
 
-	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
+	AMP_DEBUG_EXIT("ui_send_file", "%s", "->.");
 }
 
 
@@ -1381,7 +1387,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ui_send_raw","Can't get control MID.",NULL);
+		AMP_DEBUG_ERR("ui_send_raw", "%s", "Can't get control MID.");
 		return;
 	}
 
@@ -1404,16 +1410,16 @@ void *ui_thread(void *arg)
 {
 	ion_atomic_t *running = (ion_atomic_t *) arg;
 
-	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
+	AMP_DEBUG_ENTRY("ui_thread", "(0x" ADDR_FIELDSPEC ")", (uaddr) running);
 
 	// Cache running as an NM UI Global for simplicity. This is always the entrypoint to ui
 	global_nm_running = running;
 
 	ui_eventLoop(running);
 
-	AMP_DEBUG_ALWAYS("ui_thread","Exiting.", NULL);
+	AMP_DEBUG_ALWAYS("ui_thread", "%s", "Exiting.");
 
-	AMP_DEBUG_EXIT("ui_thread","->.", NULL);
+	AMP_DEBUG_EXIT("ui_thread", "%s", "->.");
 
 #ifdef HAVE_MYSQL
 	db_mgt_close();

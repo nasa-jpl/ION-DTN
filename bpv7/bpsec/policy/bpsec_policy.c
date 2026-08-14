@@ -819,7 +819,7 @@ void bsl_do_not_forward_at_receiver(AcqWorkArea *wk)
  *****************************************************************************/
 void bsl_request_storage(Bundle *bundle)
 {
-	BPSEC_DEBUG_WARN("Function not implemented.", NULL);
+	BPSEC_DEBUG_WARN("%s", "Function not implemented.");
 	CHKVOID(bundle);
 }
 
@@ -941,7 +941,7 @@ void bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason,
  *****************************************************************************/
 void bsl_override_target_bpcf(Bundle *bundle)
 {
-	BPSEC_DEBUG_WARN("Function not implemented.", NULL);
+	BPSEC_DEBUG_WARN("%s", "Function not implemented.");
 	CHKVOID(bundle);
 }
 
@@ -964,7 +964,7 @@ void bsl_override_target_bpcf(Bundle *bundle)
  *****************************************************************************/
 void bsl_override_sop_bpcf(Bundle *bundle)
 {
-	BPSEC_DEBUG_WARN("Function not implemented.", NULL);
+	BPSEC_DEBUG_WARN("%s", "Function not implemented.");
 
 	CHKVOID(bundle);
 }

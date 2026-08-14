@@ -181,17 +181,29 @@
 #endif
 #if (BCB_TEST_LOGGING == 1)
 
-#define BCB_TEST_POINT(event, bundle, blktype) \
-{_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
-svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event,\
-(bundle) ? bundle->id.source.ssp.ipn.fqnn      : 0, \
-(bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \
-(bundle) ? bundle->destination.ssp.ipn.fqnn    : 0, \
-(bundle) ? bundle->destination.ssp.ipn.serviceNbr : 0, \
-blktype, \
-(bundle) ? bundle->id.creationTime.msec  : 0, \
-(bundle) ? bundle->id.creationTime.count : 0); \
-writeMemo(gMsg);}
+#define BCB_TEST_POINT(event, bundle, tgt)                                                   \
+	{                                                                                    \
+		_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN,                             \
+				"[te] %s - bsrc:ipn:" UVAST_FIELDSPEC                        \
+				"." UVAST_FIELDSPEC                                          \
+				", bdest:ipn:" UVAST_FIELDSPEC "." UVAST_FIELDSPEC           \
+				", svc: bcb-confidentiality, tgt:%u, msec:" UVAST_FIELDSPEC  \
+				", count: %u",                                               \
+				event,                                                       \
+				(uvast) ((bundle) ? bundle->id.source.ssp.ipn.fqnn :         \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->id.source.ssp.ipn.serviceNbr :   \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->destination.ssp.ipn.fqnn :       \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->destination.ssp.ipn.serviceNbr : \
+						    0),                                      \
+				tgt,                                                         \
+				(uvast) ((bundle) ? bundle->id.creationTime.msec :           \
+						    0),                                      \
+				(bundle) ? bundle->id.creationTime.count : 0);               \
+		writeMemo(gMsg);                                                             \
+	}
 #else
 #define BCB_TEST_POINT(event, bundle, blktype) {}
 #endif

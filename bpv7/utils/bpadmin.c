@@ -1538,8 +1538,9 @@ static void	printOutduct(VOutduct *vduct)
 		cloCmd = cloCmdBuffer;
 	}
 
-	isprintf(buffer, sizeof buffer, "%.8s/%.256s\tpid: %d  cmd: %.256s \
-max: %lu", clp->name, duct->name, vduct->cloPid, cloCmd, duct->maxPayloadLen);
+	isprintf(buffer, sizeof buffer,
+			"%.8s/%.256s\tpid: %d  cmd: %.256s max: %u", clp->name,
+			duct->name, vduct->cloPid, cloCmd, duct->maxPayloadLen);
 	printText(buffer);
 }
 
@@ -1576,7 +1577,7 @@ static void	printPlan(VPlan *vplan)
 	char	buffer[1024];
 
 	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
-	isprintf(buffer, sizeof buffer, "%.256s\tpid: %d xmit rate: %lu",
+	isprintf(buffer, sizeof buffer, "%.256s\tpid: %d xmit rate: %u",
 			plan->neighborEid, vplan->clmPid, plan->nominalRate);
 	printText(buffer);
 }

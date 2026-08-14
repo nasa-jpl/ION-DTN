@@ -152,7 +152,7 @@ ctrl_t *ctrl_create(ari_t *ari)
 
 	if((result = STAKE(sizeof(ctrl_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("ctrl_create","Can't allocate CTRL.", NULL);
+		AMP_DEBUG_ERR("ctrl_create", "%s", "Can't allocate CTRL.");
 		return NULL;
 	}
 
@@ -163,7 +163,8 @@ ctrl_t *ctrl_create(ari_t *ari)
 	{
 		if((result->def.as_ctrl = VDB_FINDKEY_CTRLDEF(ari)) == NULL)
 		{
-			AMP_DEBUG_ERR("ctrl_create","Can't find base ctrldef.", NULL);
+			AMP_DEBUG_ERR("ctrl_create", "%s",
+					"Can't find base ctrldef.");
 			SRELEASE(result);
 			return NULL;
 		}
@@ -172,7 +173,8 @@ ctrl_t *ctrl_create(ari_t *ari)
 	{
 		if((result->def.as_mac = VDB_FINDKEY_MACDEF(ari)) == NULL)
 		{
-			AMP_DEBUG_ERR("ctrl_create","Can't find base macdef.", NULL);
+			AMP_DEBUG_ERR("ctrl_create", "%s",
+					"Can't find base macdef.");
 			SRELEASE(result);
 			return NULL;
 		}
@@ -344,7 +346,7 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 
 	if((encoder == NULL) || (ctrl == NULL))
 	{
-		AMP_DEBUG_ERR("ctrl_serialize","Bad Parms", NULL);
+		AMP_DEBUG_ERR("ctrl_serialize", "%s", "Bad Parms");
 		return AMP_FAIL;
 	}
 
@@ -369,7 +371,8 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 	}
 	else
 	{
-		AMP_DEBUG_ERR("ctrl_serialize","Error serializing control.", NULL);
+		AMP_DEBUG_ERR("ctrl_serialize", "%s",
+				"Error serializing control.");
 	}
 #else
 	QCBOREncode_OpenArray(encoder);
@@ -377,7 +380,8 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 	QCBOREncode_CloseArrayOctet(encoder);
 	if(err != AMP_OK)
 	{
-		AMP_DEBUG_ERR("ctrl_serialize","Error serializing control.", NULL);
+		AMP_DEBUG_ERR("ctrl_serialize", "%s",
+				"Error serializing control.");
 	}
 #endif
 	if(ctrl->parms != NULL)

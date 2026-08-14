@@ -309,7 +309,7 @@ int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 
 	if(context == NULL)
 	{
-		CSI_DEBUG_ERR("x gcm_crypt_finish: NULL context.", NULL);
+		CSI_DEBUG_ERR("%s", "x gcm_crypt_finish: NULL context.");
 		return ERROR;
 	}
 
@@ -565,7 +565,8 @@ int8_t gcm_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 
 	if((output->contents = MTAKE(output->len)) == NULL)
 	{
-		CSI_DEBUG_ERR("gcm_crypt_key: Could not allocate %d bytes. %d", output->len);
+		CSI_DEBUG_ERR("gcm_crypt_key: Could not allocate %d bytes.",
+				output->len);
 		return ERROR;
 	}
 
@@ -596,7 +597,8 @@ int8_t gcm_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 
 		if(result == ERROR)
 		{
-		    CSI_DEBUG_ERR("gcm_crypt_key: Could not decrypt key.", NULL);
+			CSI_DEBUG_ERR("%s",
+					"gcm_crypt_key: Could not decrypt key.");
 			MRELEASE(output->contents);
 			return ERROR;
 		}
@@ -877,7 +879,7 @@ csi_val_t  gcm_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, cs
 
 	if(context == NULL)
 	{
-		CSI_DEBUG_ERR("x gcm_crypt_update: NULL context provided.", NULL);
+		CSI_DEBUG_ERR("%s", "x gcm_crypt_update: NULL context provided.");
 		return result;
 	}
 

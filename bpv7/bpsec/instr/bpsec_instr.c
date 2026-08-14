@@ -236,7 +236,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 
 		if(getBpInstrDb(&result, &dbObj) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 			sdr_cancel_xn(sdr);
 			return;
 		}
@@ -247,8 +247,9 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 		if ((sdrData = sdr_insert(sdr, (char *) &instr,
 				sizeof(bpsec_src_instr_t))) == 0)
 		{
-			BPSEC_DEBUG_ERR("Can't allocate %d bytes to SDR.",
-					sizeof(bpsec_src_instr_t));
+			BPSEC_DEBUG_ERR("Can't allocate " UVAST_FIELDSPEC
+					" bytes to SDR.",
+					(uvast) sizeof(bpsec_src_instr_t));
 			sdr_cancel_xn(sdr);
 			return;
 		}
@@ -454,7 +455,7 @@ int bpsec_instr_clear(void)
 
 	if(getBpInstrDb(&result, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 		return ERROR;
 	}
 
@@ -511,8 +512,8 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
 	{
 		/*	Not necessarily an error, if query a source
 			that does not exist.				*/
-		BPSEC_DEBUG_INFO("bpsec_instr_get_src_blk",
-				"Can't get id for src %s", src_id);
+		BPSEC_DEBUG_INFO("%s: Can't get id for src %s",
+				"bpsec_instr_get_src_blk", src_id);
 		return ERROR;
 	}
 
@@ -531,8 +532,8 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
 	case BIB_RX_MISS: *result = src.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_blk_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_blk","Unknown type %d",
-				type);
+		BPSEC_DEBUG_ERR("%s: Unknown type %d",
+				"bpsec_instr_get_src_blk", type);
 		return ERROR;
 	}
 
@@ -573,8 +574,8 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
 	{
 		/*	Not necessarily an error, if query a source
 			that does not exist.				*/
-		BPSEC_DEBUG_INFO("bpsec_instr_get_src_bytes",
-				"Can't get id for src %c", src_id);
+		BPSEC_DEBUG_INFO("%s: Can't get id for src %s",
+				"bpsec_instr_get_src_bytes", src_id);
 		return ERROR;
 	}
 
@@ -593,8 +594,8 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
 	case BIB_RX_MISS: *result = src.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_byte_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_bytes","Unknown type %d",
-				type);
+		BPSEC_DEBUG_ERR("%s: Unknown type %d",
+				"bpsec_instr_get_src_bytes", type);
 		return ERROR;
 	}
 
@@ -633,8 +634,8 @@ int bpsec_instr_get_src_update(char *src_id, time_t *result)
 
 	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_bytes",
-				"Can't get id for src %c", src_id);
+		BPSEC_DEBUG_ERR("%s: Can't get id for src %s",
+				"bpsec_instr_get_src_bytes", src_id);
 		return ERROR;
 	}
 
@@ -681,7 +682,7 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 		return ERROR;
 	}
 
@@ -704,8 +705,8 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_blk_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_total_blk","Unknown type %d",
-				type);
+		BPSEC_DEBUG_ERR("%s: Unknown type %d",
+				"bpsec_instr_get_total_blk", type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
@@ -733,8 +734,8 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_blk_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_blk_fwd; break;
 		default:
-			BPSEC_DEBUG_ERR("bpsec_instr_get_total_blk",
-					"Unknown type %d", type);
+			BPSEC_DEBUG_ERR("%s: Unknown type %d",
+					"bpsec_instr_get_total_blk", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -784,7 +785,7 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 		return ERROR;
 	}
 
@@ -808,8 +809,8 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_byte_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_total_byte","Unknown type %d",
-				type);
+		BPSEC_DEBUG_ERR("%s: Unknown type %d",
+				"bpsec_instr_get_total_byte", type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
@@ -836,8 +837,8 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_byte_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_byte_fwd; break;
 		default:
-			BPSEC_DEBUG_ERR("bpsec_instr_get_total_byte",
-					"Unknown type %d", type);
+			BPSEC_DEBUG_ERR("%s: Unknown type %d",
+					"bpsec_instr_get_total_byte", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -885,7 +886,7 @@ int  bpsec_instr_get_tot_update(time_t *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 		return ERROR;
 	}
 
@@ -1057,7 +1058,7 @@ char * bpsec_instr_get_srcnames(void)
 
 	if(getBpInstrDb(&result, &addr) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't retrieve BPSEC Instr DB.");
 		return NULL;
 	}
 

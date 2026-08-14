@@ -159,7 +159,8 @@ tbl_t *dtn_ltp_agent_tblt_engines(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ltp_agent_tblt_engines", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ltp_agent_tblt_engines", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 

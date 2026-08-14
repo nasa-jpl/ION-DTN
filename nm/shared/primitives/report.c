@@ -161,15 +161,17 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
 {
 	rpt_t *result = NULL;
 
-	AMP_DEBUG_ENTRY("rpt_create","("ADDR_FIELDSPEC",%d,entries)",
-			(uaddr) id, time);
+	AMP_DEBUG_ENTRY("rpt_create",
+			"(" ADDR_FIELDSPEC "," UVAST_FIELDSPEC ",entries)",
+			(uaddr) id, (uvast) timestamp);
 
 	/* Step 1: Allocate the message. */
 	if((result = (rpt_t*) STAKE(sizeof(rpt_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rpt_create","Can't alloc %d bytes.",
-				sizeof(rpt_t));
-		AMP_DEBUG_EXIT("rpt_create","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_create",
+				"Can't alloc " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rpt_t));
+		AMP_DEBUG_EXIT("rpt_create", "%s", "->NULL");
 		return NULL;
 	}
 
@@ -180,12 +182,13 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
 
 	if(result->entries == NULL)
 	{
-		AMP_DEBUG_ERR("rpt_create","Can't allocate TNVC for report.", NULL);
+		AMP_DEBUG_ERR("rpt_create", "%s",
+				"Can't allocate TNVC for report.");
 		SRELEASE(result);
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("rpt_create","->0x%x",result);
+	AMP_DEBUG_EXIT("rpt_create", "->0x" ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -530,7 +533,9 @@ rpttpl_t* rpttpl_create(ari_t *id, ac_t items)
 
 	if((result = (rpttpl_t *) STAKE(sizeof(rpttpl_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rpttpl_create","Can't allocate %d bytes.", sizeof(rpttpl_t));
+		AMP_DEBUG_ERR("rpttpl_create",
+				"Can't allocate " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rpttpl_t));
 		return NULL;
 	}
 
@@ -547,7 +552,9 @@ rpttpl_t* rpttpl_create_id(ari_t *id)
 
 	if((result = (rpttpl_t *) STAKE(sizeof(rpttpl_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("rpttpl_create","Can't allocate %d bytes.", sizeof(rpttpl_t));
+		AMP_DEBUG_ERR("rpttpl_create",
+				"Can't allocate " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(rpttpl_t));
 		return NULL;
 	}
 

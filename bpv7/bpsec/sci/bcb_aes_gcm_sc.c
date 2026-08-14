@@ -82,7 +82,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 	if(state->scRole != SC_ROLE_ACCEPTOR)
 	{
-		BPSEC_DEBUG_INFO("BCB-AES-GCM default passes at verifier.", NULL);
+		BPSEC_DEBUG_INFO("%s", "BCB-AES-GCM default passes at verifier.");
 		return 1;
 	}
 
@@ -119,7 +119,8 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 		if(unwrap_result == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Cannot find a key for verification.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot find a key for verification.");
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -134,7 +135,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 	if(bpsec_bagscu_inParmsGet(state, wk, tgtResult, &csi_parms) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot construct parms for decryption.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot construct parms for decryption.");
 		csi_cipherparms_free(csi_parms);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -144,7 +145,8 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	{
 		if(bpsec_bagscu_zcoCompute(aes_variant, &(wk->bundle.payload.content), key_value, &csi_parms, CSI_SVC_DECRYPT) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Cannot get data for payload block.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot get data for payload block.");
 			csi_cipherparms_free(csi_parms);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
@@ -160,7 +162,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 		if(tgtBlk == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot find target block.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot find target block.");
 			csi_cipherparms_free(csi_parms);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
@@ -180,7 +182,8 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 		if(output.len != input.len)
 		{
-			BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at this time.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot handle resizing extension blocks at this time.");
 			if (output.contents) MRELEASE(output.contents);
 			csi_cipherparms_free(csi_parms);
 			bpsec_ctx_abort(&ctx);
@@ -239,7 +242,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	/* Step 1 - Start a transaction. */
 	if ((sdr_begin_xn(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Can't start txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start txn.");
 		return -1;
 	}
 
@@ -251,7 +254,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 
 	if ((bytesRemaining = zco_length(sdr, *dataObj)) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Data object has no data.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Data object has no data.");
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -261,9 +264,9 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	/* Step 3 - Grab and initialize a crypto context. */
 	if ((context = csi_ctx_init(suite, sesKey, function)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Can't get context.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get context.");
 		sdr_cancel_xn(sdr);
-		BPSEC_DEBUG_PROC("--> NULL", NULL);
+		BPSEC_DEBUG_PROC("%s", "--> NULL");
 		return -1;
 	}
 
@@ -310,7 +313,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	{
 		if (csi_crypt_start(suite, context, *parms) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't start context", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't start context");
 			result = ERROR;
 		}
 		else
@@ -320,8 +323,9 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 
 			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
-			BPSEC_DEBUG_ERR("Could not finish context.", NULL);
-			result = ERROR;
+				BPSEC_DEBUG_ERR("%s",
+						"Could not finish context.");
+				result = ERROR;
 			}
 		}
 	}
@@ -343,7 +347,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 
 		if (csi_crypt_start(suite, context, *parms) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't start context", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't start context");
 			result = ERROR;
 		}
 		else
@@ -355,7 +359,8 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 
 			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
-				BPSEC_DEBUG_ERR("Could not finish context.", NULL);
+				BPSEC_DEBUG_ERR("%s",
+						"Could not finish context.");
 				result = ERROR;
 			}
 		}
@@ -369,7 +374,8 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	/* Step 7 - If we could not process, signal error. */
 	if (result <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot process ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
+		BPSEC_DEBUG_ERR("Cannot process ciphertext of size " UVAST_FIELDSPEC,
+				(uvast) cipherBufLen);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -377,7 +383,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	/* Step 8 - Copy out cipher ZCO and vlose transaction. */
 	if (sdr_end_xn(sdr) < 0)
 	{
-		BPSEC_DEBUG_ERR("Can't end encrypt txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't end encrypt txn.");
 		return -1;
 	}
 
@@ -464,13 +470,13 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
 
 	if((aad.scSerializedLength <= 0) || (aad.scSerializedText == NULL))
 	{
-		BPSEC_DEBUG_ERR("Cannot build AAD.",NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot build AAD.");
 		return ERROR;
 	}
 	parms->aad.contents = aad.scSerializedText;
 	parms->aad.len = aad.scSerializedLength;
 
-	BPSEC_DEBUG_PROC("Returning 1.", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning 1.");
 	return 1;
 }
 
@@ -543,7 +549,7 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 
 		if((tmp_val = MTAKE(sizeof(sc_value))) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot allocate sc value.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot allocate sc value.");
 			return -1;
 		}
 
@@ -552,7 +558,7 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 		/* Make available to other SOPs in this block. Guard against OOM. */
 		if (lyst_insert_last(state->scStParms, tmp_val) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot insert IV into scStParms.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot insert IV into scStParms.");
 			bpsec_scv_clear(0, tmp_val);
 			MRELEASE(tmp_val);
 			return -1;
@@ -562,14 +568,16 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 		sc_value *copied_val = bpsec_scv_memCopy(tmp_val);
 		if (copied_val == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot copy sc_value for extraParms.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot copy sc_value for extraParms.");
 			return -1;
 		}
 
 		/* Make available in outgoing security block. Guard against OOM. */
 		if (lyst_insert_last(extraParms, copied_val) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot insert copied IV into extraParms.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot insert copied IV into extraParms.");
 			bpsec_scv_clear(0, copied_val);
 			MRELEASE(copied_val);
 			return -1;
@@ -577,7 +585,8 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 	}
 	else
 	{
-		BPSEC_DEBUG_ERR("MISCONFIGURATION: IV already used for this security block. We cannot use the same IV.", NULL);
+		BPSEC_DEBUG_ERR("%s",
+				"MISCONFIGURATION: IV already used for this security block. We cannot use the same IV.");
 		/* TODO: How do we signal failure due to misconfiguration here? */
 		return ERROR;
 	}
@@ -598,7 +607,7 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 
 	if((aad.scSerializedLength <= 0) || (aad.scSerializedText == NULL))
 	{
-		BPSEC_DEBUG_ERR("Cannot build AAD.",NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot build AAD.");
 		return ERROR;
 	}
 	parms->aad.contents = aad.scSerializedText;
@@ -643,7 +652,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 	if(state->scRole != SC_ROLE_SOURCE)
 	{
-		BPSEC_DEBUG_INFO("BCB-AES-GCM only adds block at security source.", NULL);
+		BPSEC_DEBUG_INFO("%s",
+				"BCB-AES-GCM only adds block at security source.");
 		return ERROR;
 	}
 
@@ -690,7 +700,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 		if((lyst_insert_last(extraParms, wrappedKey)) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Unable to store wrapped key.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to store wrapped key.");
 			bpsec_scv_clear(0, &(state->scRawKey));
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
@@ -704,7 +714,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 	if(bpsec_bagscu_outParmsGet(state, aes_variant, extraParms, bundle, tgtResult, &csi_parms) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot construct parms for encryption.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot construct parms for encryption.");
 		csi_cipherparms_free(csi_parms);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -714,7 +724,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 	{
 		if(bpsec_bagscu_zcoCompute(aes_variant, &(bundle->payload.content), key_value, &csi_parms, CSI_SVC_ENCRYPT) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Cannot get data for payload block.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot get data for payload block.");
 			result = ERROR;
 		}
 	}
@@ -745,12 +756,15 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 		if(csi_crypt_full(aes_variant, CSI_SVC_ENCRYPT, &csi_parms, key_value, input, &output) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Cannot compute data for block %d.", tgtResult->scTargetId);
+			BPSEC_DEBUG_ERR("Cannot compute data for block " UVAST_FIELDSPEC
+					".",
+					(uvast) tgtResult->scTargetId);
 			result = ERROR;
 		}
 		else if(output.len != input.len)
 		{
-			BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at this time.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot handle resizing extension blocks at this time.");
 			result = ERROR;
 		}
 		else
@@ -770,7 +784,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 		if(tag == NULL)
 		{
-			BPSEC_DEBUG_ERR("Unable to allocate tag sc_value.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to allocate tag sc_value.");
 			result = ERROR;
 		}
 		else
@@ -779,7 +793,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 			if((lyst_insert_last(state->scStResults, tag)) == NULL)
 			{
-				BPSEC_DEBUG_ERR("Unable to append new result.", NULL);
+				BPSEC_DEBUG_ERR("%s",
+						"Unable to append new result.");
 				bpsec_scv_clear(0, tag);
 				result = ERROR;
 			}
@@ -787,7 +802,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 	}
 	else if(csi_parms.icv.len == 0)
 	{
-		BPSEC_DEBUG_WARN("No integrity check value (authentication tag) produced.", NULL);
+		BPSEC_DEBUG_WARN("%s",
+				"No integrity check value (authentication tag) produced.");
 	}
 
 	csi_cipherparms_free(csi_parms);

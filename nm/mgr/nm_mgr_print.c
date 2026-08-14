@@ -495,7 +495,8 @@ void ui_print_report_set(agent_t* agent)
 	if (num_rpts == 0)
 	{
 		ui_printf("No reports received from this agent");
-		AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
+		AMP_DEBUG_ALWAYS("ui_print_reports", "%s",
+				"[No reports received from this agent.]");
 		ui_display_exec();
 		return;
 	}
@@ -528,7 +529,8 @@ void ui_print_table_set(agent_t* agent)
 	if (num_tbls == 0)
 	{
 		ui_printf("No tables received from this agent");
-		AMP_DEBUG_ALWAYS("ui_print_tables","[No tables received from this agent.]", NULL);
+		AMP_DEBUG_ALWAYS("ui_print_tables", "%s",
+				"[No tables received from this agent.]");
 		ui_display_exec();
 		return;
 	}

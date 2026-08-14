@@ -59,12 +59,13 @@
 
 int iif_deregister_node(iif_t *iif)
 {
-	AMP_DEBUG_ENTRY("iif_deregister_node", "(%#llx)", (size_t) iif);
+	AMP_DEBUG_ENTRY("iif_deregister_node", "(" ADDR_FIELDSPEC ")",
+			(uaddr) iif);
 
 	/* Step 0: Sanity Check */
 	if (iif == NULL)
 	{
-		AMP_DEBUG_ERR("iif_deregister_node", "Null IIF.", NULL);
+		AMP_DEBUG_ERR("iif_deregister_node", "%s", "Null IIF.");
 		AMP_DEBUG_EXIT("iif_deregister_node", "-> %d", 0);
 		return 0;
 	}
@@ -100,18 +101,18 @@ int iif_deregister_node(iif_t *iif)
 
 eid_t iif_get_local_eid(iif_t *iif)
 {
-	AMP_DEBUG_ENTRY("iif_get_local_eid","(%#llx)", iif);
+	AMP_DEBUG_ENTRY("iif_get_local_eid", "(" ADDR_FIELDSPEC ")", (uaddr) iif);
 
 	if(iif == NULL)
 	{
 		eid_t result;
-		AMP_DEBUG_ERR("iif_get_local_eid","Bad args.",NULL);
+		AMP_DEBUG_ERR("iif_get_local_eid", "%s", "Bad args.");
 		memset(&result,0,sizeof(eid_t));
-		AMP_DEBUG_EXIT("iif_get_local_eid","->0.",NULL);
+		AMP_DEBUG_EXIT("iif_get_local_eid", "%s", "->0.");
 		return result;
 	}
 
-	AMP_DEBUG_EXIT("iif_get_local_eid","->1.",NULL);
+	AMP_DEBUG_EXIT("iif_get_local_eid", "%s", "->1.");
 	return iif->local_eid;
 }
 
@@ -140,19 +141,19 @@ int iif_is_registered(iif_t *iif)
 {
 	uint8_t result = 0;
 
-	AMP_DEBUG_ENTRY("iif_is_registered","(%#llx)", iif);
+	AMP_DEBUG_ENTRY("iif_is_registered", "(" ADDR_FIELDSPEC ")", (uaddr) iif);
 
 	if(iif == NULL)
 	{
-		AMP_DEBUG_ERR("iif_is_registered","Bad args.",NULL);
-		AMP_DEBUG_EXIT("iif_is_registered","->0.",NULL);
+		AMP_DEBUG_ERR("iif_is_registered", "%s", "Bad args.");
+		AMP_DEBUG_EXIT("iif_is_registered", "%s", "->0.");
 		return result;
 	}
 
 	result = (iif->local_eid.name[0] != 0) ? 1 : 0;
 
-	AMP_DEBUG_EXIT("iif_is_registered","->%d.",NULL);
-    return result;
+	AMP_DEBUG_EXIT("iif_is_registered", "->%d.", result);
+	return result;
 }
 
 
@@ -197,7 +198,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 	AMP_DEBUG_ENTRY("iif_receive", "("ADDR_FIELDSPEC", %d)",
 			(uaddr) iif, timeout);
 
-	AMP_DEBUG_INFO("iif_receive", "Received bundle.", NULL);
+	AMP_DEBUG_INFO("iif_receive", "%s", "Received bundle.");
 
 	*success = AMP_SYSERR;
 
@@ -221,12 +222,12 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 		{
 			case BpEndpointStopped:
 				/* The endpoint stopped? Panic.*/
-				// AMP_DEBUG_INFO("iif_receive","Endpoint stopped.", NULL);
+				// AMP_DEBUG_INFO("iif_receive", "%s", "Endpoint stopped.");
 				return NULL;
 
 			case BpPayloadPresent:
 				/* Clear to process the payload. */
-				// AMP_DEBUG_INFO("iif_receive", "Payload present.", NULL);
+				// AMP_DEBUG_INFO("iif_receive", "%s", "Payload present.");
 				break;
 
 			default:
@@ -254,7 +255,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 		*success = AMP_SYSERR;
 
 		blob_release(result, 1);
-		AMP_DEBUG_ERR("iif_receive","Can't start transaction.", NULL);
+		AMP_DEBUG_ERR("iif_receive", "%s", "Can't start transaction.");
 		bp_release_delivery(&dlv, 1);
 		return NULL;
 	}
@@ -266,7 +267,8 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 	{
 		*success = AMP_SYSERR;
 
-		AMP_DEBUG_ERR("iif_receive", "Unable to process received bundle.", NULL);
+		AMP_DEBUG_ERR("iif_receive", "%s",
+				"Unable to process received bundle.");
 		blob_release(result, 1);
 		bp_release_delivery(&dlv, 1);
 		return NULL;
@@ -316,7 +318,7 @@ int iif_register_node(iif_t *iif, eid_t eid)
 	/* Step 0: Sanity Check */
 	if(iif == NULL)
 	{
-		AMP_DEBUG_ERR("iif_register_node","Null IIF.", NULL);
+		AMP_DEBUG_ERR("iif_register_node", "%s", "Null IIF.");
 		AMP_DEBUG_EXIT("iif_register_node","-> %d", 0);
 		return 0;
 	}
@@ -326,7 +328,7 @@ int iif_register_node(iif_t *iif, eid_t eid)
 
 	if(bp_attach() < 0)
 	{
-		AMP_DEBUG_ERR("iif_register_node","Failed to attach.", NULL);
+		AMP_DEBUG_ERR("iif_register_node", "%s", "Failed to attach.");
 		AMP_DEBUG_EXIT("iif_register_node","-> %d", 0);
 		return 0;
 	}
@@ -387,14 +389,14 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	/* Step 1 - Serialize the bundle. */
 	if((data = msg_grp_serialize_wrapper(group)) == NULL)
 	{
-		AMP_DEBUG_ERR("iif_send", "Bad message of length 0.", NULL);
-		AMP_DEBUG_EXIT("iif_send", "->0.", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s", "Bad message of length 0.");
+		AMP_DEBUG_EXIT("iif_send", "%s", "->0.");
 		return 0;
 	}
 
 	if(data->length == 0)
 	{
-		AMP_DEBUG_ERR("iif_send", "Cannot send empty data.", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s", "Cannot send empty data.");
 		blob_release(data, 1);
 		return AMP_FAIL;
 	}
@@ -411,7 +413,7 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	if (sdr_begin_xn(sdr) < 0)
 	{
 		blob_release(data, 1);
-		AMP_DEBUG_ERR("iif_send", "Unable to start transaction.", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s", "Unable to start transaction.");
 		return 0;
 	}
 
@@ -423,14 +425,14 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	else
 	{
 		blob_release(data, 1);
-		AMP_DEBUG_ERR("iif_send", "Can't write to NULL extent.", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s", "Can't write to NULL extent.");
 		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("iif_send", "Can't close transaction?", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s", "Can't close transaction?");
 	}
 
 	/* Step 3 - Create ZCO.*/
@@ -439,8 +441,9 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	if(content == 0 || content == (SdrObject) ERROR)
 	{
 		blob_release(data, 1);
-		AMP_DEBUG_ERR("iif_send", "Zero-Copy Object creation failed.", NULL);
-		AMP_DEBUG_EXIT("iif_send", "->0.", NULL);
+		AMP_DEBUG_ERR("iif_send", "%s",
+				"Zero-Copy Object creation failed.");
+		AMP_DEBUG_EXIT("iif_send", "%s", "->0.");
 		return 0;
 	}
 
@@ -462,12 +465,12 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 	{
 		AMP_DEBUG_ERR("iif_send", "Send failed (%d) to %s.", res, rx);
 		blob_release(data, 1);
-		AMP_DEBUG_EXIT("iif_send", "->0.", NULL);
+		AMP_DEBUG_EXIT("iif_send", "%s", "->0.");
 		return 0;
 	}
 
 	blob_release(data, 1);
-	AMP_DEBUG_EXIT("iif_send", "->1.", NULL);
+	AMP_DEBUG_EXIT("iif_send", "%s", "->1.");
 	return 1;
 }
 

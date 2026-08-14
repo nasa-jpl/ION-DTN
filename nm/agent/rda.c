@@ -128,7 +128,7 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
 	/* Step 0: Sanity check. */
 	if (strlen(recipient.name) <= 0)
 	{
-		AMP_DEBUG_ERR("rda_get_report", "Bad parms.", NULL);
+		AMP_DEBUG_ERR("rda_get_report", "%s", "Bad parms.");
 		return NULL;
 	}
 
@@ -194,7 +194,7 @@ msg_tbl_t *rda_get_msg_tbl(eid_t recipient)
 	/* Step 0: Sanity check. */
 	if (strlen(recipient.name) <= 0)
 	{
-		AMP_DEBUG_ERR("rda_get_msg_tbl", "Bad parms.", NULL);
+		AMP_DEBUG_ERR("rda_get_msg_tbl", "%s", "Bad parms.");
 		return NULL;
 	}
 
@@ -414,7 +414,8 @@ int rda_process_rules(void)
 			rule->ticks_left = rule->def.as_tbr.period;
 			if(db_persist_rule(rule) != AMP_OK)
 			{
-				AMP_DEBUG_ERR("rda_process_rules", "Unable to persist new TBR state.", NULL);
+				AMP_DEBUG_ERR("rda_process_rules", "%s",
+						"Unable to persist new TBR state.");
 			}
 		}
 	}
@@ -448,7 +449,7 @@ int rda_process_rules(void)
 	vec_unlock(&(gAgentDb.rpt_msgs));
 	unlockResource(&(gVDB.rules.lock));
 
-	AMP_DEBUG_EXIT("rda_eval_pending_rules", "-> 0", NULL);
+	AMP_DEBUG_EXIT("rda_eval_pending_rules", "%s", "-> 0");
 	return AMP_OK;
 }
 
@@ -484,8 +485,7 @@ int rda_send_reports(void)
 	vecit_t it1;
 	vecit_t it2;
 
-	AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
-
+	AMP_DEBUG_ENTRY("rda_send_reports", "%s", "()");
 
 	vec_lock(&(gAgentDb.rpt_msgs));
 
@@ -504,7 +504,8 @@ int rda_send_reports(void)
 
 			if(rx == NULL)
 			{
-				AMP_DEBUG_ERR("rda_send_reports", "NULL rx", NULL);
+				AMP_DEBUG_ERR("rda_send_reports", "%s",
+						"NULL rx");
 				continue;
 			}
 			if(iif_send_msg(&ion_ptr, MSG_TYPE_RPT_SET, msg_rpt, rx) == AMP_OK)
@@ -557,8 +558,7 @@ int rda_send_tables(void)
 	vecit_t it1;
 	vecit_t it2;
 
-	AMP_DEBUG_ENTRY("rda_send_tables","()", NULL);
-
+	AMP_DEBUG_ENTRY("rda_send_tables", "%s", "()");
 
 	vec_lock(&(gAgentDb.tbl_msgs));
 
@@ -577,7 +577,7 @@ int rda_send_tables(void)
 
 			if(rx == NULL)
 			{
-				AMP_DEBUG_ERR("rda_send_tables", "NULL rx", NULL);
+				AMP_DEBUG_ERR("rda_send_tables", "%s", "NULL rx");
 				continue;
 			}
 			if(iif_send_msg(&ion_ptr, MSG_TYPE_TBL_SET, msg_tbl, rx) == AMP_OK)
@@ -632,9 +632,11 @@ void* rda_thread(void* arg)
 	vast	       delta = 0;
 	ion_atomic_t  *running = (ion_atomic_t *) arg;
 
-	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
+	AMP_DEBUG_ENTRY("rda_thread", "(0x" UVAST_HEX_FIELDSPEC ")",
+			(uvast) pthread_self());
 
-	AMP_DEBUG_INFO("rda_thread", "Running Remote Data Aggregator Thread.", NULL);
+	AMP_DEBUG_INFO("rda_thread", "%s",
+			"Running Remote Data Aggregator Thread.");
 
 	rda_init();
 
@@ -647,23 +649,27 @@ void* rda_thread(void* arg)
 		/* Run, then forget, any controls that are due to execute. */
 		if(rda_process_ctrls() != AMP_OK)
 		{
-			AMP_DEBUG_ERR("rda_thread", "Problem processing controls.", NULL);
+			AMP_DEBUG_ERR("rda_thread", "%s",
+					"Problem processing controls.");
 		}
 
 		/* Run any rules that are due and forget them if they are done. */
 		else if(rda_process_rules() != AMP_OK)
 		{
-			AMP_DEBUG_ERR("rda_thread","Problem processing rules.", NULL);
+			AMP_DEBUG_ERR("rda_thread", "%s",
+					"Problem processing rules.");
 		}
 
 		else if(rda_send_reports() != AMP_OK)
 		{
-			AMP_DEBUG_ERR("rda_thread","Problem sending reports.", NULL);
+			AMP_DEBUG_ERR("rda_thread", "%s",
+					"Problem sending reports.");
 		}
 
 		else if(rda_send_tables() != AMP_OK)
 		{
-			AMP_DEBUG_ERR("rda_thread", "Problem sending tables.", NULL);
+			AMP_DEBUG_ERR("rda_thread", "%s",
+					"Problem sending tables.");
 		}
 
 		delta = utils_time_cur_delta(&start_time);
@@ -678,7 +684,8 @@ void* rda_thread(void* arg)
 
 	rda_cleanup();
 
-	AMP_DEBUG_ALWAYS("rda_thread", "Shutting Down Agent Data Aggregator Thread.", NULL);
+	AMP_DEBUG_ALWAYS("rda_thread", "%s",
+			"Shutting Down Agent Data Aggregator Thread.");
 
 	pthread_exit(NULL);
 	return NULL; /* Defensive */

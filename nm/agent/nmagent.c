@@ -78,7 +78,8 @@ void agent_register(void)
 
 	if ((msg = msg_agent_create()) == NULL)
 	{
-		AMP_DEBUG_ERR("agent_register", "Unable to create agent registration.", NULL);
+		AMP_DEBUG_ERR("agent_register", "%s",
+				"Unable to create agent registration.");
 		return;
 	}
 
@@ -86,7 +87,7 @@ void agent_register(void)
 
 	if (iif_send_msg(&ion_ptr, MSG_TYPE_REG_AGENT, msg, manager_eid.name) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("agent_register", "Couldn't send agent reg.", NULL);
+		AMP_DEBUG_ERR("agent_register", "%s", "Couldn't send agent reg.");
 	}
 
 	msg_agent_release(msg, 1);
@@ -166,7 +167,8 @@ int main(int argc, char *argv[])
 	((argv[2] == NULL) || (strlen(argv[2]) <= 0) || (strlen(argv[2]) >= AMP_MAX_EID_LEN))
 		)
 	{
-		AMP_DEBUG_ERR("agent_main", "Invalid Parameters (NULL or 0).", NULL);
+		AMP_DEBUG_ERR("agent_main", "%s",
+				"Invalid Parameters (NULL or 0).");
 		return -1;
 	}
 
@@ -179,14 +181,14 @@ int main(int argc, char *argv[])
 	/* Step 2: Make sure that ION is running and we can attach. */
 	if (ionAttach() < 0)
 	{
-		AMP_DEBUG_ERR("agent_main", "Agent can't attach to ION.", NULL);
+		AMP_DEBUG_ERR("agent_main", "%s", "Agent can't attach to ION.");
 		return -1;
 	}
 
 	if(iif_register_node(&ion_ptr, agent_eid) != 1)
 	{
-		AMP_DEBUG_ERR("agent_main","Unable to register BP Node. Exiting.",
-				NULL);
+		AMP_DEBUG_ERR("agent_main", "%s",
+				"Unable to register BP Node. Exiting.");
 		return -1;
 	}
 
@@ -209,7 +211,7 @@ int main(int argc, char *argv[])
 	(db_init("nmagent_db",&adm_init) != AMP_OK))
 	{
 		db_destroy();
-		AMP_DEBUG_ERR("agent_main", "Unable to initialize DB.", NULL);
+		AMP_DEBUG_ERR("agent_main", "%s", "Unable to initialize DB.");
 		return -1;
 	}
 
@@ -233,7 +235,7 @@ int main(int argc, char *argv[])
 
 		db_destroy();
 
-		AMP_DEBUG_EXIT("agent_main", "->-1", NULL);
+		AMP_DEBUG_EXIT("agent_main", "%s", "->-1");
 		return -1;
 	}
 
@@ -247,12 +249,11 @@ int main(int argc, char *argv[])
 
 		db_destroy();
 
-		AMP_DEBUG_EXIT("agent_main", "->-1", NULL);
+		AMP_DEBUG_EXIT("agent_main", "%s", "->-1");
 		return -1;
 	}
 
-	AMP_DEBUG_ALWAYS("agent_main","Threads started...", NULL);
-
+	AMP_DEBUG_ALWAYS("agent_main", "%s", "Threads started...");
 
 	/* Step 6: Send out agent broadcast message. */
 	agent_register();
@@ -265,7 +266,7 @@ int main(int argc, char *argv[])
 
 		db_destroy();
 
-		AMP_DEBUG_EXIT("agent_main", "->-1", NULL);
+		AMP_DEBUG_EXIT("agent_main", "%s", "->-1");
 		return -1;
 	}
 
@@ -276,18 +277,18 @@ int main(int argc, char *argv[])
 
 		db_destroy();
 
-		AMP_DEBUG_EXIT("agent_main", "->-1", NULL);
+		AMP_DEBUG_EXIT("agent_main", "%s", "->-1");
 		return -1;
 	}
 
 	/* Step 8: Cleanup. */
-	AMP_DEBUG_ALWAYS("agent_main","Cleaning Agent Resources.",NULL);
+	AMP_DEBUG_ALWAYS("agent_main", "%s", "Cleaning Agent Resources.");
 
 	db_destroy();
 
-	AMP_DEBUG_ALWAYS("agent_main","Stopping Agent.",NULL);
+	AMP_DEBUG_ALWAYS("agent_main", "%s", "Stopping Agent.");
 
-	AMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
+	AMP_DEBUG_INFO("agent_main", "%s", "Exiting Agent after cleanup.");
 
 	utils_mem_teardown();
 	return 0;

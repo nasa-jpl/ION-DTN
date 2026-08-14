@@ -120,7 +120,8 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 			else // Vector may be full.  Discard (and release) report
 			{
 				// TODO: Consider retrying after a vec_pop() to replace oldest report
-				AMP_DEBUG_WARN("rx_data_rpt", "Failed to push rpt, discarding", NULL);
+				AMP_DEBUG_WARN("rx_data_rpt", "%s",
+						"Failed to push rpt, discarding");
 				rpt_release(rpt, 1);
 			}
 		}
@@ -177,7 +178,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 	{
 		AMP_DEBUG_WARN("msg_rx_data_tbl",
 				"Received group is from an unknown sender (%s); ignoring it.",
-				meta->senderEid);
+				meta->senderEid.name);
 	}
 	else
 	{
@@ -207,7 +208,8 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 			else // Vector may be full.  Discard (and release) report
 			{
 				// TODO: Consider retrying after a vec_pop() to replace oldest report
-				AMP_DEBUG_WARN("rx_data_tbl", "Failed to push tbl, discarding", NULL);
+				AMP_DEBUG_WARN("rx_data_tbl", "%s",
+						"Failed to push tbl, discarding");
 				tbl_release(tbl, 1);
 			}
 		}
@@ -258,8 +260,9 @@ void *mgr_rx_thread(void *arg)
 {
 	ion_atomic_t *running = (ion_atomic_t *) arg;
 
-	AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (size_t) running);
-	AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
+	AMP_DEBUG_ENTRY("mgr_rx_thread", "(0x" ADDR_FIELDSPEC ")",
+			(uaddr) running);
+	AMP_DEBUG_INFO("mgr_rx_thread", "%s", "Receiver thread running...");
 
 	vecit_t it;
 
@@ -314,7 +317,8 @@ void *mgr_rx_thread(void *arg)
 				db_incoming_finalize(0, AMP_FAIL, meta.senderEid.name, tmp);
 #endif
 				SRELEASE(tmp);
-				AMP_DEBUG_ERR("mgr_rx_thread","Discarding invalid message.", NULL);
+				AMP_DEBUG_ERR("mgr_rx_thread", "%s",
+						"Discarding invalid message.");
 				continue;
 			}
 
@@ -386,9 +390,8 @@ void *mgr_rx_thread(void *arg)
 		}
 	}
 
-
-	AMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
-	AMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
+	AMP_DEBUG_ALWAYS("mgr_rx_thread", "%s", "Exiting.");
+	AMP_DEBUG_EXIT("mgr_rx_thread", "%s", "->.");
 	pthread_exit(NULL);
 	return NULL;
 }

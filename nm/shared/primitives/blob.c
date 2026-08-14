@@ -65,7 +65,7 @@ int blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 
 	if((blob == NULL) || (buffer == NULL) || (length == 0))
 	{
-		AMP_DEBUG_ERR("blob_append","Bad Args.", NULL);
+		AMP_DEBUG_ERR("blob_append", "%s", "Bad Args.");
 		return AMP_FAIL;
 	}
 
@@ -167,7 +167,7 @@ int blob_copy(blob_t src, blob_t *dest)
 	/* Step 0: Sanity Checks. */
 	if (dest == NULL)
 	{
-		AMP_DEBUG_ERR("blob_copy","Bad Args.", NULL);
+		AMP_DEBUG_ERR("blob_copy", "%s", "Bad Args.");
 		return AMP_FAIL;
 	}
 
@@ -183,7 +183,10 @@ int blob_copy(blob_t src, blob_t *dest)
 	{
 		if((dest->value = (uint8_t *) STAKE(dest->alloc)) == NULL)
 		{
-			AMP_DEBUG_ERR("blob_copy","Can't allocate blob of size %d.", dest->alloc);
+			AMP_DEBUG_ERR("blob_copy",
+					"Can't allocate blob of size " UVAST_FIELDSPEC
+					".",
+					(uvast) dest->alloc);
 			return AMP_SYSERR;
 		}
 		memcpy(dest->value, src.value, dest->length);
@@ -235,19 +238,20 @@ blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 	*success = AMP_FAIL;
 
 	if( (status = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
-		AMP_DEBUG_ERR("blob_deserialize", "QCBOR Error", status);
+		AMP_DEBUG_ERR("blob_deserialize", "QCBOR Error: %d",
+				(int) status);
 		return result;
 	}
 
 	if(item.uDataType != QCBOR_TYPE_BYTE_STRING)
 	{
-		AMP_DEBUG_ERR("blob_deserialize", "Bad CBOR encoding.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize", "%s", "Bad CBOR encoding.");
 		return result;
 	}
 
 	if((len = item.val.string.len) == 0)
 	{
-		AMP_DEBUG_ERR("blob_deserialize", "Empty CBOR bytestring", NULL);
+		AMP_DEBUG_ERR("blob_deserialize", "%s", "Empty CBOR bytestring");
 		return result;
 	}
 
@@ -256,7 +260,7 @@ blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 	result.alloc = len;
 	if((result.value = STAKE(len)) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_deserialize", "Can't make new blob.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize", "%s", "Can't make new blob.");
 		return result;
 	}
 
@@ -294,7 +298,10 @@ blob_t blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t le
 {
 	blob_t result;
 
-	AMP_DEBUG_ENTRY("blob_deserialize_as_bytes","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC"), %d", (uaddr) it, (uaddr) success, len);
+	AMP_DEBUG_ENTRY("blob_deserialize_as_bytes",
+			"(0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC
+			"), " UVAST_FIELDSPEC,
+			(uaddr) it, (uaddr) success, (uvast) len);
 
 	memset(&result, 0, sizeof(blob_t));
 	*success = AMP_FAIL;
@@ -304,7 +311,7 @@ blob_t blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t le
 	result.alloc = len;
 	if((result.value = STAKE(len)) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_deserialize", "Can't make new blob.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize", "%s", "Can't make new blob.");
 		return result;
 	}
 
@@ -321,7 +328,8 @@ blob_t *blob_deserialize_as_bytes_ptr(QCBORDecodeContext *it, int *success, size
 
 	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_deserialize_as_byteS_ptr","Can't allocate new struct.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize_as_byteS_ptr", "%s",
+				"Can't allocate new struct.");
 		*success = AMP_FAIL;
 		return result;
 	}
@@ -343,7 +351,8 @@ blob_t *blob_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_deserialize_ptr","Can't allocate new struct.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize_ptr", "%s",
+				"Can't allocate new struct.");
 		*success = AMP_FAIL;
 		return result;
 	}
@@ -425,13 +434,15 @@ int blob_init(blob_t *blob, uint8_t *value, size_t length, size_t alloc)
 {
 	if((blob == NULL) || (alloc == 0))
 	{
-		AMP_DEBUG_ERR("blob_create","Bad args.", NULL);
+		AMP_DEBUG_ERR("blob_create", "%s", "Bad args.");
 		return AMP_FAIL;
 	}
 
 	if((blob->value = (uint8_t*)STAKE(alloc)) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_create","Can't allocate %d bytes.", alloc);
+		AMP_DEBUG_ERR("blob_create",
+				"Can't allocate " UVAST_FIELDSPEC " bytes.",
+				(uvast) alloc);
 		return AMP_SYSERR;
 	}
 

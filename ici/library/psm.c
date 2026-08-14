@@ -1636,7 +1636,9 @@ void	psm_report(PsmUsageSummary *usage)
 		if (count > 0)
 		{
 			isprintf(textbuf, sizeof textbuf,
-					"    %10d of size %10ld", count, size);
+					"    " UVAST_FIELDSPEC
+					" of size " UVAST_FIELDSPEC,
+					(uvast) count, (uvast) size);
 			writeMemo(textbuf);
 		}
 	}
@@ -1660,7 +1662,9 @@ void	psm_report(PsmUsageSummary *usage)
 		if (count > 0)
 		{
 			isprintf(textbuf, sizeof textbuf,
-					"    %10d of order %10ld", count, size);
+					"    " UVAST_FIELDSPEC
+					" of order " UVAST_FIELDSPEC,
+					(uvast) count, (uvast) size);
 			writeMemo(textbuf);
 		}
 	}

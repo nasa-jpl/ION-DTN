@@ -602,8 +602,8 @@ static void	printPlan(BpPlan *plan)
 	}
 
 	putFqn(neighborBuf, plan->neighborFqnn);
-	isprintf(buffer, sizeof buffer, "%s %s %s xmit rate: %lu",
-			neighborBuf, action, spec, plan->nominalRate);
+	isprintf(buffer, sizeof buffer, "%s %s %s xmit rate: %u", neighborBuf,
+			action, spec, plan->nominalRate);
 	printText(buffer);
 }
 

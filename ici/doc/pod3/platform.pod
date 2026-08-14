@@ -91,6 +91,55 @@ The ION_PATH_DELIMITER macro returns the ASCII character -- either '/' or
 '\' -- that is used as a directory name delimiter in path names for the
 file system used by the local platform.
 
+=item ION_FORMAT_PRINTF(fmt_arg, first_vararg)
+
+Safely leverages compiler static analysis to validate variadic format strings
+without breaking strict ISO C or POSIX compliance.
+
+=over 4
+
+=item Diagnostic Build-Time Tool:
+
+This macro is strictly a diagnostic build-time tool; it does not interject
+any runtime dependencies. When compiled with GNU or Clang toolchains, it
+evaluates to C<__attribute__((format(printf, fmt_arg, first_vararg)))>,
+which natively instructs the compiler frontend to validate format string
+arguments during the build process (triggering C<-Wformat> warnings or
+errors). The resulting generated machine code behaves identically whether
+the attribute is present or absent, ensuring runtime logic and
+cross-platform portability are 100% preserved.
+
+=item Strict Portability via Preprocessor Guards:
+
+The implementation strictly avoids reliance on undefined or unspecified
+compiler behavior. It utilizes standard preprocessor conditional guards
+(C<#if defined(__GNUC__) || defined(__clang__)>) to ensure cross-platform
+compliance. When compiled on a strict, non-GNU ISO C compiler, the
+preprocessor resolves C<ION_FORMAT_PRINTF> to an empty macro. This
+guarantees the compiler processes pure, vanilla ISO C, entirely stripped
+of any GNU extensions.
+
+=item ISO C18 Compliance:
+
+The presence of C<__attribute__> within the conditional block does not
+violate the ISO C99, C11, or C17/C18 standards. Section 7.1.3 of the
+ISO/IEC 9899:2018 standard explicitly dictates that "All identifiers that
+begin with an underscore and either an uppercase letter or another
+underscore are always reserved for any use." The C standard deliberately
+reserved this double-underscore namespace so compiler vendors could
+implement built-in diagnostic features without colliding with strictly
+compliant user code.
+
+=item Disabling the Macro:
+
+For strict compliance audits that reject the presence of the literal string
+C<__attribute__>, developers can completely disable the macro's evaluation.
+To do so, modify F<platform.h> to unconditionally define
+C<ION_FORMAT_PRINTF(fmt_arg, first_vararg)> to an empty macro, thereby
+removing the diagnostic checks globally.
+
+=back
+
 =item oK(expression)
 
 The oK macro simply casts the value of I<expression> to void, a way of

@@ -107,7 +107,7 @@ int bpsec_scutl_keyGet(sc_state *state, int key_id, sc_value *key_value)
 
 	if ((key_name = bpsec_scv_lystFind(state->scStParms, key_id, SC_VAL_TYPE_PARM)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Cannot find parm.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot find parm.");
 		return -1;
 	}
 	else
@@ -117,7 +117,8 @@ int bpsec_scutl_keyGet(sc_state *state, int key_id, sc_value *key_value)
 		*key_value = bpsec_util_keyRetrieve(tmp);
 		if (key_value->scValLength == 0)
 		{
-			BPSEC_DEBUG_ERR("Cannot find value for key %s", tmp);
+			BPSEC_DEBUG_ERR("Cannot find value for key %s",
+					(char *) tmp);
 			return -1;
 		}
 	}
@@ -141,7 +142,7 @@ int bpsec_scutl_keyUnwrap(sc_state *state, int kek_id, csi_val_t *key_value, int
 	/* Step 1 - Grab the LTK and convert to a CSI value. */
 	if(bpsec_scutl_keyGet(state, kek_id, &ltk) < 0)
 	{
-		BPSEC_DEBUG_ERR("Can't unwrap key because LTK not found.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't unwrap key because LTK not found.");
 		return -1;
 	}
 
@@ -155,7 +156,7 @@ int bpsec_scutl_keyUnwrap(sc_state *state, int kek_id, csi_val_t *key_value, int
 	 */
 	if((wrappedKey = bpsec_scv_lystFind(state->scStParms, wrappedId, SC_VAL_TYPE_PARM)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Did not find wrapped key. Trying LTK.",NULL);
+		BPSEC_DEBUG_ERR("%s", "Did not find wrapped key. Trying LTK.");
 		*key_value = csi_ltk;
 		return 1;
 	}
@@ -181,7 +182,7 @@ int bpsec_scutl_keyUnwrap(sc_state *state, int kek_id, csi_val_t *key_value, int
 
 	if(result == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Could not unwrap session key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Could not unwrap session key.");
 	}
 
 	return result;

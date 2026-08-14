@@ -591,12 +591,15 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	BpSecPolRule *rulePtr = NULL;
 	SecVdb	*secvdb = getSecVdb();
 
-	BPSEC_DEBUG_PROC("(partition,%s,%d,0x%x,filter,%d,%d",desc?desc:"null", id, flags, sec_parms, events);
+	BPSEC_DEBUG_PROC("(partition,%s,%d,0x%x,filter," UVAST_FIELDSPEC
+			 "," UVAST_FIELDSPEC ")",
+			desc ? desc : "null", id, flags, (uvast) sec_parms,
+			(uvast) events);
 
 	/* Step 1: Allocate the security policy rule. */
 	if (secvdb == NULL)
 	{
-		BPSEC_DEBUG_ERR("Could not get security volitile DB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Could not get security volitile DB.");
 		return 0;
 	}
 
@@ -616,7 +619,8 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	rulePtr->eventSet = events;
 	rulePtr->sc_parms = sec_parms;
 
-	BPSEC_DEBUG_INFO("Added rule id %d with %d parameters.", id, sm_list_length(partition, sec_parms));
+	BPSEC_DEBUG_INFO("Added rule id %d with " UVAST_FIELDSPEC " parameters.",
+			id, (uvast) sm_list_length(partition, sec_parms));
 
 	/* Step 3: Return the new rule. */
 	return ruleAddr;
@@ -654,12 +658,12 @@ void bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr)
 	 */
 	if((rulePtr = (BpSecPolRule*) psp(partition, ruleAddr)) == NULL)
 	{
-		BPSEC_DEBUG_INFO("No rule found at address %d", ruleAddr);
+		BPSEC_DEBUG_INFO("No rule found at address " UVAST_FIELDSPEC,
+				(uvast) ruleAddr);
 		return;
 	}
 
-
-	BPSEC_DEBUG_INFO("Attempting to remove rule from SDR.", NULL);
+	BPSEC_DEBUG_INFO("%s", "Attempting to remove rule from SDR.");
 	/* Step 2: Remove the rule from the SDR. */
 	bslpol_sdr_rule_forget(partition, ruleAddr);
 
@@ -674,7 +678,7 @@ void bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr)
 		bsles_destroy(partition, rulePtr->eventSet, psp(partition, rulePtr->eventSet));
 	}
 
-	BPSEC_DEBUG_INFO("Removing rule from shared memory.", NULL);
+	BPSEC_DEBUG_INFO("%s", "Removing rule from shared memory.");
 
 	/* Step 4: Release memory associated with the rule. */
 	memset(rulePtr, 0, sizeof(BpSecPolRule));

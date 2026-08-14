@@ -135,7 +135,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 
 		if((contact = (IonCXref *) psp(getIonwm(), addr)) == NULL)
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts","NULL contact encountered. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "%s",
+					"NULL contact encountered. Skipping.");
 			continue;
 		}
 
@@ -155,7 +156,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -208,8 +210,9 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 
 	if((range = (IonRXref *) psp(getIonwm(), addr)) == NULL)
 	{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges","NULL contact encountered. Skipping.", NULL);
-			continue;
+		AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges", "%s",
+				"NULL contact encountered. Skipping.");
+		continue;
 		}
 
 		 /* Table is: (TV)Start, (TV)Stop, (STR) Node, (STR)Other Node, (UINT) Dist */
@@ -227,7 +230,8 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -1070,15 +1074,21 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		/* Sanity checks for contacts. */
 		if ((fromFqnn <= 0) || (toFqnn <= 0))
 		{
-			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Each node number must be greater than 0", NULL);
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add",
+					"%s",
+					"Each node number must be greater than 0");
 		}
 		else if ((confidence < 0.0 || confidence > 1.0))
 		{
-			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Confidence must be in the range 0.0 to 1.0.", NULL);
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add",
+					"%s",
+					"Confidence must be in the range 0.0 to 1.0.");
 		}
 		else if (toTime <= fromTime)
 		{
-			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Interval end time must be later than start time", NULL);
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add",
+					"%s",
+					"Interval end time must be later than start time");
 		}
 
 		// TODO: Need to accept region number.

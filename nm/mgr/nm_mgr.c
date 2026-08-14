@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	/* Initialize the AMP Manager. */
 	if (mgr_init(mgr_eid) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("main", "Can't init Manager.", NULL);
+		AMP_DEBUG_ERR("main", "%s", "Can't init Manager.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -177,10 +177,10 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	AMP_DEBUG_ALWAYS("main","Shutting down manager.", NULL);
+	AMP_DEBUG_ALWAYS("main", "%s", "Shutting down manager.");
 	mgr_cleanup();
 
-	AMP_DEBUG_INFO("main","Exiting Manager after cleanup.", NULL);
+	AMP_DEBUG_INFO("main", "%s", "Exiting Manager after cleanup.");
 	exit(0);
 }
 
@@ -246,7 +246,7 @@ int mgr_init(char *arg_eid)
 	/* Step 2: Make sure that ION is running and we can attach. */
 	if (ionAttach() < 0)
 	{
-		AMP_DEBUG_ERR("mgr_init", "Manager can't attach to ION.", NULL);
+		AMP_DEBUG_ERR("mgr_init", "%s", "Manager can't attach to ION.");
 		return -1;
 	}
 
@@ -255,14 +255,14 @@ int mgr_init(char *arg_eid)
 	gMgrDB.agents = vec_create(AGENT_DEF_NUM_AGTS, agent_cb_del,agent_cb_comp, NULL, 0, &success);
 	if(success != VEC_OK)
 	{
-		AMP_DEBUG_ERR("mgr_init", "Can't make agents vec.", NULL);
+		AMP_DEBUG_ERR("mgr_init", "%s", "Can't make agents vec.");
 		return AMP_FAIL;
 	}
 
 	gMgrDB.metadata = rhht_create(NM_MGR_MAX_META, ari_cb_comp_no_parm_fn, ari_cb_hash, meta_cb_del, &success);
 	if(success != RH_OK)
 	{
-		AMP_DEBUG_ERR("mgr_init", "Can't make parmspec ht.", NULL);
+		AMP_DEBUG_ERR("mgr_init", "%s", "Can't make parmspec ht.");
 		return AMP_FAIL;
 	}
 
@@ -275,7 +275,8 @@ int mgr_init(char *arg_eid)
 	/* Step 2:  Attach to ION. */
 	if(iif_register_node(&ion_ptr, gMgrDB.mgr_eid) == 0)
 	{
-		AMP_DEBUG_ERR("mgr_init","Unable to register BP Node. Exiting.", NULL);
+		AMP_DEBUG_ERR("mgr_init", "%s",
+				"Unable to register BP Node. Exiting.");
 		return AMP_FAIL;
 	}
 
@@ -288,7 +289,7 @@ int mgr_init(char *arg_eid)
 	{
 		AMP_DEBUG_ERR("mgr_init","Failed to register mgr with ION, EID %s",
 				iif_get_local_eid(&ion_ptr).name);
-		AMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
+		AMP_DEBUG_EXIT("mgr_init", "%s", "->-1.");
 		return AMP_FAIL;
 	}
 
@@ -297,7 +298,7 @@ int mgr_init(char *arg_eid)
 		(db_init("nmmgr_db", &adm_init) != AMP_OK))
 	{
 		db_destroy();
-		AMP_DEBUG_ERR("mgr_init", "Unable to initialize DB.", NULL);
+		AMP_DEBUG_ERR("mgr_init", "%s", "Unable to initialize DB.");
 		return AMP_FAIL;
 	}
 

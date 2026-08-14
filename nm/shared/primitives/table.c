@@ -61,7 +61,7 @@ int tbl_add_row(tbl_t *tbl, tnvc_t *row)
 
 	if(tblt_check_row(VDB_FINDKEY_TBLT(tbl->id), row) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tbl_add_row", "row doesn't match template.", NULL);
+		AMP_DEBUG_ERR("tbl_add_row", "%s", "row doesn't match template.");
 		return AMP_FAIL;
 	}
 
@@ -201,7 +201,8 @@ void* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 		if(*success != AMP_OK)
 		{
-			AMP_DEBUG_ERR("tbl_deserialize_ptr","Can't get bytestr.", NULL);
+			AMP_DEBUG_ERR("tbl_deserialize_ptr", "%s",
+					"Can't get bytestr.");
 			break;
 		}
 
@@ -214,13 +215,15 @@ void* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 #endif
 		if((cur_row == NULL) || (*success != AMP_OK))
 		{
-			AMP_DEBUG_ERR("tbl_deserialize_ptr","Can't get row.", NULL);
+			AMP_DEBUG_ERR("tbl_deserialize_ptr", "%s",
+					"Can't get row.");
 			break;
 		}
 
 		if((*success = tbl_add_row(result, cur_row)) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("tbl_deserialize_ptr","Can't add row.", NULL);
+			AMP_DEBUG_ERR("tbl_deserialize_ptr", "%s",
+					"Can't add row.");
 
 			tnvc_release(cur_row,1);
 			break;

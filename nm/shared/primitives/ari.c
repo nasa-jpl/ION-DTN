@@ -63,7 +63,8 @@ static ari_t p_ari_deserialize_lit(QCBORDecodeContext *it, uint8_t byte, int *su
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("p_ari_deserialize_lit","Can't get ARI literal value.", NULL);
+		AMP_DEBUG_ERR("p_ari_deserialize_lit", "%s",
+				"Can't get ARI literal value.");
 		return ari_null();
 	}
 
@@ -235,7 +236,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 	// Encode Flags as BYTE
 	if ( cut_enc_byte(encoder, ari->u.as_reg.flags) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
+		AMP_DEBUG_ERR("p_ari_serialize_reg", "%s", "CBOR Error");
 		return AMP_FAIL;
 	}
 
@@ -253,7 +254,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 	// Encode Name as BYTESTR
 	if ( blob_serialize(encoder, &(ari->u.as_reg.name)) != AMP_OK )
 	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
+		AMP_DEBUG_ERR("p_ari_serialize_reg", "%s", "CBOR Error");
 		return AMP_FAIL;
 	}
 
@@ -405,7 +406,7 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 
 	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ari_cb_hash","Bad parms.", NULL);
+		AMP_DEBUG_ERR("ari_cb_hash", "%s", "Bad parms.");
 		return ht->num_bkts;
 	}
 
@@ -696,7 +697,8 @@ ari_t ari_deserialize(QCBORDecodeContext *it, int *success)
 	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flag);
 	if (*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("ari_deserialize", "Can't get first byte: %d", success);
+		AMP_DEBUG_ERR("ari_deserialize", "Can't get first byte: %d",
+				success ? *success : 0);
 		return ari_null();
 	}
 
@@ -1008,7 +1010,7 @@ ac_t *ac_create(void)
 
 	if((result = STAKE(sizeof(ac_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("ac_create","Can't allocate ac", NULL);
+		AMP_DEBUG_ERR("ac_create", "%s", "Can't allocate ac");
 		return NULL;
 	}
 
@@ -1046,7 +1048,7 @@ ac_t ac_copy(ac_t *src)
 		new_ari = ari_copy_ptr(cur_ari);
 		if((success = vec_insert(&(result.values), new_ari, NULL)) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ac_copy","Error copying AC.", NULL);
+			AMP_DEBUG_ERR("ac_copy", "%s", "Error copying AC.");
 			ac_release(&result, 0);
 			memset(&result, 0, sizeof(ac_t));
 			break;
@@ -1131,7 +1133,9 @@ ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 
 		if((*success = ac_insert(&result, cur_ari)) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ac_deserialize","Can't grab ARI #%d.", i);
+			AMP_DEBUG_ERR("ac_deserialize",
+					"Can't grab ARI #" UVAST_FIELDSPEC ".",
+					(uvast) i);
 			ac_release(&result, 0);
 			return result;
 		}

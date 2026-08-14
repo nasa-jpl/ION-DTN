@@ -153,7 +153,7 @@ int bpsec_encrypt(Bundle *bundle)
 	/*    Now attach all new BCBs, signing all targets. */
 	if (bpsec_util_attachSecurityBlocks(bundle, BlockConfidentialityBlk, SC_ACT_ENCRYPT) < 0)
 	{
-		BCB_DEBUG_ERR("Unable to attach all BCB blocks.", NULL);
+		BCB_DEBUG_ERR("%s", "Unable to attach all BCB blocks.");
 		bundle->insecure = 1;
 	}
 

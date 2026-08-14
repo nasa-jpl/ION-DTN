@@ -328,7 +328,7 @@ static void	printEntity(Entity *entity)
 		printText(buffer);
 	}
 
-	isprintf(buffer, sizeof buffer, "\trtt %lu\tinCkType %d outCkType %d",
+	isprintf(buffer, sizeof buffer, "\trtt %u\tinCkType %d outCkType %d",
 		entity->ackTimerInterval, entity->inCkType, entity->outCkType);
 	printText(buffer);
 	sdr_exit_xn(sdr);
@@ -369,7 +369,7 @@ static void	printCfdpInfo(void)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
-	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
+	isprintf(buffer, sizeof buffer, "xncount=%u, maxtrnbr=%u, \
 fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, inactivity=%u, \
 ckperiod=%u, maxtimeouts=%u, maxevents=%u", db->transactionCounter,
 			db->maxTransactionNbr, db->fillCharacter,

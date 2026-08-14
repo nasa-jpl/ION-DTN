@@ -82,13 +82,13 @@ int agent_add(eid_t id)
 
 	if((agent = agent_create(&id)) == NULL)
 	{
-		AMP_DEBUG_ERR("agent_add","Can't create new agent.", NULL);
+		AMP_DEBUG_ERR("agent_add", "%s", "Can't create new agent.");
 		return AMP_SYSERR;
 	}
 
 	if((vec_insert(&(gMgrDB.agents), agent, &(agent->idx))) != VEC_OK)
 	{
-		AMP_DEBUG_ERR("agent_add", "Can't insert new agent.", NULL);
+		AMP_DEBUG_ERR("agent_add", "%s", "Can't insert new agent.");
 		agent_release(agent, 1);
 		return AMP_FAIL;
 	}
@@ -227,13 +227,13 @@ agent_t* agent_create(eid_t *eid)
 
 	if((agent = (agent_t*)STAKE(sizeof(agent_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("agent_create", "Can't alloc new agent", NULL);
+		AMP_DEBUG_ERR("agent_create", "%s", "Can't alloc new agent");
 		return NULL;
 	}
 
 	if(initResourceLock(&(agent->log_lock)))
 	{
-		AMP_DEBUG_ERR("agent_create", "Can't alloc log mutex", NULL);
+		AMP_DEBUG_ERR("agent_create", "%s", "Can't alloc log mutex");
 		SRELEASE(agent);
 		return NULL;
 	}
@@ -243,7 +243,8 @@ agent_t* agent_create(eid_t *eid)
 	agent->rpts = vec_create(AGENT_DEF_NUM_RPTS, rpt_cb_del_fn, rpt_cb_comp_fn, NULL, VEC_FLAG_AS_STACK, &success);
 	if(success != VEC_OK)
 	{
-		AMP_DEBUG_ERR("agent_create","Can'tmake agent reports vector.", NULL);
+		AMP_DEBUG_ERR("agent_create", "%s",
+				"Can'tmake agent reports vector.");
 		SRELEASE(agent);
 		return NULL;
 	}
@@ -251,7 +252,8 @@ agent_t* agent_create(eid_t *eid)
 	agent->tbls = vec_create(AGENT_DEF_NUM_TBLS, tbl_cb_del_fn, tbl_cb_comp_fn, NULL, VEC_FLAG_AS_STACK, &success);
 	if(success != VEC_OK)
 	{
-		AMP_DEBUG_ERR("agent_create","Can'tmake agent tables vector.", NULL);
+		AMP_DEBUG_ERR("agent_create", "%s",
+				"Can'tmake agent tables vector.");
 		SRELEASE(agent);
 		agent = NULL;
 	}

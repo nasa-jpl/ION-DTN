@@ -164,7 +164,8 @@ tbl_t *dtn_ion_ltpadmin_tblt_spans(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ltpadmin_tblt_spans", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ltpadmin_tblt_spans", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -237,7 +238,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_heap(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 	if (heapmax < 560)
 	{
-		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_heap", "Heapmax must be at least 560, not %lu", heapmax);
+		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_heap",
+				"Heapmax must be at least 560, not %u", heapmax);
 		return result;
 	}
 
@@ -247,7 +249,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_heap(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_heap", "Can't change maxAcqInHeap.", NULL);
+		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_heap", "%s",
+				"Can't change maxAcqInHeap.");
 	}
 	else
 	{
@@ -312,7 +315,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_max_ber(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_max_ber","Can't change maximum bit error rate.", NULL);
+		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_max_ber", "%s",
+				"Can't change maximum bit error rate.");
 	}
 	else
 	{
@@ -367,7 +371,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_own_queue_time(eid_t *def_mgr, tnvc_t *parms
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_own_queue_time", "Can't change own LTP queuing time.", NULL);
+		AMP_DEBUG_ERR("dtn_ion_ltpadmin_ctrl_manage_own_queue_time",
+				"%s", "Can't change own LTP queuing time.");
 	}
 	else
 	{
@@ -404,7 +409,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_screening(eid_t *def_mgr, tnvc_t *parms, int
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	AMP_DEBUG_WARN("dtn_ion_ltpadmin_ctrl_manage_screening","Note: LTP screening is now always on, cannot be disabled.", NULL);
+	AMP_DEBUG_WARN("dtn_ion_ltpadmin_ctrl_manage_screening", "%s",
+			"Note: LTP screening is now always on, cannot be disabled.");
 
 	/*
 	 * +-------------------------------------------------------------------------+

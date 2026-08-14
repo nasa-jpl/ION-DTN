@@ -83,8 +83,11 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 	}
 	else if (item.val.string.len > length)
 	{
-		AMP_DEBUG_WARN("cut_get_cbor_str_ptr", "Encoded string (%d) is larger than buffer (%d); truncating",
-				item.val.string.len, length);
+		AMP_DEBUG_WARN("cut_get_cbor_str_ptr",
+				"Encoded string (" UVAST_FIELDSPEC
+				") is larger than buffer (" UVAST_FIELDSPEC
+				"); truncating",
+				(uvast) item.val.string.len, (uvast) length);
 	}
 	else if (item.val.string.len < length)
 	{
@@ -135,7 +138,8 @@ int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len)
 	// Check that there is space left in the decoder buffer
 	if (UsefulInputBuf_BytesUnconsumed(inbuf) < len)
 	{
-		AMP_DEBUG_ERR("cut_dec_bytes", "Can't read byte(s) past end of buffer", NULL);
+		AMP_DEBUG_ERR("cut_dec_bytes", "%s",
+				"Can't read byte(s) past end of buffer");
 		return AMP_FAIL;
 	}
 
@@ -154,7 +158,7 @@ int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len)
 	if (UsefulInputBuf_GetError(inbuf) == 0) {
 		return AMP_OK;
 	} else {
-		AMP_DEBUG_ERR("cut_cbor_numeric","Error retrieving byte", NULL);
+		AMP_DEBUG_ERR("cut_cbor_numeric", "%s", "Error retrieving byte");
 		return AMP_FAIL;
 	}
 
@@ -175,7 +179,8 @@ int cut_enc_uvast(uvast num, blob_t *result)
 
 	if(blob_init(result, NULL, 0, 16) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("cut_enc_uvast","Unable to create space for value.", NULL);
+		AMP_DEBUG_ERR("cut_enc_uvast", "%s",
+				"Unable to create space for value.");
 		return AMP_FAIL;
 	}
 
@@ -185,7 +190,7 @@ int cut_enc_uvast(uvast num, blob_t *result)
 
 	UsefulBufC Encoded;
 	if(QCBOREncode_Finish(&encoder, &Encoded)) {
-		AMP_DEBUG_ERR("cut_enc_uvast", "Encoding failed", NULL);
+		AMP_DEBUG_ERR("cut_enc_uvast", "%s", "Encoding failed");
 		return AMP_FAIL;
 	}
 
@@ -227,7 +232,8 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 		// Check that there is space left in the buffer
 		if (UsefulInputBuf_BytesUnconsumed(buf) == 0)
 		{
-			AMP_DEBUG_ERR("cut_cbor_numeric", "Can't read byte past end of buffer", NULL);
+			AMP_DEBUG_ERR("cut_cbor_numeric", "%s",
+					"Can't read byte past end of buffer");
 			return AMP_FAIL;
 		}
 
@@ -241,7 +247,8 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 		if (UsefulInputBuf_GetError(buf) == 0) {
 			return AMP_OK;
 		} else {
-			AMP_DEBUG_ERR("cut_cbor_numeric","Error retrieving byte", NULL);
+			AMP_DEBUG_ERR("cut_cbor_numeric", "%s",
+					"Error retrieving byte");
 			return AMP_FAIL;
 		}
 
@@ -250,7 +257,8 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 
 	// Get Next Item
 	if( (status = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
-		AMP_DEBUG_ERR("cut_cbor_numeric", "QCBOR Error", status);
+		AMP_DEBUG_ERR("cut_cbor_numeric", "QCBOR Error: %d",
+				(int) status);
 		return AMP_FAIL;
 	}
 
@@ -377,14 +385,15 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	// Initialize Blob to specified length
 	if((result = blob_create(NULL, 0, size)) == NULL)
 	{
-		AMP_DEBUG_ERR("cut_serialize_wrapper","Can't alloc encoding space",NULL);
+		AMP_DEBUG_ERR("cut_serialize_wrapper", "%s",
+				"Can't alloc encoding space");
 		return NULL;
 	}
 
 	// Encode to blob_t buffer
 	QCBOREncode_Init(&encoder, (UsefulBuf){result->value,result->alloc});
 	if( encode(&encoder, item) != AMP_OK) {
-		AMP_DEBUG_ERR("cut_serialize_wrapper", "Encoding Error", NULL);
+		AMP_DEBUG_ERR("cut_serialize_wrapper", "%s", "Encoding Error");
 		blob_release(result,1);
 		return NULL;
 	}
@@ -395,7 +404,10 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	// Debugging Info.
 	if(err == QCBOR_ERR_BUFFER_TOO_SMALL)
 	{
-		AMP_DEBUG_ERR("cut_serialize_wrapper","Buffer too small. Orig size was %d. Calc size was %d.", orig_size, size);
+		AMP_DEBUG_ERR("cut_serialize_wrapper",
+				"Buffer too small. Orig size was " UVAST_FIELDSPEC
+				". Calc size was " UVAST_FIELDSPEC ".",
+				(uvast) orig_size, (uvast) size);
 	}
 
 	if (err != QCBOR_SUCCESS) {
@@ -444,7 +456,9 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 
 		if((cur_item == NULL) || (success != AMP_OK))
 		{
-			AMP_DEBUG_ERR("cut_deserialize_vector","Can't get item %d",i);
+			AMP_DEBUG_ERR("cut_deserialize_vector",
+					"Can't get item " UVAST_FIELDSPEC,
+					(uvast) i);
 			return AMP_FAIL;
 		}
 

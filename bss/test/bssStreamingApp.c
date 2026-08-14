@@ -176,8 +176,11 @@ payload", itoa(i));
 				break;
 			}
 
-			isprintf(info, sizeof info, "A frame with payload: %s \
-and size: %d has been sent\n", framePayload, sizeof(framePayload));
+			isprintf(info, sizeof info,
+					"A frame with payload: %s and size: " UVAST_FIELDSPEC
+					" has been sent\n",
+					framePayload,
+					(uvast) sizeof(framePayload));
 			PUTS(info);
 		}
 

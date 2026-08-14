@@ -89,7 +89,7 @@ tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type)
 		(TNV_IS_MAP(tnv->flags)))
 	{
 		AMP_DEBUG_ERR("tnv_cast", "tnv->type is %d and type is %d.", tnv->type, type);
-		AMP_DEBUG_ERR("tnv_cast","Bad parms.", NULL);
+		AMP_DEBUG_ERR("tnv_cast", "%s", "Bad parms.");
 		return NULL;
 	}
 
@@ -294,7 +294,7 @@ tnv_t *tnv_copy_ptr(tnv_t *val)
 
 	if(val == NULL)
 	{
-		AMP_DEBUG_ERR("tnv_copy_ptr","NULL value.", NULL);
+		AMP_DEBUG_ERR("tnv_copy_ptr", "%s", "NULL value.");
 		return NULL;
 	}
 
@@ -361,7 +361,7 @@ tnv_t tnv_deserialize(QCBORDecodeContext *it, int *success)
 	err = QCBORDecode_GetNext(it, &item);
 	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
-		AMP_DEBUG_ERR("tnv_deserialize","Invalid Array", NULL);
+		AMP_DEBUG_ERR("tnv_deserialize", "%s", "Invalid Array");
 		*success = AMP_FAIL;
 		return result;
 	}
@@ -378,7 +378,8 @@ tnv_t tnv_deserialize(QCBORDecodeContext *it, int *success)
 		char *name = cut_get_cbor_str(it, success);
 		if(name == NULL)
 		{
-			AMP_DEBUG_ERR("tnv_deserialize","Error getting name.", NULL);
+			AMP_DEBUG_ERR("tnv_deserialize", "%s",
+					"Error getting name.");
 			result.type = AMP_TYPE_UNK;
 			*success = AMP_FAIL;
 			return result;
@@ -1414,7 +1415,7 @@ int tnvc_append(tnvc_t *dst, tnvc_t *src)
 
 	if((dst == NULL) || (src == NULL))
 	{
-		AMP_DEBUG_ERR("tnvc_append","Bad parms", NULL);
+		AMP_DEBUG_ERR("tnvc_append", "%s", "Bad parms");
 		return AMP_FAIL;
 	}
 
@@ -1553,7 +1554,7 @@ tnvc_t *tnvc_create(uint8_t num)
 
 	if((result = (tnvc_t *) STAKE(sizeof(tnvc_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("tdc_create","Cannot allocate new TDC.", NULL);
+		AMP_DEBUG_ERR("tdc_create", "%s", "Cannot allocate new TDC.");
 		return NULL;
 	}
 
@@ -1561,7 +1562,7 @@ tnvc_t *tnvc_create(uint8_t num)
 
 	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tdc_create","Can't allocate vector.", NULL);
+		AMP_DEBUG_ERR("tdc_create", "%s", "Can't allocate vector.");
 		SRELEASE(result);
 		return NULL;
 	}
@@ -1628,7 +1629,7 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	err = QCBORDecode_GetNext(it, &item);
 	if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Not An Array", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize", "%s", "CBOR Item Not An Array");
 		*success = AMP_FAIL;
 		return result;
 	}
@@ -1651,7 +1652,8 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize","Can't get TNVC form byte.",NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize", "%s",
+				"Can't get TNVC form byte.");
 		return result;
 	}
 
@@ -1670,14 +1672,16 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	*success = cut_get_cbor_numeric(it, AMP_TYPE_UINT, &array_len);
 	if (*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Length field not a number", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize", "%s",
+				"CBOR Item Length field not a number");
 		return result;
 	}
 
 	// Extra Sanity Check
 	if (array_len == 0)
 	{
-		AMP_DEBUG_WARN("tnvc_deserialize", "Illegal Collection of 0-length with non-zero flags. Treating as empty.", NULL);
+		AMP_DEBUG_WARN("tnvc_deserialize", "%s",
+				"Illegal Collection of 0-length with non-zero flags. Treating as empty.");
 		QCBORDecode_EndOctets(it);
 		return result;
 	}
@@ -1708,7 +1712,7 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize","Failed to get TNVC.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize", "%s", "Failed to get TNVC.");
 	}
 
 #if AMP_VERSION >= 7
@@ -1735,7 +1739,8 @@ tnvc_t *tnvc_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 	if((result = tnvc_create(0)) == NULL)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize_ptr","Can't allocate new struct.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_ptr", "%s",
+				"Can't allocate new struct.");
 		*success = AMP_FAIL;
 		return NULL;
 	}
@@ -1840,7 +1845,8 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 	types = blob_deserialize(array_it, success);
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can't get types set.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc", "%s",
+				"Can't get types set.");
 		return result;
 	}
 
@@ -1859,7 +1865,8 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can;t allocate vector.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc", "%s",
+				"Can;t allocate vector.");
 		blob_release(&types, 0);
 		return result;
 	}
@@ -1892,7 +1899,10 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnv_deserialize_tvc","Failed to deserialize values (last was %d).", i);
+		AMP_DEBUG_ERR("tnv_deserialize_tvc",
+				"Failed to deserialize values (last was " UVAST_FIELDSPEC
+				").",
+				(uvast) i);
 		vec_release(&(result.values), 0);
 		return result;
 	}
@@ -1914,7 +1924,8 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 	types = blob_deserialize_as_bytes(array_it, success, array_len);
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can't get types set.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc", "%s",
+				"Can't get types set.");
 		return result;
 	}
 
@@ -1922,7 +1933,8 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can;t allocate vector.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc", "%s",
+				"Can;t allocate vector.");
 		blob_release(&types, 0);
 		return result;
 	}
@@ -1934,7 +1946,8 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		*success = AMP_FAIL;
 		if (val == NULL)
 		{
-			AMP_DEBUG_ERR("tnv_deserialize_tvc","Error allocating TNV", NULL);
+			AMP_DEBUG_ERR("tnv_deserialize_tvc", "%s",
+					"Error allocating TNV");
 			break;
 		}
 		val->type = types.value[i];
@@ -1947,7 +1960,10 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		else
 		{
 			tnv_release(val, 1);
-			AMP_DEBUG_ERR("tnv_deserialize_tvc", "Failed to deserialize TNV %i\n", i);
+			AMP_DEBUG_ERR("tnv_deserialize_tvc",
+					"Failed to deserialize TNV " UVAST_FIELDSPEC
+					"\n",
+					(uvast) i);
 			break;
 		}
 	}
@@ -1956,7 +1972,10 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnv_deserialize_tvc","Failed to deserialize values (last was %d).", i);
+		AMP_DEBUG_ERR("tnv_deserialize_tvc",
+				"Failed to deserialize values (last was " UVAST_FIELDSPEC
+				").",
+				(uvast) i);
 		vec_release(&(result.values), 0);
 		return result;
 	}
@@ -2135,7 +2154,7 @@ int tnvc_insert(tnvc_t* tnvc, tnv_t *tnv)
 
 	if((result = vec_insert(&(tnvc->values), tnv, NULL)) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_insert","Error vector inserting.", NULL);
+		AMP_DEBUG_ERR("tnvc_insert", "%s", "Error vector inserting.");
 		tnv_release(tnv, 1);
 	}
 
@@ -2191,7 +2210,7 @@ int tnvc_serialize(QCBOREncodeContext *encoder, void *item)
 
 	if((type = tnvc_get_encode_type(tnvc)) == TNVC_UNK)
 	{
-		AMP_DEBUG_ERR("tnvc_serialize","Unknown type.", NULL);
+		AMP_DEBUG_ERR("tnvc_serialize", "%s", "Unknown type.");
 		return AMP_FAIL;
 	}
 
@@ -2281,7 +2300,10 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 
 	if(num < 0 || types.length != (size_t)num)
 	{
-		AMP_DEBUG_WARN("tnvc_serialize_tvc","Mismatch: have %d types but expected %d.", types.length, num);
+		AMP_DEBUG_WARN("tnvc_serialize_tvc",
+				"Mismatch: have " UVAST_FIELDSPEC
+				" types but expected " UVAST_FIELDSPEC ".",
+				(uvast) types.length, (uvast) num);
 	}
 
 #if AMP_VERSION < 7
@@ -2293,7 +2315,8 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 
 	if(err != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize types", NULL);
+		AMP_DEBUG_ERR("tnvc_serialize_tvc", "%s",
+				"Can't serialize types");
 		return err;
 	}
 

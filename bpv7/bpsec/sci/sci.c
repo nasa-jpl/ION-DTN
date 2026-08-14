@@ -470,8 +470,10 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
 	sc_value *polval = NULL;
 	sc_value *polvalCopy = NULL;
 
-	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,"ADDR_FIELDSPEC")",
-			(uaddr)state, (uaddr)def, pol_parms, (uaddr)blk_parms);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			 ",wm," UVAST_FIELDSPEC "," ADDR_FIELDSPEC ")",
+			(uaddr) state, (uaddr) def, (uvast) pol_parms,
+			(uaddr) blk_parms);
 
 	/* Step 0: Sanity checks on inputs */
 	CHKERR(wm);
@@ -485,8 +487,8 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
 	 *         encoding.
 	 */
 
-	BPSEC_DEBUG_INFO("There are %d blk parms.", lyst_length(blk_parms));
-
+	BPSEC_DEBUG_INFO("There are " UVAST_FIELDSPEC " blk parms.",
+			(uvast) lyst_length(blk_parms));
 
 	for(elt = lyst_first(blk_parms); elt; elt = lyst_next(elt))
 	{
@@ -529,7 +531,7 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
 		}
 	}
 
-	BPSEC_DEBUG_PROC("-->0", NULL);
+	BPSEC_DEBUG_PROC("%s", "-->0");
 	return 0;
 }
 
@@ -560,8 +562,9 @@ int bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sd
 {
 	sc_Def *ctx_def = (sc_Def*) def;
 
-	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC",sdr,wm,%d",
-			(uaddr)def, (uaddr)bundle, (uaddr)asb, parms);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			 "," ADDR_FIELDSPEC ",sdr,wm," UVAST_FIELDSPEC,
+			(uaddr) def, (uaddr) bundle, (uaddr) asb, (uvast) parms);
 
 	/* Step 0: Sanity Checks. */
 	CHKERR(def);
@@ -570,7 +573,7 @@ int bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sd
 	/* Step 1 - Allocate SDR space for ASB elements. */
 	if((asb->scResults = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate sdr list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate sdr list.");
 		return -1;
 	}
 
@@ -583,7 +586,7 @@ int bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sd
 	{
 		if((asb->scParms = bpsec_scv_smListRecord(sdr, 0, wm, parms)) == 0)
 		{
-			BPSEC_DEBUG_ERR("Cannot record parms list to SDR.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot record parms list to SDR.");
 			sdr_list_destroy(sdr, asb->scResults, NULL, NULL);
 			return 0;
 		}
@@ -698,8 +701,10 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
 {
 	sc_Def *sc_def = (sc_Def *) def;
 
-	BPSEC_DEBUG_PROC("(wm,"ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d, src, %d,"ADDR_FIELDSPEC",%d)",
-			(uaddr)state, (uaddr)def, action, pol_parms, (uaddr)blk_parms, num_tgts);
+	BPSEC_DEBUG_PROC("(wm," ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			 ",%d, src, " UVAST_FIELDSPEC "," ADDR_FIELDSPEC ",%d)",
+			(uaddr) state, (uaddr) def, action, (uvast) pol_parms,
+			(uaddr) blk_parms, num_tgts);
 
 	/* Step 0: Sanity checks. */
 	CHKERR(wm);
@@ -708,7 +713,7 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
 
 	if((state->scStResults = lyst_create_using(getIonMemoryMgr())) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to create lyst.");
 		bpsec_sci_stateClear(state);
 		return -1;
 	}
@@ -718,7 +723,7 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
 
 	if((state->scStParms = lyst_create_using(getIonMemoryMgr())) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to create lyst.");
 		bpsec_sci_stateClear(state);
 		return -1;
 	}
@@ -741,7 +746,7 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
 
 	if(bpsec_sci_parmFilter(state, def, wm, pol_parms, blk_parms) != 0)
 	{
-		BPSEC_DEBUG_ERR("Unable to filter parameters.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to filter parameters.");
 
 		bpsec_sci_stateClear(state);
 		return -1;

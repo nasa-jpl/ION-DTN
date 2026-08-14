@@ -101,7 +101,8 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	 *	file as the application data unit for publishing the
 	 *	bulletin.						*/
 
-	isprintf(fileName, 32, "tca_proposed.%d", db->currentCompilationTime);
+	isprintf(fileName, 32, "tca_proposed." UVAST_FIELDSPEC,
+			(uvast) db->currentCompilationTime);
 	fd = iopen(fileName, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{

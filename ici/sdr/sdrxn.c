@@ -2573,9 +2573,10 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 		{
 			char buf[256];
 			isprintf(buf, sizeof(buf), "Log max size exceeded. \
-SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d", sdr->name,
-					sdr->logSize, sdr->logLength,
-					length, sdr->xnDepth);
+SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d",
+					sdr->name, (unsigned long) sdr->logSize,
+					(unsigned long) sdr->logLength,
+					(unsigned long) length, sdr->xnDepth);
 			_putErrmsg(file, line, buf, NULL);
 			return -1;
 		}

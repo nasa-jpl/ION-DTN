@@ -334,8 +334,9 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 
 	if ((buf == NULL) || (len == 0))
 	{
-		CSI_DEBUG_ERR("x csi_build_parms - Bad buf.", NULL);
-		CSI_DEBUG_ERR("x csi_build_parms - Bad len.", len);
+		CSI_DEBUG_ERR("%s", "x csi_build_parms - Bad buf.");
+		CSI_DEBUG_ERR("x csi_build_parms - Bad len: %lu.",
+				(unsigned long) len);
 		return result;
 	}
 
@@ -348,7 +349,7 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 	result.icv = csi_extract_tlv(CSI_PARM_ICV, buf, len);
 	result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, buf, len);
 
-	CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
+	CSI_DEBUG_PROC("%s", "- csi_build_parms -> parms");
 
 	return result;
 }
@@ -400,7 +401,7 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 	/* Step 0 - Sanity Check. */
 	if ((buf == NULL) || (bufLen == 0))
 	{
-		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_extract_tlv - Bad Parms.");
 		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
 				result.len);
 		return result;
@@ -438,8 +439,9 @@ ran out of space.", itemType);
 
 		if (sdnvLength == 0 || sdnvLength > bufLen)
 		{
-			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %d \
-with %d buffer remaining.", sdnvLength, bufLen);
+			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %lu \
+with %d buffer remaining.",
+					(unsigned long) sdnvLength, bufLen);
 			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
 					result.len);
 
@@ -528,7 +530,7 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 
 	if ((len == 0) || (contents == NULL))
 	{
-		CSI_DEBUG_ERR("x csi_build_tlv: Bad parms.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_build_tlv: Bad parms.");
 		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)",
 				result.len);
 		return result;
@@ -1018,8 +1020,11 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 {
 	int8_t retval = ERROR;
 
-	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, key (len=%d), input(len=%d),"ADDR_FIELDSPEC")",
-			suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
+	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, parms=" ADDR_FIELDSPEC
+		       ", key(len=%lu), input(len=%lu), output=" ADDR_FIELDSPEC
+		       ")",
+			suite, svc, (uaddr) parms, (unsigned long) key.len,
+			(unsigned long) input.len, (uaddr) output);
 
 	CHKERR(parms);
 	CHKERR(output);
@@ -1160,7 +1165,7 @@ csi_val_t csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi
 
 	if (context == NULL || (data.contents == NULL && data.len <= 0))
 	{
-		CSI_DEBUG_ERR("x csi_crypt_update: Bad argument.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_crypt_update: Bad argument.");
 		return result;
 	}
 

@@ -148,7 +148,8 @@ tbl_t *dtn_ion_ionsecadmin_tblt_ltp_rx_rules(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionsecadmin_tblt_ltp_rx_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionsecadmin_tblt_ltp_rx_rules",
+					"%s", "Can't allocate row. Skipping.");
 		}
 	}
 
@@ -207,7 +208,8 @@ tbl_t *dtn_ion_ionsecadmin_tblt_ltp_tx_rules(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionsecadmin_tblt_ltp_tx_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionsecadmin_tblt_ltp_tx_rules",
+					"%s", "Can't allocate row. Skipping.");
 		}
 	}
 

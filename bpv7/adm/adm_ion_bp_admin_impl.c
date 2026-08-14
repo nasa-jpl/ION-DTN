@@ -178,7 +178,9 @@ tbl_t *dtn_ion_bpadmin_tblt_endpoints(ari_t *id)
 			}
 			else
 			{
-				AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_endpoints", "Can't allocate row. Skipping.", NULL);
+				AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_endpoints",
+						"%s",
+						"Can't allocate row. Skipping.");
 			}
 		}
 	}
@@ -259,7 +261,9 @@ tbl_t *dtn_ion_bpadmin_tblt_inducts(ari_t *id)
 				}
 				else
 				{
-					AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_inducts", "Can't allocate row. Skipping.", NULL);
+					AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_inducts",
+							"%s",
+							"Can't allocate row. Skipping.");
 				}
 
 			}
@@ -349,7 +353,9 @@ tbl_t *dtn_ion_bpadmin_tblt_outducts(ari_t *id)
 				}
 				else
 				{
-					AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_outducts", "Can't allocate row. Skipping.", NULL);
+					AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_outducts",
+							"%s",
+							"Can't allocate row. Skipping.");
 				}
 
 			}
@@ -405,7 +411,8 @@ tbl_t *dtn_ion_bpadmin_tblt_protocols(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_protocols", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_protocols", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -487,7 +494,8 @@ tbl_t *dtn_ion_bpadmin_tblt_schemes(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_schemess", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_schemess", "%s",
+					"Can't allocate row. Skipping.");
 		}
 	}
 
@@ -545,7 +553,8 @@ tbl_t *dtn_ion_bpadmin_tblt_egress_plans(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_egress_plans", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_bpadmin_tblt_egress_plans",
+					"%s", "Can't allocate row. Skipping.");
 		}
 	}
 
@@ -905,7 +914,8 @@ tnv_t *dtn_ion_bpadmin_ctrl_manage_heap_max(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if (heapmax < 560)
 	{
-		AMP_DEBUG_WARN("dtn_ion_bpadmin_ctrl_manage_heap_max", "heapmax (%lu) must be at least 560.", heapmax);
+		AMP_DEBUG_WARN("dtn_ion_bpadmin_ctrl_manage_heap_max",
+				"heapmax (%u) must be at least 560.", heapmax);
 		return NULL;
 	}
 
@@ -915,7 +925,8 @@ tnv_t *dtn_ion_bpadmin_ctrl_manage_heap_max(eid_t *def_mgr, tnvc_t *parms, int8_
 	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_ion_bpadmin_ctrl_manage_heap_max", "Can't change maxAcqInHeap.", NULL);
+		AMP_DEBUG_ERR("dtn_ion_bpadmin_ctrl_manage_heap_max", "%s",
+				"Can't change maxAcqInHeap.");
 	}
 	else
 	{

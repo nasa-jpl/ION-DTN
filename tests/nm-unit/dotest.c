@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 	// Setup
 	if (ionAttach() < 0)
 	{
-		AMP_DEBUG_ERR("nm_dotest", "can't attach to ION.", NULL);
+		AMP_DEBUG_ERR("nm_dotest", "%s", "can't attach to ION.");
 		return -1;
 	}
 

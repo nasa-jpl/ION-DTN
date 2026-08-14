@@ -820,8 +820,11 @@ IPND version 2 beacon.");
 					if (j == -1)
 					{
 						isprintf(buffer, sizeof buffer,
-							"[i] receive-thread: \
-Received beacon's mandatory parts cannot be parsed.", NULL);
+								"%s",
+								"[i] receive-thread: "
+								"Received beacon's "
+								"mandatory parts cannot"
+								" be parsed.");
 						printText(buffer);
 						continue;
 					}
@@ -829,8 +832,11 @@ Received beacon's mandatory parts cannot be parsed.", NULL);
 					if (j == -2)
 					{
 						isprintf(buffer, sizeof buffer,
-							"[i] receive-thread: \
-Received beacon's optional part cannot be parsed.", NULL);
+								"%s",
+								"[i] receive-thread: "
+								"Received beacon's "
+								"optional part cannot "
+								"be parsed.");
 						printText(buffer);
 					}
 
@@ -845,8 +851,11 @@ beacon (%dB) contents: ", recvDataBufferLen);
 					if (recvBeacon.period == 0)
 					{
 						isprintf(buffer, sizeof buffer,
-							"[i] receive-thread: \
-Received beacon interval is undefined.", recvDataBufferLen);
+								"%s",
+								"[i] receive-thread: "
+								"Received beacon "
+								"interval is "
+								"undefined.");
 						printText(buffer);
 					}
 

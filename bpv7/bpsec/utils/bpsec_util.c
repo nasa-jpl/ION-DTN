@@ -287,8 +287,9 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
 		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, acct);
 		if (*resultZco == (SdrObject) ERROR)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Can't start file source ZCO.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Can't start file source ZCO.");
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -300,8 +301,8 @@ Can't start file source ZCO.", NULL);
 			sdr_exit_xn(sdr);
 			if (ionStartAttendant(&attendant))
 			{
-				BPSEC_DEBUG_ERR("x \
-bpsec_util_zcoFileSourceTransferTo: Can't start attendant.", NULL);
+				BPSEC_DEBUG_ERR("%s", "x \
+bpsec_util_zcoFileSourceTransferTo: Can't start attendant.");
 				return -1;
 			}
 
@@ -309,8 +310,8 @@ bpsec_util_zcoFileSourceTransferTo: Can't start attendant.", NULL);
 				BP_STD_PRIORITY, 0, acct, &attendant);
 			if (*resultZco == 0 || *resultZco == (SdrObject) ERROR)
 			{
-				BPSEC_DEBUG_ERR("x \
-bpsec_util_zcoFileSourceTransferTo: Blocking ZCO admission failed.", NULL);
+				BPSEC_DEBUG_ERR("%s", "x \
+bpsec_util_zcoFileSourceTransferTo: Blocking ZCO admission failed.");
 				return -1;
 			}
 
@@ -322,8 +323,8 @@ bpsec_util_zcoFileSourceTransferTo: Blocking ZCO admission failed.", NULL);
 		{
 			if (sdr_end_xn(sdr) < 0)
 			{
-				BPSEC_DEBUG_ERR("x \
-bpsec_util_zcoFileSourceTransferTo: Failed creating ZCO.", NULL);
+				BPSEC_DEBUG_ERR("%s", "x \
+bpsec_util_zcoFileSourceTransferTo: Failed creating ZCO.");
 				return -1;
 			}
 		}
@@ -336,8 +337,9 @@ bpsec_util_zcoFileSourceTransferTo: Failed creating ZCO.", NULL);
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Can't get CWD for acq file name.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Can't get CWD for acq file name.");
 			return 0;
 		}
 
@@ -357,16 +359,18 @@ Can't create acq file %s.", fileName);
 		*acqFileRef = zco_create_file_ref(sdr, fileName, "", acct);
 		if (*acqFileRef == 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Can't create ZCO file reference.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Can't create ZCO file reference.");
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
 		if (sdr_end_xn(sdr) < 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Failed creating ZCO file reference.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Failed creating ZCO file reference.");
 			return -1;
 		}
 	}
@@ -411,8 +415,9 @@ to acq file %s.", fileName);
 			fileLength, length))
 	{
 	case ERROR:
-		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't append \
-extent to ZCO.", NULL);
+		BPSEC_DEBUG_ERR("%s",
+				"x bpsec_util_zcoFileSourceTransferTo: Can't append \
+extent to ZCO.");
 		sdr_cancel_xn(sdr);
 		return -1;
 
@@ -423,8 +428,9 @@ extent to ZCO.", NULL);
 		sdr_exit_xn(sdr);
 		if (ionStartAttendant(&attendant))
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Can't start attendant.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Can't start attendant.");
 			return -1;
 		}
 
@@ -432,8 +438,9 @@ Can't start attendant.", NULL);
 				fileLength, length, BP_STD_PRIORITY, 0,
 				&attendant) <= 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
-Blocking ZCO segment admission failed.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"x bpsec_util_zcoFileSourceTransferTo: \
+Blocking ZCO segment admission failed.");
 			return -1;
 		}
 
@@ -453,8 +460,8 @@ Blocking ZCO segment admission failed.", NULL);
 	zco_destroy_file_ref(sdr, *acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't \
-destroy ZCO file reference.", NULL);
+		BPSEC_DEBUG_ERR("%s", "x bpsec_util_zcoFileSourceTransferTo: Can't \
+destroy ZCO file reference.");
 		return -1;
 	}
 
@@ -702,7 +709,7 @@ int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, SdrObject *zco)
 
 	if((*zco = zco_create(sdr, ZcoSdrSource, bytesObj, 0, 0 - blk->dataLength,  ZcoInbound)) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot make ZCO out of block data.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot make ZCO out of block data.");
 		sdr_free(sdr, bytesObj);
 		return ERROR;
 	}
@@ -1035,9 +1042,9 @@ SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_De
 	BpsecOutboundASB asb;
 	SdrObject result = 0;
 
-
-	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d",
-			(uaddr) bundle, type, (uaddr)def, parms);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC
+			 "," UVAST_FIELDSPEC,
+			(uaddr) bundle, type, (uaddr) def, (uvast) parms);
 
 	/* Step 0: Sanity Checks. */
 	CHKZERO(bundle);
@@ -1061,7 +1068,7 @@ SdrObject bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_De
 	 */
 	if(def->scInitOutboundASB(def, bundle, &asb, sdr, wm, parms) < 1)
 	{
-		BPSEC_DEBUG_ERR("Failed to initialize BIB ASB.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Failed to initialize BIB ASB.");
 		bpsec_asb_outboundAsbDelete(sdr, &asb);
 		sdr_free(sdr, blk.object);
 		return 0;
@@ -1193,7 +1200,8 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 
 		if(def.scProcOutBlk(&state, extraParms, bundle, secAsb, &tgtResult) < 1)
 		{
-			BPSEC_DEBUG_ERR("Failed processing target number %d", tgtResult.scTargetId);
+			BPSEC_DEBUG_ERR("Failed processing target number " UVAST_FIELDSPEC,
+					(uvast) tgtResult.scTargetId);
 
 			/*
 			 * The security operation could not be produced (e.g., the
@@ -1223,7 +1231,7 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 
 		if(def.scStateIncr(&state) < 1)
 		{
-			BPSEC_DEBUG_ERR("Unable to advance SC state.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to advance SC state.");
 			// TODO: Panic.
 		}
 	}
@@ -1300,8 +1308,11 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 
 	int targetFound = 0;
 
-	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,%d,%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			(uaddr) bundle, (uaddr) def, parms, sopType, tgtBlkNum, (uaddr)bibBlk, (uaddr) secBlk);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			 ",wm," UVAST_FIELDSPEC ",%d,%d," ADDR_FIELDSPEC
+			 "," ADDR_FIELDSPEC ")",
+			(uaddr) bundle, (uaddr) def, (uvast) parms, sopType,
+			tgtBlkNum, (uaddr) bibBlk, (uaddr) secBlk);
 
 	/* Step 0: Sanity checks. */
 	CHKERR(bundle);
@@ -1363,7 +1374,9 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 
 		sdr_read(sdr, (char *) &asb, block.object, sizeof(BpsecOutboundASB));
 
-		BPSEC_DEBUG_INFO("Security block has %d results.", sdr_list_length(sdr, asb.scResults));
+		BPSEC_DEBUG_INFO("Security block has " UVAST_FIELDSPEC
+				 " results.",
+				(uvast) sdr_list_length(sdr, asb.scResults));
 
 		/*
 		 * Step 2.5: Check the targets of this security block to be sure that we
@@ -1375,7 +1388,9 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 			targetObj = sdr_list_data(sdr, elt2);
 			sdr_read(sdr, (char *) &target, targetObj, sizeof(BpsecOutboundTargetResult));
 
-			BPSEC_DEBUG_INFO("Security result target is %d.", target.scTargetId);
+			BPSEC_DEBUG_INFO("Security result target is " UVAST_FIELDSPEC
+					 ".",
+					(uvast) target.scTargetId);
 
 			/*
 			 * Step 2.5.1 - Our target is also the target of this security block.
@@ -1510,7 +1525,8 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 
 		if ((result = serializeExtBlk(&block, (char*) serializedAsb)) < 0)
 		{
-			BPSEC_DEBUG_ERR("Unable to serialize the extension block.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Unable to serialize the extension block.");
 			bundle->corrupt = 1;
 			// TODO: Should we scratch the extension block here like we do in the
 			//        failure case above?
@@ -1526,9 +1542,7 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 		MRELEASE(fromEid);
 	}
 
-
-
-	BPSEC_DEBUG_PROC("-->0", NULL);
+	BPSEC_DEBUG_PROC("%s", "-->0");
 	return 0;
 }
 
@@ -1579,7 +1593,7 @@ void bpsec_util_inboundBlkClear(AcqExtBlock *blk)
 
 	if (blk == NULL)
 	{
-		BPSEC_DEBUG_WARN("Attempt to clear NULL blk?", NULL);
+		BPSEC_DEBUG_WARN("%s", "Attempt to clear NULL blk?");
 		return;
 	}
 
@@ -1615,7 +1629,7 @@ int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlo
 	(void) dest;
 	(void) tgtBlkNum;
 
-	BPSEC_DEBUG_ERR("Not implemented yet.", NULL);
+	BPSEC_DEBUG_ERR("%s", "Not implemented yet.");
 	return -1;
 }
 
@@ -1673,7 +1687,7 @@ sc_value bpsec_util_keyRetrieve(char *keyName)
 
 	if(keyName == NULL || strlen(keyName) == 0)
 	{
-		BPSEC_DEBUG_ERR("Bad Parms", NULL);
+		BPSEC_DEBUG_ERR("%s", "Bad Parms");
 		BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
 		return key;
 	}
@@ -1837,7 +1851,7 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	{
 		BPSEC_DEBUG_ERR("Buffer len will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, outputBufLen, memmax);
 		sdr_report(&summary);
-		BPSEC_DEBUG_PROC("--> 0", NULL);
+		BPSEC_DEBUG_PROC("%s", "--> 0");
 		return 0;
 	}
 
@@ -1852,17 +1866,18 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	 */
 	if ((outputBuffer = sdr_malloc(sdr, outputBufLen)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate" UVAST_FIELDSPEC " from SDR.", NULL);
-		BPSEC_DEBUG_PROC("--> -1", NULL);
+		BPSEC_DEBUG_ERR("Cannot allocate" UVAST_FIELDSPEC " from SDR.",
+				(uvast) 0);
+		BPSEC_DEBUG_PROC("%s", "--> -1");
 		return -1;
 	}
 
 	if ((*outputZco = zco_create(sdr, ZcoSdrSource, outputBuffer, 0,
 			0 - outputBufLen, acct)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot create zco.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot create zco.");
 		sdr_free(sdr, outputBuffer);
-		BPSEC_DEBUG_PROC("--> -1", NULL);
+		BPSEC_DEBUG_PROC("%s", "--> -1");
 		return -1;
 	}
 
@@ -1879,11 +1894,13 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	csiInputChunk.len = chunkSize;
 	if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
+		BPSEC_DEBUG_ERR("Can't allocate buffer of size " UVAST_FIELDSPEC
+				".",
+				(uvast) chunkSize);
 
 		zco_destroy(sdr, *outputZco);
 		*outputZco = 0;
-		BPSEC_DEBUG_PROC("--> -1", NULL);
+		BPSEC_DEBUG_PROC("%s", "--> -1");
 		return -1;
 	}
 
@@ -1906,7 +1923,9 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
 		if (csiInputChunk.len <= 0)
 		{
-			BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
+			BPSEC_DEBUG_ERR("Can't do priming read of length " UVAST_FIELDSPEC
+					".",
+					(uvast) chunkSize);
 			break;
 		}
 
@@ -1914,7 +1933,11 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
 		if (csiOutputChunk.contents == NULL)
 		{
-			BPSEC_DEBUG_ERR("Could not encrypt input of %d with chunk size of %d.", csiInputChunk.len, chunkSize);
+			BPSEC_DEBUG_ERR("Could not encrypt input of " UVAST_FIELDSPEC
+					" with chunk size of " UVAST_FIELDSPEC
+					".",
+					(uvast) csiInputChunk.len,
+					(uvast) chunkSize);
 			break;
 		}
 
@@ -2026,8 +2049,10 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	csiInputChunk.len = chunkSize;
 	if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
-		BPSEC_DEBUG_PROC("--> -1", NULL);
+		BPSEC_DEBUG_ERR("Can't allocate buffer of size " UVAST_FIELDSPEC
+				".",
+				(uvast) chunkSize);
+		BPSEC_DEBUG_PROC("%s", "--> -1");
 		return -1;
 	}
 
@@ -2050,7 +2075,9 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
 		if (csiInputChunk.len <= 0)
 		{
-			BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
+			BPSEC_DEBUG_ERR("Can't do priming read of length " UVAST_FIELDSPEC
+					".",
+					(uvast) chunkSize);
 			break;
 		}
 
@@ -2058,7 +2085,11 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
 		if (csiOutputChunk.contents == NULL)
 		{
-			BPSEC_DEBUG_ERR("Could not encrypt.", csiInputChunk.len, chunkSize);
+			BPSEC_DEBUG_ERR("Could not encrypt " UVAST_FIELDSPEC
+					" bytes "
+					"(chunk " UVAST_FIELDSPEC ").",
+					(uvast) csiInputChunk.len,
+					(uvast) chunkSize);
 			break;
 		}
 
@@ -2066,7 +2097,7 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 		if (bpsec_util_zcoFileSourceTransferTo(sdr, acct, outputZco, &fileRef,
 			filename, (char *) csiOutputChunk.contents, csiOutputChunk.len) <= 0)
 		{
-			BPSEC_DEBUG_ERR("Transfer of chunk has failed..", NULL);
+			BPSEC_DEBUG_ERR("%s", "Transfer of chunk has failed..");
 			MRELEASE(csiOutputChunk.contents);
 			break;
 		}
@@ -2099,7 +2130,7 @@ int bpsec_util_numKeysGet(int *size)
 	/* Parameter intentionally unused. */
 	(void) size;
 
-	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	BPSEC_DEBUG_ERR("%s", "DEPRECATED FUNCTION CALL")
 	CHKERR(0);
 	return -1;
 }
@@ -2112,7 +2143,7 @@ void bpsec_util_keysGet(char *buffer, int length)
 	(void) buffer;
 	(void) length;
 
-	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	BPSEC_DEBUG_ERR("%s", "DEPRECATED FUNCTION CALL")
 	CHKVOID(0);
 }
 
@@ -2123,7 +2154,7 @@ int  bpsec_util_numCSNamesGet(int *size)
 	/* Parameter intentionally unused. */
 	(void) size;
 
-	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	BPSEC_DEBUG_ERR("%s", "DEPRECATED FUNCTION CALL")
 	CHKERR(0);
 	return -1;
 }
@@ -2136,7 +2167,7 @@ void bpsec_util_cSNamesGet(char *buffer, int length)
 	(void) buffer;
 	(void) length;
 
-	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	BPSEC_DEBUG_ERR("%s", "DEPRECATED FUNCTION CALL")
 	CHKVOID(0);
 }
 

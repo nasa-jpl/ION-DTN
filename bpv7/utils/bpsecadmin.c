@@ -830,7 +830,8 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 
 	if (start <= 0)
 	{
-		isprintf(gUserText, USER_TEXT_LEN, "Cannot find processing actions array object in JSON.", NULL);
+		isprintf(gUserText, USER_TEXT_LEN,
+				"Cannot find processing actions array object in JSON.");
 		bpsec_admin_printText(gUserText);
 
 		return -1;
@@ -914,7 +915,8 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 			}
 			if(numParm != 2)
 			{
-				isprintf(gUserText, USER_TEXT_LEN, "Invalid parameters for override action. Check block processing flags.", NULL);
+				isprintf(gUserText, USER_TEXT_LEN,
+						"Invalid parameters for override action. Check block processing flags.");
 				bpsec_admin_printText(gUserText);
 
 				parms[parmIdx].asOverride.val = parms[parmIdx].asOverride.mask = 0;
@@ -1401,7 +1403,10 @@ static int bpsec_admin_json_getNewRuleId(jsonObject job, uint16_t *ruleId)
 			}
 		}
 
-		isprintf(gUserText, USER_TEXT_LEN, "No available rule IDs. Max # of %s reached. \nDelete existing policy rules before adding a new rule.", MAX_RULE_ID-1);
+		isprintf(gUserText, USER_TEXT_LEN,
+				"No available rule IDs. Max # of %d reached. \n"
+				"Delete existing policy rules before adding a new rule.",
+				(int) (MAX_RULE_ID - 1));
 		bpsec_admin_printText(gUserText);
 
 		return 0;
@@ -1828,10 +1833,15 @@ static void bpsec_admin_printEvent(BpSecEvent *event)
 				break;
 			case BSLACT_OVERRIDE_TARGET_BPCF:
 			case BSLACT_OVERRIDE_SOP_BPCF:
-				isprintf(tmp, sizeof(tmp), "- %s\n\t Mask: %ll \n\t New values:%ll \n",
+				isprintf(tmp, sizeof(tmp),
+						"- %s\n\t Mask: " UVAST_FIELDSPEC
+						" \n\t New values:" UVAST_FIELDSPEC
+						" \n",
 						gActionMap[idx].key,
-						event->action_parms[parmIdx].asOverride.mask,
-						event->action_parms[parmIdx].asOverride.val);
+						(uvast) event->action_parms[parmIdx]
+								.asOverride.mask,
+						(uvast) event->action_parms[parmIdx]
+								.asOverride.val);
 				strcat(buf,tmp);
 				parmIdx++;
 				break;
@@ -1946,17 +1956,17 @@ static void bpsec_admin_printPolicyrule(BpSecPolRule *rulePtr, int verbose)
 	strcat(buf,"\n\tRoles: ");
 	if(rulePtr->filter.flags & BPRF_SRC_ROLE)
 	{
-		isprintf(tmp, sizeof(tmp), "Source ", NULL);
+		isprintf(tmp, sizeof(tmp), "Source ");
 		strcat(buf,tmp);
 	}
 	if(rulePtr->filter.flags & BPRF_VER_ROLE)
 	{
-		isprintf(tmp, sizeof(tmp), "Verifier ", NULL);
+		isprintf(tmp, sizeof(tmp), "Verifier ");
 		strcat(buf,tmp);
 	}
 	if(rulePtr->filter.flags & BPRF_ACC_ROLE)
 	{
-		isprintf(tmp, sizeof(tmp), "Acceptor ", NULL);
+		isprintf(tmp, sizeof(tmp), "Acceptor ");
 		strcat(buf,tmp);
 	}
 

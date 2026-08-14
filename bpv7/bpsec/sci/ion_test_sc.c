@@ -81,7 +81,7 @@ int bpsec_itscbcb_decrypt(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb
 
 	if(state->scRole != SC_ROLE_ACCEPTOR)
 	{
-		BPSEC_DEBUG_INFO("ITSC default passes at verifier.", NULL);
+		BPSEC_DEBUG_INFO("%s", "ITSC default passes at verifier.");
 		return 1;
 	}
 
@@ -91,8 +91,8 @@ int bpsec_itscbcb_decrypt(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb
 	/* Step 2: Grab the wrapped key if it exists. */
 	if(bpsec_scutl_keyUnwrap(state, CSI_PARM_KEYINFO, &sessionKeyClear, CSI_PARM_BEK, BPSEC_ITSC_BCB_SUITE, &csi_parms) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Could not decrypt session key", NULL);
-		BPSEC_DEBUG_PROC("--> 0", NULL);
+		BPSEC_DEBUG_ERR("%s", "Could not decrypt session key");
+		BPSEC_DEBUG_PROC("%s", "--> 0");
 
 		return -2; /* TODO: We should define return values in sci.h? */
 	}
@@ -108,13 +108,14 @@ int bpsec_itscbcb_decrypt(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb
 			if (bpsec_itscbcb_compute(&(wk->bundle.payload.content), csi_blocksize(BPSEC_ITSC_BCB_SUITE), BPSEC_ITSC_BCB_SUITE, sessionKeyClear,
 				  &csi_parms, CSI_SVC_DECRYPT) == ERROR)
 			{
-				BPSEC_DEBUG_ERR("Can't decrypt payload.", NULL);
+				BPSEC_DEBUG_ERR("%s", "Can't decrypt payload.");
 				result = 0;
 			}
 			break;
 
 		default:    /*    Target block is an extension block.    */
-			BPSEC_DEBUG_ERR("The ION Test SC only decrypts payloads.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"The ION Test SC only decrypts payloads.");
 			result = 0;
 	}
 
@@ -163,7 +164,7 @@ int bpsec_itscbcb_parmsGet(sc_state *state,    csi_cipherparms_t *parms,
 	/* Step 1: Grab the key-encrypting key. */
 	if(bpsec_scutl_keyGet(state, CSI_PARM_KEYINFO, &kek) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Unable to get key encrypting key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to get key encrypting key.");
 		return ERROR;
 	}
 	csi_kek.contents = kek.scRawValue.asPtr;
@@ -174,7 +175,7 @@ int bpsec_itscbcb_parmsGet(sc_state *state,    csi_cipherparms_t *parms,
 	*sesKey = csi_crypt_parm_get(BPSEC_ITSC_BCB_SUITE, CSI_PARM_BEK);
 	if((sesKey->contents == NULL) || (sesKey->len == 0))
 	{
-		BPSEC_DEBUG_ERR("Can't get session key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get session key.");
 		bpsec_scv_clear(0, &kek);
 
 		BPSEC_DEBUG_PROC("---> %d", ERROR);
@@ -193,7 +194,7 @@ int bpsec_itscbcb_parmsGet(sc_state *state,    csi_cipherparms_t *parms,
 
 	if ((csi_crypt_key(BPSEC_ITSC_BCB_SUITE, CSI_SVC_ENCRYPT, parms, csi_kek, *sesKey, encSesKey)) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't get encrypted session key.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get encrypted session key.");
 		bpsec_scv_clear(0, &kek);
 		MRELEASE(sesKey->contents);
 		BPSEC_DEBUG_PROC("--> %d", ERROR);
@@ -247,7 +248,7 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 	/* Step 1 - Start a transaction. */
 	if ((sdr_begin_xn(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Can't start txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start txn.");
 		return -1;
 	}
 
@@ -259,7 +260,7 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 
 	if ((bytesRemaining = zco_length(sdr, *dataObj)) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Data object has no data.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Data object has no data.");
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -269,9 +270,9 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 	/* Step 3 - Grab and initialize a crypto context. */
 	if ((context = csi_ctx_init(suite, sesKey, function)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Can't get context.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't get context.");
 		sdr_cancel_xn(sdr);
-		BPSEC_DEBUG_PROC("--> NULL", NULL);
+		BPSEC_DEBUG_PROC("%s", "--> NULL");
 		return -1;
 	}
 
@@ -320,7 +321,7 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 	{
 		if (csi_crypt_start(suite, context, *parms) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't start context", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't start context");
 			result = ERROR;
 		}
 		else
@@ -330,8 +331,9 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 
 			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
-			BPSEC_DEBUG_ERR("Could not finish context.", NULL);
-			result = ERROR;
+				BPSEC_DEBUG_ERR("%s",
+						"Could not finish context.");
+				result = ERROR;
 			}
 		}
 	}
@@ -353,7 +355,7 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 
 		if (csi_crypt_start(suite, context, *parms) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't start context", NULL);
+			BPSEC_DEBUG_ERR("%s", "Can't start context");
 			result = ERROR;
 		}
 		else
@@ -366,7 +368,8 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 
 			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
-				BPSEC_DEBUG_ERR("Could not finish context.", NULL);
+				BPSEC_DEBUG_ERR("%s",
+						"Could not finish context.");
 				result = ERROR;
 			}
 		}
@@ -381,7 +384,8 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 	/* Step 7 - If we could not process, signal error. */
 	if (result <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot process ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
+		BPSEC_DEBUG_ERR("Cannot process ciphertext of size " UVAST_FIELDSPEC,
+				(uvast) cipherBufLen);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -389,7 +393,7 @@ int bpsec_itscbcb_compute(SdrObject *dataObj, uint32_t chunkSize,    uint32_t su
 	/* Step 8 - Copy out cipher ZCO and vlose transaction. */
 	if (sdr_end_xn(sdr) < 0)
 	{
-		BPSEC_DEBUG_ERR("Can't end encrypt txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't end encrypt txn.");
 		return -1;
 	}
 
@@ -438,7 +442,7 @@ int bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle, Bpse
 	/* Step 2 - The ION Test SC only encrypts the payload. */
 	if(tgtResult->scTargetId != 1)
 	{
-		BPSEC_DEBUG_ERR("The ION Test SC only encrypts payloads.", NULL);
+		BPSEC_DEBUG_ERR("%s", "The ION Test SC only encrypts payloads.");
 		MRELEASE(sessionKey.contents);
 		MRELEASE(encryptedSessionKey.contents);
 		return ERROR;
@@ -448,7 +452,9 @@ int bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle, Bpse
 	if(bpsec_itscbcb_compute(&(bundle->payload.content), csi_blocksize(BPSEC_ITSC_BCB_SUITE), BPSEC_ITSC_BCB_SUITE, sessionKey, &parms,
 			CSI_SVC_ENCRYPT) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("encryption of extension block (%d) is not yet implemented.", tgtResult->scTargetId);
+		BPSEC_DEBUG_ERR("encryption of extension block (" UVAST_FIELDSPEC
+				") is not yet implemented.",
+				(uvast) tgtResult->scTargetId);
 		MRELEASE(sessionKey.contents);
 		MRELEASE(encryptedSessionKey.contents);
 		return ERROR;
@@ -519,7 +525,7 @@ uint8_t *bpsec_itscbib_compute(SdrObject dataObj, sc_value *key_value, csi_svcid
 	csi_ctx = csi_ctx_init(BPSEC_ITSC_BIB_SUITE, csi_key, CSI_SVC_SIGN);
 	if(csi_sign_start(BPSEC_ITSC_BIB_SUITE, csi_ctx) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't start context.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start context.");
 		csi_ctx_free(BPSEC_ITSC_BIB_SUITE, csi_ctx);
 		MRELEASE(dataBuffer);
 		return NULL;
@@ -528,7 +534,7 @@ uint8_t *bpsec_itscbib_compute(SdrObject dataObj, sc_value *key_value, csi_svcid
 	/* Step 4 - Setup playback of data from the data object. */
 	if ((bytesRemaining = zco_length(sdr, dataObj)) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Data object has no length.",  NULL);
+		BPSEC_DEBUG_ERR("%s", "Data object has no length.");
 		csi_ctx_free(BPSEC_ITSC_BIB_SUITE, csi_ctx);
 		MRELEASE(dataBuffer);
 		return NULL;
@@ -536,7 +542,7 @@ uint8_t *bpsec_itscbib_compute(SdrObject dataObj, sc_value *key_value, csi_svcid
 
 	if ((sdr_begin_xn(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Can't start txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start txn.");
 		csi_ctx_free(BPSEC_ITSC_BIB_SUITE, csi_ctx);
 		MRELEASE(dataBuffer);
 		return NULL;
@@ -641,7 +647,8 @@ int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOu
 
 	if((tgtResult->scTargetId != PayloadBlk) && (tgtResult->scTargetId != PrimaryBlk))
 	{
-		BPSEC_DEBUG_ERR("ION Test SC only signs primary and payload blocks.", NULL);
+		BPSEC_DEBUG_ERR("%s",
+				"ION Test SC only signs primary and payload blocks.");
 		return ERROR;
 	}
 
@@ -687,7 +694,7 @@ int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOu
 		 */
 		if((digest = MTAKE(sizeof(sc_value))) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Unable to allocate digest.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to allocate digest.");
 			return ERROR;
 		}
 
@@ -702,13 +709,13 @@ int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOu
 	/* Step 4:  Insert the security result.            */
 	if((lyst_insert_last(state->scStResults, digest)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Unable to append new result.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to append new result.");
 		bpsec_scv_clear(0, digest);
 		MRELEASE(digest);
 		return ERROR;
 	}
 
-	BPSEC_DEBUG_PROC("-->1", NULL);
+	BPSEC_DEBUG_PROC("%s", "-->1");
 	return 1;
 }
 
@@ -750,7 +757,7 @@ int bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb,
 	 */
 	if(bpsec_scutl_keyGet(state, CSI_PARM_KEYINFO, &key_value) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Error retrieving key value.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Error retrieving key value.");
 		return ERROR;
 	}
 
@@ -817,8 +824,9 @@ int   bpsec_itsci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sd
 {
 	sc_Def *ctx_def = (sc_Def*) def;
 
-	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC",sdr,wm,%d",
-			(uaddr)def, (uaddr)bundle, (uaddr)asb, parms);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			 "," ADDR_FIELDSPEC ",sdr,wm," UVAST_FIELDSPEC,
+			(uaddr) def, (uaddr) bundle, (uaddr) asb, (uvast) parms);
 
 	/* Step 0: Sanity Checks. */
 	CHKERR(def);
@@ -827,7 +835,7 @@ int   bpsec_itsci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sd
 	/* Step 1 - Allocate SDR space for ASB elements. */
 	if((asb->scResults = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate sdr list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate sdr list.");
 		return -1;
 	}
 
@@ -840,7 +848,7 @@ int   bpsec_itsci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sd
 	{
 		if((asb->scParms = bpsec_scv_smListRecord(sdr, 0, wm, parms)) == 0)
 		{
-			BPSEC_DEBUG_ERR("Cannot record parms list to SDR.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot record parms list to SDR.");
 			sdr_list_destroy(sdr, asb->scResults, NULL, NULL);
 			return 0;
 		}

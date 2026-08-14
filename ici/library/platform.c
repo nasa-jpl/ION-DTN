@@ -18,7 +18,7 @@
 #include "sdrxn.h"		/*	sdr_in_xn, sdr_drop_xn		*/
 
 /* Only for Ubuntu as of ION 4.1.2 */
-#if defined (TCP_LOW_CYCLE)
+#if defined (TCPCL_LOW_CYCLE)
 #include <netinet/tcp.h>
 #endif
 

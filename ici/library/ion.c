@@ -2185,8 +2185,8 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "heapKey:         %d",
 			parms->heapKey);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "logSize:         %d",
-			parms->logSize);
+	isprintf(buffer, sizeof buffer, "logSize:         " UVAST_FIELDSPEC,
+			(uvast) parms->logSize);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "logKey:          %d",
 			parms->logKey);

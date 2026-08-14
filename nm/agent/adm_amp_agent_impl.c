@@ -238,7 +238,9 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 
 	if((ls != AMP_OK) || (rs != AMP_OK))
 	{
-		AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
+		AMP_DEBUG_ERR("amp_agent_binary_num_op",
+				"Bad op (%d) or type (%d -> %d).", op,
+				lval->type, rval->type);
 		tnv_release(result, 1);
 		result = NULL;
 	}
@@ -348,7 +350,8 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 
 	if(ls != AMP_OK)
 	{
-		AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type);
+		AMP_DEBUG_ERR("adm_agent_unary_num_op",
+				"Bad op (%d) or type (%d).", op, lval->type);
 		tnv_release(result, 1);
 		result = NULL;
 	}
@@ -1261,7 +1264,7 @@ tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((id == NULL) || (expr == NULL) || (type == AMP_TYPE_UNK))
 	{
-		AMP_DEBUG_ERR("ADD_VAR", "Bad parameters for control", NULL);
+		AMP_DEBUG_ERR("ADD_VAR", "%s", "Bad parameters for control");
 		return result;
 	}
 
@@ -1269,7 +1272,7 @@ tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(new_var == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_VAR","Unable to make new var.", NULL);
+		AMP_DEBUG_ERR("ADD_VAR", "%s", "Unable to make new var.");
 		return result;
 	}
 
@@ -1290,7 +1293,7 @@ tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	else
 	{
 		*status = CTRL_SUCCESS;
-		AMP_DEBUG_WARN("ADD_VAR","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("ADD_VAR", "%s", "Ignoring duplicate item.");
 		var_release(new_var, 1);
 	}
 
@@ -1324,7 +1327,7 @@ tnv_t *amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DEL_VAR", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DEL_VAR", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1335,7 +1338,8 @@ tnv_t *amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if(var == NULL)
 		{
-			AMP_DEBUG_WARN("DEL_VAR", "Cannot find var to be deleted.", NULL);
+			AMP_DEBUG_WARN("DEL_VAR", "%s",
+					"Cannot find var to be deleted.");
 		}
 		else
 		{
@@ -1377,7 +1381,7 @@ tnv_t *amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((id == NULL) || (template == NULL))
 	{
-		AMP_DEBUG_ERR("ADD_RPTT", "Bad Parameters.", NULL);
+		AMP_DEBUG_ERR("ADD_RPTT", "%s", "Bad Parameters.");
 		return result;
 	}
 
@@ -1401,7 +1405,7 @@ tnv_t *amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	else
 	{
 		*status = CTRL_SUCCESS;
-		AMP_DEBUG_WARN("ADD_RPTT","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("ADD_RPTT", "%s", "Ignoring duplicate item.");
 		rpttpl_release(def, 1);
 	}
 
@@ -1436,7 +1440,7 @@ tnv_t *amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DEL_RPTT", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DEL_RPTT", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1447,7 +1451,8 @@ tnv_t *amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if(def == NULL)
 		{
-			AMP_DEBUG_WARN("DEL_RPTT", "Cannot find template to be deleted.", NULL);
+			AMP_DEBUG_WARN("DEL_RPTT", "%s",
+					"Cannot find template to be deleted.");
 		}
 		else
 		{
@@ -1492,7 +1497,7 @@ tnv_t *amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DESC_RPTT", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DESC_RPTT", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1554,7 +1559,7 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((ids == NULL) || (mgrs == NULL))
 	{
-		AMP_DEBUG_ERR("GEN_RPTT", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("GEN_RPTT", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1562,7 +1567,8 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	{
 		if((tnvc_insert(mgrs, tnv_from_str(def_mgr->name))) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("GEN_RPTT","Empty TNVC and can't add default mgr.", NULL);
+			AMP_DEBUG_ERR("GEN_RPTT", "%s",
+					"Empty TNVC and can't add default mgr.");
 			return result;
 		}
 	}
@@ -1576,7 +1582,8 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if((cur_mgr == NULL) || (cur_mgr->type != AMP_TYPE_STR))
 		{
-			AMP_DEBUG_ERR("GEN_RPTT","Cannot parse MGR EID to send to.", NULL);
+			AMP_DEBUG_ERR("GEN_RPTT", "%s",
+					"Cannot parse MGR EID to send to.");
 			return result;
 		}
 
@@ -1675,7 +1682,7 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((ids == NULL) || (mgrs == NULL))
 	{
-		AMP_DEBUG_ERR("GEN_TBLT", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("GEN_TBLT", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1683,7 +1690,8 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	{
 		if((tnvc_insert(mgrs, tnv_from_str(def_mgr->name))) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("GEN_TBLT","Empty TNVC and can't add default mgr.", NULL);
+			AMP_DEBUG_ERR("GEN_TBLT", "%s",
+					"Empty TNVC and can't add default mgr.");
 			return result;
 		}
 	}
@@ -1697,7 +1705,8 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if((cur_mgr == NULL) || (cur_mgr->type != AMP_TYPE_STR))
 		{
-			AMP_DEBUG_ERR("GEN_TBLT","Cannot parse MGR EID to send to.", NULL);
+			AMP_DEBUG_ERR("GEN_TBLT", "%s",
+					"Cannot parse MGR EID to send to.");
 			return result;
 		}
 
@@ -1719,7 +1728,8 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			{
 				tbl_release(tbl, 1);
 
-				AMP_DEBUG_ERR("GEN_TBLT","Cannot build table.", NULL);
+				AMP_DEBUG_ERR("GEN_TBLT", "%s",
+						"Cannot build table.");
 				continue;
 			}
 
@@ -1763,7 +1773,7 @@ tnv_t *amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((id == NULL) || (def == NULL))
 	{
-		AMP_DEBUG_ERR("ADD_MACRO", "Bad parameters for control", NULL);
+		AMP_DEBUG_ERR("ADD_MACRO", "%s", "Bad parameters for control");
 		return result;
 	}
 
@@ -1793,7 +1803,7 @@ tnv_t *amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	else
 	{
 		*status = CTRL_SUCCESS;
-		AMP_DEBUG_WARN("ADD_MACRO","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("ADD_MACRO", "%s", "Ignoring duplicate item.");
 		macdef_release(macro, 1);
 	}
 
@@ -1829,7 +1839,7 @@ tnv_t *amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DEL_MACRO", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DEL_MACRO", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1840,7 +1850,8 @@ tnv_t *amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if(def == NULL)
 		{
-			AMP_DEBUG_WARN("DEL_MACRO", "Cannot find template to be deleted.", NULL);
+			AMP_DEBUG_WARN("DEL_MACRO", "%s",
+					"Cannot find template to be deleted.");
 		}
 		else
 		{
@@ -1885,7 +1896,7 @@ tnv_t *amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DESC_MACRO", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DESC_MACRO", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -1951,13 +1962,13 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Bad parameters for control", NULL);
+		AMP_DEBUG_ERR("ADD_TBR", "%s", "Bad parameters for control");
 		return result;
 	}
 
 	if((tbr = rule_create_tbr(*id, start, def, action)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		AMP_DEBUG_ERR("ADD_TBR", "%s", "Unable to create TBR structure.");
 		return result;
 	}
 
@@ -1980,7 +1991,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	else
 	{
 		*status = CTRL_SUCCESS;
-		AMP_DEBUG_WARN("ADD_TBR","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("ADD_TBR", "%s", "Ignoring duplicate item.");
 		rule_release(tbr, 1);
 	}
 
@@ -2025,13 +2036,13 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_SBR", "Bad parameters for control", NULL);
+		AMP_DEBUG_ERR("ADD_SBR", "%s", "Bad parameters for control");
 		return result;
 	}
 
 	if((sbr = rule_create_sbr(*id, start, def, action)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_SBR", "Unable to create SBR structure.", NULL);
+		AMP_DEBUG_ERR("ADD_SBR", "%s", "Unable to create SBR structure.");
 		return result;
 	}
 
@@ -2053,7 +2064,7 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	else
 	{
 		*status = CTRL_SUCCESS;
-		AMP_DEBUG_WARN("ADD_SBR","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("ADD_SBR", "%s", "Ignoring duplicate item.");
 		rule_release(sbr, 1);
 	}
 
@@ -2088,7 +2099,7 @@ tnv_t *amp_agent_ctrl_del_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DEL_RULE", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DEL_RULE", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -2099,7 +2110,8 @@ tnv_t *amp_agent_ctrl_del_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 		if(rule == NULL)
 		{
-			AMP_DEBUG_WARN("DEL_RULE", "Cannot find RULE to be deleted.", NULL);
+			AMP_DEBUG_WARN("DEL_RULE", "%s",
+					"Cannot find RULE to be deleted.");
 		}
 		else
 		{
@@ -2142,7 +2154,7 @@ tnv_t *amp_agent_ctrl_desc_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(ids == NULL)
 	{
-		AMP_DEBUG_ERR("DESC_RULE", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("DESC_RULE", "%s", "Bad parameters.");
 		return result;
 	}
 
@@ -2201,7 +2213,7 @@ tnv_t *amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(var == NULL)
 	{
-		AMP_DEBUG_ERR("stor_var","Cannot find variable.", NULL);
+		AMP_DEBUG_ERR("stor_var", "%s", "Cannot find variable.");
 		return result;
 	}
 
@@ -2214,7 +2226,7 @@ tnv_t *amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	}
 	else
 	{
-		AMP_DEBUG_ERR("stor_var","unable to assign new value.", NULL);
+		AMP_DEBUG_ERR("stor_var", "%s", "unable to assign new value.");
 	}
 
 
@@ -3422,7 +3434,7 @@ tnv_t *amp_agent_op_stor(vector_t *stack)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	AMP_DEBUG_ERR("stor","Not Implemented.", NULL);
+	AMP_DEBUG_ERR("stor", "%s", "Not Implemented.");
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_stor BODY

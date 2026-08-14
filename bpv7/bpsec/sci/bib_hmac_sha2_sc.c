@@ -110,7 +110,8 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 		if(result == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Cannot find a key for verification.", NULL);
+			BPSEC_DEBUG_ERR("%s",
+					"Cannot find a key for verification.");
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -136,7 +137,9 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	{
 		if((ipptZcoLen = bpsec_util_canonicalizeIn(wk, tgtResult->scTargetId, &ipptZco)) <= 0)
 		{
-			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of %d.", tgtResult->scTargetId);
+			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of " UVAST_FIELDSPEC
+					".",
+					(uvast) tgtResult->scTargetId);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -153,7 +156,7 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 	if((ippt_preamble.scSerializedLength <= 0) || (ippt_preamble.scSerializedText == NULL))
 	{
-		BPSEC_DEBUG_ERR("Cannot build IPPT Data.",NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot build IPPT Data.");
 		if (ipptZco != 0) zco_destroy(state->sdr, ipptZco);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -270,7 +273,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 
 		if((lyst_insert_last(extraParms, wrappedKey)) == NULL)
 		{
-			BPSEC_DEBUG_ERR("Unable to store wrapped key.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to store wrapped key.");
 			bpsec_scv_clear(0, &(state->scRawKey));
 			bpsec_scv_clear(0, wrappedKey);
 			bpsec_ctx_abort(&ctx);
@@ -287,7 +290,9 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	{
 		if((ipptZcoLen = bpsec_util_canonicalizeOut(bundle, tgtResult->scTargetId, &ipptZco)) <= 0)
 		{
-			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of %d.", tgtResult->scTargetId);
+			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of " UVAST_FIELDSPEC
+					".",
+					(uvast) tgtResult->scTargetId);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -303,7 +308,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 
 	if((ippt_preamble.scSerializedLength <= 0) || (ippt_preamble.scSerializedText == NULL))
 	{
-		BPSEC_DEBUG_ERR("Cannot build IPPT Data.",NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot build IPPT Data.");
 		if (ipptZco != 0) zco_destroy(state->sdr, ipptZco);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -345,7 +350,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	digest = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
 	if(digest == NULL)
 	{
-		BPSEC_DEBUG_ERR("Unable to allocate digest.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to allocate digest.");
 		MRELEASE(csi_result.contents);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -354,7 +359,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 
 	if((lyst_insert_last(state->scStResults, digest)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Unable to append new result.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Unable to append new result.");
 		bpsec_scv_clear(0, digest); /* Also handles freeing csi_result.contents */
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
@@ -435,14 +440,14 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject 
 	/* Catch context allocation failure BEFORE passing to csi_sign_start */
 	if (csi_ctx == NULL)
 	{
-		BPSEC_DEBUG_ERR("Can't init context.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't init context.");
 		MRELEASE(chunkData.contents);
 		return NULL;
 	}
 
 	if(csi_sign_start(csi_suite, csi_ctx) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't start context.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start context.");
 		MRELEASE(chunkData.contents);
 		csi_ctx_free(csi_suite, csi_ctx);
 		return NULL;
@@ -454,7 +459,7 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject 
 
 	if ((sdr_begin_xn(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Can't start txn.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Can't start txn.");
 		MRELEASE(chunkData.contents);
 		csi_ctx_free(csi_suite, csi_ctx);
 		return NULL;
@@ -477,7 +482,7 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject 
 		/* Add the data to the context.        */
 		if(csi_sign_update(csi_suite, csi_ctx, chunkData, svc) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Error updating signature.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Error updating signature.");
 
 			/* Setting success to 0 skips remaining processing. */
 			success = 0;
@@ -516,7 +521,7 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject 
 		}
 		else if(csi_sign_update(csi_suite, csi_ctx, chunkData, svc) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Error updating signature.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Error updating signature.");
 
 			/* Setting success to 0 skips remaining processing. */
 			success = 0;
@@ -543,7 +548,7 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, SdrObject 
 		}
 		else if(csi_sign_update(csi_suite, csi_ctx, chunkData, svc) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Error updating signature.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Error updating signature.");
 			success = 0;
 		}
 

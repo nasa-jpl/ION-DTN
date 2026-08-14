@@ -234,7 +234,7 @@ void *bpsec_scv_rawGet(PsmPartition wm, sc_value *val)
 			break;
 
 		default:
-			BPSEC_DEBUG_ERR("Unknown location.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unknown location.");
 			break;
 	}
 
@@ -354,7 +354,8 @@ sc_value *bpsec_scv_memCopy(sc_value *oldVal)
 	CHKNULL(valuePtr);
 	if ((result = MTAKE(sizeof(sc_value))) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", sizeof(sc_value));
+		BPSEC_DEBUG_ERR("Cannot allocate " UVAST_FIELDSPEC " bytes.",
+				(uvast) sizeof(sc_value));
 		return NULL;
 	}
 
@@ -475,7 +476,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 	/* Step 1: Allocate and initialize the resultant SCI value. */
 	if((result = (sc_value*) MTAKE(sizeof(sc_value))) == NULL)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate SCI value.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate SCI value.");
 		return NULL;
 	}
 	memset(result, 0, sizeof(sc_value));
@@ -491,7 +492,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 	uvtemp = 2;
 	if (cbor_decode_array_open(&uvtemp, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot decode SCI parm array.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot decode SCI parm array.");
 		MRELEASE(result);
 		return NULL;
 	}
@@ -499,7 +500,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 	/* Step 3: Grab the ID from the first element of the array. */
 	if (cbor_decode_integer(&uvtemp, CborAny, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot decode SCI parm ID.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot decode SCI parm ID.");
 		MRELEASE(result);
 		return NULL;
 	}
@@ -515,7 +516,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 
 	if(cbor_decode_byte_string(NULL, &bufLen, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot determine SCI value length.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot determine SCI value length.");
 			MRELEASE(result);
 			return NULL;
 	}
@@ -529,7 +530,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 
 	if(cbor_decode_byte_string((unsigned char *)buffer, &bufLen, cursor, unparsedBytes) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot extract SC val byte string.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot extract SC val byte string.");
 		MRELEASE(buffer);
 			MRELEASE(result);
 			return NULL;
@@ -550,7 +551,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 
 			if((len < 1) || (result->scRawValue.asPtr == NULL))
 			{
-				BPSEC_DEBUG_ERR("Failed to extract value.", NULL);
+				BPSEC_DEBUG_ERR("%s", "Failed to extract value.");
 				result->scValLength = 0;
 				result->scRawValue.asPtr = NULL;
 			}
@@ -563,9 +564,9 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 	/* Step 6: Sanity check results before returning. */
 	if((result->scValLength == 0) || (result->scRawValue.asPtr == NULL))
 	{
-		 BPSEC_DEBUG_ERR("Cannot extract SCI value.", NULL);
-		 MRELEASE(result);
-		 result = NULL;
+		BPSEC_DEBUG_ERR("%s", "Cannot extract SCI value.");
+		MRELEASE(result);
+		result = NULL;
 	}
 
 	BPSEC_DEBUG_PROC("Returning "ADDR_FIELDSPEC".", (uaddr)result);
@@ -604,11 +605,12 @@ SdrObject bpsec_scv_memListRecord(Sdr sdr, SdrObject sdr_list, Lyst values)
 	LystElt elt = NULL;
 	int list_created_here = 0;
 
-	BPSEC_DEBUG_PROC("(sdr,%d,"ADDR_FIELDSPEC")", sdr_list, (uaddr) values);
+	BPSEC_DEBUG_PROC("(sdr," UVAST_FIELDSPEC "," ADDR_FIELDSPEC ")",
+			(uvast) sdr_list, (uaddr) values);
 
 	if(values == NULL)
 	{
-		BPSEC_DEBUG_INFO("NO values to record.", NULL);
+		BPSEC_DEBUG_INFO("%s", "NO values to record.");
 		return sdr_list;
 	}
 
@@ -616,7 +618,7 @@ SdrObject bpsec_scv_memListRecord(Sdr sdr, SdrObject sdr_list, Lyst values)
 	{
 		if((sdr_list = sdr_list_create(sdr)) == 0)
 		{
-			BPSEC_DEBUG_ERR("Unable to create sdr list.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to create sdr list.");
 			return 0;
 		}
 		list_created_here = 1;
@@ -628,7 +630,7 @@ SdrObject bpsec_scv_memListRecord(Sdr sdr, SdrObject sdr_list, Lyst values)
 
 		if(bpsec_scv_memSdrListAppend(sdr, sdr_list, val) == -1)
 		{
-			BPSEC_DEBUG_ERR("Unable to record value.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Unable to record value.");
 			if (list_created_here)
 			{
 				sdr_list_destroy(sdr, sdr_list, bpsec_scv_sdrListCbDel, NULL);
@@ -693,7 +695,7 @@ int bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, uns
 		{
 			if((valBuf = scvm[scvm_idx].scValToCBOR(0, val, &valBufLen)) == NULL)
 			{
-				BPSEC_DEBUG_ERR("Failed to encode value.", NULL);
+				BPSEC_DEBUG_ERR("%s", "Failed to encode value.");
 				*resultLen = 0;
 			}
 			BPSEC_DEBUG_INFO("Adding val type %d id %d to block with len %d.", val->scValType, val->scValId, valBufLen);
@@ -786,13 +788,15 @@ SdrObject bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal)
 
 	if((result = sdr_malloc(sdr, sizeof(sc_value))) == 0)
 	{
-		BPSEC_DEBUG_ERR("Unable to allocate %d bytes in SDR.", sizeof(sc_value));
+		BPSEC_DEBUG_ERR("Unable to allocate " UVAST_FIELDSPEC
+				" bytes in SDR.",
+				(uvast) sizeof(sc_value));
 		sdr_free(sdr, newVal.scRawValue.asSdr);
 		return 0;
 	}
 	sdr_write(sdr, result, (char*) &newVal, sizeof(newVal));
 
-	BPSEC_DEBUG_PROC("Returning %d.", result);
+	BPSEC_DEBUG_PROC("Returning " UVAST_FIELDSPEC ".", (uvast) result);
 	return result;
 }
 
@@ -818,7 +822,8 @@ int bpsec_scv_memSdrListAppend(Sdr sdr, SdrObject list, sc_value *val)
 {
 	SdrObject sdr_val = 0;
 
-	BPSEC_DEBUG_PROC("(sdr, %d," ADDR_FIELDSPEC ")", list, (uaddr) val);
+	BPSEC_DEBUG_PROC("(sdr, " UVAST_FIELDSPEC "," ADDR_FIELDSPEC ")",
+			(uvast) list, (uaddr) val);
 
 	if (val->scValLoc != SC_VAL_STORE_MEM)
 	{
@@ -828,13 +833,13 @@ int bpsec_scv_memSdrListAppend(Sdr sdr, SdrObject list, sc_value *val)
 
 	if ((sdr_val = bpsec_scv_memSdrConvert(sdr, val)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot write sc_value to SDR.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot write sc_value to SDR.");
 		return -1;
 	}
 
 	if (sdr_list_insert_last(sdr, list, sdr_val) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot write sc_value to SDR list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot write sc_value to SDR list.");
 
 		bpsec_scv_sdrRelease(sdr, sdr_val);
 		return -1;
@@ -961,7 +966,7 @@ SdrObject bpsec_scv_sdrListCopy(Sdr sdr, SdrObject oldList)
 	/* Step 1: Allocate the new SCI value list. */
 	if((newList = sdr_list_create(sdr)) == 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot allocate SDR list.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot allocate SDR list.");
 		return 0;
 	}
 
@@ -1026,7 +1031,7 @@ Lyst bpsec_scv_sdrListRead(Sdr sdr, SdrObject sdr_list)
 	SdrObject listElt;
 	Lyst result = lyst_create_using(getIonMemoryMgr());
 
-	BPSEC_DEBUG_PROC("(sdr, %d)", sdr_list);
+	BPSEC_DEBUG_PROC("(sdr, " UVAST_FIELDSPEC ")", (uvast) sdr_list);
 
 	CHKNULL(result);
 	lyst_delete_set(result, bpsec_scv_lystCbDel, NULL);
@@ -1041,7 +1046,7 @@ Lyst bpsec_scv_sdrListRead(Sdr sdr, SdrObject sdr_list)
 		sc_value *val = bpsec_scv_sdrMemConvert(sdr, sdr_list_data(sdr, listElt));
 		if(val == NULL)
 		{
-			BPSEC_DEBUG_ERR("Error reading sc_value from SDR.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Error reading sc_value from SDR.");
 		}
 		else
 		{
@@ -1088,8 +1093,9 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject sdr_list, un
 	BpsecSerializeData *tmpData = NULL;
 	int i = 0;
 
-	BPSEC_DEBUG_PROC("(sdr,"ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC")",
-			(uaddr)def, sdr_list, (uaddr)length);
+	BPSEC_DEBUG_PROC("(sdr," ADDR_FIELDSPEC "," UVAST_FIELDSPEC
+			 "," ADDR_FIELDSPEC ")",
+			(uaddr) def, (uvast) sdr_list, (uaddr) length);
 
 	/* Step 0: Sanity Checks. */
 	CHKNULL(sdr_list);
@@ -1121,7 +1127,7 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject sdr_list, un
 	 */
 	if(maxVals == 0)
 	{
-		BPSEC_DEBUG_INFO("No parameters to serialize.", NULL);
+		BPSEC_DEBUG_INFO("%s", "No parameters to serialize.");
 		tmpData = MTAKE(1);
 	}
 	else
@@ -1139,7 +1145,10 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject sdr_list, un
 		tmpData = MTAKE(maxVals * sizeof(BpsecSerializeData));
 		if(tmpData == NULL)
 		{
-			BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", maxVals * sizeof(BpsecSerializeData));
+			BPSEC_DEBUG_ERR("Cannot allocate " UVAST_FIELDSPEC
+					" bytes.",
+					(uvast) (maxVals *
+							sizeof(BpsecSerializeData)));
 			return NULL;
 		}
 	}
@@ -1157,7 +1166,7 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, SdrObject sdr_list, un
 		success = bpsec_scv_sdrSerialize(sdr, def, valObj, &(tmpData[i].scSerializedText), &(tmpData[i].scSerializedLength));
 		if(success == -1)
 		{
-			BPSEC_DEBUG_ERR("Cannot serialize value.", NULL);
+			BPSEC_DEBUG_ERR("%s", "Cannot serialize value.");
 			if (tmpData)
 			{
 				int j;
@@ -1261,7 +1270,7 @@ sc_value *bpsec_scv_sdrMemConvert(Sdr sdr, SdrObject valAddr)
 	sc_value sdr_val;
 	sc_value *val = NULL;
 
-	BPSEC_DEBUG_PROC("(sdr, %d)", valAddr);
+	BPSEC_DEBUG_PROC("(sdr, " UVAST_FIELDSPEC ")", (uvast) valAddr);
 	CHKNULL(valAddr);
 
 	val = MTAKE(sizeof(sc_value));
@@ -1322,8 +1331,10 @@ int bpsec_scv_sdrSerialize(Sdr sdr, sc_Def *def, SdrObject valObj, uint8_t **dat
 	int success = 0;
 	sc_value *tmp = NULL;
 
-	BPSEC_DEBUG_PROC("(sdr,"ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			(uaddr) def, valObj, (uaddr) data, (uaddr) length);
+	BPSEC_DEBUG_PROC("(sdr," ADDR_FIELDSPEC "," UVAST_FIELDSPEC
+			 "," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
+			(uaddr) def, (uvast) valObj, (uaddr) data,
+			(uaddr) length);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(data);

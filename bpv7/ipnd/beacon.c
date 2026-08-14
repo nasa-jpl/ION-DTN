@@ -160,7 +160,7 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 		ret += sdnvLength;
 		if (lyst_length(tags[id].children) > 1)
 		{
-			isprintf(buffer + *len, maxLen - *len, "{", NULL);
+			isprintf(buffer + *len, maxLen - *len, "%s", "{");
 			*len += 1;
 			if (*len >= maxLen) *len = maxLen - 1;
 		}
@@ -170,8 +170,7 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 		{
 			if (i > 0)
 			{
-				isprintf(buffer + *len, maxLen - *len, ",",
-						NULL);
+				isprintf(buffer + *len, maxLen - *len, "%s", ",");
 				*len += 1;
 				if (*len >= maxLen)
 				{
@@ -186,8 +185,8 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 					&searchChild);
 			if (found == NULL)
 			{
-				isprintf(buffer + *len, maxLen - *len,
-						"invalid tag", NULL);
+				isprintf(buffer + *len, maxLen - *len, "%s",
+						"invalid tag");
 				*len = strlen(buffer);
 				return -1;
 			}
@@ -213,7 +212,7 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 
 		if (lyst_length(tags[id].children) > 1)
 		{
-			isprintf(buffer + *len, maxLen - *len, "}", NULL);
+			isprintf(buffer + *len, maxLen - *len, "%s", "}");
 			*len += 1;
 			if (*len >= maxLen) *len = maxLen - 1;
 		}

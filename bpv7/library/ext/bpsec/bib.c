@@ -154,7 +154,7 @@ int bpsec_sign(Bundle *bundle)
 	/*    Now attach all new BIBs, signing all targets. */
 	if (bpsec_util_attachSecurityBlocks(bundle, BlockIntegrityBlk, SC_ACT_SIGN) < 0)
 	{
-		BIB_DEBUG_ERR("Unable to attach all BIB blocks.", NULL);
+		BIB_DEBUG_ERR("%s", "Unable to attach all BIB blocks.");
 		bundle->insecure = 1;
 	}
 
@@ -410,6 +410,6 @@ int bpsec_verify(AcqWorkArea *work)
 	}
 
 	bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
-	BPSEC_DEBUG_PROC("Returning 0", NULL);
+	BPSEC_DEBUG_PROC("%s", "Returning 0");
 	return 0;
 }

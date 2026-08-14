@@ -182,17 +182,29 @@
 #endif
 #if (BIB_TEST_LOGGING == 1)
 
-#define BIB_TEST_POINT(event, bundle, num) \
-{_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
-svc: bib-integrity, tgt:%u, msec:%u, count: %u", event,\
-(bundle) ? bundle->id.source.ssp.ipn.fqnn      : 0, \
-(bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \
-(bundle) ? bundle->destination.ssp.ipn.fqnn    : 0, \
-(bundle) ? bundle->destination.ssp.ipn.serviceNbr : 0, \
-num, \
-(bundle) ? bundle->id.creationTime.msec  : 0, \
-(bundle) ? bundle->id.creationTime.count : 0); \
-writeMemo(gMsg);}
+#define BIB_TEST_POINT(event, bundle, num)                                                   \
+	{                                                                                    \
+		_isprintf(__FILE__, __LINE__, gMsg, GMSG_BUFLEN,                             \
+				"[te] %s - bsrc:ipn:" UVAST_FIELDSPEC                        \
+				"." UVAST_FIELDSPEC                                          \
+				", bdest:ipn:" UVAST_FIELDSPEC "." UVAST_FIELDSPEC           \
+				", svc: bib-integrity, tgt:%u, msec:" UVAST_FIELDSPEC        \
+				", count: %u",                                               \
+				event,                                                       \
+				(uvast) ((bundle) ? bundle->id.source.ssp.ipn.fqnn :         \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->id.source.ssp.ipn.serviceNbr :   \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->destination.ssp.ipn.fqnn :       \
+						    0),                                      \
+				(uvast) ((bundle) ? bundle->destination.ssp.ipn.serviceNbr : \
+						    0),                                      \
+				num,                                                         \
+				(uvast) ((bundle) ? bundle->id.creationTime.msec :           \
+						    0),                                      \
+				(bundle) ? bundle->id.creationTime.count : 0);               \
+		writeMemo(gMsg);                                                             \
+	}
 #else
 #define BIB_TEST_POINT(event, bundle, num) {}
 #endif

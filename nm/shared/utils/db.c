@@ -105,7 +105,8 @@ int  db_read_objs(char *name)
 	{
 		case -1:  // SDR error. * /
 			sdr_cancel_xn(sdr);
-			AMP_DEBUG_ERR("db_read_objs", "Can't search for DB in SDR.", NULL);
+			AMP_DEBUG_ERR("db_read_objs", "%s",
+					"Can't search for DB in SDR.");
 			return -1;
 
 		case 0: // Not found; Must create new DB. * /
@@ -113,7 +114,8 @@ int  db_read_objs(char *name)
 			if((gDB.descObj = sdr_malloc(sdr, sizeof(gDB))) == 0)
 			{
 				sdr_cancel_xn(sdr);
-				AMP_DEBUG_ERR("db_read_objs", "No space for database.", NULL);
+				AMP_DEBUG_ERR("db_read_objs", "%s",
+						"No space for database.");
 				return -1;
 			}
 			AMP_DEBUG_ALWAYS("db_read_objs", "Creating DB: %s", name);
@@ -132,12 +134,13 @@ int  db_read_objs(char *name)
 		default:  /* Found DB in the SDR */
 			/* Read in the Database. */
 			sdr_read(sdr, (char *) &gDB, gDB.descObj, sizeof(gDB));
-			AMP_DEBUG_ALWAYS("db_read_objs", "Found DB", NULL);
+			AMP_DEBUG_ALWAYS("db_read_objs", "%s", "Found DB");
 	}
 
 	if(sdr_end_xn(sdr))
 	{
-		AMP_DEBUG_ERR("db_read_objs", "Can't create Agent database.", NULL);
+		AMP_DEBUG_ERR("db_read_objs", "%s",
+				"Can't create Agent database.");
 		return -1;
 	}
 
@@ -164,7 +167,7 @@ int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list)
 	if (((desc->itemObj == 0) && (desc->itemSize != 0)) ||
 			((desc->itemObj != 0) && (desc->itemSize == 0)))
 	{
-		AMP_DEBUG_ERR("db_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("db_persist", "%s", "bad params.");
 		return AMP_FAIL;
 	}
 
@@ -188,8 +191,9 @@ int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list)
 	{
 		sdr_cancel_xn(sdr);
 		AMP_DEBUG_ERR("db_persist",
-				"Can't allocate descriptor of size %d.",
-				sizeof(db_desc_t));
+				"Can't allocate descriptor of size " UVAST_FIELDSPEC
+				".",
+				(uvast) sizeof(db_desc_t));
 		return AMP_SYSERR;
 	}
 
@@ -209,7 +213,7 @@ int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list)
 	sdr_write(sdr, desc->itemObj, (char *) blob->value, desc->itemSize);
 
 	/* Step 4: Write the item descriptor to the SDR. */
-	sdr_write(sdr, desc->descObj, (char *) desc, sizeof(db_desc_t));
+	sdr_write(sdr, desc->descObj, (char *) desc, (uvast) sizeof(db_desc_t));
 
 	/* Step 5: Save the descriptor in the AgentDB active rules list. */
 	if (sdr_list_insert_last(sdr, list, desc->descObj) == 0)
@@ -217,14 +221,14 @@ int  db_persist(blob_t *blob, db_desc_t *desc, SdrObject list)
 		db_forget(desc, list);
 
 		sdr_cancel_xn(sdr);
-		AMP_DEBUG_ERR("db_persist",
-				"Unable to insert item Descr. in SDR.", NULL);
+		AMP_DEBUG_ERR("db_persist", "%s",
+				"Unable to insert item Descr. in SDR.");
 		return AMP_SYSERR;
 	}
 
 	if(sdr_end_xn(sdr))
 	{
-		AMP_DEBUG_ERR("db_persist", "Can't persist db item.", NULL);
+		AMP_DEBUG_ERR("db_persist", "%s", "Can't persist db item.");
 		return AMP_SYSERR;
 	}
 
@@ -339,7 +343,8 @@ int vdb_obj_init(SdrObject sdr_list, vdb_init_cb_fn init_cb)
 
 			if(init_cb(data, cur_desc) != AMP_OK)
 			{
-				AMP_DEBUG_ERR("vdb_init","Unable to insert new data item. Removing item.", NULL);
+				AMP_DEBUG_ERR("vdb_init", "%s",
+						"Unable to insert new data item. Removing item.");
 				//db_forget(&cur_desc, sdr_list);
 			}
 			else
@@ -364,7 +369,8 @@ int vdb_db_init_ctrl(blob_t *data, db_desc_t desc)
 
 	if((ctrl = ctrl_db_deserialize(data)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_cb_ctrl","Can't deserialize raw control.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_cb_ctrl", "%s",
+				"Can't deserialize raw control.");
 		return AMP_FAIL;
 	}
 
@@ -372,7 +378,8 @@ int vdb_db_init_ctrl(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_CTRL(ctrl, NULL) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_cb_ctrl","Can't add new control.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_cb_ctrl", "%s",
+				"Can't add new control.");
 		ctrl_release(ctrl, 1);
 		return AMP_FAIL;
 	}
@@ -390,7 +397,8 @@ int vdb_db_init_macdef(blob_t *data, db_desc_t desc)
 	*mac = macdef_deserialize_raw(data, &success);
 	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_macro","Can't deserialize raw macro.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_macro", "%s",
+				"Can't deserialize raw macro.");
 		SRELEASE(mac);
 		return success;
 	}
@@ -399,7 +407,7 @@ int vdb_db_init_macdef(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_MACDEF(mac->ari, mac) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_macro","Can't add new macro.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_macro", "%s", "Can't add new macro.");
 		macdef_release(mac, 1);
 		return AMP_FAIL;
 	}
@@ -416,7 +424,8 @@ int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc)
 
 	if((rptt = rpttpl_deserialize_raw(data, &success)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rpttpl","Can't deserialize raw report.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rpttpl", "%s",
+				"Can't deserialize raw report.");
 		return AMP_FAIL;
 	}
 
@@ -424,7 +433,8 @@ int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_RPTT(rptt->id, rptt) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rpttpl","Can't add new report.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rpttpl", "%s",
+				"Can't add new report.");
 		rpttpl_release(rptt, 1);
 		return AMP_FAIL;
 	}
@@ -441,7 +451,8 @@ int vdb_db_init_rule(blob_t *data, db_desc_t desc)
 
 	if((rule = rule_db_deserialize_raw(data, &success)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rule","Can't deserialize raw rule.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rule", "%s",
+				"Can't deserialize raw rule.");
 		return AMP_FAIL;
 	}
 
@@ -449,7 +460,7 @@ int vdb_db_init_rule(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_RULE(&(rule->id), rule) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rule","Can't add new rule.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rule", "%s", "Can't add new rule.");
 		rule_release(rule, 1);
 		return AMP_FAIL;
 	}
@@ -468,7 +479,8 @@ int vdb_db_init_var(blob_t *data, db_desc_t desc)
 
 	if((var = var_deserialize_raw(data, &success)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_var","Can't deserialize raw var.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_var", "%s",
+				"Can't deserialize raw var.");
 		return AMP_FAIL;
 	}
 
@@ -476,7 +488,7 @@ int vdb_db_init_var(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_VAR(var->id, var) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_var","Can't add new var.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_var", "%s", "Can't add new var.");
 		var_release(var, 1);
 		return AMP_FAIL;
 	}
@@ -558,7 +570,8 @@ int db_init(char *name, void (*adm_init_cb)(void))
 	adm_common_init();
 	if (adm_init_cb == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_init", "Error: adm_init_cb not registered.", NULL);
+		AMP_DEBUG_ERR("vdb_init", "%s",
+				"Error: adm_init_cb not registered.");
 	}
 	else
 	{

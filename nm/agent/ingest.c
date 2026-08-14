@@ -55,8 +55,9 @@
  *****************************************************************************/
 
 void *rx_thread(void *arg) {
-	AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
-	AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
+	AMP_DEBUG_ENTRY("rx_thread", "(0x" UVAST_HEX_FIELDSPEC ")",
+			(uvast) pthread_self());
+	AMP_DEBUG_INFO("rx_thread", "%s", "Receiver thread running...");
 
 	ion_atomic_t *running = (ion_atomic_t *) arg;
 
@@ -87,7 +88,8 @@ void *rx_thread(void *arg) {
 
 			if((grp == NULL) || (success != AMP_OK))
 			{
-				AMP_DEBUG_ERR("rx_thread","Discarding invalid message.", NULL);
+				AMP_DEBUG_ERR("rx_thread", "%s",
+						"Discarding invalid message.");
 				break;
 			}
 
@@ -104,7 +106,8 @@ void *rx_thread(void *arg) {
 				switch(msg_type)
 				{
 				case MSG_TYPE_PERF_CTRL:
-					AMP_DEBUG_ALWAYS("rx_thread","Received perform control msg.", NULL);
+					AMP_DEBUG_ALWAYS("rx_thread", "%s",
+							"Received perform control msg.");
 					rx_handle_perf_ctrl(&meta, vecit_data(it));
 					break;
 				default:
@@ -117,8 +120,9 @@ void *rx_thread(void *arg) {
 		}
 	}
 
-	AMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
-	AMP_DEBUG_EXIT("rx_thread","->.", NULL);
+	AMP_DEBUG_ALWAYS("rx_thread", "%s",
+			"Shutting Down Agent Receive Thread.");
+	AMP_DEBUG_EXIT("rx_thread", "%s", "->.");
 	pthread_exit(NULL);
 	return NULL; /* Defensive. */
 }
@@ -169,7 +173,8 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 
 	if((msg == NULL) || (success != AMP_OK))
 	{
-		AMP_DEBUG_ERR("rx_handle_perf_ctrl", "Can't get control message.", NULL);
+		AMP_DEBUG_ERR("rx_handle_perf_ctrl", "%s",
+				"Can't get control message.");
 		return;
 	}
 
@@ -199,7 +204,8 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 
 			if(db_persist_ctrl(ctrl) != AMP_OK)
 			{
-				AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot persist ctrl.", NULL);
+				AMP_DEBUG_ERR("rx_ingest_ctrl", "%s",
+						"Cannot persist ctrl.");
 				ctrl_release(ctrl, 1);
 				break;
 			}
@@ -209,7 +215,8 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 			if(VDB_ADD_CTRL(ctrl, NULL) != AMP_OK)
 			{
 				db_forget(&(ctrl->desc), gDB.ctrls);
-				AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot store ctrl in RAM.", NULL);
+				AMP_DEBUG_ERR("rx_ingest_ctrl", "%s",
+						"Cannot store ctrl in RAM.");
 				ctrl_release(ctrl, 1);
 				break;
 			}

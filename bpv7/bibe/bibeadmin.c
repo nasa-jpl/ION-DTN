@@ -363,14 +363,13 @@ static void	printBcla(Bcla *bcla)
 		reportToEid[0] = '\0';
 	}
 
-	isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  rtn: %lu  \
-reportTo: '%s'  bsrFlags: %c  lifespan: %d  priority: %c  ordinal: %c  \
-qosFlags: %c  data label: %u  count: " UVAST_FIELDSPEC, peerEid,
-			bcla->fwdLatency, bcla->rtnLatency,
-			reportToEid, bcla->bsrFlags,
-			bcla->lifespan, bcla->classOfService,
-			bcla->ancillaryData.ordinal,
-			bcla->ancillaryData.flags,
+	isprintf(buffer, sizeof buffer,
+			"%.255s\tfwd: %u  rtn: %u  reportTo: '%s'  bsrFlags: %c  "
+			"lifespan: %d  priority: %c  ordinal: %c  qosFlags: %c  "
+			"data label: %u  count: " UVAST_FIELDSPEC,
+			peerEid, bcla->fwdLatency, bcla->rtnLatency, reportToEid,
+			bcla->bsrFlags, bcla->lifespan, bcla->classOfService,
+			bcla->ancillaryData.ordinal, bcla->ancillaryData.flags,
 			bcla->ancillaryData.dataLabel, bcla->count);
 
 	printText(buffer);

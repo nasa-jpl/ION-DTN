@@ -426,19 +426,22 @@ uint32_t hsha_sign_res_len(csi_csid_t suite, void *context)
 
 	if(ctx == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_res_len: NULL context provided.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x hsha_sign_res_len: NULL context provided.");
 		return 0;
 	}
 
 	if(ctx->md_info == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_res_len: No MD Info in context.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x hsha_sign_res_len: No MD Info in context.");
 		return 0;
 	}
 
 	if((result = (uint32_t) mbedtls_md_get_size(ctx->md_info)) == 0)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_res_len: Could not get size for result.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x hsha_sign_res_len: Could not get size for result.");
 		return 0;
 	}
 
@@ -512,13 +515,13 @@ int8_t  hsha_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_sv
 
 	if(ctx == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_update: NULL context provided.", NULL);
+		CSI_DEBUG_ERR("%s", "x hsha_sign_update: NULL context provided.");
 		return ERROR;
 	}
 
 	if(ctx->md_info == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_update: No MD Info in context.", NULL);
+		CSI_DEBUG_ERR("%s", "x hsha_sign_update: No MD Info in context.");
 		return ERROR;
 	}
 
@@ -569,13 +572,13 @@ int8_t  hsha_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 
 	if(ctx == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_finish: NULL context.", NULL);
+		CSI_DEBUG_ERR("%s", "x hsha_sign_finish: NULL context.");
 		return ERROR;
 	}
 
 	if(digest == NULL)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_finish: NULL result.", NULL);
+		CSI_DEBUG_ERR("%s", "x hsha_sign_finish: NULL result.");
 		return ERROR;
 	}
 
@@ -632,8 +635,8 @@ int8_t  hsha_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 		}
 		else
 		{
-			CSI_DEBUG_WARN("x hsha_sign_finish: digests don't match.",
-					NULL);
+			CSI_DEBUG_WARN("%s",
+					"x hsha_sign_finish: digests don't match.");
 			result = 4;	/*	Target block was altered.	*/
 		}
 
@@ -722,7 +725,8 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 
 	if((digest_len = (uint32_t) mbedtls_md_get_size(md_info)) == 0)
 	{
-		CSI_DEBUG_ERR("x hsha_sign_full: Could not get size for result.", NULL);
+		CSI_DEBUG_ERR("%s",
+				"x hsha_sign_full: Could not get size for result.");
 		return ERROR;
 	}
 
@@ -782,8 +786,8 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 		}
 		else
 		{
-			CSI_DEBUG_WARN("x hsha_sign_full: digests don't match.",
-					NULL);
+			CSI_DEBUG_WARN("%s",
+					"x hsha_sign_full: digests don't match.");
 			retval = 4;	/*	Target block was altered.	*/
 		}
 

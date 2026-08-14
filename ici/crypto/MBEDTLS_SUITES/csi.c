@@ -183,7 +183,7 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 	result.icv = csi_extract_tlv(CSI_PARM_ICV, buf, len);
 	result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, buf, len);
 
-	CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
+	CSI_DEBUG_PROC("%s", "- csi_build_parms -> parms");
 
 	return result;
 }
@@ -237,7 +237,7 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 	/* Step 0 - Sanity Check. */
 	if((buf == NULL) || (bufLen == 0))
 	{
-		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_extract_tlv - Bad Parms.");
 		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
 		return result;
 	}
@@ -274,7 +274,9 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 
 		if (sdnvLength == 0 || sdnvLength > bufLen)
 		{
-			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %d with %d buffer remaining.", sdnvLength, bufLen);
+			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of " UVAST_FIELDSPEC
+				      " with %u buffer remaining.",
+					sdnvLength, bufLen);
 			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
 
 			return result;
@@ -359,7 +361,7 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 
 	if((len == 0) || (contents == NULL))
 	{
-		CSI_DEBUG_ERR("x csi_build_tlv: Bad parms.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_build_tlv: Bad parms.");
 		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
 
 		return result;
@@ -421,7 +423,7 @@ void csi_cipherparms_free(csi_cipherparms_t parms)
 // 2/21
 int csi_init(void)
 {
-	CSI_DEBUG_PROC("+ csi_init()", NULL);
+	CSI_DEBUG_PROC("%s", "+ csi_init()");
 
 	g_csi_init = 1;
 
@@ -433,17 +435,17 @@ int csi_init(void)
 
 	if(gcm_init(&g_csi_entropy) != 1)
 	{
-		CSI_DEBUG_ERR("x csi_int: Error initializing gcm.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_int: Error initializing gcm.");
 		return -1;
 	}
 
 	if(hsha_init(&g_csi_entropy) != 1)
 	{
-		CSI_DEBUG_ERR("x csi_int: Error initializing hsha.", NULL);
+		CSI_DEBUG_ERR("%s", "x csi_int: Error initializing hsha.");
 		return -1;
 	}
 
-	CSI_DEBUG_PROC("- csi_init -> 1.", NULL);
+	CSI_DEBUG_PROC("%s", "- csi_init -> 1.");
 	return 1;
 }
 
@@ -1265,8 +1267,11 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 {
 	int8_t retval = ERROR;
 
-	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, key (len=%d), input(len=%d),"ADDR_FIELDSPEC")",
-			suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
+	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, parms=" ADDR_FIELDSPEC
+		       ", key (len=%u), input(len=%u), output=" ADDR_FIELDSPEC
+		       ")",
+			suite, svc, (uaddr) parms, key.len, input.len,
+			(uaddr) output);
 
 	CSI_CHK
 

@@ -235,7 +235,8 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 		expr_release(expr, 1);
 		if(result->value == NULL)
 		{
-			AMP_DEBUG_ERR("var_create", "Cannot eval var expr.", NULL);
+			AMP_DEBUG_ERR("var_create", "%s",
+					"Cannot eval var expr.");
 
 			ari_release(id, 1);
 			SRELEASE(result);

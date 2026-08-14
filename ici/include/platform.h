@@ -341,6 +341,17 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 	#define ION_THREAD_LOCAL __thread
 #endif
 
+/*
+ * Safely leverages compiler static analysis for format strings across all
+ * toolchains without breaking strict ISO C or POSIX compliance.
+ * This is exclusively a diagnostic build-time tool; it does not interject
+ * any runtime dependencies.
+ */
+#if defined(__GNUC__) || defined(__clang__)
+#define ION_FORMAT_PRINTF(fmt_arg, first_vararg) __attribute__((format(printf, fmt_arg, first_vararg)))
+#else
+#define ION_FORMAT_PRINTF(fmt_arg, first_vararg)
+#endif
 
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -939,7 +950,7 @@ extern void			printStackTrace(void);
 #ifndef DEBUG_RFX
 #define DEBUG_RFX		(0)
 #endif
-extern void			debugPrint(const char *format, ...);
+extern void			debugPrint(const char *format, ...) ION_FORMAT_PRINTF(1, 2);
 
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
@@ -978,7 +989,9 @@ extern int			sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);
 extern uvast			htonv(uvast hostvast);
 extern uvast			ntohv(uvast netvast);
 
-extern int			_isprintf(const char *, int, char *, int, const char *, ...);
+extern int			_isprintf(const char *, int, char *, int,
+					const char *, ...)
+					ION_FORMAT_PRINTF(5, 6);
 extern size_t			istrlen(const char *, size_t);
 extern char			*istrcpy(char *, const char *, size_t);
 extern char			*istrcat(char *, char *, size_t);

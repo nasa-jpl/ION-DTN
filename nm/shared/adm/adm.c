@@ -98,7 +98,7 @@ int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_cnst","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_cnst", "%s", "Ignoring duplicate item.");
 		edd_release(def, 1);
 	}
 	else if(rh_code != RH_OK)
@@ -150,7 +150,8 @@ int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_ctrldef_ari","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_ctrldef_ari", "%s",
+				"Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -209,7 +210,7 @@ int adm_add_edd(ari_t *id, edd_collect_fn collect)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_edd","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_edd", "%s", "Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -257,7 +258,7 @@ int adm_add_lit(ari_t *id)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_lit","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_lit", "%s", "Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -308,7 +309,8 @@ int adm_add_macdef(macdef_t *def)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_macdef","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_macdef", "%s",
+				"Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -365,7 +367,7 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 
 	if((def = op_create(id, num_parm, apply_fn)) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_op_ari","Cannot create op.", NULL);
+		AMP_DEBUG_ERR("adm_add_op_ari", "%s", "Cannot create op.");
 
 		ari_release(id, 1);
 		return AMP_FAIL;
@@ -375,11 +377,12 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_op_ari","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_op_ari", "%s",
+				"Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
-		AMP_DEBUG_ERR("adm_add_op_ari","Cannot create op.", NULL);
+		AMP_DEBUG_ERR("adm_add_op_ari", "%s", "Cannot create op.");
 
 		op_release(def, 1);
 	}
@@ -433,7 +436,8 @@ int adm_add_rpttpl(rpttpl_t *def)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_rpttpl","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_rpttpl", "%s",
+				"Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -458,7 +462,7 @@ int adm_add_tblt(tblt_t *def)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_tblt","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_tblt", "%s", "Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -476,14 +480,15 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 
 	if((id == NULL) || (expr == NULL))
 	{
-		AMP_DEBUG_ERR("adm_add_var_from_expr","Bad args.", NULL);
+		AMP_DEBUG_ERR("adm_add_var_from_expr", "%s", "Bad args.");
 		return AMP_FAIL;
 	}
 
 	// TODO: Make sure we don't leak expr.
 	if((new_var = var_create(id, type, expr)) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_var_from_expr","Unable to make new var.", NULL);
+		AMP_DEBUG_ERR("adm_add_var_from_expr", "%s",
+				"Unable to make new var.");
 		return AMP_FAIL;
 	}
 
@@ -491,7 +496,8 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_var_from_expr","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_var_from_expr", "%s",
+				"Ignoring duplicate item.");
 	}
 
 	if(rh_code != RH_OK)
@@ -523,7 +529,8 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_var_from_tnv","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_var_from_tnv", "%s",
+				"Ignoring duplicate item.");
 	}
 	if(rh_code != RH_OK)
 	{
@@ -561,7 +568,7 @@ ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id)
 	 */
 	if(cut_enc_uvast(id, &(result->u.as_reg.name)) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("adm_build_reg_ari","Cannot encode id.", NULL);
+		AMP_DEBUG_ERR("adm_build_reg_ari", "%s", "Cannot encode id.");
 		ari_release(result, 1);
 		return NULL;
 	}
@@ -599,7 +606,7 @@ void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type)
 		(val->value.as_ptr == NULL) ||
 		(val->type != type))
 	{
-		AMP_DEBUG_ERR("adm_get_parm_obj","Parm error.", NULL);
+		AMP_DEBUG_ERR("adm_get_parm_obj", "%s", "Parm error.");
 		return NULL;
 	}
 
@@ -652,11 +659,11 @@ void adm_common_init(void)
 {
 	int success;
 
-	AMP_DEBUG_ENTRY("adm_init","()", NULL);
+	AMP_DEBUG_ENTRY("adm_init", "%s", "()");
 
 	g_adm_info = vec_create(8, NULL, NULL, NULL, 0, &success);
 
 	adm_add_adm_info("ALL", 0);
 
-	AMP_DEBUG_EXIT("adm_init","->.", NULL);
+	AMP_DEBUG_EXIT("adm_init", "%s", "->.");
 }

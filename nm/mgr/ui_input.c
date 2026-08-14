@@ -64,16 +64,17 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 		{
 			if (len != 0)
 			{
-				AMP_DEBUG_ERR("ui_input_get_line","igets failed.", NULL);
-				AMP_DEBUG_EXIT("ui_input_get_line","->0.",NULL);
+				AMP_DEBUG_ERR("ui_input_get_line", "%s",
+						"igets failed.");
+				AMP_DEBUG_EXIT("ui_input_get_line", "%s", "->0.");
 				return 0;
 			}
 		}
 	}
 
-	AMP_DEBUG_INFO("ui_input_get_line","Read user input.", NULL);
+	AMP_DEBUG_INFO("ui_input_get_line", "%s", "Read user input.");
 
-	AMP_DEBUG_EXIT("ui_input_get_line","->1.",NULL);
+	AMP_DEBUG_EXIT("ui_input_get_line", "%s", "->1.");
 	return 1;
 }
 
@@ -121,7 +122,8 @@ blob_t *ui_input_file_contents(char *prompt)
 
 	if((data = STAKE(file_size)) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't allocate %d bytes.", file_size);
+		AMP_DEBUG_ERR("ui_input_file_contents",
+				"Couldn't allocate %ld bytes.", file_size);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -130,7 +132,9 @@ blob_t *ui_input_file_contents(char *prompt)
 	if(file_size < 0 || (fread(data, 1, (size_t)file_size, fp)) != (size_t)file_size)
 	{
 		SRELEASE(data);
-		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't read %d bytes from %s", file_size, filename);
+		AMP_DEBUG_ERR("ui_input_file_contents",
+				"Couldn't read %ld bytes from %s", file_size,
+				filename);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -224,13 +228,14 @@ uint8_t  ui_input_byte(char *prompt)
 	blob_t *blob = utils_string_to_hex(line);
 	if(blob == NULL)
 	{
-		AMP_DEBUG_ERR("ui_input_byte","Problem reading value. Returning 0.", NULL);
+		AMP_DEBUG_ERR("ui_input_byte", "%s",
+				"Problem reading value. Returning 0.");
 		return 0;
 	}
 
 	if(blob->length > 1)
 	{
-		ui_printf("Read %d bytes. Only selecting first.", blob->length);
+		ui_printf("Read %ld bytes. Only selecting first.", blob->length);
 	}
 	result = blob->value[0];
 	blob_release(blob, 1);
@@ -457,7 +462,7 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, uvast mask)
 
 	if(result == NULL)
 	{
-		AMP_DEBUG_INFO("ui_input_ari","User did not select ARI.", NULL);
+		AMP_DEBUG_INFO("ui_input_ari", "%s", "User did not select ARI.");
 		return NULL;
 	}
 
@@ -467,7 +472,8 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, uvast mask)
 	{
 		if(ui_input_parms(result) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to get parms.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to get parms.");
 			ari_release(result, 1);
 			result = NULL;
 		}
@@ -502,7 +508,8 @@ ari_t* ui_input_ari_build(uvast mask)
 
 		if((result == NULL) || (result->u.as_lit.type == AMP_TYPE_UNK))
 		{
-			AMP_DEBUG_ERR("ui_input_ari_build", "Problem building ARI.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari_build", "%s",
+					"Problem building ARI.");
 			ari_release(result, 1);
 			result = NULL;
 		}
@@ -528,7 +535,8 @@ ari_t* ui_input_ari_build(uvast mask)
 		uvast nn = ui_input_uvast("ARI Nickname:");
 		if(VDB_ADD_NN(nn, &(result->u.as_reg.nn_idx)) != VEC_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to add nickname.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to add nickname.");
 			ari_release(result, 1);
 			return NULL;
 		}
@@ -540,7 +548,8 @@ ari_t* ui_input_ari_build(uvast mask)
 		uvast iss = ui_input_uvast("ARI Issuer:");
 		if(VDB_ADD_ISS(iss, &(result->u.as_reg.iss_idx)) != VEC_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to add issuer.");
 			ari_release(result, 1);
 			return NULL;
 		}
@@ -548,13 +557,15 @@ ari_t* ui_input_ari_build(uvast mask)
 		blob_t *issuer = ui_input_blob("ARI Issuer:", 0);
 		if (issuer == NULL)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Invalid issuer input.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Invalid issuer input.");
 			ari_release(result, 1);
 			return NULL;
 		}
 		else if(VDB_ADD_ISS(*issuer, &(result->u.as_reg.iss_idx)) != VEC_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to add issuer.");
 			blob_release(issuer, 1);
 			ari_release(result, 1);
 			return NULL;
@@ -569,13 +580,14 @@ ari_t* ui_input_ari_build(uvast mask)
 		blob_t *tag = ui_input_blob("ARI Tag:", 0);
 		if (tag == NULL)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Invalid tag input.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s", "Invalid tag input.");
 			ari_release(result, 1);
 			return NULL;
 		}
 		else if(VDB_ADD_TAG(*tag, &(result->u.as_reg.tag_idx)) != VEC_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to add issuer.");
 			blob_release(tag, 1);
 			ari_release(result, 1);
 			return NULL;
@@ -587,7 +599,8 @@ ari_t* ui_input_ari_build(uvast mask)
 	{
 		if(ui_input_parms(result) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Unable to get parms.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Unable to get parms.");
 			ari_release(result, 1);
 			result = NULL;
 		}
@@ -601,7 +614,7 @@ ari_t* ui_input_ari_build(uvast mask)
 	}
 	else
 	{
-		AMP_DEBUG_ERR("ui_input_ari","Unable to get NAME.", NULL);
+		AMP_DEBUG_ERR("ui_input_ari", "%s", "Unable to get NAME.");
 		ari_release(result, 1);
 		result = NULL;
 	}
@@ -617,7 +630,8 @@ ari_t* ui_input_ari_build(uvast mask)
 		}
 		else
 		{
-			AMP_DEBUG_ERR("ui_input_ari","Error checking built ARI.", NULL);
+			AMP_DEBUG_ERR("ui_input_ari", "%s",
+					"Error checking built ARI.");
 			ari_release(result, 1);
 			result = NULL;
 		}
@@ -898,7 +912,8 @@ int ui_input_parms(ari_t *id)
 
 	if((meta = rhht_retrieve_key(&(gMgrDB.metadata), id)) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_input_parms","ARI has parms, but can't find metadata.", NULL);
+		AMP_DEBUG_ERR("ui_input_parms", "%s",
+				"ARI has parms, but can't find metadata.");
 		return AMP_FAIL;
 	}
 
@@ -920,13 +935,15 @@ int ui_input_parms(ari_t *id)
 
 		if (val == NULL)
 		{
-			AMP_DEBUG_ERR("ui_input_parms", "User failed to input a valid tnv, aborting", NULL);
+			AMP_DEBUG_ERR("ui_input_parms", "%s",
+					"User failed to input a valid tnv, aborting");
 			return AMP_FAIL;
 		}
 
 		if(vec_push(&(id->u.as_reg.parms.values), val) != VEC_OK)
 		{
-			AMP_DEBUG_ERR("ui_input_parms", "Can't add parameter.", NULL);
+			AMP_DEBUG_ERR("ui_input_parms", "%s",
+					"Can't add parameter.");
 			tnv_release(val, 1);
 			return AMP_FAIL;
 		}
@@ -1014,7 +1031,7 @@ ctrl_t* ui_input_ctrl(char * prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_ctrl", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_ctrl", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1071,7 +1088,7 @@ op_t* ui_input_oper(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_oper", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_oper", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1080,7 +1097,7 @@ rpt_t* ui_input_rpt(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_rpt", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_rpt", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1089,7 +1106,7 @@ rpttpl_t* ui_input_rpttpl(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_rpttpl", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_rpttpl", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1098,7 +1115,7 @@ rule_t *ui_input_rule(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_rule", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_rule", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1107,7 +1124,7 @@ tbl_t* ui_input_tbl(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_tbl", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_tbl", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1116,7 +1133,7 @@ tblt_t* ui_input_tblt(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_tblt", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_tblt", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1126,7 +1143,7 @@ var_t* ui_input_var(char* prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_var", "%s", "Not implemented yet.");
 	return NULL;
 }
 
@@ -1135,6 +1152,6 @@ macdef_t *ui_input_mac(char *prompt)
 	/* Parameter intentionally unused. */
 	(void)prompt;
 
-	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
+	AMP_DEBUG_ERR("ui_input_var", "%s", "Not implemented yet.");
 	return NULL;
 }

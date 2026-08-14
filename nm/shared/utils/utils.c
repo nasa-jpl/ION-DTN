@@ -48,7 +48,8 @@ int8_t utils_mem_int(void)
 {
 	if(initResourceLock(&gMemMutex))
 	{
-		AMP_DEBUG_ERR("utils_mem_int", "Cannot allocate memory mutex.", NULL);
+		AMP_DEBUG_ERR("utils_mem_int", "%s",
+				"Cannot allocate memory mutex.");
 		return AMP_SYSERR;
 
 	}
@@ -124,21 +125,22 @@ unsigned long utils_atox(char *s, int *success)
 	int j = 0;
 	int temp = 0;
 
-	AMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
+	AMP_DEBUG_ENTRY("utils_atox", "(" ADDR_FIELDSPEC ", " ADDR_FIELDSPEC ")",
+			(uaddr) s, (uaddr) success);
 
 	/* Step 0 - Sanity Check. */
 	if (success == NULL)
 	{
-		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
-		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ERR("utils_atox", "%s", "Bad Args.");
+		AMP_DEBUG_ENTRY("utils_atox", "%s", "->0.");
 		return AMP_FAIL;
 	}
 
 	*success = AMP_FAIL;
 	if(s == NULL)
 	{
-		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
-		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ERR("utils_atox", "%s", "Bad Args.");
+		AMP_DEBUG_ENTRY("utils_atox", "%s", "->0.");
 		return AMP_FAIL;
 	}
 
@@ -162,7 +164,7 @@ unsigned long utils_atox(char *s, int *success)
 	{
 		AMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
 		*success = AMP_FAIL;
-		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox", "%s", "->0.");
 		return AMP_FAIL;
 	}
 
@@ -234,8 +236,8 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 	uint32_t  i = 0;
 	int r = 0;
 
-	AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
-			(size_t) buffer, size);
+	AMP_DEBUG_ENTRY("utils_hex_to_string", "(" ADDR_FIELDSPEC ", %d)",
+			(uaddr) buffer, (int) size);
 
 	/* Each byte requires 2 characters to represent in HEX. Also, require
 	 * three additional bytes to capture '0x' and NULL terminator.
@@ -247,7 +249,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 	{
 		AMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
 				char_size);
-		AMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
+		AMP_DEBUG_EXIT("utils_hex_to_string", "%s", "-> NULL.");
 		return NULL;
 	}
 
@@ -375,8 +377,10 @@ blob_t* utils_string_to_hex(char *value)
 
 	if((result = blob_create(NULL, 0, size+1)) == NULL)
 	{
-		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", size);
-		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+		AMP_DEBUG_ERR("utils_string_to_hex",
+				"Can't Alloc " UVAST_FIELDSPEC " bytes.",
+				(uvast) size);
+		AMP_DEBUG_EXIT("utils_string_to_hex", "%s", "->NULL.");
 		return NULL;
 	}
 
@@ -408,12 +412,13 @@ blob_t* utils_string_to_hex(char *value)
 			AMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
 			blob_release(result, 1);
 
-			AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+			AMP_DEBUG_EXIT("utils_string_to_hex", "%s", "->NULL.");
 			return NULL;
 		}
 	}
 
-	AMP_DEBUG_EXIT("utils_string_to_hex", "->%#llx.", result);
+	AMP_DEBUG_EXIT("utils_string_to_hex", "->0x" ADDR_FIELDSPEC,
+			(uaddr) result);
 	return result;
 }
 

@@ -7159,15 +7159,15 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 
 	case ipn:
 		putFqn(nbrBuf, eid->ssp.ipn.fqnn);
-		isprintf(nssBuf, sizeof nssBuf, "%s.%u", nbrBuf,
-				eid->ssp.ipn.serviceNbr);
+		isprintf(nssBuf, sizeof nssBuf, "%s." UVAST_FIELDSPEC, nbrBuf,
+				(uvast) eid->ssp.ipn.serviceNbr);
 		break;
 
 #ifdef ENABLE_IMC
 	case imc:
 		putFqn(nbrBuf, eid->ssp.imc.fqgn);
-		isprintf(nssBuf, sizeof nssBuf, "%s.%u", nbrBuf,
-				eid->ssp.imc.serviceNbr);
+		isprintf(nssBuf, sizeof nssBuf, "%s." UVAST_FIELDSPEC, nbrBuf,
+				(uvast) eid->ssp.imc.serviceNbr);
 		break;
 #endif
 
@@ -10199,12 +10199,13 @@ bundle.", NULL);
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),
-			"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)y",
-			bundle->id.source.ssp.ipn.fqnn,
-			bundle->id.source.ssp.ipn.serviceNbr,
-			bundle->id.creationTime.msec,
-			bundle->id.creationTime.count);
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC
+				"," UVAST_FIELDSPEC ",%u)y",
+				bundle->id.source.ssp.ipn.fqnn,
+				bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.msec,
+				bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('y');
@@ -11997,10 +11998,11 @@ int bpEnqueue(VPlan *vplan, Bundle *bundle, SdrObject bundleObj)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",
-			bundle->id.source.ssp.ipn.fqnn,
-			bundle->id.source.ssp.ipn.serviceNbr,
-			bundle->id.creationTime.count);
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ",%u)b",
+				bundle->id.source.ssp.ipn.fqnn,
+				bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('b');
@@ -12055,7 +12057,8 @@ int enqueueToLimbo(Bundle *bundle, SdrObject bundleObj)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j",
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ",%u)j",
 				bundle->id.source.ssp.ipn.fqnn,
 				bundle->id.source.ssp.ipn.serviceNbr,
 				bundle->id.creationTime.count);
@@ -12247,10 +12250,11 @@ int releaseFromLimbo(SdrObject xmitElt, int resuming)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",
-			bundle.id.source.ssp.ipn.fqnn,
-			bundle.id.source.ssp.ipn.serviceNbr,
-			bundle.id.creationTime.count);
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ",%u)k",
+				bundle.id.source.ssp.ipn.fqnn,
+				bundle.id.source.ssp.ipn.serviceNbr,
+				bundle.id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('k');
@@ -12384,10 +12388,11 @@ int bpAbandon(SdrObject bundleObj, Bundle *bundle, int reason)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)~",
-			bundle->id.source.ssp.ipn.fqnn,
-			bundle->id.source.ssp.ipn.serviceNbr,
-			bundle->id.creationTime.count);
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ",%u)~",
+				bundle->id.source.ssp.ipn.fqnn,
+				bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('~');
@@ -13365,10 +13370,11 @@ int bpHandleXmitFailure(SdrObject bundleZco)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)#",
-			bundle.id.source.ssp.ipn.fqnn,
-			bundle.id.source.ssp.ipn.serviceNbr,
-			bundle.id.creationTime.count);
+		isprintf(ewchar, sizeof(ewchar),
+				"(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ",%u)#",
+				bundle.id.source.ssp.ipn.fqnn,
+				bundle.id.source.ssp.ipn.serviceNbr,
+				bundle.id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('#');

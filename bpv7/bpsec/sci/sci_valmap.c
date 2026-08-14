@@ -212,7 +212,7 @@ int bpsec_scvm_hexCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 	uv_temp = -1;
 	if(cbor_decode_byte_string(NULL, (uvast*) &uv_temp, &cursor, &tmp_len) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot determine SCI value length.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot determine SCI value length.");
 		return -1;
 	}
 
@@ -229,7 +229,7 @@ int bpsec_scvm_hexCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 	uv_temp = val->scValLength;
 	if((bytesUsed = cbor_decode_byte_string((unsigned char *) val->scRawValue.asPtr, &uv_temp, &cursor, &tmp_len)) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot decode byte string.");
 		bpsec_scv_clear(wm, val);
 		return -1;
 	}
@@ -453,7 +453,7 @@ int bpsec_scvm_intCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 
 	if ((bytesUsed = cbor_decode_integer(cursor, CborAny, &value, &len)) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot decode byte string.");
 		bpsec_scv_clear(wm, val);
 		return -1;
 	}
@@ -632,7 +632,7 @@ int bpsec_scvm_strCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 	/* Pass the aligned temp variable instead of the struct member */
 	if (cbor_decode_text_string(NULL, &temp_len, &buffer, &len) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot determine SC value length.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot determine SC value length.");
 		return -1;
 	}
 
@@ -648,7 +648,7 @@ int bpsec_scvm_strCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 	/* Pass the aligned temp variable again */
 	if ((bytesUsed = cbor_decode_text_string(cursor, &temp_len, &buffer, &len)) < 1)
 	{
-		BPSEC_DEBUG_ERR("Cannot decode text string.", NULL);
+		BPSEC_DEBUG_ERR("%s", "Cannot decode text string.");
 		bpsec_scv_clear(wm, val);
 		return -1;
 	}

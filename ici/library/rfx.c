@@ -2513,7 +2513,8 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 	char		buffer[256];
 	int		textLen;
 
-	isprintf(fileName, sizeof fileName, "contacts.%lu.ionrc", regionNbr);
+	isprintf(fileName, sizeof fileName,
+			"contacts." UVAST_FIELDSPEC ".ionrc", (uvast) regionNbr);
 	briefingFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (briefingFile == -1)
 	{
@@ -2521,7 +2522,8 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 		return;
 	}
 
-	isprintf(buffer, sizeof buffer, "^ %lu\n", regionNbr);
+	isprintf(buffer, sizeof buffer, "^ " UVAST_FIELDSPEC "\n",
+			(uvast) regionNbr);
 	textLen = strlen(buffer);
 	if (write(briefingFile, buffer, textLen) < 0)
 	{
