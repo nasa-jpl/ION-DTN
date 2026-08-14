@@ -143,6 +143,10 @@ Guide history) established the durable trends that still hold:
 
 ## Bounding session repair
 
+> For the background — what this replaced, and why the budget is now stated
+> rather than derived — see
+> [Bounding LTP Session Repair](ltp-repair-rounds.md).
+
 When an LTP session loses segments, it repairs them in **rounds**: one exchange
 of reception report and retransmission. `m maxrepairrounds` sets how many
 rounds a session may consume before the block is abandoned and left to BP to

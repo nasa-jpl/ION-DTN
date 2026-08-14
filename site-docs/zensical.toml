@@ -65,6 +65,7 @@ nav = [
         { "SDR Reversibility" = "topics/deep-dive-sdr-reversibility.md" },
         { "LTP UDP Multisend & Tuning" = "topics/ltp-udp-multisend-tuning.md" },
         { "LTP Performance" = "topics/ltp-performance.md" },
+        { "Bounding LTP Session Repair" = "topics/ltp-repair-rounds.md" },
         { "CFDP SW Architecture" = "cfdp-sw-architecture.md" },
         { "Contact Graph Events and LTP" = "contact-graph-events-and-ltp.md" },
         { "Contact Discovery with ipnd (Opportunistic Ducts)" = "contact-discovery-with-ipnd.md" },
