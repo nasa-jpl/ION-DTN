@@ -141,6 +141,57 @@ Guide history) established the durable trends that still hold:
 - **Kernel UDP buffers matter** (8 MB unblocked higher rates on the 10 Gbps
   study) — the same lesson the 4.2 UDP results make mandatory.
 
+## Bounding session repair
+
+When an LTP session loses segments, it repairs them in **rounds**: one exchange
+of reception report and retransmission. `m maxrepairrounds` sets how many
+rounds a session may consume before the block is abandoned and left to BP to
+re-forward. It is set globally, or per span with
+`m span <engine ID> maxrepairrounds`, must be between 1 and 256, and **defaults
+to 8**.
+
+The parameter is worth thinking of as a *time* budget rather than a retry
+count, because that is what it costs:
+
+```
+worst-case time to abandon a block  =  maxrepairrounds x acknowledgement deadline
+```
+
+and the acknowledgement deadline is dominated by round-trip light time. At the
+default of 8 rounds that is roughly 16 s on a LEO link, 40 s lunar, and 5.3 h
+at Mars distance. It also bounds how long an export session slot is held, which
+matters if `max_export_sessions` is provisioned tightly — a long-haul span is
+the case for a per-span override.
+
+**Why 8.** The default is calibrated against a design ceiling of **5% segment
+loss**, on the reasoning that a space link losing more than that is too degraded
+to carry useful traffic and is better abandoned than repaired. At that ceiling,
+8 rounds leave an expected residual below three undelivered segments in a
+million even for a 100 MiB block, and below three in a hundred million for
+1 MiB. Raising the value costs nothing for sessions that complete without loss,
+because the limit is a ceiling rather than a schedule — only a session that
+would otherwise have been abandoned consumes the extra allowance.
+
+**Relationship to `m maxseglossrate`.** The loss rate no longer determines how
+many rounds a session gets; it determines how many reception *reports* each
+round is allowed. A report can carry only a limited number of reception claims,
+so a large block with many gaps needs several reports to describe them — a
+100 MiB block at a 20% loss rate needs some 955 report segments, but only across
+a handful of rounds. Reports are cheap; rounds are what consume time. This is
+why the tunable is on rounds.
+
+**Inspecting the result.** `l span` in `ltpadmin` reports each span's resolved
+retransmission configuration and the session budget it produces for a nominal
+64 KiB block, so the effect of a change is visible immediately and two engines'
+settings can be diffed against each other.
+
+**Peer interaction.** LTP negotiates none of this. A receiving engine allows
+itself extra rounds beyond its own configured limit, so in normal operation the
+*sending* engine's limit governs and it is sufficient to configure each engine
+for the traffic it sends. That allowance depends on both engines running a
+release that implements `maxrepairrounds`; where one end is older, that end's
+budget will govern in the direction in which it is receiving.
+
 ## See also
 
 - `demos/bench-ltp-xlsa/doc/RESULTS.md` — raw xlsa benchmark data, impairment
@@ -161,4 +212,8 @@ Guide history) established the durable trends that still hold:
   than feeding the maxBER output to the deprecated `m maxber` command. Note also
   that with `m maxseglossrate` the loss rate is set *directly* and no longer
   tracks the segment size automatically (as it did under maxber), so it must be
-  recomputed if the segment size changes.
+  recomputed if the segment size changes. The spreadsheet also predates
+  `m maxrepairrounds` (see [Bounding session repair](#bounding-session-repair)),
+  which is what now determines how many repair rounds a session may consume;
+  the loss rate it computes still governs how many reception reports each round
+  is allowed.
