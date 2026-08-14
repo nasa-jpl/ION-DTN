@@ -318,8 +318,8 @@ build*/*
 contrib/Makefile
 
 # Ignore mkdocs build
-gh-pages/site/*
-gh-pages/docs/man/*
+site-docs/site/*
+site-docs/docs/man/*
 
 # python version file
 .python-version
@@ -677,4 +677,4 @@ kics-results.*
 # AGENTS & CLAUDE
 AGENTS.md
 CLAUDE.md
-!gh-pages/docs/AGENTS.md
+!site-docs/docs/AGENTS.md

@@ -461,7 +461,7 @@ jobs:
             echo "=== Tier $TIER ==="
             echo "=============================================================="
             # Each fallback tier needs BOTH levers set (see
-            # gh-pages/docs/ION-Coding-Guide.md "Testing the
+            # site-docs/docs/coding-guide.md "Testing the
             # Fallback Tiers"): ac_cv_c11=no short-circuits
             # configure.ac's C18 probe and -std=c99 in CFLAGS
             # overrides AM_CFLAGS, together placing the compiler

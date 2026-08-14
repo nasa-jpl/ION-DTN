@@ -15,10 +15,10 @@ build:
       # which doesn't satisfy == 5.34").  `~5.34` keeps the minimum while tolerating
       # CPAN patch bumps.
       - cpanm --from https://www.cpan.org MIME::Base32@1.303 URI~5.34 Pod::Markdown@3.400
-      - chmod +x ./gh-pages/docs/convert-pod-to-md.sh
-      - cd ./gh-pages/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
+      - chmod +x ./site-docs/docs/convert-pod-to-md.sh
+      - cd ./site-docs/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
     install:
       - pip install --require-hashes -r readthedocs-requirements.txt
 
 mkdocs:
-  configuration: gh-pages/mkdocs.yml  # Path to the mkdocs.yml in the gh-pages directory
+  configuration: site-docs/mkdocs.yml

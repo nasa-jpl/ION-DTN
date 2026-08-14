@@ -8,7 +8,7 @@ on:
     branches:
       - ION-documentation # Set this to your default branch
     paths:
-      - "gh-pages/**" # Trigger only when changes in gh-pages directory
+      - "site-docs/**" # Trigger only when changes in site-docs directory
   workflow_dispatch:
 
 jobs:
@@ -40,23 +40,23 @@ jobs:
 
       - name: Run convert ION pod files to MD
         run: |
-          cd gh-pages/docs
+          cd site-docs/docs
           chmod +x ./convert-pod-to-md.sh
           ./convert-pod-to-md.sh
 
       - name: Install dependencies
         run: |
-          cd gh-pages  # Change to the MkDocs directory
+          cd site-docs  # Change to the MkDocs directory
           python -m pip install --upgrade pip
           pip install --require-hashes -r ../readthedocs-requirements.txt
 
       - name: Build MkDocs site
         run: |
-          cd gh-pages  # Ensure we're in the right directory
+          cd site-docs  # Ensure we're in the right directory
           mkdocs build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gh-pages/site # Replace with your build directory
+          publish_dir: ./site-docs/site # Replace with your build directory
