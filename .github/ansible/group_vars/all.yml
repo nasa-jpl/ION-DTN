@@ -13,7 +13,7 @@ zone_mountpoint_base: "/zones"
 
 # Timeouts and retries
 zone_clone_timeout: 180 # 3 minutes for zone cloning
-zone_boot_timeout: 600 # 10 minutes for zone boot
+zone_boot_timeout: 900 # 15 minutes for zone boot
 zone_create_retries: 2
 zone_create_retry_delay: 3
 
