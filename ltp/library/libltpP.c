@@ -8966,6 +8966,104 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
+/*	Peer-asymmetry diagnostic.
+ *
+ *	A session's effective repair budget is the smaller of the two
+ *	the peers compute, and LTP negotiates nothing, so a session can
+ *	die at the receiving engine's limit while the local checkpoint
+ *	budget still has room.  Nothing else says so: the operator sees
+ *	a cancellation and no indication that the cause is at the other
+ *	end.  A receiving engine allows itself extra rounds precisely so
+ *	that this does not happen, so when it happens anyway the usual
+ *	cause is a peer that predates the repair round limit, or one
+ *	configured inconsistently.
+ *
+ *	Rate-limited: a systematically mismatched pair cancels sessions
+ *	continuously, and one memo per cancellation would bury ion.log
+ *	at exactly the moment somebody is reading it.
+ *
+ *	The limiter state is a file static rather than a member of
+ *	LtpVspan.  That structure is on the ABI watch list, and adding a
+ *	member to it would move engineId and every member after it; a
+ *	per-process approximation is more than adequate for deciding
+ *	how often to write a log line.				*/
+
+#ifndef LTP_PEER_MEMO_INTERVAL
+#define LTP_PEER_MEMO_INTERVAL	60	/*	Seconds.		*/
+#endif
+
+#ifndef LTP_PEER_MEMO_SPANS
+#define LTP_PEER_MEMO_SPANS	16
+#endif
+
+static int	peerMemoIsDue(uvast engineId)
+{
+	static uvast	trackedEngines[LTP_PEER_MEMO_SPANS];
+	static time_t	lastMemoTimes[LTP_PEER_MEMO_SPANS];
+	static int	tracked = 0;
+	time_t		currentTime = getCtime();
+	int		i;
+	int		oldest = 0;
+
+	for (i = 0; i < tracked; i++)
+	{
+		if (trackedEngines[i] != engineId)
+		{
+			if (lastMemoTimes[i] < lastMemoTimes[oldest])
+			{
+				oldest = i;
+			}
+
+			continue;
+		}
+
+		if (currentTime - lastMemoTimes[i] < LTP_PEER_MEMO_INTERVAL)
+		{
+			return 0;
+		}
+
+		lastMemoTimes[i] = currentTime;
+		return 1;
+	}
+
+	/*	Not tracked yet.  Take a free slot if there is one,
+	 *	otherwise displace the span whose notice is stalest;
+	 *	a node with more spans than slots simply gets a
+	 *	slightly looser limit.				*/
+
+	if (tracked < LTP_PEER_MEMO_SPANS)
+	{
+		oldest = tracked;
+		tracked++;
+	}
+
+	trackedEngines[oldest] = engineId;
+	lastMemoTimes[oldest] = currentTime;
+	return 1;
+}
+
+static void	noteReceiverBudgetExhausted(LtpVspan *vspan,
+			unsigned int sessionNbr)
+{
+	char	nbrBuf[FQN_MAX_LENGTH];
+	char	memoBuf[512];
+
+	if (!peerMemoIsDue(vspan->engineId))
+	{
+		return;
+	}
+
+	putFqn(nbrBuf, vspan->engineId);
+	isprintf(memoBuf, sizeof memoBuf, "[?] Export session %u to engine %s \
+cancelled by the receiver, retransmit limit exceeded: the peer's reception \
+report budget was exhausted before this engine's checkpoint budget.  Check \
+that the peer runs a build implementing 'm maxrepairrounds', and that its \
+maxrepairrounds and maxseglossrate are consistent with this engine's.  \
+Further notices for this span are suppressed for %d seconds.", sessionNbr,
+			nbrBuf, LTP_PEER_MEMO_INTERVAL);
+	writeMemo(memoBuf);
+}
+
 static int	handleCR(uvast sourceEngineId, LtpDB *ltpdb, unsigned int sessionNbr,
 			LtpRecvSeg *segment, char **cursor, int *bytesRemaining,
 			Lyst headerExtensions, Lyst trailerExtensions)
@@ -9081,6 +9179,11 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	if (sessionObj)	/*	Can cancel session as requested.	*/
 	{
 		sessionBuf.reasonCode = **cursor;
+		if (sessionBuf.reasonCode == LtpRetransmitLimitExceeded)
+		{
+			noteReceiverBudgetExhausted(vspan, sessionNbr);
+		}
+
 		if (ltpvdb->watching & WATCH_handleCR)
 		{
 			iwatch(']');
