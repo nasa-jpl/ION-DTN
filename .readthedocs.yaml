@@ -1,5 +1,11 @@
 version: 2
 
+python:
+  install:
+    - method: uv
+      command: sync
+      path: site-docs/
+
 build:
   os: ubuntu-22.04
   tools:
@@ -17,8 +23,9 @@ build:
       - cpanm --from https://www.cpan.org MIME::Base32@1.303 URI~5.34 Pod::Markdown@3.400
       - chmod +x ./site-docs/docs/convert-pod-to-md.sh
       - cd ./site-docs/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
-    install:
-      - pip install --require-hashes -r readthedocs-requirements.txt
-
-mkdocs:
-  configuration: site-docs/mkdocs.yml
+    build:
+      html:
+        - cd ./site-docs && zensical build
+    post_build:
+      - mkdir -p $READTHEDOCS_OUTPUT/html/
+      - cp --recursive site-docs/site/* $READTHEDOCS_OUTPUT/html/
