@@ -30,6 +30,9 @@ theme:
 extra_css:
   - assets/css/custom.css
 
+extra_javascript:
+  - javascript/readthedocs.js
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
