@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Verifies the ipn-scheme ROUTE OVERRIDE (rtovrd) mechanism over plain BP/UDP.
+#
+#   node 1  --udp-->  node 2 (forced next hop)  --udp-->  node 3
+#      \___________________ direct udp plan ________________/
+#
+# Node 1 has a DIRECT egress plan to node 3, so normally it would transmit
+# straight to node 3.  Its ipnrc adds a routing override:
+#
+#       a rtovrd 0 3 0 2
+#
+# (data label 0 = any, dest node 3, src 0 = any, neighbor node 2) which forces
+# every bundle destined for node 3 to the neighbor node 2 instead -- applied
+# before any normal route.  Node 2 then relays to node 3.
+#
+# The proof that the override took effect is that node 2 FORWARDS the bundle
+# even though node 1 could reach node 3 directly: without the override, node 1
+# would transmit straight to node 3 and node 2's forward count would stay 0.
+#
+# Uses the UDP convergence layer; nodes are gated up via system_up before the
+# transmit.
+set -u
+cd "$(dirname "$0")"
+
+SYSUP=../../../system_up
+
+echo "=== ipn route-override test (3 nodes, UDP): rtovrd forces 1 -> 2 -> 3 ==="
+
+killm f
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+snapshot() {
+    for n in 1 2 3; do (cd "$n.ipn.udp" && bpstats) >/dev/null 2>&1; done
+    sleep 2
+}
+plus() {  # $1 = node number, $2 = tally type (rcv/fwd/dlv)
+    # Match and extract in one awk pass.  Neither grep -a nor sed -E is portable
+    # to Solaris, and stderr must not be discarded here: a swallowed "illegal
+    # option" leaves an empty count that reads as a routing failure.  The "(+)"
+    # totals end each tally line as "(+) <count> <bytes>", so the count is the
+    # second-to-last field; keep the last match, since the log accumulates one
+    # snapshot per sample.
+    awk '/\[x\] '"$2"' / { v = $(NF-1) } END { print v }' "$1.ipn.udp/ion.log"
+}
+dump_diagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    for n in 1 2 3; do
+        echo "----- node $n start.log -----"; cat "$n.ipn.udp/start.log" 2>/dev/null
+        echo "----- node $n ion.log (tail 40) -----"; tail -40 "$n.ipn.udp/ion.log" 2>/dev/null
+    done
+}
+
+echo "Starting nodes sequentially ..."
+for n in 1 2 3; do
+    echo "  starting node $n ..."
+    (cd "$n.ipn.udp" && ./ionstart) >"$n.ipn.udp/start.log" 2>&1
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 45" -b "p 45" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        dump_diagnostics
+        killm f
+        exit 1
+    fi
+    echo "  node $n up."
+done
+echo "All nodes up."
+
+# Receiver on the destination node.
+(cd 3.ipn.udp && bpsink ipn:3.1 > sink.txt 2>&1) &
+SINKPID=$!
+sleep 3
+
+# Send one bundle from node 1 to node 3.  The override must divert it via 2.
+echo "Sending bundle node 1 -> ipn:3.1 (override must divert via node 2) ..."
+(cd 1.ipn.udp && printf 'route-override payload\n!\n' | bpsource ipn:3.1) >/dev/null 2>&1
+
+# Poll (up to ~80s) for every tally we go on to assert, not just the relay at
+# node 2 (the override proof).  The relay's fwd tally is batched and written to
+# the SDR by bpclock only once a second, whereas delivery is aggregated from the
+# endpoint at report time, so the two become visible independently.
+G2fwd=0
+D3dlv=0
+for i in $(seq 1 40); do
+    snapshot
+    G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+    D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+    [ "$G2fwd" -ge 1 ] && [ "$D3dlv" -ge 1 ] && break
+done
+
+kill "$SINKPID" 2>/dev/null
+
+G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+G2rcv=$(plus 2 rcv); G2rcv=${G2rcv:-0}
+D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+
+echo
+echo "=== evidence ==="
+echo "relay node 2 rcv=$G2rcv fwd=$G2fwd   (override proof: node 2 must relay despite node 1's direct plan)"
+echo "dest  node 3 dlv=$D3dlv"
+echo "sink output: $(cat 3.ipn.udp/sink.txt 2>/dev/null | tr '\n' ' ')"
+
+ok=1
+[ "$G2fwd" -ge 1 ] || { echo "FAIL: node 2 did not relay -- override did not divert the bundle"; ok=0; }
+[ "$D3dlv" -ge 1 ] || { echo "FAIL: node 3 did not receive the bundle"; ok=0; }
+
+[ "$ok" -ne 1 ] && dump_diagnostics
+
+killm f
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: override diverted the bundle via node 2 and it reached node 3"
+    exit 0
+else
+    echo "FAIL"
+    exit 1
+fi

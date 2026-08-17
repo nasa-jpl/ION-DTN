@@ -45,6 +45,25 @@ waypoint endpoint.  Multiple exits may encompass the same fully-qualified
 node number, in which case the gateway associated with the most
 restrictive exit (the one with the smallest range) is always selected.
 
+An exit is therefore the last routing mechanism consulted.
+Forwarding in the ipn scheme considers, in order:
+a routing override, if one matches (see below);
+a dynamic route computed by CGR from the contact plan,
+attempted only if the destination node resides in a region
+that the local node also resides in;
+direct transmission to the destination node, if it is a neighbor;
+and finally the narrowest applicable exit.
+Note that a destination in an unknown region skips CGR entirely,
+so for such destinations an exit is the only route
+other than direct transmission.
+
+Because a bundle directed to a gateway is simply re-forwarded to that
+endpoint, the gateway must itself be reachable from the local node:
+an exit is useful only if there is an egress plan
+to the gateway node, or a route to it can be computed.
+An exit whose gateway cannot be reached does not make the
+destination reachable.
+
 B<Note> that "exits" were termed "groups" in earlier versions of ION.  The
 term "exit" has been adopted instead, to minimize any possible confusion
 with multicast groups.  To protect backward compatibility, the keyword
@@ -282,6 +301,23 @@ Declares a default route for bundles destined for all nodes whose fully
 qualified node numbers are in the range 1 through 999 inclusive: absent
 any other routing decision, such bundles are to be forwarded to
 "dtn://stargate".
+
+=item a plan 2 udp/127.0.0.1:6002
+
+=item a exit 3 3 ipn:2.0
+
+Declares an all-ipn default route through a single gateway.  Bundles
+destined for node 3, which is not a neighbor and for which no route can be
+computed, are forwarded to node 2 for re-forwarding.  The egress plan is
+what makes the gateway reachable; the exit alone would not deliver the
+bundle.  Note the service number of zero in the gateway's endpoint ID.
+
+=item a rtovrd 0 3 0 2
+
+Forces every bundle destined for node 3 to be forwarded to neighboring
+node 2, whatever route would otherwise have been chosen -- in contrast to
+the exit above, which applies only when nothing else works.  The zeroes
+match any data label and any source.
 
 =back
 

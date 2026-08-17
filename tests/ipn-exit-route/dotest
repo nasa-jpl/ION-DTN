@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Verifies the ipn-scheme EXIT (static default route) mechanism over plain
+# BP/UDP.
+#
+#   node 1  --udp-->  node 2 (gateway)  --udp-->  node 3
+#
+# Node 1 has NO egress plan and NO contacts to node 3, so it cannot reach it
+# directly or via CGR.  Its ipnrc declares an exit:
+#
+#       a exit 3 3 ipn:2.0
+#
+# so a bundle addressed to node 3 is forwarded to the exit's gateway (node 2),
+# which relays it to node 3.  The delivery at node 3 (and the forward at the
+# gateway node 2) prove the exit route was used -- there is no other path.
+#
+# Uses the UDP convergence layer (no LTP sessions/timeouts); every node must be
+# fully up before node 1 transmits, so we gate on system_up.
+set -u
+cd "$(dirname "$0")"
+
+SYSUP=../../../system_up
+
+echo "=== ipn exit-route test (3 nodes, UDP): 1 -> exit -> 2 -> 3 ==="
+
+killm f
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+snapshot() {
+    for n in 1 2 3; do (cd "$n.ipn.udp" && bpstats) >/dev/null 2>&1; done
+    sleep 2
+}
+plus() {  # $1 = node number, $2 = tally type (rcv/fwd/dlv)
+    # Match and extract in one awk pass.  Neither grep -a nor sed -E is portable
+    # to Solaris, and stderr must not be discarded here: a swallowed "illegal
+    # option" leaves an empty count that reads as a routing failure.  The "(+)"
+    # totals end each tally line as "(+) <count> <bytes>", so the count is the
+    # second-to-last field; keep the last match, since the log accumulates one
+    # snapshot per sample.
+    awk '/\[x\] '"$2"' / { v = $(NF-1) } END { print v }' "$1.ipn.udp/ion.log"
+}
+dump_diagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    for n in 1 2 3; do
+        echo "----- node $n start.log -----"; cat "$n.ipn.udp/start.log" 2>/dev/null
+        echo "----- node $n ion.log (tail 40) -----"; tail -40 "$n.ipn.udp/ion.log" 2>/dev/null
+    done
+}
+
+echo "Starting nodes sequentially ..."
+for n in 1 2 3; do
+    echo "  starting node $n ..."
+    (cd "$n.ipn.udp" && ./ionstart) >"$n.ipn.udp/start.log" 2>&1
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 45" -b "p 45" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        dump_diagnostics
+        killm f
+        exit 1
+    fi
+    echo "  node $n up."
+done
+echo "All nodes up."
+
+# Receiver on the destination node.
+(cd 3.ipn.udp && bpsink ipn:3.1 > sink.txt 2>&1) &
+SINKPID=$!
+sleep 3
+
+# Send one bundle from node 1 to node 3 (reachable only via the exit).
+echo "Sending bundle node 1 -> ipn:3.1 (must traverse the exit gateway) ..."
+(cd 1.ipn.udp && printf 'exit-route payload\n!\n' | bpsource ipn:3.1) >/dev/null 2>&1
+
+# Poll (up to ~80s) for every tally we go on to assert, not just delivery at
+# node 3.  Delivery is aggregated from the endpoint at report time and so is
+# current the moment bpstats runs, but the gateway's fwd tally is batched and
+# written to the SDR by bpclock only once a second.  Breaking on delivery alone
+# leaves the gateway's fwd reading a snapshot that predates its own flush.
+D3dlv=0
+G2fwd=0
+for i in $(seq 1 40); do
+    snapshot
+    D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+    G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+    [ "$D3dlv" -ge 1 ] && [ "$G2fwd" -ge 1 ] && break
+done
+
+kill "$SINKPID" 2>/dev/null
+
+G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+D3rcv=$(plus 3 rcv); D3rcv=${D3rcv:-0}
+
+echo
+echo "=== evidence ==="
+echo "gateway node 2 fwd=$G2fwd   (exit gateway must relay the bundle)"
+echo "dest    node 3 rcv=$D3rcv dlv=$D3dlv"
+echo "sink output: $(cat 3.ipn.udp/sink.txt 2>/dev/null | tr '\n' ' ')"
+
+ok=1
+[ "$D3dlv" -ge 1 ] || { echo "FAIL: node 3 did not receive the bundle via the exit"; ok=0; }
+[ "$G2fwd" -ge 1 ] || { echo "FAIL: gateway node 2 did not relay the bundle (exit not used)"; ok=0; }
+
+[ "$ok" -ne 1 ] && dump_diagnostics
+
+killm f
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: bundle reached node 3 via the exit gateway (node 2)"
+    exit 0
+else
+    echo "FAIL"
+    exit 1
+fi

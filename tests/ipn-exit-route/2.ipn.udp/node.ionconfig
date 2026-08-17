@@ -1,0 +1,6 @@
+wmKey 66002
+sdrName ionex2
+wmSize 8000000
+configFlags 1
+heapWords 200000
+pathName /tmp

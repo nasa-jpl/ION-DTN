@@ -1,0 +1,6 @@
+wmKey 66103
+sdrName ionov3
+wmSize 8000000
+configFlags 1
+heapWords 200000
+pathName /tmp

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+ionadmin node.ionrc
+ionadmin ../global.ionrc
+ionsecadmin node.ionsecrc
+bpadmin node.bprc

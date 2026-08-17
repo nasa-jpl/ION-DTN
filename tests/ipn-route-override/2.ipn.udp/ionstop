@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+bpadmin . 2>/dev/null || true
+ionadmin . 2>/dev/null || true
+killm 2>/dev/null || true
