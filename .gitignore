@@ -317,7 +317,7 @@ build*/*
 # Contrib Folder
 contrib/Makefile
 
-# Ignore mkdocs build
+# Ignore site-docs build
 site-docs/site/*
 site-docs/docs/man/*
 
