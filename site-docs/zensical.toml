@@ -138,4 +138,4 @@ pymdownx.superfences = {
     ],
     preserve_tabs = true,
 }
-
+toc = { permalink = true }
