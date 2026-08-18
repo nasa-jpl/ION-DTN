@@ -6,6 +6,7 @@ Copyright (c) 2002-2026, California Institute of Technology. \
 All rights reserved.\
 """
 extra_css = ["assets/css/custom.css"]
+extra_javascript = ["javascripts/extra.js"]
 nav = [
     { "ION Overview" = [
         { "Introduction" = "index.md" },

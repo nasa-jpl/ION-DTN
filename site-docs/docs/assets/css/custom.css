@@ -1,3 +1,7 @@
 .md-typeset :not(pre) > code {
   color: rgb(201, 102, 57);
 }
+
+.highlight .gp {
+  user-select: none;
+}
