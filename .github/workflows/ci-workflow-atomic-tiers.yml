@@ -511,12 +511,25 @@ jobs:
 
                 progress() { echo ""; echo ">>> [$(date +%H:%M:%S)] $*"; echo ""; }
 
+                progress "Cleaning host artifacts from previous tiers"
+                # Prevent artifact bleed between loop iterations
+                rm -f /src/tests/progress
+                find /src -name "ion-system.log" -type f -delete
+
+                progress "Copying source to native container filesystem"
+                # Isolate the build from macOS bind-mount clock skew
+                mkdir /build
+                cp -a /src/. /build/
+                # Remove host log directories from the isolated build space
+                rm -rf /build/arm64-logs /build/arm64-status
+                cd /build
+
                 progress "Installing build dependencies"
                 export DEBIAN_FRONTEND=noninteractive
                 apt-get update -qq
                 apt-get install -y -qq --no-install-recommends \
                     build-essential autoconf automake libtool pkg-config \
-                    libexpat1-dev valgrind sudo ca-certificates
+                    libtool-bin libexpat1-dev valgrind sudo ca-certificates
                 echo "Compiler:"
                 gcc --version | head -1
 
@@ -541,6 +554,7 @@ jobs:
 
                 progress "Starting regression tests (scope: $TEST_SCOPE)"
                 cd tests
+                # Keep logs pointing directly to the host mount so they stream out
                 export RUNTESTS_OUTPUTDIR=/src/arm64-logs
                 mkdir -p "$RUNTESTS_OUTPUTDIR"
                 if [ "$TEST_SCOPE" = "smoke" ]; then
@@ -550,6 +564,18 @@ jobs:
                   echo "Running full regression suite"
                   ./runtests
                 fi
+
+                progress "Syncing artifacts back to host mount"
+                # Ensure the host workflow finds the progress and log files where it expects them
+                mkdir -p /src/tests
+                cp progress /src/tests/progress || true
+
+                cd /build
+                find . -name "ion-system.log" -type f | while IFS= read -r logfile; do
+                  mkdir -p "/src/$(dirname "$logfile")"
+                  cp "$logfile" "/src/$logfile"
+                done
+
                 progress "Tests complete"
               '
 
@@ -585,7 +611,6 @@ jobs:
               cp "$diag" "arm64-logs/tier-${TIER}-${unique_name}-ion-system.log"
             done
 
-            rm -f ./tests/ion_nodes || true
           done
 
           echo ""
