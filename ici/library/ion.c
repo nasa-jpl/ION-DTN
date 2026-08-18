@@ -215,10 +215,19 @@ fprintf(stderr,"FAILED*** allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\
 	}
 
 	block = psp(ionwm, address);
-	memset(block, 0, length);
+
+	/*	Tell Valgrind the block is live before zeroing it.  PSM
+	 *	hands out addresses that it has recycled from earlier
+	 *	frees, which Valgrind still holds as freed until this
+	 *	annotation runs; zeroing first therefore reports the
+	 *	allocator's own memset as a write to freed memory.  Pass
+	 *	is_zeroed as 0 because the block is zeroed below, after
+	 *	this call, rather than by the allocation itself.	*/
+
 #ifdef HAVE_VALGRIND_VALGRIND_H
-	VALGRIND_MALLOCLIKE_BLOCK(block, length, 0, 1);
+	VALGRIND_MALLOCLIKE_BLOCK(block, length, 0, 0);
 #endif
+	memset(block, 0, length);
 	return block;
 }
 
