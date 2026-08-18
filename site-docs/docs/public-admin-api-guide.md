@@ -1,18 +1,5 @@
 # ION Public Administrative API User Guide
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [ION Administrative API](#ion-administrative-api)
-4. [LTP Administrative API](#ltp-administrative-api)
-5. [Bundle Protocol Administrative API](#bundle-protocol-administrative-api)
-6. [Complete Example](#complete-example)
-7. [Best Practices](#best-practices)
-8. [Debugging Crash Recovery](#debugging-crash-recovery)
-9. [API Reference](#api-reference)
-
----
-
 ## Overview
 
 The ION Public Administrative APIs provide programmatic access to configure and manage ION (Interplanetary Overlay Network) systems. These APIs eliminate the need to use command-line administration tools (`ionadmin`, `ltpadmin`, `bpadmin`) and enable developers to integrate ION configuration directly into their applications.

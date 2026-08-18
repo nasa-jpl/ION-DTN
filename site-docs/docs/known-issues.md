@@ -6,28 +6,6 @@ This is a short list of information regarding ION operation, known issues, and p
 
 Most of these information are likely to be found in other longer documents but it is presented here in a summarized form for easier search. Another useful document is the [ION Deployment Guide](./deployment-guide.md) which contains recommendations on configuring and running ION and performance data.
 
-- [Knowledge Base, Issues \& Patches](#knowledge-base-issues--patches)
-  - [Convergence Layer Adaptor](#convergence-layer-adaptor)
-    - [UDP CLA](#udp-cla)
-    - [LTP CLA](#ltp-cla)
-  - [Bundle Protocol](#bundle-protocol)
-    - [Routing](#routing)
-  - [Contributed Code](#contributed-code)
-  - [Docker Container](#docker-container)
-  - [ION Configuration](#ion-configuration)
-    - [Memory/Storage Allocation](#memorystorage-allocation)
-    - [Multiple ION nodes in one host](#multiple-ion-nodes-in-one-host)
-  - [SDR Issues](#sdr-issues)
-    - [Transaction Reversal](#transaction-reversal)
-    - ['Init' Process PID 1](#init-process-pid-1)
-    - [Permission Issue with named semaphore](#permission-issue-with-named-semaphore)
-    - [POSIX Named Semaphore not working properly on FreeBSD](#posix-named-semaphore-not-working-properly-on-freebsd)
-  - [Compilation](#compilation)
-    - [FreeBSD](#freebsd)
-  - [Reporting Issues](#reporting-issues)
-  - [Patches](#patches)
-  - [Security Advisories](#security-advisories)
-
 ## Convergence Layer Adaptor
 
 ### UDP CLA

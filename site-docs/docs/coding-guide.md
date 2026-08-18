@@ -1,25 +1,5 @@
 # ION Coding Guide
 
-- [ION Coding Guide](#ion-coding-guide)
-  - [Preface](#preface)
-  - [C Language Standard](#c-language-standard)
-    - [C11/C18 Features in Use](#c11c18-features-in-use)
-    - [C99 Features Used Throughout](#c99-features-used-throughout)
-    - [Per-Component Overrides](#per-component-overrides)
-    - [Guidelines for Contributors](#guidelines-for-contributors)
-    - [Operating System Support Matrix for Space Processors](#operating-system-support-matrix-for-space-processors)
-  - [Application Behavior](#application-behavior)
-  - [Function Design Guidelines](#function-design-guidelines)
-  - [Error Checking](#error-checking)
-    - [CHK Macro Behavior and Fail-Fast Mode](#chk-macro-behavior-and-fail-fast-mode)
-  - [Error and Status Reporting](#error-and-status-reporting)
-  - [‘C’ Coding Style](#c-coding-style)
-    - [Naming Conventions](#naming-conventions)
-    - [Indentation, Bracketing, Whitespace](#indentation-bracketing-whitespace)
-    - [Comment Formatting](#comment-formatting)
-    - [Miscellaneous Rules](#miscellaneous-rules)
-  - [BP Service Access Point (SAP) Ownership](#bp-service-access-point-sap-ownership)
-
 ## Preface
 
 The following coding guidelines apply to all software

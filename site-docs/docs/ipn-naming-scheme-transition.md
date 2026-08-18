@@ -1,15 +1,5 @@
 # IPN Naming Scheme Transition Guide
 
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Overview of 3-Part IPN Naming](#overview-of-3-part-ipn-naming)
-3. [Structure Field Name Changes](#structure-field-name-changes)
-4. [Function Parameter Changes](#function-parameter-changes)
-5. [Code Migration Examples](#code-migration-examples)
-6. [FQNN Representation in Logs and Internal State](#fqnn-representation-in-logs-and-internal-state)
-
----
-
 ## Introduction
 
 Starting with ION version 4.1.4-a.2, ION introduced support for a 3-part IPN naming scheme using **Fully Qualified Node Numbers (FQNN)** instead of simple node numbers. This change enables hierarchical node addressing with an optional allocator component, which is essential for large-scale DTN deployments where node number management needs to be delegated across multiple administrative domains.

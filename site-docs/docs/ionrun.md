@@ -2,35 +2,6 @@
 
 `ionrun` is a command-line utility that simplifies setting up and running ION. It provides an interactive wizard that generates the ION configuration files needed for common network topologies, and then launches ION in a user-specified working directory.
 
-- [ionrun - Interactive ION Setup and Launch Utility](#ionrun---interactive-ion-setup-and-launch-utility)
-  - [Overview](#overview)
-  - [Usage](#usage)
-  - [Interactive Wizard](#interactive-wizard)
-    - [Topology Types](#topology-types)
-    - [Node Configuration](#node-configuration)
-    - [Convergence Layers](#convergence-layers)
-    - [CFDP (File Transfer)](#cfdp-file-transfer)
-    - [Port Numbers](#port-numbers)
-  - [Generated Files](#generated-files)
-    - [ionrun.rc](#ionrunrc)
-    - [ionrun.meta](#ionrunmeta)
-    - [ionrun.ionconfig (same-host only)](#ionrunionconfig-same-host-only)
-    - [Per-Node Subdirectories](#per-node-subdirectories)
-  - [Examples](#examples)
-    - [Loopback Test](#loopback-test)
-    - [Two-Node Network](#two-node-network)
-    - [Three-Node Relay with Mixed Convergence Layers](#three-node-relay-with-mixed-convergence-layers)
-    - [Two Nodes on the Same Host](#two-nodes-on-the-same-host)
-    - [Three Nodes on the Same Host](#three-nodes-on-the-same-host)
-    - [Custom Port Numbers](#custom-port-numbers)
-    - [Regenerate Configuration](#regenerate-configuration)
-  - [Multi-Node Workflow](#multi-node-workflow)
-    - [Remote (Multi-Host)](#remote-multi-host)
-    - [Same-Host](#same-host)
-  - [Environment Variables](#environment-variables)
-  - [Pre-Existing Configurations](#pre-existing-configurations)
-  - [How It Works](#how-it-works)
-
 ## Overview
 
 `ionrun` eliminates the need to manually write ION configuration files for common scenarios. It:
