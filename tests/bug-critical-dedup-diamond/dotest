@@ -48,8 +48,13 @@ snapshot() {
     sleep 2
 }
 plus() {  # $1 = node number, $2 = tally type
-    grep -aE "\[x\] $2 " "$1.ipn.udp/ion.log" 2>/dev/null | tail -1 \
-        | sed -E 's/.*\(\+\) ([0-9]+).*/\1/'
+    # Match and extract in one awk pass.  Neither grep -a nor sed -E is portable
+    # to Solaris, and stderr must not be discarded here: a swallowed "illegal
+    # option" leaves an empty count that reads as a de-duplication failure.  The
+    # "(+)" totals end each tally line as "(+) <count> <bytes>", so the count is
+    # the second-to-last field; keep the last match, since the log accumulates
+    # one snapshot per sample.
+    awk '/\[x\] '"$2"' / { v = $(NF-1) } END { print v }' "$1.ipn.udp/ion.log"
 }
 
 dump_diagnostics() {
@@ -83,17 +88,22 @@ echo "All nodes up."
 # Send ONE critical bundle: custody=0 prio=1 ord=0 unrel=0 critical=1
 (cd "$SRC.ipn.udp" && bpsendfile "ipn:$SRC.1" "ipn:$DEST.1" "$PAYLOAD" 0.1.0.0.1)
 
-# Wait (up to ~120s) for both flooded copies to reach D (rcv == 2), then a
-# short grace for D to forward / abandon, before sampling the final tallies.
+# Wait (up to ~120s) for both flooded copies to reach D (rcv == 2) and for D to
+# forward one onward (fwd >= 1), then a short grace before sampling the final
+# tallies.  Both tallies are batched and written to the SDR by bpclock only once
+# a second, so they become visible to bpstats independently; waiting on the
+# received count alone can sample a snapshot that predates the forward.
 # End-to-end forwarding on a slow/loaded runner (e.g. Solaris) can take ~40-80s
 # even over UDP, so the window must comfortably exceed that; it breaks early as
-# soon as both copies arrive.
+# soon as both copies have arrived and one has moved on.
 Drcv=0
+Dfwd=0
 for i in $(seq 1 120); do
     (cd 4.ipn.udp && bpstats) >/dev/null 2>&1
     sleep 1
     Drcv=$(plus 4 rcv); Drcv=${Drcv:-0}
-    [ "$Drcv" -ge 2 ] && break
+    Dfwd=$(plus 4 fwd); Dfwd=${Dfwd:-0}
+    [ "$Drcv" -ge 2 ] && [ "$Dfwd" -ge 1 ] && break
 done
 sleep 2
 snapshot
