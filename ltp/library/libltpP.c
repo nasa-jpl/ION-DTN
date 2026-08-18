@@ -3091,6 +3091,13 @@ int	enqueueNotice(LtpVclient *client, uvast sourceEngineId,
 		return -1;
 	}
 
+	/*	Clear the whole notice, not just its fields: the struct
+	 *	has alignment padding that no assignment below covers,
+	 *	and the sdr_write stores sizeof(LtpNotice) bytes, so
+	 *	that padding would carry uninitialised stack into the
+	 *	heap.							*/
+
+	memset((char *) &notice, 0, sizeof notice);
 	notice.sessionId.sourceEngineId = sourceEngineId;
 	notice.sessionId.sessionNbr = sessionNbr;
 	notice.dataOffset = dataOffset;
@@ -5283,6 +5290,11 @@ static SdrObject enqueueAckSegment(SdrObject spanObj, SdrObject segmentObj)
 	OBJ_POINTER(LtpXmitSeg, segment);
 
 	CHKZERO(ionLocked());
+
+	/*	As in enqueueNotice, clear the padding as well as the
+	 *	fields: the sdr_write below stores the whole struct.	*/
+
+	memset((char *) &newSegRef, 0, sizeof newSegRef);
 	newSegRef.segAddr = segmentObj;
 	newSegRef.sessionNbr = 0;	/*	Indicates not data.	*/
 	newSegRefObj = sdr_malloc(sdr, sizeof(LtpXmitSegRef));
