@@ -138,4 +138,5 @@ pymdownx.superfences = {
     ],
     preserve_tabs = true,
 }
+smarty = { smart_quotes = false }
 toc = { permalink = true }
