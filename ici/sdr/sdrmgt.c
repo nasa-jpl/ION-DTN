@@ -1151,7 +1151,16 @@ void _sdrfree(Sdr sdrv, SdrObject object, PutSrc src)
 		sdrFetch(next, ADDRESS_OF(smallPoolFree[i].firstFreeBlock));
 		ohd.wee.next = (next << 8) + userDataWords;
 		block = addr - SMALL_BLOCK_OHD;
-		sdrPatch(block, ohd);
+
+		/*	Write just the small block's overhead word, as
+		 *	_sdrzalloc does.  Patching the whole Ohd union
+		 *	would write sizeof(Ohd), which is the size of the
+		 *	larger BigOhd members: scaleOf only filled the wee
+		 *	member on this path, so the extra bytes are
+		 *	uninitialised stack, and they land in the freed
+		 *	block's user data rather than in its overhead.	*/
+
+		sdrPatch(block, ohd.wee);
 		newFreeBlocks = map->smallPoolFree[i].freeBlocks + 1;
 		patchMap(smallPoolFree[i].freeBlocks, newFreeBlocks);
 		patchMap(smallPoolFree[i].firstFreeBlock, block);
