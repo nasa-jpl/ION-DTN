@@ -1,19 +1,19 @@
 #
 # Waf script for the ION BPv7 RTEMS port.
 # Supported BSPs (verified under QEMU):
+#   * arm/xilinx-zynq-a9     (32-bit ARM)
 #   * aarch64/a53_lp64_qemu  (64-bit ARM, ARMv8-A virt machine)
 #   * sparc/leon3            (Gaisler LEON3, SPARC V8)
 #
-from __future__ import print_function
+import os
+import sys
 
-rtems_version = '6'
+rtems_version = os.environ.get("RTEMS_VERSION", "6")
 
 try:
-    import rtems_waf.rtems as rtems
-except:
-    print('error: no rtems_waf git submodule')
-    import sys
-
+    from rtems_waf import rtems
+except ImportError:
+    print("error: no rtems_waf git submodule")
     sys.exit(1)
 
 
