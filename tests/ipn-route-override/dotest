@@ -21,6 +21,7 @@
 # transmit.
 set -u
 cd "$(dirname "$0")"
+. ../test_utils.sh
 
 SYSUP=../../../system_up
 
@@ -35,13 +36,7 @@ snapshot() {
     sleep 2
 }
 plus() {  # $1 = node number, $2 = tally type (rcv/fwd/dlv)
-    # Match and extract in one awk pass.  Neither grep -a nor sed -E is portable
-    # to Solaris, and stderr must not be discarded here: a swallowed "illegal
-    # option" leaves an empty count that reads as a routing failure.  The "(+)"
-    # totals end each tally line as "(+) <count> <bytes>", so the count is the
-    # second-to-last field; keep the last match, since the log accumulates one
-    # snapshot per sample.
-    awk '/\[x\] '"$2"' / { v = $(NF-1) } END { print v }' "$1.ipn.udp/ion.log"
+    lastBpTally "$2" "$1.ipn.udp/ion.log"
 }
 dump_diagnostics() {
     echo "=== DIAGNOSTICS ==="

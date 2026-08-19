@@ -25,6 +25,7 @@
 # on system_up to guarantee that.
 set -u
 cd "$(dirname "$0")"
+. ../test_utils.sh
 
 NODES=5
 SRC=1
@@ -48,13 +49,7 @@ snapshot() {
     sleep 2
 }
 plus() {  # $1 = node number, $2 = tally type
-    # Match and extract in one awk pass.  Neither grep -a nor sed -E is portable
-    # to Solaris, and stderr must not be discarded here: a swallowed "illegal
-    # option" leaves an empty count that reads as a de-duplication failure.  The
-    # "(+)" totals end each tally line as "(+) <count> <bytes>", so the count is
-    # the second-to-last field; keep the last match, since the log accumulates
-    # one snapshot per sample.
-    awk '/\[x\] '"$2"' / { v = $(NF-1) } END { print v }' "$1.ipn.udp/ion.log"
+    lastBpTally "$2" "$1.ipn.udp/ion.log"
 }
 
 dump_diagnostics() {
