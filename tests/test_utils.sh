@@ -132,3 +132,37 @@ killAndWaitForPidToDie() {
         _kwpd_elapsed=$((_kwpd_elapsed + _tu_slept_ms))
     done
 }
+
+# lastBpTally TALLY [IONLOG]
+#
+# Print the cumulative "(+)" count from the most recent bpstats snapshot in
+# IONLOG (default ./ion.log), or 0 if no snapshot has recorded that tally yet.
+# TALLY is a bpstats category: src, fwd, xmt, rcv, dlv, rfw or exp.
+#
+# bpstats appends one snapshot per invocation, so a caller polling for traffic
+# to settle should run bpstats and then read the newest snapshot back:
+#
+#     bpstats
+#     sleep 2
+#     fwd=$(lastBpTally fwd)
+#
+# Allow for lag between the traffic and the tally.  Most BP tallies are batched
+# into atomic deltas and written to the SDR by bpclock only once a second, so a
+# snapshot taken immediately after a bundle moves can still read zero, and two
+# tallies on different nodes become visible independently.  Poll for every
+# tally an assertion depends on, not just one of them.
+#
+# The snapshot line ends with "(+) <count> <bytes>", so the count is the
+# second-to-last field.  Do the whole match and extract in one awk pass:
+# GNU-only options are a recurring portability trap here -- Solaris rejects
+# both "grep -a" and "sed -E" -- and a discarded stderr turns the resulting
+# empty read into a silent zero that looks like a protocol failure rather than
+# a broken script.  awk gets no -v either, since that is not in the original
+# awk still shipped as /usr/bin/awk on some platforms.
+lastBpTally() {
+    _lbt_tally="$1"
+    _lbt_log="${2:-ion.log}"
+
+    awk '/\[x\] '"$_lbt_tally"' / { _lbt_v = $(NF - 1) }
+         END { print _lbt_v + 0 }' "$_lbt_log"
+}

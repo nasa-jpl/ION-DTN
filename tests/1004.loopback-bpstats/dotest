@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+. ../test_utils.sh
 #
 # 1004.loopback-bpstats
 #
@@ -45,10 +46,7 @@ IONEXPECTEDFILE=./ionexpectedfile.txt
 #   category (src, xmt, rcv, fwd) and print the "(+) total_count".
 # ---------------------------------------------------------------
 extract_stat () {
-    # bpstats output line format (with timestamp prefix):
-    # [ts] [x] <cat> from <ts> to <ts>: (0) c b (1) c b (2) c b (+) total_count total_bytes
-    grep "\[x\] $1 " ion.log | tail -1 | \
-        sed 's/.*(+) \([0-9][0-9]*\) .*/\1/'
+    lastBpTally "$1"
 }
 
 # ---------------------------------------------------------------

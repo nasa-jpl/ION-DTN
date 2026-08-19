@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+. ../test_utils.sh
 #
 # Scott Burleigh
 # April 21, 2010
@@ -153,7 +154,7 @@ RETVAL=0
 
 lastTally()
 {
-    grep "\[x\] $1 " ion.log | tail -1 | sed "s/.*(+) //" | awk '{print $1}'
+    lastBpTally "$1"
 }
 
 i=0
