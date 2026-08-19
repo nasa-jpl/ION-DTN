@@ -1,0 +1,111 @@
+CI/CD:
+  - any:
+      - changed-files:
+          - any-glob-to-all-files:
+              - ".github/**"
+
+test-mods:
+  - any:
+      - changed-files:
+          - all-globs-to-any-file:
+              - "tests/**"
+              - "!tests/alltests"
+              - "!tests/cleanup"
+              - "!tests/list_all_tests"
+              - "!tests/normaltests"
+              - "!tests/quicktests"
+              - "!tests/README"
+              - "!tests/runcleanup"
+              - "!tests/runtests"
+              - "!tests/runtestset"
+              - "!tests/*.py"
+              - "!tests/test_utils.sh"
+      - changed-files:
+          - any-glob-to-any-file:
+              - "demos/**"
+
+quick-test:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "tests/cleanup"
+              - "tests/runcleanup"
+              - "tests/runtests"
+              - "tests/test_utils.sh"
+
+documentation:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "site-docs/**"
+
+Infrastructure:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "charts/**"
+              - "images/**"
+
+no-test:
+  - any:
+      - changed-files:
+          - any-glob-to-all-files:
+              - "**/*.md"
+              - "**/*.pod"
+              - "**/README*"
+              - "site-docs/**"
+              - "charts/**"
+              - "images/**"
+              - "tests/alltests"
+              - "tests/normaltests"
+              - "tests/quicktests"
+              - "tests/runtestset"
+              - "tests/*.py"
+
+AMS:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "ams/**"
+
+BIBE:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "bpv7/bibe/**"
+
+BPSec:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "bpv7/bpsec/**"
+
+BSL:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "bpv7/bsl/**"
+
+CFDP:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "cfdp/**"
+
+IMC:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "bpv7/imc/**"
+
+LTP:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "ltp/**"
+
+nm/adm/amp:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "nm/**"

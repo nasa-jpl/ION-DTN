@@ -3,7 +3,7 @@ name: Run All PR Tests
 permissions:
   contents: read
   statuses: write
-  pull-requests: read
+  pull-requests: write
 
 on:
   pull_request:
@@ -42,6 +42,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Auto-assign PR labels
+        uses: actions/labeler@v7
+        id: pr-labels
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          sync-labels: true
+
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
         id: filter
         with:
@@ -52,12 +59,7 @@ jobs:
               - 'configure.ac'
               - 'Makefile.am'
               - 'build-bsl-for-ion.sh'
-              - '.github/workflows/ci-workflow-arc.yml'
-              - '.github/workflows/ci-workflow-solaris.yml'
-              - '.github/workflows/ci-run-PR-tests.yml'
-              - '.github/ansible/*'
-              - '.github/scripts/*'
-              - '.github/actions/*'
+              - '.github/**'
               - 'tests/**'
               - 'demos/**'
               - 'killm'
@@ -66,6 +68,8 @@ jobs:
         id: final-needs-tests
         env:
           IS_DRAFT: ${{ github.event.pull_request.draft }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           NEEDS_TESTS="${{ steps.filter.outputs.relevant_changes }}"
 
@@ -73,6 +77,17 @@ jobs:
           if [ "$IS_DRAFT" == "true" ]; then
             echo "Draft status detected. Forcing tests to skip."
             NEEDS_TESTS="false"
+          fi
+
+          # Fetch live labels and evaluate for 'no-test'
+          if [ -n "$PR_NUMBER" ]; then
+            LIVE_LABELS=${{ steps.pr-labels.outputs.all-labels }}
+            echo "LIVE_LABELS=$LIVE_LABELS" >> $GITHUB_ENV
+
+            if [[ " $LIVE_LABELS " == *" no-test "* ]]; then
+              echo "'no-test' label detected. Forcing tests to skip."
+              NEEDS_TESTS="false"
+            fi
           fi
 
           echo "needs_tests=$NEEDS_TESTS" >> $GITHUB_OUTPUT
@@ -84,66 +99,31 @@ jobs:
           TESTS_TO_RUN: ${{ inputs.tests_to_run }}
         run: |
           TESTS=""
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PADDED_LABELS=" $LIVE_LABELS "
 
-          IS_QUICK="${{ contains(github.event.pull_request.labels.*.name, 'quick-test') }}"
-          # Check for 'retest' label to enable automatic rerun of failed tests.
-          # When present, ENABLE_RETEST=1 is passed to arc and solaris workflows.
-          IS_RETEST="${{ contains(github.event.pull_request.labels.*.name, 'retest') }}"
-          IS_CI_CD="${{ contains(github.event.pull_request.labels.*.name, 'CI/CD') }}"
-          IS_TEST_MODS="${{ contains(github.event.pull_request.labels.*.name, 'test-mods') }}"
-
-          # Construct ENABLE_RETEST based on retest label
-          if [ "$IS_RETEST" = "true" ]; then
-            ENABLE_RETEST_VALUE="ENABLE_RETEST=1"
-          else
-            ENABLE_RETEST_VALUE="ENABLE_RETEST=0"
-          fi
+          [[ "$PADDED_LABELS" == *" retest "* ]] && ENABLE_RETEST_VALUE="ENABLE_RETEST=1" || ENABLE_RETEST_VALUE="ENABLE_RETEST=0"
           echo "Constructed ENABLE_RETEST: $ENABLE_RETEST_VALUE"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             TESTS="${{ env.TESTS_TO_RUN }}"
-            echo "Manual trigger detected. Tests to run: $TESTS"
+            echo "Manual trigger. Tests: $TESTS"
 
-          elif [ "$IS_TEST_MODS" == "true" ]; then
-            echo "'test-mods' label detected. Analyzing changed files in tests/ and demos/..."
-            PR_NUMBER="${{ github.event.pull_request.number }}"
+          elif [[ "$PADDED_LABELS" == *" test-mods "* ]]; then
+            echo "'test-mods' label detected. Analyzing changed files..."
 
-            # Fetch changed files for this PR via the GitHub API
+            # Fetch, extract parent directories, deduplicate, and join into a space-separated string in one line
             CHANGED_FILES=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER/files --paginate --jq '.[].filename')
+            TESTS=$(echo "$CHANGED_FILES" | awk -F'/' '/^(tests|demos)\// {print $2}' | sort -u | xargs)
 
-            TESTS_LIST=""
-            for FILE in $CHANGED_FILES; do
-              # Check if the file is in the tests or demos directories
-              if [[ "$FILE" == tests/* ]] || [[ "$FILE" == demos/* ]]; then
-                # Extract the directory immediately following tests/ or demos/
-                # e.g., tests/bping/dotest -> bping/dotest
-                TEMP_FILE="${FILE#*/}"
+            [ -z "$TESTS" ] && echo "Warning: No valid test/demo files changed." || echo "Dynamically detected tests: $TESTS"
 
-                # Strip everything after the next slash to get the directory name
-                # e.g., bping/dotest -> bping
-                TEST_DIR="${TEMP_FILE%%/*}"
-                TESTS_LIST="$TESTS_LIST $TEST_DIR"
-              fi
-            done
-
-            # Deduplicate the list
-            mapfile -t UNIQUE_TESTS < <(echo "$TESTS_LIST" | tr -s ' ' '\n' | sort -u | grep '.')
-
-            # Expand the array back into a safe, space-separated string
-            TESTS="${UNIQUE_TESTS[*]}"
-
-            if [ -z "$TESTS" ]; then
-              echo "Warning: 'test-mods' label is present, but no files in tests/ or demos/ were changed. 'tests_to_run' is empty."
-            else
-              echo "Dynamically detected tests to run: $TESTS"
-            fi
-
-          elif [ "$IS_QUICK" == "true" ] || [ "$IS_CI_CD" == "true" ]; then
+          elif [[ "$PADDED_LABELS" == *" quick-test "* || "$PADDED_LABELS" == *" CI/CD "* ]]; then
             TESTS="bping cfdpv1 ams-sana ltp-cancel-ack-regression tcpcl-dos bibect conformance_test"
-            echo "Quick-test label detected. Tests to run: $TESTS"
+            echo "Quick-test/CI label detected. Tests: $TESTS"
 
           else
-            echo "Standard PR push detected. Running ALL tests."
+            echo "Standard PR push. Running ALL tests."
           fi
 
           echo "tests_to_run=$TESTS" >> $GITHUB_OUTPUT
