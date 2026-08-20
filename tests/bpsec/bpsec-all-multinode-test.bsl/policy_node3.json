@@ -138,5 +138,80 @@
       },
       "policy_action_on_fail": "delete_bundle"
     }
+  },
+  {
+      "policyrule": {
+      "desc": "BIB source at CLOUT over the bundle age block while relaying ipn:2.* -> ipn:4.*.  ION does not write this block's content until the bundle is dequeued, so it cannot be protected at APPIN, where node 2 declines it.  By CLOUT the content is settled and the block is a legitimate target.  The protection is good for one hop only: the next node rewrites the block, so node 4 must accept this BIB rather than carry it further.",
+      "filter": {
+        "rule_id": "6",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 7,
+        "loc": "clout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BIB source at CLOUT over the previous node block while relaying ipn:2.* -> ipn:4.*.  Like the bundle age block this content is written at dequeue, but this block is also suppressed at dequeue when no proximate node EID resolves.  A suppressed block is withheld from BSL, so no security operation is created over a block that will not be on the wire; when the EID resolves, as it does here, the block is restored and protected normally.",
+      "filter": {
+        "rule_id": "7",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 6,
+        "loc": "clout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BIB source at CLOUT over the metadata block while relaying ipn:2.* -> ipn:4.*.  This block stands in for an application-defined extension block: its content is settled when the bundle is sourced, but ION does not serialize it until dequeue, so it too can only be protected here and not at APPIN.  Unlike the bundle age and previous node blocks it is not rewritten in transit, so its content is the same at every hop.",
+      "filter": {
+        "rule_id": "8",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 8,
+        "loc": "clout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
   }]
 }

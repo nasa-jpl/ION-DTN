@@ -31,11 +31,19 @@
 #endif
 
 /*	Reasons a block cannot be the target of a security operation,
- *	as reported by reportIneligibleTarget below.			*/
+ *	as reported by reportIneligibleTarget below, and the reason
+ *	kinds used to rate-limit its memos.				*/
 
 #define	CONTENT_DEFERRED	"is rewritten when the bundle is dequeued \
 for transmission and has no settled content while the bundle is at rest"
 #define	CONTENT_EMPTY		"has zero length and no content to protect"
+#define	CONTENT_SUPPRESSED	"is suppressed and will not be included in \
+the bundle as transmitted"
+
+#define	KIND_DEFERRED		(0)
+#define	KIND_EMPTY		(1)
+#define	KIND_SUPPRESSED		(2)
+#define	REASON_KINDS		(3)
 
 /****** bsl "descriptors" - ION implementations of BSL callbacks ********/
 
@@ -79,26 +87,66 @@ static int	ramBlockHasNoBtsd(AcqExtBlock *blk)
 	return (blk->length == 0);
 }
 
+/*	A block may also be withheld from this transmission even though
+ *	its content is settled: an extension that decides at dequeue
+ *	that the block does not apply to the outduct being used says so
+ *	by suppressing the block, which keeps the block in the bundle
+ *	but omits it from the bundle ION is about to serialize.  The
+ *	previous-node block does this when no proximate node EID can be
+ *	resolved.
+ *
+ *	catenateBundle is the only function that consults this flag, so
+ *	a security block sourced over a suppressed target would name a
+ *	block number that the receiving node never sees, and the
+ *	security operation would fail there with nothing logged here.
+ *	Withhold suppressed blocks as well, so that the security
+ *	operation is never created rather than created and stranded.
+ *
+ *	Only the outbound side has this flag; a block being acquired is
+ *	by definition one that was transmitted.				*/
+
+static int	sdrBlockIsSuppressed(ExtensionBlock *blk)
+{
+	return (blk->suppressed != 0);
+}
+
 /*	Every locally sourced bundle carries these blocks, so reporting
  *	each one on each pass would flood the log with a fact that does
- *	not change.  One memo per block type per process is enough to
- *	explain the "Cannot find target block type" warnings that BSL
- *	logs when a policy rule names one of them.			*/
+ *	not change.  One memo per block type per reason per process is
+ *	enough to explain the "Cannot find target block type" warnings
+ *	that BSL logs when a policy rule names one of them.
+ *
+ *	The reason is part of the key because one block type can be
+ *	withheld for more than one reason over the life of a process:
+ *	the same block type may have no content yet in a bundle this
+ *	node sources and be suppressed in a bundle this node forwards.
+ *	Reporting only the first reason seen would leave the second
+ *	unexplained.
+ *
+ *	Note that withholding a block is not a bundle failure and so
+ *	carries no status report reason code: the rule that named the
+ *	block is declined, but the bundle is sourced and sent normally,
+ *	and there is no status to assert.  The BpSrReason codes for
+ *	security concern a service that was expected or attempted and
+ *	did not succeed, which is a different condition from a policy
+ *	rule that was never applied.					*/
 
 static void	reportIneligibleTarget(unsigned int blockNbr,
-			unsigned int blockType, const char *reason)
+			unsigned int blockType, int reasonKind,
+			const char *reason)
 {
-	static char	reported[256];
+	static char	reported[REASON_KINDS][256];
 	char		msgbuf[256];
 
-	if (blockType < sizeof reported)
+	if (reasonKind >= 0 && reasonKind < REASON_KINDS
+	&& blockType < sizeof reported[reasonKind])
 	{
-		if (reported[blockType])
+		if (reported[reasonKind][blockType])
 		{
 			return;
 		}
 
-		reported[blockType] = 1;
+		reported[reasonKind][blockType] = 1;
 	}
 
 	isprintf(msgbuf, sizeof msgbuf, "[i] BSL: block %u (type %u) %s, so it \
@@ -132,7 +180,14 @@ static int	getBlockNumbersFromSdr(Bundle *bundle,
 		if (sdrBlockHasNoBtsd(blk))
 		{
 			reportIneligibleTarget(blk->number, blk->type,
-				CONTENT_DEFERRED);
+				KIND_DEFERRED, CONTENT_DEFERRED);
+			continue;
+		}
+
+		if (sdrBlockIsSuppressed(blk))
+		{
+			reportIneligibleTarget(blk->number, blk->type,
+				KIND_SUPPRESSED, CONTENT_SUPPRESSED);
 			continue;
 		}
 
@@ -168,7 +223,7 @@ static int	getBlockNumbersFromRAM(AcqWorkArea *work,
 		if (ramBlockHasNoBtsd(blk))
 		{
 			reportIneligibleTarget(blk->number, blk->type,
-				CONTENT_DEFERRED);
+				KIND_DEFERRED, CONTENT_DEFERRED);
 			continue;
 		}
 
@@ -307,7 +362,14 @@ static int	getBlockMetadataFromSdr(Bundle *bundle, uint64_t block_num,
 	if (sdrBlockHasNoBtsd(blk))
 	{
 		reportIneligibleTarget(blk->number, blk->type,
-				CONTENT_DEFERRED);
+				KIND_DEFERRED, CONTENT_DEFERRED);
+		return -1;
+	}
+
+	if (sdrBlockIsSuppressed(blk))
+	{
+		reportIneligibleTarget(blk->number, blk->type,
+				KIND_SUPPRESSED, CONTENT_SUPPRESSED);
 		return -1;
 	}
 
@@ -335,7 +397,7 @@ static int	getBlockMetadataFromRAM(AcqWorkArea *work, uint64_t block_num,
 	if (ramBlockHasNoBtsd(blk))
 	{
 		reportIneligibleTarget(blk->number, blk->type,
-				CONTENT_DEFERRED);
+				KIND_DEFERRED, CONTENT_DEFERRED);
 		return -1;
 	}
 
@@ -370,7 +432,8 @@ static int	ion_bsl_GetBlockMetadata(const BSL_BundleRef_t *bundle_ref,
 
 		if (bundle->payload.length == 0)
 		{
-			reportIneligibleTarget(1, PayloadBlk, CONTENT_EMPTY);
+			reportIneligibleTarget(1, PayloadBlk, KIND_EMPTY,
+					CONTENT_EMPTY);
 			return -3;
 		}
 

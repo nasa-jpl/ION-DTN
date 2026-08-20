@@ -45,10 +45,33 @@ trap 'killm f' EXIT
 #       the bundle's extensions length before serialization,
 #       while the blocks node 2 already added must be left
 #       alone.  Tests 6 and 8 fail if either half regresses.
+#     - BIB source at CLOUT on the bundle age block (tgt 7), the
+#       previous node block (tgt 6) and the metadata block (tgt 8).
+#       These are the same kind of block that node 2 must decline at
+#       APPIN, protected at the one location where they can be: by
+#       CLOUT the content ION writes at dequeue is settled, so there
+#       is something to sign.  See the note on scope below.
 #   Node 4 (dest for 2->4):
 #     - BCB verifier at CLIN (validates ASB, does NOT decrypt)
 #     - BIB acceptor at APPOUT for primary (verifies HMAC)
 #     - BCB acceptor at APPOUT for payload (decrypts)
+#     - BIB acceptor at APPOUT for the three blocks node 3 protected
+#       at CLOUT
+#
+# Scope of a security operation, and why the location matters:
+#   A BIB sourced when the bundle is created protects the block from
+#   the source to the destination, and so requires that no node in
+#   between rewrite it.  A BIB sourced while the bundle is forwarded
+#   protects it for exactly one hop, and must be accepted by the next
+#   node rather than carried further.
+#
+#   The bundle age and previous node blocks are rewritten at every
+#   dequeue, so only the second form can ever apply to them: an
+#   end-to-end signature over content the next hop replaces could not
+#   verify.  The metadata block is not rewritten in transit, but ION
+#   still does not serialize it until dequeue, so it too has nothing
+#   to protect at APPIN.  That is why node 3 sources over all three and
+#   node 4 accepts all three.
 #
 # Note: BIB verifiers are NOT used at CLIN because BIB on the primary
 # block does not depend on BCB processing order (BIB targets a different
@@ -676,6 +699,109 @@ then
         PASS=0
 else
         echo "SUCCESS (test 8)"
+fi
+
+##############################
+# Test 9
+# Metadata block (tgt 8) protected at CLOUT while node 3 relays to node 4.
+# bpsendmeta asks for the block through ancillaryData.extensions; ION does
+# not serialize its content until dequeue, so node 2 cannot protect it at
+# APPIN, but node 3 can once the content is settled.
+#
+# bprecvmeta receives on ipn:4.2 and reports the metadata that arrived, so
+# the test can assert on the bytes the BIB was computed over.  Asserting on
+# the payload alone would not detect metadata that was altered in transit,
+# which is the failure the BIB over that block exists to prevent.
+
+echo -e "\n\n\n*****TEST 9*****"
+echo "Sending bundle with a metadata block to ipn:4.2 via node 3.  Node 3 sources a BIB over that block at CLOUT."
+sleep ${TIMETODISPLAYTEXT}
+
+rm -f 4.ipn.ltp/4_meta_results.txt
+touch 4.ipn.ltp/4_meta_results.txt
+
+cd 4.ipn.ltp
+bprecvmeta ipn:4.2 1 >> 4_meta_results.txt &
+cd ..
+
+sleep 1
+
+cd 2.ipn.ltp
+
+bpsendmeta ipn:2.1 ipn:4.2 "test_trace9" 7 5
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+cd ..
+
+# The payload must arrive, and the metadata must arrive unaltered: same
+# type code and same content that bpsendmeta was given.
+
+grep "test_trace9" 4.ipn.ltp/4_meta_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+
+echo "'test_trace9'" >> expected.txt
+echo "metadata type 7, length 11, 'test_trace9'" >> expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
+then
+        echo "FAIL (test 9)"
+        PASS=0
+else
+        echo "SUCCESS (test 9)"
+fi
+
+##############################
+# Test 10
+# The rules above must actually have been applied, not silently skipped.
+# A rule that never matches leaves every test above passing for the wrong
+# reason, so assert on what the nodes logged rather than on delivery alone.
+
+echo -e "\n\n\n*****TEST 10*****"
+echo "Verifying that the deferred-content rules were applied and not skipped."
+
+# Node 2 must DECLINE its two APPIN rules, because the bundle age and
+# previous node blocks have no content while the bundle is at rest.
+
+DECLINED=`grep -c "cannot be the target of a BIB or BCB" 2.ipn.ltp/ion.log`
+if [ ${DECLINED} -lt 1 ]
+then
+	echo "FAIL (test 10): node 2 never declined a deferred-content target."
+	PASS=0
+else
+	echo "Node 2 declined deferred-content targets at APPIN."
+fi
+
+# Node 3 must SOURCE a BIB at CLOUT over each of the blocks named by its
+# clout rules.  Tests 6, 8 and 9 each relay one bundle through node 3, and
+# each of those bundles should pick up a BIB over the primary block, the
+# bundle age block and the previous node block; the bundle from test 9 also
+# carries a metadata block, for ten in total.  Counting them distinguishes
+# "the rules were applied" from "the rules were silently skipped", which
+# delivery alone cannot: a bundle whose rule never matched is still
+# delivered, so tests 6, 8 and 9 would all pass with no BIB sourced at all.
+
+SOURCED=`grep -c "Created block type 11" 3.ipn.ltp/ion.log`
+if [ ${SOURCED} -lt 10 ]
+then
+	echo "FAIL (test 10): node 3 sourced ${SOURCED} BIB(s) at CLOUT, \
+expected 10; a deferred-content rule did not fire."
+	PASS=0
+else
+	echo "Node 3 sourced ${SOURCED} BIBs at CLOUT over settled blocks."
+fi
+
+# Node 4 must not have rejected any of them.
+
+if grep -q "sop_missing_at_acceptor" 4.ipn.ltp/ion.log
+then
+	echo "FAIL (test 10): node 4 reported a missing security target."
+	PASS=0
+else
+	echo "Node 4 accepted every security operation it was offered."
 fi
 
 ############################################################

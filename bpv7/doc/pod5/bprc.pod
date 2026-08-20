@@ -456,6 +456,35 @@ endpoint ID of the local node, the pathname of the file containing the node's
 crypto keys, and the pathname of the JSON file declaring the node's security
 policy.  There are no default values for these strings.
 
+Each rule in the policy configuration file names, in its I<loc> member, the
+point in bundle processing at which the rule is evaluated: B<appin> when a
+bundle is sourced by a local application, B<clout> when a bundle is about to
+be transmitted, B<clin> when a bundle is received, and B<appout> when a bundle
+is delivered to a local application.  For a rule that sources a security
+block, the choice between B<appin> and B<clout> determines both what the
+security operation can protect and how far the protection reaches.
+
+A rule at B<appin> protects a block from the source of the bundle to its
+destination, and so can only name a block whose content is complete when the
+bundle is created and which no node in between will rewrite.
+
+A rule at B<clout> protects a block for one hop, and the next node must accept
+the security operation rather than forward it.  This is the location to use
+for any block whose content ION does not write until the bundle is dequeued
+for transmission.  The previous node block and the bundle age block are
+rewritten on every hop and can only be protected here.  Blocks that ION
+serializes at dequeue even though their content was settled earlier -- the
+metadata block, the quality of service block, and application-defined blocks
+of the same design -- likewise have nothing to protect at B<appin>, but may be
+protected at B<clout>.
+
+A rule that names a block with no settled content is declined, and the reason
+is recorded in the B<ion.log> file, once per block type; the bundle is still
+sourced and sent.  A block that an extension has suppressed for the
+transmission in progress is declined in the same way, since a security
+operation over a block that will not be in the transmitted bundle could not be
+verified by the receiving node.
+
 =item B<x>
 
 The B<stop> command.  This command stops all schemes and all protocols
