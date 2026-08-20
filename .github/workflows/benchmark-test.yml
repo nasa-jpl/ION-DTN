@@ -57,6 +57,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           persist-credentials: true
+          token: ${{ secrets.ION_DTN_PUSH_TOKEN }}
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -108,7 +109,7 @@ jobs:
 
       - name: Overlay fresh tests and scripts
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key != '' }}
-        run: git checkout HEAD -- tests/ demos/ killm
+        run: git checkout ${{ github.head_ref }} -- tests/ demos/ killm
 
       - name: Install and run benchmark
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
