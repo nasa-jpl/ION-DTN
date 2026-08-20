@@ -1,0 +1,116 @@
+=head1 NAME
+
+bpsendmeta - Bundle Protocol (BP) metadata extension block transmission utility
+
+=head1 SYNOPSIS
+
+B<bpsendmeta> I<own_endpoint_ID> I<destination_endpoint_ID> I<text> [I<metadata_type> [I<time_to_live (seconds)>]]
+
+=head1 DESCRIPTION
+
+B<bpsendmeta> uses bp_send() to issue a single bundle to a designated
+destination endpoint, carrying a metadata extension block (block type 8),
+then terminates.  I<text> is used both as the bundle's payload and as the
+content of the metadata block.  The bundle is sent at standard priority with
+no custody transfer requested.
+
+I<metadata_type> is the metadata type code recorded in the block, from 1 to
+255; it defaults to 1.  A metadata type of zero is not accepted, because ION
+declines to offer a metadata block when the metadata type is zero.
+I<time_to_live>, if not specified, defaults to 300 seconds (5 minutes).
+
+I<own_endpoint_ID> is opened as the bundle's source endpoint, so the bundle
+carries a source EID.  A bundle sent without one is anonymous, and a security
+policy rule that selects bundles by source could never match it.
+
+Metadata content longer than the maximum metadata length that ION was built
+for is truncated to that length.
+
+The metadata block is unusual in two ways that make this utility useful for
+exercising extension block behavior.
+
+First, ION defines the block but does not list it among the extension blocks
+that are offered on every locally sourced bundle, so it appears only when an
+application asks for it.  B<bpsendmeta> asks by passing the block's
+specification in the I<extensions> member of the BpAncillaryData structure,
+which is the supported way for an application to request an extension block
+on a per-bundle basis.
+
+Second, although the block's content is fully determined when the bundle is
+sourced -- it comes entirely from the metadata members of BpAncillaryData --
+ION does not serialize that content until the bundle is dequeued for
+transmission.  A block in that state has nothing to protect while the bundle
+is at rest, so a BIB or BCB over it must be sourced while the bundle is being
+forwarded rather than when the bundle is created.  See bprc(5) for the
+security policy locations that apply.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpsendmeta> has terminated successfully.
+
+=item "1"
+
+B<bpsendmeta> was unable to send the bundle.  Check for diagnostics in the
+B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Metadata type must be from 1 to 255.
+
+The I<metadata_type> argument was zero, negative, or greater than 255.  ION
+declines to offer a metadata block when the metadata type is zero, so no
+block would be produced.
+
+=item bpsendmeta can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item bpsendmeta can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item No space for bpsendmeta payload.
+
+Probably an unrecoverable database error, in which case the local ION node
+must be terminated and re-initialized.
+
+=item bpsendmeta can't create ZCO.
+
+Probably an unrecoverable database error, in which case the local ION node
+must be terminated and re-initialized.
+
+=item bpsendmeta can't send ADU.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpsink(1), bptrace(1), bprc(5), bp(3)

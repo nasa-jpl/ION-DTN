@@ -1,0 +1,91 @@
+=head1 NAME
+
+bprecvmeta - Bundle Protocol (BP) metadata extension block reception utility
+
+=head1 SYNOPSIS
+
+B<bprecvmeta> I<own_endpoint_ID> [I<max_bundles>]
+
+=head1 DESCRIPTION
+
+B<bprecvmeta> uses bp_receive() to receive bundles addressed to
+I<own_endpoint_ID> and reports, for each one, the payload and the content of
+the metadata extension block (block type 8) that the bundle carried.  It is
+the counterpart of bpsendmeta(1).
+
+ION delivers the content of a received metadata block to the receiving
+application, but no other utility reports it, so a metadata block that
+crosses the network cannot otherwise be observed at its destination.
+
+If I<max_bundles> is specified, B<bprecvmeta> terminates after receiving that
+many bundles; otherwise it runs until interrupted with ^C.
+
+For each bundle received, one line reports the payload length, one reports the
+payload text when it is short enough to display, and one reports the metadata.
+The metadata line has one of these forms:
+
+	metadata type <type>, length <length>, '<content>'
+	metadata type <type>, length <length>, 0x<hexadecimal>
+	no metadata block.
+
+Metadata content is arbitrary bytes, so it is shown as text only when every
+byte of it is printable, and in hexadecimal otherwise.  A bundle that carried
+no metadata block is reported as such: ION reports a metadata type of zero in
+that case, which is also the value that makes a sending application decline to
+produce the block.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bprecvmeta> has terminated.  Any problems encountered during operation will
+be noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different endpoint.
+
+=item bprecvmeta bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item Can't handle delivery.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpsendmeta(1), bpsink(1), bprc(5), bp(3)

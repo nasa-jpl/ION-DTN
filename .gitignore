@@ -87,7 +87,9 @@ bpecho
 bping
 bplist
 bprecvfile
+bprecvmeta
 bpsendfile
+bpsendmeta
 bpsink
 bpsource
 bpstats

@@ -1185,8 +1185,10 @@ bpbin = \
 	bplist \
 	bpnmtest \
 	bprecvfile \
+	bprecvmeta \
 	bprecvtest \
 	bpsendfile \
+	bpsendmeta \
 	bpsendtest \
 	bpsink \
 	bpsource \
@@ -1300,6 +1302,8 @@ bpextra = \
 	bpv7/doc/pod1/bprecvtest.pod \
 	bpv7/doc/pod1/bpsecadmin.pod \
 	bpv7/doc/pod1/bpsendfile.pod \
+	bpv7/doc/pod1/bprecvmeta.pod \
+	bpv7/doc/pod1/bpsendmeta.pod \
 	bpv7/doc/pod1/bpsendtest.pod \
 	bpv7/doc/pod1/bpsink.pod \
 	bpv7/doc/pod1/bpsource.pod \
@@ -1389,6 +1393,8 @@ bpmans = \
 	bpv7/doc/bprecvtest.1 \
 	bpv7/doc/bpsecadmin.1 \
 	bpv7/doc/bpsendfile.1 \
+	bpv7/doc/bprecvmeta.1 \
+	bpv7/doc/bpsendmeta.1 \
 	bpv7/doc/bpsendtest.1 \
 	bpv7/doc/bpsink.1 \
 	bpv7/doc/bpsource.1 \
@@ -1854,6 +1860,14 @@ bprecvtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsendfile_SOURCES = bpv7/utils/bpsendfile.c
 bpsendfile_LDADD = libici.la $(bplib)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bprecvmeta_SOURCES = bpv7/utils/bprecvmeta.c
+bprecvmeta_LDADD = libici.la $(bplib)
+bprecvmeta_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsendmeta_SOURCES = bpv7/utils/bpsendmeta.c
+bpsendmeta_LDADD = libici.la $(bplib)
+bpsendmeta_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsendtest_SOURCES = bpv7/utils/bpsendtest.c
 bpsendtest_LDADD = libici.la $(bplib)

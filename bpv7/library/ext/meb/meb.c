@@ -145,7 +145,14 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	arrayLength = 3;
+
+	/*	The block holds two elements, the metadata type and the
+	 *	metadata itself, which is what meb_serialize encodes.
+	 *	cbor_decode_array_open requires the requested size to
+	 *	match the encoded size exactly, so asking for any other
+	 *	number here would reject every well formed block.	*/
+
+	arrayLength = 2;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
 		/*	Block doesn't conform to MEB format.	*/
