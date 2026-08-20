@@ -87,6 +87,7 @@ int        vec_make_room(vector_t *vec, vec_idx_t extra);
 vec_idx_t  vec_num_entries(vector_t vec);
 vec_idx_t  vec_num_entries_ptr(vector_t *vec);
 void*      vec_pop(vector_t *vec, int *success);
+void*      vec_pop_front(vector_t *vec, int *success);
 int        vec_push(vector_t *vec, void *value);
 void       vec_release(vector_t *vec, int destroy);
 void*      vec_remove(vector_t *vec, vec_idx_t idx, int *success);

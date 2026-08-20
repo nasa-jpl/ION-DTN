@@ -80,6 +80,12 @@ void dtn_ion_ionadmin_init_edd(void)
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_REF_TIME), dtn_ion_ionadmin_get_ref_time);
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_TIME_DELTA), dtn_ion_ionadmin_get_time_delta);
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_VERSION), dtn_ion_ionadmin_get_version);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_TOTAL), dtn_ion_ionadmin_get_working_memory_total);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_FREE), dtn_ion_ionadmin_get_working_memory_free);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_USED), dtn_ion_ionadmin_get_working_memory_used);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_TOTAL), dtn_ion_ionadmin_get_heap_total);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_FREE), dtn_ion_ionadmin_get_heap_free);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_USED), dtn_ion_ionadmin_get_heap_used);
 }
 
 void dtn_ion_ionadmin_init_op(void)

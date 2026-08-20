@@ -14,6 +14,7 @@ TODO:
 // Headers under test
 #include "shared/utils/utils.h"
 #include "shared/msg/msg.h"
+#include "adm_sys_impl.h"	// DTN/sys ADM collectors
 
 // Test Utilities
 #include "check.h"
@@ -288,6 +289,96 @@ void msgs_encoding_tests(void) {
 }
 
 
+/* Verify a DTN/sys collector returns a non-NULL value of the expected type. */
+static int check_sys_edd(const char *name, tnv_t *(*fn)(tnvc_t *),
+		amp_type_e type)
+{
+	tnv_t *v = fn(NULL);
+
+	if (v == NULL)
+	{
+		printf("not ok - sys.%s returned no value\n", name);
+		return 0;
+	}
+
+	if (v->type != type)
+	{
+		printf("not ok - sys.%s wrong type %d (expected %d)\n", name,
+				v->type, type);
+		tnv_release(v, 1);
+		return 0;
+	}
+
+	printf("ok - sys.%s\n", name);
+	tnv_release(v, 1);
+	return 1;
+}
+
+/* Exercise every DTN/sys ADM collect function and spot-check sane values. */
+int sys_adm_tests(void)
+{
+	init_group("TEST DTN/sys ADM collectors");
+
+#if defined(linux) || defined(__linux__)
+	tnv_t *v;
+
+	/* Each collector returns a typed value on a Linux host. */
+	check(check_sys_edd("num_cpus", dtn_sys_get_num_cpus, AMP_TYPE_UINT));
+	check(check_sys_edd("load_1min", dtn_sys_get_load_1min, AMP_TYPE_REAL64));
+	check(check_sys_edd("load_5min", dtn_sys_get_load_5min, AMP_TYPE_REAL64));
+	check(check_sys_edd("load_15min", dtn_sys_get_load_15min, AMP_TYPE_REAL64));
+	check(check_sys_edd("cpu_util_pct", dtn_sys_get_cpu_util_pct, AMP_TYPE_REAL64));
+	check(check_sys_edd("mem_total_kb", dtn_sys_get_mem_total_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("mem_free_kb", dtn_sys_get_mem_free_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("mem_used_kb", dtn_sys_get_mem_used_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("swap_total_kb", dtn_sys_get_swap_total_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("swap_free_kb", dtn_sys_get_swap_free_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_total_kb", dtn_sys_get_disk_total_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_free_kb", dtn_sys_get_disk_free_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_used_kb", dtn_sys_get_disk_used_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("open_files", dtn_sys_get_open_files, AMP_TYPE_UVAST));
+	check(check_sys_edd("max_files", dtn_sys_get_max_files, AMP_TYPE_UVAST));
+	check(check_sys_edd("num_procs", dtn_sys_get_num_procs, AMP_TYPE_UINT));
+	check(check_sys_edd("uptime_sec", dtn_sys_get_uptime_sec, AMP_TYPE_UVAST));
+
+	/* Spot-check that a handful of values are plausible for any host. */
+	v = dtn_sys_get_num_cpus(NULL);
+	check(v != NULL && v->value.as_uint >= 1);
+	tnv_release(v, 1);
+
+	v = dtn_sys_get_mem_total_kb(NULL);
+	check(v != NULL && v->value.as_uvast > 0);
+	tnv_release(v, 1);
+
+	v = dtn_sys_get_uptime_sec(NULL);
+	check(v != NULL && v->value.as_uvast > 0);
+	tnv_release(v, 1);
+
+	v = dtn_sys_get_disk_total_kb(NULL);
+	check(v != NULL && v->value.as_uvast > 0);
+	tnv_release(v, 1);
+
+	/* Used + free must never exceed total physical memory. */
+	{
+		tnv_t *total = dtn_sys_get_mem_total_kb(NULL);
+		tnv_t *used = dtn_sys_get_mem_used_kb(NULL);
+		tnv_t *avail = dtn_sys_get_mem_free_kb(NULL);
+
+		check(total != NULL && used != NULL && avail != NULL);
+		check(used->value.as_uvast <= total->value.as_uvast);
+		check(avail->value.as_uvast <= total->value.as_uvast);
+		tnv_release(total, 1);
+		tnv_release(used, 1);
+		tnv_release(avail, 1);
+	}
+#else
+	printf("ok - DTN/sys collectors skipped (non-Linux host)\n");
+#endif
+
+	end_group();
+	return 1;
+}
+
 int main(int argc, char **argv)
 {
 	/* Parameter intentionally unused. */
@@ -319,6 +410,8 @@ int main(int argc, char **argv)
 	msg_encoding_tests();
 
 	msgs_encoding_tests();
+
+	fail_unless(sys_adm_tests());
 
 	/* Stop ION */
 	ionstop();

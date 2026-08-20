@@ -137,6 +137,30 @@ void dtn_ion_ionadmin_init_edd(void)
 	adm_add_edd(id, NULL);
 	meta_add_edd(AMP_TYPE_STR, id, ADM_ENUM_DTN_ION_IONADMIN, "version", "This is the version of ION that is currently installed.");
 
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_TOTAL);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "working_memory_total", "Total size, in bytes, of ION's working-memory (ionwm) partition.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_FREE);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "working_memory_free", "Free space, in bytes, in ION's working-memory (ionwm) partition.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_WORKING_MEMORY_USED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "working_memory_used", "Used space, in bytes, in ION's working-memory (ionwm) partition.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_TOTAL);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "heap_total", "Total size, in bytes, of ION's SDR heap.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_FREE);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "heap_free", "Free space, in bytes, in ION's SDR heap.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_HEAP_USED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_ION_IONADMIN, "heap_used", "Used space, in bytes, in ION's SDR heap.");
+
 }
 
 void dtn_ion_ionadmin_init_op(void)

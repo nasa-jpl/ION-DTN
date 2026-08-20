@@ -1044,6 +1044,211 @@ tnv_t *dtn_bp_agent_get_endpoint_policy(tnvc_t *parms)
 }
 
 
+/*
+ * Lifetime bundle-flow totals, mirroring libbpP.c reportStateStats():
+ * sourced/transmitted/received are per-priority BpCosStats, forwarded/expired
+ * are single BpDbStats tallies, and delivered is aggregated over every
+ * endpoint of every scheme. Returns both bundle count and byte count.
+ */
+enum
+{
+	BP_FLOW_SOURCED, BP_FLOW_FORWARDED, BP_FLOW_TRANSMITTED,
+	BP_FLOW_RECEIVED, BP_FLOW_DELIVERED, BP_FLOW_EXPIRED
+};
+
+static void bp_cos_sum(Sdr sdr, Object addr, uvast *count, uvast *bytes)
+{
+	BpCosStats	cos;
+
+	if (addr == 0)
+	{
+		return;
+	}
+
+	sdr_read(sdr, (char *) &cos, addr, sizeof(BpCosStats));
+	*count += (uvast) cos.tallies[0].totalCount
+			+ cos.tallies[1].totalCount + cos.tallies[2].totalCount;
+	*bytes += cos.tallies[0].totalBytes
+			+ cos.tallies[1].totalBytes + cos.tallies[2].totalBytes;
+}
+
+static void bp_flow_get(int which, uvast *count, uvast *bytes)
+{
+	Sdr		sdr = getIonsdr();
+	Object		dbObj = getBpDbObject();
+	BpDB		bpdb;
+	BpDbStats	dbStats;
+
+	*count = 0;
+	*bytes = 0;
+	if (sdr == NULL || dbObj == 0 || sdr_begin_xn(sdr) < 0)
+	{
+		return;
+	}
+
+	sdr_read(sdr, (char *) &bpdb, dbObj, sizeof(BpDB));
+	switch (which)
+	{
+	case BP_FLOW_SOURCED:
+		bp_cos_sum(sdr, bpdb.sourceStats, count, bytes);
+		break;
+
+	case BP_FLOW_TRANSMITTED:
+		bp_cos_sum(sdr, bpdb.xmitStats, count, bytes);
+		break;
+
+	case BP_FLOW_RECEIVED:
+		bp_cos_sum(sdr, bpdb.recvStats, count, bytes);
+		break;
+
+	case BP_FLOW_FORWARDED:
+		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
+		*count = dbStats.tallies[BP_DB_FWD_OKAY].totalCount;
+		*bytes = dbStats.tallies[BP_DB_FWD_OKAY].totalBytes;
+		break;
+
+	case BP_FLOW_EXPIRED:
+		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
+		*count = dbStats.tallies[BP_DB_EXPIRED].totalCount;
+		*bytes = dbStats.tallies[BP_DB_EXPIRED].totalBytes;
+		break;
+
+	case BP_FLOW_DELIVERED:
+	{
+		Object		schemeElt;
+		Object		endpointElt;
+		Scheme		scheme;
+		Endpoint	endpoint;
+		EndpointStats	epStats;
+
+		for (schemeElt = sdr_list_first(sdr, bpdb.schemes); schemeElt;
+				schemeElt = sdr_list_next(sdr, schemeElt))
+		{
+			sdr_read(sdr, (char *) &scheme,
+					sdr_list_data(sdr, schemeElt),
+					sizeof(Scheme));
+			for (endpointElt = sdr_list_first(sdr, scheme.endpoints);
+					endpointElt;
+					endpointElt = sdr_list_next(sdr, endpointElt))
+			{
+				sdr_read(sdr, (char *) &endpoint,
+						sdr_list_data(sdr, endpointElt),
+						sizeof(Endpoint));
+				if (endpoint.stats == 0)
+				{
+					continue;
+				}
+
+				sdr_read(sdr, (char *) &epStats, endpoint.stats,
+						sizeof(EndpointStats));
+				*count += epStats.tallies[BP_ENDPOINT_DELIVERED]
+						.totalCount;
+				*bytes += epStats.tallies[BP_ENDPOINT_DELIVERED]
+						.totalBytes;
+			}
+		}
+
+		break;
+	}
+
+	default:
+		break;
+	}
+
+	sdr_exit_xn(sdr);
+}
+
+static uvast bp_flow_get_count(int which)
+{
+	uvast	count;
+	uvast	bytes;
+
+	bp_flow_get(which, &count, &bytes);
+	return count;
+}
+
+static uvast bp_flow_get_bytes(int which)
+{
+	uvast	count;
+	uvast	bytes;
+
+	bp_flow_get(which, &count, &bytes);
+	return bytes;
+}
+
+tnv_t *dtn_bp_agent_get_bundles_sourced(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_SOURCED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_sourced(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_SOURCED));
+}
+
+tnv_t *dtn_bp_agent_get_bundles_forwarded(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_FORWARDED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_forwarded(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_FORWARDED));
+}
+
+tnv_t *dtn_bp_agent_get_bundles_transmitted(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_TRANSMITTED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_transmitted(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_TRANSMITTED));
+}
+
+tnv_t *dtn_bp_agent_get_bundles_received(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_RECEIVED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_received(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_RECEIVED));
+}
+
+tnv_t *dtn_bp_agent_get_bundles_delivered(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_DELIVERED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_delivered(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_DELIVERED));
+}
+
+tnv_t *dtn_bp_agent_get_bundles_expired(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uint((unsigned int) bp_flow_get_count(BP_FLOW_EXPIRED));
+}
+
+tnv_t *dtn_bp_agent_get_bytes_expired(tnvc_t *parms)
+{
+	(void) parms;
+	return tnv_from_uvast(bp_flow_get_bytes(BP_FLOW_EXPIRED));
+}
+
+
 
 /* Control Functions */
 

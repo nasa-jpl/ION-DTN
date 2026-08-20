@@ -330,6 +330,50 @@ void* vec_pop(vector_t *vec, int *success)
 	return vec_remove(vec, vec->next_idx - 1, success);
 }
 
+/*
+ * Remove and return the oldest (front) element, shifting the remaining
+ * occupied entries down so insertion order is preserved. Unlike vec_remove,
+ * this is permitted on VEC_FLAG_AS_STACK vectors and provides FIFO eviction
+ * for stack-mode vectors that need to drop their oldest entry when full.
+ * Entries are assumed contiguous from index 0 (true for stack-mode use).
+ */
+void* vec_pop_front(vector_t *vec, int *success)
+{
+	void *result = NULL;
+	vec_idx_t i;
+
+	CHKNULL(success);
+
+	*success = VEC_FAIL;
+	CHKNULL(vec);
+
+	lockResource(&(vec->lock));
+
+	if((vec->total_slots > 0) && (vec->data[0].occupied == 1))
+	{
+		result = vec->data[0].value;
+
+		for(i = 1; i < vec->total_slots; i++)
+		{
+			vec->data[i - 1] = vec->data[i];
+		}
+
+		vec->data[vec->total_slots - 1].occupied = 0;
+		vec->data[vec->total_slots - 1].value = NULL;
+
+		if(vec->next_idx > 0)
+		{
+			vec->next_idx--;
+		}
+		vec->num_free++;
+		*success = VEC_OK;
+	}
+
+	unlockResource(&(vec->lock));
+
+	return result;
+}
+
 int vec_push(vector_t *vec, void *value)
 {
 	return vec_insert(vec, value, NULL);

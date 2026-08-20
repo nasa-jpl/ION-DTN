@@ -30,6 +30,12 @@ Log each agent to a different directory.
 
 Specify maximum number of entries (reports+tables) per file before rotating.
 
+=item -N #
+
+Specify the maximum number of rotated log files to retain per agent; older
+files are deleted as new ones are created. Defaults to 100; 0 disables
+retention (unlimited files).
+
 =item -D DIR
 
 NM logs will be placed in this directory.

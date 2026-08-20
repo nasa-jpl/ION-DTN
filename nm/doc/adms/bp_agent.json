@@ -202,7 +202,19 @@
         "name": "endpoint_name"
       }],
       "description": "Does the endpoint abandon on fail (0=no)"
-    }
+    },
+    { "name": "bundles_sourced", "type": "UINT", "description": "Number of bundles sourced by this node." },
+    { "name": "bytes_sourced", "type": "UVAST", "description": "Number of bytes sourced by this node." },
+    { "name": "bundles_forwarded", "type": "UINT", "description": "Number of bundles forwarded by this node." },
+    { "name": "bytes_forwarded", "type": "UVAST", "description": "Number of bytes forwarded by this node." },
+    { "name": "bundles_transmitted", "type": "UINT", "description": "Number of bundles transmitted by this node." },
+    { "name": "bytes_transmitted", "type": "UVAST", "description": "Number of bytes transmitted by this node." },
+    { "name": "bundles_received", "type": "UINT", "description": "Number of bundles received by this node." },
+    { "name": "bytes_received", "type": "UVAST", "description": "Number of bytes received by this node." },
+    { "name": "bundles_delivered", "type": "UINT", "description": "Number of bundles delivered to endpoints on this node." },
+    { "name": "bytes_delivered", "type": "UVAST", "description": "Number of bytes delivered to endpoints on this node." },
+    { "name": "bundles_expired", "type": "UINT", "description": "Number of bundles expired on this node." },
+    { "name": "bytes_expired", "type": "UVAST", "description": "Number of bytes expired on this node." }
   ],
 
   "Rptt": [{

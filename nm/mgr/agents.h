@@ -69,6 +69,7 @@ typedef struct {
 	int rx_rpt; // Log all reports to files upon receipt
 	int rx_tbl; // Log all tables tof files upon receipt
 	int limit; // Number of entries (reports+tables) per file
+	int max_files; // Max rotated log files to retain per agent (0 = unlimited)
 	int agent_dirs; // If true, create discrete directories for each agent
 	char dir[32]; // directory to save report logs to (or place sub-directories in)
 

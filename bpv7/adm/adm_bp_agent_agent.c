@@ -95,6 +95,18 @@ void dtn_bp_agent_init_edd(void)
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_ACTIVE), dtn_bp_agent_get_endpoint_active);
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_SINGLETON), dtn_bp_agent_get_endpoint_singleton);
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_POLICY), dtn_bp_agent_get_endpoint_policy);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_SOURCED), dtn_bp_agent_get_bundles_sourced);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_SOURCED), dtn_bp_agent_get_bytes_sourced);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_FORWARDED), dtn_bp_agent_get_bundles_forwarded);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_FORWARDED), dtn_bp_agent_get_bytes_forwarded);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_TRANSMITTED), dtn_bp_agent_get_bundles_transmitted);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_TRANSMITTED), dtn_bp_agent_get_bytes_transmitted);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_RECEIVED), dtn_bp_agent_get_bundles_received);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_RECEIVED), dtn_bp_agent_get_bytes_received);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_DELIVERED), dtn_bp_agent_get_bundles_delivered);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_DELIVERED), dtn_bp_agent_get_bytes_delivered);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_EXPIRED), dtn_bp_agent_get_bundles_expired);
+	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_EXPIRED), dtn_bp_agent_get_bytes_expired);
 }
 
 void dtn_bp_agent_init_op(void)

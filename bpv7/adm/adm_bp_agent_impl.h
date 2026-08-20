@@ -87,6 +87,18 @@ tnv_t *dtn_bp_agent_get_endpoint_names(tnvc_t *parms);
 tnv_t *dtn_bp_agent_get_endpoint_active(tnvc_t *parms);
 tnv_t *dtn_bp_agent_get_endpoint_singleton(tnvc_t *parms);
 tnv_t *dtn_bp_agent_get_endpoint_policy(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_sourced(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_sourced(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_forwarded(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_forwarded(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_transmitted(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_transmitted(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_received(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_received(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_delivered(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_delivered(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bundles_expired(tnvc_t *parms);
+tnv_t *dtn_bp_agent_get_bytes_expired(tnvc_t *parms);
 
 
 /* Control Functions */

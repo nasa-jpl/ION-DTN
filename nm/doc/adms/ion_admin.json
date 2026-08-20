@@ -94,6 +94,36 @@
       "name": "version",
       "type": "STR",
       "description": "This is the version of ION that is currently installed."
+    },
+    {
+      "name": "working_memory_total",
+      "type": "UVAST",
+      "description": "Total size, in bytes, of ION's working-memory (ionwm) partition."
+    },
+    {
+      "name": "working_memory_free",
+      "type": "UVAST",
+      "description": "Free space, in bytes, in ION's working-memory (ionwm) partition."
+    },
+    {
+      "name": "working_memory_used",
+      "type": "UVAST",
+      "description": "Used space, in bytes, in ION's working-memory (ionwm) partition."
+    },
+    {
+      "name": "heap_total",
+      "type": "UVAST",
+      "description": "Total size, in bytes, of ION's SDR heap."
+    },
+    {
+      "name": "heap_free",
+      "type": "UVAST",
+      "description": "Free space, in bytes, in ION's SDR heap."
+    },
+    {
+      "name": "heap_used",
+      "type": "UVAST",
+      "description": "Used space, in bytes, in ION's SDR heap."
     }
   ],
 

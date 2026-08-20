@@ -77,7 +77,6 @@
 void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 {
 	agent_t *agent = NULL;
-	int result = -1;
 
 	CHKVOID(meta);
 	CHKVOID(msg);
@@ -99,7 +98,6 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 		for(it = vecit_first(&(msg->rpts)); vecit_valid(it); it = vecit_next(it))
 		{
 			rpt_t *rpt = vecit_data(it);
-			int status = vec_push(&(agent->rpts), rpt);
 
 			lockResource(&(agent->log_lock));
 			if (agent->log_fd != NULL)
@@ -113,14 +111,30 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 			}
 			unlockResource(&(agent->log_lock));
 
-			if (status == VEC_OK)
+			/* The backing vector auto-grows, so vec_push never reports "full";
+			 * enforce the AGENT_DEF_NUM_RPTS cap here, else retained reports
+			 * accumulate without bound and leak ION working memory. */
+			while (vec_num_entries_ptr(&(agent->rpts)) >= AGENT_DEF_NUM_RPTS)
+			{
+				int evicted = VEC_FAIL;
+				rpt_t *old = (rpt_t *) vec_pop_front(&(agent->rpts), &evicted);
+
+				if (evicted != VEC_OK)
+				{
+					break;
+				}
+
+				rpt_release(old, 1);
+			}
+
+			if (vec_push(&(agent->rpts), rpt) == VEC_OK)
 			{
 				ion_atomic_get_and_increment(&gMgrDB.tot_rpts, 1);
 			}
-			else // Vector may be full.  Discard (and release) report
+			else
 			{
-				// TODO: Consider retrying after a vec_pop() to replace oldest report
-				AMP_DEBUG_WARN("rx_data_rpt", "Failed to push rpt, discarding", NULL);
+				AMP_DEBUG_WARN("rx_data_rpt",
+						"Can't store report; discarding.", NULL);
 				rpt_release(rpt, 1);
 			}
 		}
@@ -165,7 +179,6 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 {
 	agent_t *agent = NULL;
-	int result = -1;
 
 	CHKVOID(meta);
 	CHKVOID(msg);
@@ -177,7 +190,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 	{
 		AMP_DEBUG_WARN("msg_rx_data_tbl",
 				"Received group is from an unknown sender (%s); ignoring it.",
-				meta->senderEid);
+				meta->senderEid.name);
 	}
 	else
 	{
@@ -204,11 +217,29 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 			{
 				ion_atomic_get_and_increment(&gMgrDB.tot_tbls, 1);
 			}
-			else // Vector may be full.  Discard (and release) report
+			else // Vector full: evict oldest table to make room.
 			{
-				// TODO: Consider retrying after a vec_pop() to replace oldest report
-				AMP_DEBUG_WARN("rx_data_tbl", "Failed to push tbl, discarding", NULL);
-				tbl_release(tbl, 1);
+				int evicted = VEC_FAIL;
+				tbl_t *old = (tbl_t *) vec_pop_front(&(agent->tbls),
+						&evicted);
+
+				if (evicted == VEC_OK)
+				{
+					tbl_release(old, 1);
+				}
+
+				if ((evicted == VEC_OK)
+						&& (vec_push(&(agent->tbls), tbl) == VEC_OK))
+				{
+					ion_atomic_get_and_increment(&gMgrDB.tot_tbls, 1);
+				}
+				else
+				{
+					AMP_DEBUG_WARN("rx_data_tbl",
+							"Table vector full; discarding table.",
+							NULL);
+					tbl_release(tbl, 1);
+				}
 			}
 		}
 
