@@ -9,6 +9,11 @@ text lines or interactively at B<bpadmin>'s command prompt (:).  Commands
 are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the Bundle Protocol management commands are described below.
 
+I<Note:> For specialized routing scenarios, such as bridging IPv4 and IPv6
+networks using TCPCLA, asymmetric duct configuration is required to prevent
+connection conflicts. See the TCP BRIDGING AND ASYMMETRICAL LINKS section
+below for details.
+
 =head1 GENERAL COMMANDS
 
 =over 4
@@ -978,6 +983,45 @@ transmitting bundles to the node[s] to which it is currently assigned.
 
 =back
 
+=head1 TCP BRIDGING AND ASYMMETRICAL LINKS
+
+While standard ION-to-ION connections typically use symmetric outducts and
+inducts, attempting to configure competing parallel TCP connections will
+result in failures in two specific scenarios:
+
+1. Bridging cross-protocol networks (e.g., IPv4 to IPv6) where TCPCLA cannot
+   support running parallel, competing TCP inducts.
+2. Interoperating with strict single-stream DTN implementations that actively
+   reject secondary stream requests.
+
+To resolve this in both cases, you must configure the linked nodes
+asymmetrically so that ION dynamically reuses a single established TCP
+connection rather than attempting to open a secondary stream:
+
+=over 4
+
+=item *
+B<The Active Connector Node:> Configure the outduct pointing to the
+passive node. Crucially, do not configure an induct for the passive node's
+protocol.
+
+=item *
+B<The Passive Listener Node:> Configure only the induct to accept the
+incoming connection. Omit both the outduct and the planduct for this connection
+entirely.
+
+=back
+
+By omitting the outduct and planduct on the passive node, ION acts as a passive
+listener and dynamically utilizes the incoming connection initiated by the
+active node for bidirectional traffic.
+
+I<Startup Sequence Note:> In pure ION-to-ION networks, nodes will typically
+recover and establish this asymmetrical connection dynamically regardless of
+startup order. However, when interoperating with other DTN implementations that
+enforce strict server/client roles, the passive listener node must generally
+be started before the active connecting node.
+
 =head1 EXAMPLES
 
 =over 4
@@ -995,6 +1039,27 @@ set automatically.
 =item r 'ipnadmin flyby.ipnrc'
 
 Runs the administrative program I<ipnadmin> from within I<bpadmin>.
+
+=item Bridging IPv6 to an IPv4 Node
+
+To bridge an IPv6 link to an IPv4-only node without causing TCPCLA conflicts,
+configure the active bridge node with an IPv4 outduct but no IPv4 induct:
+
+  # On the Active IPv6/IPv4 Bridge Node
+  # Note that the IPv6 induct is present, but the IPv4 induct is omitted.
+  a induct tcp [::]:4556 tcpcli
+  a outduct tcp [fd00:5440::1]:4556 ''
+  a outduct tcp 10.0.100.2:4557 ''
+  a plan ipn:100.0
+  a planduct ipn:100.0 tcp 10.0.100.2:4557
+
+Configure the passive IPv4 node with an IPv4 induct, but completely omit the
+outduct and planduct back to the bridge:
+
+  # On the Passive IPv4 Node
+  a induct tcp 10.0.100.2:4557 tcpcli
+  a plan ipn:40.0
+  # No planduct or outduct configured here
 
 =back
 
