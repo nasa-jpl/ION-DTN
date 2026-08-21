@@ -919,6 +919,7 @@ static int run_listen_bptrace(char *listenEid)
 						print(crsReports[j]);
 						fflush(stdout);
 						freeStatusReport(crsReports[j]);
+						crsReports[j] = NULL;
 					}
 				}
 			}
