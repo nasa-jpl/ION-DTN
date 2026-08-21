@@ -4058,9 +4058,9 @@ int	removeEndpoint(char *eid)
 {
 	Sdr		sdr = getIonsdr();
 	MetaEid		metaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	elt;
-	VEndpoint	*vpoint;
+	VEndpoint	*vpoint = NULL;
 	SdrObject	endpointElt;
 	SdrObject	addr;
 	Endpoint	endpointBuf;
@@ -4082,7 +4082,7 @@ int	removeEndpoint(char *eid)
 	CHKERR(sdr_begin_xn(sdr));
 	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	clearMetaEid(&metaEid);
-	if (elt == 0)			/*	Not found.		*/
+	if (elt == 0 || vpoint == NULL)		/*	Not found.		*/
 	{
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Unknown endpoint", eid);
