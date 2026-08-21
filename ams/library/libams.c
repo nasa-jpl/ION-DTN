@@ -890,6 +890,15 @@ received by non-RAMS-gateway module.");
 
 	if (msg.continuumNbr == (_mib(NULL))->localContinuumNbr)
 	{
+		if (sender == NULL)
+		{
+			writeMemo("[?] AMS msg rejected: claims local "
+					"continuum origin, but sender is NULL "
+					"(possible spoof or corruption).");
+			unlockMib();
+			return -1;
+		}
+
 		if (subject->authorizedSenders != NULL)
 		{
 			/* Must check sender's bonafides.      */
