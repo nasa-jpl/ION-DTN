@@ -883,8 +883,10 @@ void ari_release(ari_t *ari, int destroy)
 
 int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
 {
-	CHKUSR(ari, AMP_FAIL);
-	CHKUSR((ari->type != AMP_TYPE_LIT), AMP_FAIL);
+	if (ari == NULL || ari->type == AMP_TYPE_LIT)
+	{
+		return AMP_FAIL;
+	}
 
 	tnvc_clear(&(ari->u.as_reg.parms));
 	return ari_add_parm_set(ari, new_parms);

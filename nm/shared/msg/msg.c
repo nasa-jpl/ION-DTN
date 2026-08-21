@@ -767,8 +767,10 @@ msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 
 int msg_grp_get_type(msg_grp_t *grp, int idx)
 {
-	CHKUSR(grp, MSG_TYPE_UNK);
-	CHKUSR(idx >= 0 && (size_t)idx < grp->types.length, MSG_TYPE_UNK);
+	if (grp == NULL || idx < 0 || (size_t)idx >= grp->types.length)
+	{
+		return MSG_TYPE_UNK;
+	}
 
 	return (int) grp->types.value[idx];
 }

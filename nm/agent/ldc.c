@@ -201,8 +201,10 @@ int ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt)
 	AMP_DEBUG_ENTRY("ldc_fill_rpt","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			(uaddr) rpttpl, (uaddr) rpt);
 
-	CHKUSR(rpttpl, AMP_FAIL);
-	CHKUSR(rpt, AMP_FAIL);
+	if (rpttpl == NULL || rpt == NULL)
+	{
+		return AMP_FAIL;
+	}
 
 
 	/* Step 1: Check for too much recursion. */
