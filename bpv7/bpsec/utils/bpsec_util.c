@@ -1501,12 +1501,18 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 			 * walked. A configured removal action is free to delete
 			 * the security block here; this function is done with it.
 			 */
+			/*	The policy event interface is declared
+			 *	only for a build without the BPSec
+			 *	library, which supplies its own policy
+			 *	provider; see bpsec_util.h.		*/
+#if !USING_BSL
 			if (misconfTgtNum >= 0)
 			{
 				bsl_handle_sender_sop_event(bundle,
 						sop_misconf_at_src, &block, &asb,
 						(unsigned char) misconfTgtNum);
 			}
+#endif
 
 			return -1;
 		}
