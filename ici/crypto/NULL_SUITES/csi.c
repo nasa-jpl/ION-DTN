@@ -641,7 +641,7 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 		return result;
 	}
 
-	if (parms.aad.len > 0)
+	if (intsig.len > 0 && intsig.contents != NULL)
 	{
 		memcpy(result.contents + offset, (char *) intsig.contents,
 				intsig.len);
@@ -649,21 +649,21 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 		MRELEASE(intsig.contents);
 	}
 
-	if (parms.icv.len > 0)
+	if (icv.len > 0 && icv.contents != NULL)
 	{
 		memcpy(result.contents + offset, (char *) icv.contents, icv.len);
 		offset += icv.len;
 		MRELEASE(icv.contents);
 	}
 
-	if (parms.iv.len > 0)
+	if (iv.len > 0 && iv.contents != NULL)
 	{
 		memcpy(result.contents + offset, (char *) iv.contents, iv.len);
 		offset += iv.len;
 		MRELEASE(iv.contents);
 	}
 
-	if (parms.salt.len > 0)
+	if (salt.len > 0 && salt.contents != NULL)
 	{
 		memcpy(result.contents + offset, (char *) salt.contents,
 				salt.len);
@@ -671,7 +671,7 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 		MRELEASE(salt.contents);
 	}
 
-	if (parms.keyinfo.len > 0)
+	if (keyinfo.len > 0 && keyinfo.contents != NULL)
 	{
 		memcpy(result.contents + offset, (char *) keyinfo.contents,
 				keyinfo.len);
@@ -1163,7 +1163,7 @@ csi_val_t csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi
 
 	memset(&result, 0, sizeof(result));
 
-	if (context == NULL || (data.contents == NULL && data.len <= 0))
+	if (context == NULL || data.contents == NULL || data.len <= 0)
 	{
 		CSI_DEBUG_ERR("%s", "x csi_crypt_update: Bad argument.");
 		return result;
