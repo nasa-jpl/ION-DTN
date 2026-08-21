@@ -746,12 +746,18 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length += beneficiaryEntityNbr->length;
 	textBuffer[length] = sourceFileNameLen;
 	length++;
-	memcpy(textBuffer + length, task->sourceFileName,
-			sourceFileNameLen);
+	if (sourceFileNameLen > 0)
+	{
+		memcpy(textBuffer + length, task->sourceFileName,
+				sourceFileNameLen);
+	}
 	length += sourceFileNameLen;
 	textBuffer[length] = destFileNameLen;
 	length++;
-	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
+	if (destFileNameLen > 0)
+	{
+		memcpy(textBuffer + length, task->destFileName, destFileNameLen);
+	}
 	length += destFileNameLen;
 	if (length > 255)
 	{
