@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for issue 1349: the native BPSec sender-side target
+# removal policy actions must run without a failed assertion.
+#
+# Topology: nodes 2 and 3, connected by LTP (from issue-1174).
+#
+# Each case configures a source rule that cannot be applied -- it names
+# a key that is not in the security database -- so the
+# sop_misconfigured_at_source event fires at the sender.  The event's
+# action is the one under test, and the rule targets the primary block
+# (tgt 0), a legitimate block number.
+#
+# Both actions guarded tgtNum with CHKVOID, which treats 0 as an error
+# and calls the assertion handler; the target result comparison in
+# bsl_remove_all_target_sops_at_sender also read a target's SDR address
+# as its block number.  Against the unfixed code, a rule over block 0
+# logs
+#
+#   at line NNN of bpv7/bpsec/policy/bpsec_policy.c, Assertion failed.
+#
+# The test requires that no such assertion appears, that node 2 keeps
+# running, and that a later unsecured bundle still reaches node 3.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that the native BPSec sender-side target removal"
+echo "         policy actions run over a primary-block target without a"
+echo "         failed assertion, and that the node keeps forwarding."
+echo
+echo "########################################"
+
+WAIT=30
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+cd 2.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]
+then
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]
+then
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ..
+
+# Count "Payload delivered." lines a sink has written, for the
+# forward-still-works check.
+delivered() {
+	grep -c "Payload delivered" "$1" 2>/dev/null || echo 0
+}
+
+# run_case <label> <action> -- configure a bad-key rule over the primary
+# block whose misconfiguration fires <action>, source a bundle through
+# it, and require: no failed assertion in the policy code, and node 2
+# still delivers a later unsecured bundle to node 3.
+run_case() {
+	LABEL="$1"
+	ACTION="$2"
+
+	echo ""
+	echo "*** Case ${LABEL}: ${ACTION} over primary block ***"
+	echo ""
+
+	cd 2.ipn.ltp
+	bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "es_${LABEL}", "desc":"${LABEL}"}}
+a {"event" : {"es_ref":"es_${LABEL}", "event_id": "sop_misconfigured_at_source", "actions":[${ACTION}]}}
+a {"policyrule" : {"desc":"bad-key ${LABEL}", "filter" : {"rule_id" : "${LABEL}", "role" : "s", "src" : "ipn:2.1", "tgt" : 0}, "spec": {"svc" : "bib-integrity", "sc_id" : 1, "sc_parms" : [{"key_name": "noSuchKey"}]}, "es_ref":"es_${LABEL}"}}
+ENDOFBPSECADMINCOMMANDS
+	cd ..
+
+	sleep 2
+	echo "Sending a bundle whose signing must fail..."
+	cd 2.ipn.ltp
+	bptrace ipn:2.1 ipn:3.1 ipn:2.0 30 0.1 "issue-1349-${LABEL}" del
+	cd ..
+	sleep 3
+
+	if grep -q "Assertion failed" 2.ipn.ltp/ion.log
+	then
+		echo "FAIL (${LABEL}): the policy action raised a failed assertion."
+		grep "Assertion failed" 2.ipn.ltp/ion.log | tail -3
+		RETVAL=1
+	else
+		echo "OK (${LABEL}): no failed assertion."
+	fi
+
+	# The node must still forward.  Send an unsecured bundle from a
+	# source with no policy rule and require node 3 to deliver it.
+	BEFORE=$(delivered 3.ipn.ltp/3_delivered.txt)
+	cd 2.ipn.ltp
+	bptrace ipn:2.2 ipn:3.2 ipn:2.0 30 0.1 "issue-1349-${LABEL}-followup"
+	cd ..
+
+	FOUND=0
+	for I in $(seq 1 $((WAIT / 2)))
+	do
+		AFTER=$(delivered 3.ipn.ltp/3_delivered.txt)
+		if [ "$AFTER" -gt "$BEFORE" ]
+		then
+			FOUND=1
+			break
+		fi
+		sleep 2
+	done
+
+	if [ "$FOUND" -eq 1 ]
+	then
+		echo "OK (${LABEL}): node 2 still forwards after the action."
+	else
+		echo "FAIL (${LABEL}): node 3 never received the follow-up bundle."
+		tail -20 2.ipn.ltp/ion.log
+		RETVAL=1
+	fi
+
+	cd 2.ipn.ltp
+	bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "${LABEL}"}}
+ENDOFBPSECADMINCOMMANDS
+	cd ..
+}
+
+# Sink on node 3 for the follow-up bundles.
+cd 3.ipn.ltp
+rm -f 3_delivered.txt
+touch 3_delivered.txt
+bpsink ipn:3.2 >> 3_delivered.txt &
+cd ..
+sleep 2
+
+# Warm up the LTP path so the first per-case delivery does not pay
+# session-establishment latency, which would race the check below.
+cd 2.ipn.ltp
+bptrace ipn:2.2 ipn:3.2 ipn:2.0 30 0.1 "issue-1349-warmup"
+cd ..
+for I in $(seq 1 $((WAIT / 2)))
+do
+	if [ "$(delivered 3.ipn.ltp/3_delivered.txt)" -ge 1 ]
+	then
+		break
+	fi
+	sleep 2
+done
+
+# The action list is substituted verbatim into the event's "actions"
+# array, so each case names one or more BSL action objects.
+run_case 1 '{"id":"remove_sop_target"}'
+run_case 2 '{"id":"remove_all_target_sops"}'
+# remove_sop before remove_sop_target: the first removes the security
+# block and destroys its abstract security block, so the second must not
+# dereference it.  The freed read is undefined rather than a guaranteed
+# fault, so this case exercises the path rather than reliably crashing an
+# unguarded build; under a memory checker it would flag the access.
+run_case 3 '{"id":"remove_sop"}, {"id":"remove_sop_target"}'
+
+echo ""
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ..
+sleep 5
+killm f
+echo "remove_sop_target test completed."
+exit $RETVAL

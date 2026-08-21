@@ -1,0 +1,2 @@
+Native BPSec: remove_sop_target and remove_all_target_sops at the sender
+must remove the security operation without aborting the forwarder.

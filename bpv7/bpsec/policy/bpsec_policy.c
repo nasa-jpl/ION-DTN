@@ -540,8 +540,13 @@ void bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt)
  * \param[in]  asb          Abstract Security Block (outbound).
  * \param[in]  tgtNum       Block number of the security target block.
  *
- * \TODO Handle primary block and payload block as targets. Function currently
- *  only removes extension blocks from the bundle.
+ * \par Notes:
+ *      This removes the security operation over the named target, i.e. the
+ *      target's result within the security block.  It does not remove the
+ *      target block itself from the bundle; that is not what a per-target
+ *      removal means.  If the removed result was the security block's last
+ *      target, the security block is removed as well, since a security block
+ *      with no targets cannot be serialized.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -551,9 +556,13 @@ void bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt)
 void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 		BpsecOutboundASB *asb, unsigned char tgtNum)
 {
+	Sdr		sdr = getIonsdr();
+	SdrObject	resultElt;
+	SdrObject	resultObj;
+	BpsecOutboundTargetResult	result;
+
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
-	CHKVOID(tgtNum);
 
 	if (sopBlk == NULL)
 	{
@@ -567,38 +576,50 @@ void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 		return;
 	}
 
-	Sdr sdr = getIonsdr();
-
-	/* Step 1: Search for the security target block */
-	SdrObject tgt = bspsec_util_findOutboundBpsecTargetBlock(bundle, tgtNum, sopBlk->type);
-
-	if (tgt)
+	/* Step 1: Confirm the security block is still in the bundle.  A
+	 * preceding remove_sop action in the same event set would have
+	 * removed it and destroyed the abstract security block, including
+	 * the scResults list read below; asb would then dangle. */
+	if (getExtensionBlock(bundle, sopBlk->number) == 0)
 	{
-		/* Step 2: Remove the target block from the security block */
-		sdr_list_delete(sdr, tgt, NULL, NULL);
+		return;
+	}
 
-		/* Step 3: Remove the target block from the bundle */
-
-		/*
-		 * Step 3.1: If target is the primary or payload block, we must
-		 * abandon the bundle (cannot exist without one of these blocks).
-		 */
-		if (tgtNum == PrimaryBlk || tgtNum == PayloadBlk)
+	/* Step 2: Find the target result for tgtNum within this security
+	 * block's abstract security block.  Each element of scResults is the
+	 * SDR address of a BpsecOutboundTargetResult, so the target block
+	 * number is its scTargetId field, not the element data itself. */
+	for (resultElt = sdr_list_first(sdr, asb->scResults); resultElt;
+			resultElt = sdr_list_next(sdr, resultElt))
+	{
+		resultObj = sdr_list_data(sdr, resultElt);
+		sdr_read(sdr, (char *) &result, resultObj, sizeof(result));
+		if (result.scTargetId == (uvast) tgtNum)
 		{
-			bundle->corrupt = 1;
-			return;
-		}
-
-		/* Step 3.2: If target is an extension block, remove from the bundle */
-		else
-		{
-			deleteExtensionBlock(tgt, &(bundle->extensionsLength));
-			return;
+			break;
 		}
 	}
-	else
+
+	if (resultElt == 0)
 	{
 		writeMemo("[i] Cannot remove security target. No security target found.");
+		return;
+	}
+
+	/* Step 3: Remove the target result, freeing the result object and its
+	 * individual results list via the release callback. */
+	sdr_list_delete(sdr, resultElt, bpsec_asb_outboundTargetResultsRelease, NULL);
+
+	/* Step 4: If that was the security block's last target, remove the
+	 * security block too; a security block with no targets is invalid. */
+	if (sdr_list_length(sdr, asb->scResults) == 0)
+	{
+		SdrObject sop = getExtensionBlock(bundle, sopBlk->number);
+
+		if (sop)
+		{
+			deleteExtensionBlock(sop, &(bundle->extensionsLength));
+		}
 	}
 }
 
@@ -657,13 +678,13 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
-	CHKVOID(tgtNum);
 
 	Sdr	               sdr = getIonsdr();
 	SdrObject	   sopElt;
 	SdrObject	   sopAddr;
 	SdrObject	   tgtElt;
-	unsigned char      sopTgtNum;
+	SdrObject	   tgtObj;
+	BpsecOutboundTargetResult tgtResult;
 	BpsecOutboundASB   asb;
 	OBJ_POINTER(ExtensionBlock, sopBlk);
 
@@ -687,8 +708,13 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 			for (tgtElt = sdr_list_first(sdr, asb.scResults); tgtElt;
 					tgtElt = sdr_list_next(sdr, tgtElt))
 			{
-				sopTgtNum = (unsigned char) sdr_list_data(sdr, tgtElt);
-				if (sopTgtNum == tgtNum)
+				/* Each scResults element is the SDR address of a
+				 * BpsecOutboundTargetResult; the target block
+				 * number is its scTargetId field. */
+				tgtObj = sdr_list_data(sdr, tgtElt);
+				sdr_read(sdr, (char *) &tgtResult, tgtObj,
+						sizeof(tgtResult));
+				if (tgtResult.scTargetId == (uvast) tgtNum)
 				{
 					bsl_remove_sop_at_sender(bundle, sopBlk);
 					return;
@@ -720,9 +746,10 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
  *****************************************************************************/
 void bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, unsigned char tgtNum)
 {
-	/* Step 0: Sanity checks. */
+	/* Step 0: Sanity checks.  tgtNum may legitimately be 0 (the
+	 * primary block), so it is not checked here; CHKVOID would abort
+	 * the process on a valid argument. */
 	CHKVOID(wk);
-	CHKVOID(tgtNum);
 
 	AcqExtBlock	       *extBlock;
 	LystElt            tgtElt;
