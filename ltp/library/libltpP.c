@@ -5627,7 +5627,7 @@ static int sendReport(LtpImportSession *session, SdrObject sessionObj,
 	if (session->nextRptSerialNbr == 0)	/*	Rollover.	*/
 	{
 		return cancelSessionByReceiver(session, sessionObj,
-				LtpRetransmitLimitExceeded);
+				LtpCancelByEngine);
 	}
 
 	if (session->redPartLength > 0
@@ -5752,7 +5752,7 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 		if (session->nextRptSerialNbr == 0)
 		{
 			return cancelSessionByReceiver(session,
-					sessionObj, LtpRetransmitLimitExceeded);
+					sessionObj, LtpCancelByEngine);
 		}
 
 		if (initializeRs(&rsBuf, session->nextRptSerialNbr,
