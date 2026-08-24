@@ -19,11 +19,6 @@
  **  12/11/24  S. DeBaun      Updated to use strong entropy source
  *****************************************************************************/
 
-
-#ifdef NULL_CRYPTO_SUITES
-#error "Cannot compile MBEDTLS ciphersuites with NULL ciphersuites"
-#endif
-
 #include "platform.h"
 #include "csi.h"
 

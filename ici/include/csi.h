@@ -58,20 +58,6 @@
  *                           CONSTANTS DEFINITIONS                           *
  *****************************************************************************/
 
-#ifdef NULL_CRYPTO_SUITES
-#define CSI_SUITE_NAME "NULL Suites"
-#endif
-#ifdef MBEDTLS_CRYPTO_SUITES
-#define CSI_SUITE_NAME "MBEDTLS Suites"
-#endif
-
-#ifndef CSI_SUITE_NAME
-#define CSI_SUITE_NAME "NULL Suites"
-#define NULL_CRYPTO_SUITES
-#endif
-
-
-
 /** Ciphersuite types */
 typedef enum {
 	CSTYPE_HMAC_SHA1     = 0x001,   /* From RFC 6257 */

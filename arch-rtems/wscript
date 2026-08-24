@@ -32,6 +32,8 @@ def options(opt):
 
 def configure(conf):
     rtems.configure(conf, bsp_configure=bsp_configure)
+    conf.define('CSI_SUITE_NAME', 'NULL Suites')
+    conf.write_config_header('config.h', top=True)
 
 
 def build(bld):
@@ -63,6 +65,7 @@ def build(bld):
         bld.fatal('ENABLE_AMS requires ENABLE_DGR (test MIB primary pts=dgr)')
 
     iondefines = [
+        'HAVE_CONFIG_H',
         'RTEMS',
         'BP_EXTENDED',
         'CRYPTO',
@@ -137,6 +140,7 @@ def build(bld):
     ]
 
     iciinclude = [
+        bld.bldnode.parent,
         '../ici/include',
         '../ici/library',
         '../ici/crypto',

@@ -9,6 +9,10 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bpP.h"
 #include "cbr.h"
 #include "crypto.h"

@@ -16,6 +16,10 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bpP.h"
 #include "csi.h"
 

@@ -615,12 +615,11 @@ AC_ARG_ENABLE([crypto-mbedtls],
      [no], [CRYPTO_MBEDTLS=false],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-crypto-mbedtls])])],
   [CRYPTO_MBEDTLS=false])
+csi_suite_name="NULL Suites"
 AS_IF([test "x$CRYPTO_MBEDTLS" = xtrue],
-      [AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"
-       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
-      [AC_MSG_NOTICE([Mbed TLS Crypto disabled, building with NULL SUITES.])
-       AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"
-       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNULL_CRYPTO_SUITES"])
+      [csi_suite_name="Mbed TLS Suites"],
+      [AC_MSG_NOTICE([Mbed TLS Crypto disabled, building with NULL SUITES.])])
+AC_DEFINE_UNQUOTED([CSI_SUITE_NAME], ["$csi_suite_name"], [Cipher suite name])
 AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = xtrue])
 
 if test x$CRYPTO_MBEDTLS = xtrue; then

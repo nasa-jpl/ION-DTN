@@ -146,7 +146,7 @@ OPT += -g -Wall -Werror -Wno-unused-variable -D__linux__ -DAMP_VERSION=8
 
 INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library $(BSL_INCL) -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
-CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
+CC = gcc $(CPPFLAGS) $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
 LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib $(BSL_LIBDIR)
 
@@ -201,6 +201,8 @@ nm_mgr:		$(SHARED_OBJS) $(MGR_OBJS)
 #shared_objs mgr_objs
 		$(LD) -o nm_mgr $(TGT_SHARED_OBJS) $(TGT_MGR_OBJS) $(LIBDIRS) $(LIBS)
 		cp nm_mgr ./bin
+
+$(ADM)/adm_ion_bp_admin_impl.o: CPPFLAGS += -DCSI_SUITE_NAME="\"NULL Suites"\"
 
 %.o: %.c
 	${CC} -c $<
