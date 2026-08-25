@@ -34,8 +34,10 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    if: ${{ !(github.event.action == 'labeled' && github.event.pull_request.created_at == github.event.pull_request.updated_at) }}
     outputs:
       needs-tests: ${{ steps.final-needs-tests.outputs.needs_tests }}
+      is-duplicate: ${{ steps.final-needs-tests.outputs.is_duplicate }}
       tests-subset: ${{ steps.determine-tests.outputs.tests_to_run }}
       pr-number: ${{ github.event.pull_request.number }}
       enable_retest_value: ${{ steps.determine-tests.outputs.enable_retest_value }}
@@ -78,7 +80,20 @@ jobs:
         run: |
           NEEDS_TESTS="${{ steps.filter.outputs.relevant_changes }}"
 
-          # Force tests to skip if the PR is currently marked as a draft
+          # Handle any timestamp discrepancy between PR creation and labeling
+          # to prevent double runs
+          if [ "${{ github.event.action }}" == "labeled" ]; then
+            CREATED=$(date -d "${{ github.event.pull_request.created_at }}" +%s)
+            UPDATED=$(date -d "${{ github.event.pull_request.updated_at }}" +%s)
+
+            if [ $((UPDATED - CREATED)) -lt 5 ]; then
+              echo "Label applied during PR creation. Suppressing duplicate run."
+              echo "needs_tests=false" >> $GITHUB_OUTPUT
+              echo "is_duplicate=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
           if [ "$IS_DRAFT" == "true" ]; then
             echo "Draft status detected. Forcing tests to skip."
             NEEDS_TESTS="false"
@@ -96,6 +111,7 @@ jobs:
           fi
 
           echo "needs_tests=$NEEDS_TESTS" >> $GITHUB_OUTPUT
+          echo "is_duplicate=false" >> $GITHUB_OUTPUT
 
       - name: Determine Test Subset
         id: determine-tests
@@ -163,11 +179,56 @@ jobs:
 
   set-final-pr-status:
     needs: [detect-changes, run-solaris-tests, run-arc-tests]
-    if: ${{ always() && needs.detect-changes.outputs.needs-tests == 'true' }}
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+
+      # Post failure statuses when detect-changes was cancelled or never produced
+      # a needs-tests output (e.g., workflow cancelled before detect-changes
+      # reached the "Set final needs-tests" step, or the job never started).
+      - name: Set Failed Statuses for cancelled runs
+        if: ${{ github.event_name == 'pull_request' &&
+                (needs.detect-changes.result == 'cancelled' ||
+                 (needs.detect-changes.result != 'success' && needs.detect-changes.result != 'skipped' && needs.detect-changes.outputs.needs-tests == '')) }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const requiredContexts = [
+              'ci/solaris',
+              'ci/arc-runner-set-u22',
+              'ci/arc-runner-set-u24',
+              'ci/arc-runner-set-ol8',
+              'ci/arc-runner-set-ol9',
+              'ci/arc-runner-set-rhel8',
+              'ci/arc-runner-set-rhel9'
+            ];
+
+            const prNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
+
+            if (!prNumber) {
+               console.log("No PR detected. Skipping status updates.");
+               return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            for (const statusContext of requiredContexts) {
+              console.log(`Setting ${statusContext} to failure (workflow cancelled during detect-changes)`);
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pr.head.sha,
+                state: 'failure',
+                context: statusContext,
+                description: 'Tests cancelled (Workflow was cancelled)'
+              });
+            }
 
       - name: Set Solaris PR Status
         if: ${{ needs.run-solaris-tests.outputs.status != '' }}
@@ -186,7 +247,7 @@ jobs:
 
   skip-tests:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.needs-tests == 'false' }}
+    if: ${{ needs.detect-changes.outputs.needs-tests == 'false' && needs.detect-changes.outputs.is-duplicate != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Send Bypassed Statuses to GitHub API
