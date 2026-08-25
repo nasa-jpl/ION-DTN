@@ -78,6 +78,15 @@ on:
         required: false
         type: string
         default: ""
+      update_pr_status:
+        description: "Whether to update PR status directly from this workflow"
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      status_payload:
+        description: "Mapped PR status payload"
+        value: ${{ jobs.aggregate-results.outputs.status_payload }}
 
   workflow_dispatch:
     inputs:
@@ -191,7 +200,6 @@ jobs:
 
           # Map short names (u22, u24, etc.) to full runner names (arc-runner-set-u22, etc.)
           FULL_RUNNERS=$(echo "$RUNNERS" | jq -c 'map("arc-runner-set-" + .)')
-
           echo "runners=$FULL_RUNNERS" >> $GITHUB_OUTPUT
 
       - name: Get test batches
@@ -202,8 +210,6 @@ jobs:
           num_runners: ${{ inputs.num_runners }}
           is_solaris: "false"
 
-      # Generate timestamp once in setup, share with all downstream jobs
-      # Ensures consistent artifact naming across all runners and batches
       - name: Generate timestamp for artifacts
         id: generate-timestamp
         run: |
@@ -234,9 +240,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          # Primary key is globally unique to prevent save collisions
           key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
-          # Fallback looks for any previous cache sharing this exact source code hash
           restore-keys: |
             ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
 
@@ -363,7 +367,6 @@ jobs:
             sudo make install
             sudo ldconfig
             cd tests
-            # Construct ENABLE_RETEST based on enable_retest input (unless already in env_vars)
             CONSTRUCTED_ENV_VARS="${{ env.ENV_VARS }}"
             if echo "$CONSTRUCTED_ENV_VARS" | grep -qE '(^|[[:space:]])ENABLE_RETEST='; then
               echo "ENABLE_RETEST already set in env_vars, honoring explicit value"
@@ -412,7 +415,6 @@ jobs:
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
           done
 
-          # List all collected logs for verification
           echo "Collected ion.log files:"
           find ion-logs-collection -name "*.log" -type f | sort
 
@@ -420,8 +422,6 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p diagnostics-collection
-          # Search from repo root so demos/ and tutorials/ tests (run via
-          # ../demos/foo from tests/) are included, not just tests/foo.
           find . -path ./.git -prune -o -path ./external -prune \
                  -o -path ./diagnostics-collection -prune \
                  -o -name "ion-system.log" -type f -print | while IFS= read -r logfile; do
@@ -436,15 +436,12 @@ jobs:
           mkdir -p job-reports
           RESULT_ICON="${{ job.status == 'success' && '✅' || '❌' }}"
 
-          # Extract Failed Tests: Start reading after 'failed:', stop at a blank line
           FAILED_TESTS=$(awk '/^failed: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress | tr -d '\r' | xargs | sed 's/ /, /g')
           [ -z "$FAILED_TESTS" ] && FAILED_TESTS="-"
 
-          # Extract Skipped Tests: Start reading after 'skipped:', stop at a blank line
           SKIPPED_TESTS=$(awk '/^skipped: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress | tr -d '\r' | xargs | sed 's/ /, /g')
           [ -z "$SKIPPED_TESTS" ] && SKIPPED_TESTS="-"
 
-          # Write the row with the new columns included
           echo "| ${{ matrix.runner }} | ${{ matrix.test_batch.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.test_batch.batch }}.txt
 
       - name: Bundle test artifacts
@@ -485,22 +482,30 @@ jobs:
     needs: [setup, install-and-test]
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
+    outputs:
+      status_payload: ${{ steps.transform-status.outputs.status_payload }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Download ALL ARC artifacts
+      - name: Download previous final bundle (for re-runs)
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: final-arc-bundle-${{ needs.setup.outputs.timestamp }}
+          path: all-artifacts
+
+      - name: Download newly executed ARC artifacts
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           pattern: "*arc-runner-set-*-${{ needs.setup.outputs.timestamp }}*"
           path: all-artifacts
-          merge-multiple: true # Forces flat extraction so nested dirs become siblings
+          merge-multiple: true
 
       - name: Check for downloaded test results
         id: check-results
         run: |
-          # Check for loose progress files (indicates flat extraction of old un-nested format)
           if ls all-artifacts/progress >/dev/null 2>&1; then
              echo "::error::Loose files detected in all-artifacts/. Artifact nesting failed."
              exit 1
@@ -510,19 +515,8 @@ jobs:
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No intermediate test-results artifacts found. Expected when only"
-            echo "finalize (not setup/test) was re-run and cleanup already deleted"
-            echo "them; falling back to the final bundle."
+            echo "No test result artifacts found."
           fi
-
-      - name: Fall back to final bundle on re-run
-        # get previous successful progress files from the final bundle
-        if: ${{ steps.check-results.outputs.found == 'false' }}
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: final-arc-bundle-${{ needs.setup.outputs.timestamp }}
-          path: all-artifacts
 
       - name: Generate test summary and PR status payload
         id: test-summary
@@ -540,14 +534,13 @@ jobs:
 
       - name: Set PR status per runner
         run: |
-          # Transform status_payload array to simple context->state mapping for set-pr-status
-          # default to {} so empty object is valid
           STATUS_SIMPLE=$(echo '${{ steps.test-summary.outputs.status_payload }}' | \
             jq -c '[.[] | {(.context): .state}] | add // {}')
           echo "status_payload=$STATUS_SIMPLE" >> $GITHUB_OUTPUT
         id: transform-status
 
       - name: Call set-pr-status action
+        if: ${{ inputs.update_pr_status }}
         uses: ./.github/actions/set-pr-status
         with:
           pr_number: ${{ needs.setup.outputs.pr_number }}
@@ -563,7 +556,6 @@ jobs:
         with:
           name: final-arc-bundle-${{ needs.setup.outputs.timestamp }}
           path: all-artifacts/
-          # overwrite to handle running just failed jobs
           overwrite: true
 
       - name: Clean up ALL intermediate artifacts

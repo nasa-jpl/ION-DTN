@@ -52,6 +52,15 @@ on:
         required: false
         type: string
         default: ""
+      update_pr_status:
+        description: "Whether to update PR status directly from this workflow"
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      status:
+        description: "Solaris test status"
+        value: ${{ jobs.aggregate-results.outputs.status }}
 
   workflow_dispatch:
     inputs:
@@ -107,7 +116,12 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
       count: ${{ steps.generate.outputs.count }}
       src_hash: ${{ steps.calculate-hash.outputs.hash }}
+      timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
     steps:
+      - name: Generate timestamp for final bundle
+        id: generate-timestamp
+        run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -180,10 +194,6 @@ jobs:
             -e "VM_WORK_DIR=${{ env.VM_WORK_DIR }}" \
             -v
 
-      - name: Generate timestamp for file names
-        id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-
       - name: Run build and buildcheck, capture stdout
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
@@ -205,7 +215,6 @@ jobs:
       - name: Process artifact and clean up VM
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         env:
-          # Explicitly point to the config file so Ansible knows to use github-runner
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
           /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
@@ -237,7 +246,7 @@ jobs:
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         uses: actions/upload-artifact@v7
         with:
-          name: compile-and-buildcheck-log-solaris-${{ steps.timestamp.outputs.timestamp }}
+          name: compile-and-buildcheck-log-solaris-${{ needs.generate-matrix.outputs.timestamp }}
           path: compile-and-buildcheck.log
 
   validate-vms:
@@ -315,8 +324,6 @@ jobs:
       # This differs from artifact naming which uses timestamps
       - name: Prepare Ansible variables
         run: |
-          # We pass the full matrix of zones; the playbook automatically
-          # filters for zones where vm == inventory_hostname
           cat << 'EOF' > .github/ansible/zones_matrix.json
           {
             "run_id": "${{ github.run_id }}",
@@ -329,7 +336,6 @@ jobs:
         run: |
           cd .github/ansible
 
-          # Execute Ansible targeting ONLY the specific VM for this runner
           /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook create-zones-parallel.yml \
             -i "${{ matrix.vm }}," \
             -e "@zones_matrix.json" \
@@ -447,33 +453,35 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results-solaris-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}
-          # Upload the wrapper directory so the inner folder structure is preserved
           path: .github/ansible/test-bundle/
 
   aggregate-results:
     name: "Finalize Logs and Reports"
     needs: [test-parallel, generate-matrix]
-    # Note: if: always() runs when dependencies fail/succeed but NOT when workflow is cancelled
-    # The cleanup step uses if: success() to preserve artifacts when this job is skipped
     if: always()
     runs-on: arc-runner-set-ol9
+    outputs:
+      status: ${{ steps.test-status.outputs.status }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Generate timestamp for final bundle
-        id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Download previous final bundle (for re-runs)
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: final-solaris-bundle-${{ needs.generate-matrix.outputs.timestamp }}
+          path: all-artifacts
 
-      - name: Download ALL artifacts
+      - name: Download newly executed batch artifacts
         id: download-artifacts
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           pattern: test-results-solaris-${{ github.run_id }}-batch-*
           path: all-artifacts
-          merge-multiple: true # Forces flat extraction
-        continue-on-error: true
+          merge-multiple: true
 
       - name: Check if artifacts were downloaded
         id: check-artifacts
@@ -501,6 +509,7 @@ jobs:
             --is-cancelled "$IS_CANCELLED"
 
       - name: Set PR status
+        if: ${{ inputs.update_pr_status }}
         uses: ./.github/actions/set-pr-status
         with:
           pr_number: ${{ inputs.pr_number }}
@@ -518,8 +527,9 @@ jobs:
         if: steps.check-artifacts.outputs.found == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: final-solaris-bundle-${{ steps.timestamp.outputs.timestamp }}
+          name: final-solaris-bundle-${{ needs.generate-matrix.outputs.timestamp }}
           path: all-artifacts/
+          overwrite: true
 
       - name: Clean up ALL intermediate artifacts
         # Only delete intermediate artifacts if workflow completed normally
@@ -535,7 +545,6 @@ jobs:
   destroy-zones:
     name: Destroy Zones (${{ matrix.vm }})
     needs: [generate-matrix, create-zones, test-parallel, validate-vms]
-    # Run even if tests fail, but only if we actually created zones
     if: ${{ always() && needs.create-zones.result != 'skipped' }}
     runs-on: arc-runner-set-ol9
     strategy:
@@ -574,7 +583,6 @@ jobs:
         run: |
           cd .github/ansible
 
-          # Pass the variables file using the @ syntax
           /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook destroy-zone.yml \
             -i "${{ matrix.vm }}," \
             -e "@destroy_vars.json" \

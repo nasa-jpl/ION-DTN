@@ -142,6 +142,7 @@ jobs:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
       env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+      update_pr_status: false
     secrets: inherit
 
   run-arc-tests:
@@ -152,6 +153,7 @@ jobs:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
       env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+      update_pr_status: false
       runner_u22: true
       runner_u24: true
       runner_ol8: true
@@ -159,7 +161,29 @@ jobs:
       runner_rhel8: true
       runner_rhel9: true
 
-  # Skip tests and satisfy the Rulesets
+  set-final-pr-status:
+    needs: [detect-changes, run-solaris-tests, run-arc-tests]
+    if: ${{ always() && needs.detect-changes.outputs.needs-tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set Solaris PR Status
+        if: ${{ needs.run-solaris-tests.outputs.status != '' }}
+        uses: ./.github/actions/set-pr-status
+        with:
+          pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+          context: "ci/solaris"
+          state: ${{ needs.run-solaris-tests.outputs.status }}
+
+      - name: Set ARC PR Statuses
+        if: ${{ needs.run-arc-tests.outputs.status_payload != '' }}
+        uses: ./.github/actions/set-pr-status
+        with:
+          pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+          status_payload: ${{ needs.run-arc-tests.outputs.status_payload }}
+
   skip-tests:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.needs-tests == 'false' }}
