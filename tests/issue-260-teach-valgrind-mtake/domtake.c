@@ -30,5 +30,5 @@ int main(int argc, char **argv)
 	istrcpy(stringToNotLeak, "This is a string we won't leak.", 129);
 	MRELEASE(stringToNotLeak);
 
-	CHECK_FINISH;
+	return check_summary(argv[0]);
 }

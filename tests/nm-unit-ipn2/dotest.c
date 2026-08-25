@@ -328,5 +328,5 @@ int main(int argc, char **argv)
 	/* Stop ION */
 	ionstop();
 
-	CHECK_FINISH;
+	return check_summary(argv[0]);
 }

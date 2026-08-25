@@ -172,5 +172,5 @@ int main(int argc, char **argv)
 	run_cos_case("1.0.0.1.0.65535", desiredAncillaryData, SourceCustodyRequired, 0);
 	run_cos_case("1.1.0.1.0.65535", desiredAncillaryData, SourceCustodyRequired, 1);
 
-	CHECK_FINISH;
+	return check_summary(argv[0]);
 }

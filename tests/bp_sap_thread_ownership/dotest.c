@@ -135,5 +135,5 @@ int	main(int argc, char **argv)
 
 	ionstop();
 
-	CHECK_FINISH;
+	return check_summary(argv[0]);
 }
