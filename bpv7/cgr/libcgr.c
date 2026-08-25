@@ -31,7 +31,7 @@ typedef struct
 	/*	Working values, reset for each Dijkstra run.		*/
 
 	IonCXref	*predecessor;	/*	On path to destination.	*/
-	time_t		arrivalTime;	/*	As from time(2).	*/
+	double		arrivalTime;	/* Unix time with subsecond OWLT. */
 	unsigned int	hopCount;
 	int		visited;	/*	Boolean.		*/
 	int		suppressed;	/*	Boolean.		*/
@@ -609,7 +609,7 @@ CgrVdb	*cgr_get_vdb(void)
 
 #if !UNIBO_CGR
 
-static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
+static int	getApplicableRange(IonCXref *contact, double *owlt)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -652,7 +652,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 
 		/*	Found applicable range.				*/
 
-		*owlt = range->owlt;
+		*owlt = range->owlt + (((double) range->owltMillis) / 1000.0);
 		return 0;
 	}
 
@@ -750,14 +750,14 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
-	unsigned int	owlt;
-	unsigned int	owltMargin;
-	time_t		transmitTime;
-	time_t		arrivalTime;
+	double		owlt;
+	double		owltMargin;
+	double		transmitTime;
+	double		arrivalTime;
 	IonCXref	*finalContact = NULL;
-	time_t		earliestFinalArrivalTime = MAX_TIME;
+	double		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextCurrentContact;
-	time_t		earliestArrivalTime;
+	double		earliestArrivalTime;
 	unsigned int	fewestHops;
 	time_t		earliestEndTime;
 	PsmAddress	addr;
@@ -917,7 +917,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			 *	transmit time and therefore a later
 			 *	arrival time.				*/
 
-			TRACE(CgrCost, (unsigned int)(transmitTime), owlt,
+			TRACE(CgrCost, (unsigned int)(transmitTime),
+					(unsigned int)(owlt),
 					(unsigned int)(arrivalTime));
 
 			if (arrivalTime < work->arrivalTime)
@@ -1309,7 +1310,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
-	unsigned int	owlt;
+	double		owlt;
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
@@ -1783,7 +1784,7 @@ static int	isExcluded(uvast fqnn, Lyst excludedNodes)
 	return 0;
 }
 
-static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
+static double	computePBAT(CgrRoute *route, Bundle *bundle,
 			time_t currentTime, BpPlan *plan)
 {
 	Sdr		sdr = getIonsdr();
@@ -1801,19 +1802,19 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	time_t		startTime;
 	time_t		endTime;
 	int		secRemaining;
-	time_t		firstByteTransmitTime;
-	time_t		lastByteTransmitTime;
+	double		firstByteTransmitTime;
+	double		lastByteTransmitTime;
 	int		doNotFragment;
 	Scalar		radiationLatency;
-	unsigned int	owlt;
-	unsigned int	owltMargin;
-	time_t		acqTime;
+	double		owlt;
+	double		owltMargin;
+	double		acqTime;
 	SdrObject	contactObj;
 	IonContact	contactBuf;
 	int		priority;
-	time_t		effectiveStartTime;
-	time_t		effectiveStopTime;
-	time_t		effectiveDuration;
+	double		effectiveStartTime;
+	double		effectiveStopTime;
+	double		effectiveDuration;
 	double		effectiveVolumeLimit;
 	PsmAddress	elt2;
 
@@ -2187,7 +2188,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	PsmAddress	vplanElt;
 	SdrObject	planObj;
 	BpPlan		plan;
-	time_t		pbat;
+	double		pbat;
 	LystElt		candidateElt;
 	CgrRoute	*candidateRoute;
 

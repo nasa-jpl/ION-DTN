@@ -237,6 +237,7 @@ typedef struct
 	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
 	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	unsigned int	owlt;		/*	In seconds.		*/
+	uint16_t	owltMillis;	/*	Fractional part, 0-999 ms.*/
 } IonRange;
 
 typedef struct
@@ -389,6 +390,8 @@ typedef struct
 	PsmAddress	node;		/*	Points to IonNode.	*/
 	size_t		owltOutbound;	/*	In seconds.		*/
 	size_t		owltInbound;	/*	In seconds.		*/
+	uint16_t	owltOutboundMillis;	/* Fractional part, 0-999 ms. */
+	uint16_t	owltInboundMillis;	/* Fractional part, 0-999 ms. */
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } IonNeighbor;
 
@@ -399,6 +402,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	owlt;		/*	Current, in seconds.	*/
+	uint16_t	owltMillis;	/*	Fractional part, 0-999 ms.*/
 	SdrObject	rangeElt;	/* In iondb->ranges. */
 } IonRXref;
 

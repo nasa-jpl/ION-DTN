@@ -214,7 +214,10 @@ The B<add range> command.  This command predicts a period of time during
 which the distance from I<one_node> to I<the_other_node> will be constant
 to within one light second.  The period will begin at I<start_time> and
 end at I<stop_time>, and the distance between the nodes during that time
-will be I<distance> light seconds.
+will be I<distance> light seconds.  I<distance> may optionally contain up
+to three fractional digits; for example, C<0.006> denotes a one-way light
+time of 6 milliseconds.  Integer values retain their original whole-second
+meaning.
 
 B<NOTE> that the ranges declared by these commands are directional.  ION
 does not automatically assume that the distance from node A to node B is
