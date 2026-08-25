@@ -313,6 +313,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			if (neighbor)
 			{
 				neighbor->owltOutbound = rxref->owlt;
+				neighbor->owltOutboundMillis = rxref->owltMillis;
 			}
 		}
 
@@ -322,6 +323,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			if (neighbor)
 			{
 				neighbor->owltInbound = rxref->owlt;
+				neighbor->owltInboundMillis = rxref->owltMillis;
 			}
 		}
 

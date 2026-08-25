@@ -122,6 +122,15 @@ extern int		rfx_insert_range(time_t fromTime,
 				unsigned int owlt,
 				PsmAddress *rxaddr,
 				int announce);
+
+extern int		rfx_insert_range_ms(time_t fromTime,
+				time_t toTime,
+				uvast fromFqnn,
+				uvast toFqnn,
+				unsigned int owlt,
+				uint16_t owltMillis,
+				PsmAddress *rxaddr,
+				int announce);
 			/*	Creates a new IonRange object,
 				inserts that object into the ranges
 				list in the ION database, and notes

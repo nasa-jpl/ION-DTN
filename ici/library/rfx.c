@@ -2837,6 +2837,7 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 	rxref2->fromTime = rxref->fromTime;
 	rxref2->toTime = rxref->toTime;
 	rxref2->owlt = rxref->owlt;
+	rxref2->owltMillis = rxref->owltMillis;
 	rxref2->rangeElt = 0;		/*	Indicates "imputed".	*/
 	memcpy((char *) psp(ionwm, rxaddr2), (char *) rxref2, sizeof(IonRXref));
 	rxelt = sm_rbt_insert(ionwm, vdb->rangeIndex, rxaddr2, rfx_order_ranges,
@@ -2890,6 +2891,14 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 		uvast toFqnn, unsigned int owlt, PsmAddress *rxaddr,
 		int announce)
 {
+	return rfx_insert_range_ms(fromTime, toTime, fromFqnn, toFqnn,
+			owlt, 0, rxaddr, announce);
+}
+
+int	rfx_insert_range_ms(time_t fromTime, time_t toTime, uvast fromFqnn,
+		uvast toFqnn, unsigned int owlt, uint16_t owltMillis,
+		PsmAddress *rxaddr, int announce)
+{
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
@@ -2936,6 +2945,12 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 	CHKERR(fromFqnn);
 	CHKERR(toFqnn);
 	CHKERR(rxaddr);
+	CHKERR(owltMillis <= 999);
+	if (announce && owltMillis != 0)
+	{
+		writeMemo("[?] Fractional OWLT range announcement is not yet supported.");
+		return 5;
+	}
 	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Make sure range doesn't overlap with any pre-existing
@@ -2948,6 +2963,7 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 	arg1.fromTime = fromTime;
 	arg1.toTime = toTime;
 	arg1.owlt = owlt;
+	arg1.owltMillis = owltMillis;
 	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
 			&arg1, &nextElt);
 	if (rxelt)	/*	Range is in database already.		*/
@@ -2987,7 +3003,8 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 			isprintf(rangeIdString, sizeof rangeIdString,
 					"from %lu, %lu->%lu", fromTime,
 					fromFqnn, toFqnn);
-			if (rxref->owlt == owlt)
+			if (rxref->owlt == owlt
+			&& rxref->owltMillis == owltMillis)
 			{
 				writeMemoNote("[?] This range is already \
 asserted", rangeIdString);
@@ -3044,6 +3061,7 @@ asserted", rangeIdString);
 	range.fromFqnn = fromFqnn;
 	range.toFqnn = toFqnn;
 	range.owlt = owlt;
+	range.owltMillis = owltMillis;
 	obj = sdr_malloc(sdr, sizeof(IonRange));
 	if (obj)
 	{
@@ -3090,10 +3108,20 @@ char	*rfx_print_range(PsmAddress rxaddr, char *buffer)
 	range = (IonRXref *) psp(getIonwm(), rxaddr);
 	writeTimestampUTC(range->fromTime, fromTimeBuffer);
 	writeTimestampUTC(range->toTime, toTimeBuffer);
-	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from \
+	if (range->owltMillis == 0)
+	{
+		isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from \
 node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10u seconds.",
-			fromTimeBuffer, toTimeBuffer, range->fromFqnn,
-			range->toFqnn, range->owlt);
+				fromTimeBuffer, toTimeBuffer, range->fromFqnn,
+				range->toFqnn, range->owlt);
+	}
+	else
+	{
+		isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from \
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %u.%03u seconds.",
+				fromTimeBuffer, toTimeBuffer, range->fromFqnn,
+				range->toFqnn, range->owlt, range->owltMillis);
+	}
 	return buffer;
 }
 
@@ -3371,9 +3399,20 @@ void	rfx_brief_ranges(void)
 		range = (IonRXref *) psp(ionwm, addr);
 		writeTimestampUTC(range->fromTime, fromTimeBuffer);
 		writeTimestampUTC(range->toTime, toTimeBuffer);
-		isprintf(buffer, sizeof buffer, "a range %20s %20s "
-UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u\n", fromTimeBuffer, toTimeBuffer,
-				range->fromFqnn, range->toFqnn, range->owlt);
+		if (range->owltMillis == 0)
+		{
+			isprintf(buffer, sizeof buffer, "a range %20s %20s "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u\n", fromTimeBuffer,
+					toTimeBuffer, range->fromFqnn, range->toFqnn,
+					range->owlt);
+		}
+		else
+		{
+			isprintf(buffer, sizeof buffer, "a range %20s %20s "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u.%03u\n", fromTimeBuffer,
+					toTimeBuffer, range->fromFqnn, range->toFqnn,
+					range->owlt, range->owltMillis);
+		}
 		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
@@ -3533,6 +3572,7 @@ static int loadRange(SdrObject elt)
 	rxref.fromTime = range.fromTime;
 	rxref.toTime = range.toTime;
 	rxref.owlt = range.owlt;
+	rxref.owltMillis = range.owltMillis;
 	rxref.rangeElt = elt;
 	if (insertRXref(&rxref) == 0)
 	{

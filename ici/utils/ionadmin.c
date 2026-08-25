@@ -153,7 +153,7 @@ range commands to the region.  Default is 0 (disable).");
 	PUTS("\t\texcept time '0' indicates a hypothetical contact");
 	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
 	PUTS("\t   a range <from time> <until time> <from node> <to node> \
-<OWLT, i.e., range in light seconds>");
+<OWLT seconds, optionally with millisecond precision>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c contact <from time> <from node> <to node> <xmit rate \
 in bytes per second> [confidence in occurrence]");
@@ -237,6 +237,74 @@ static int	initializeNode(int tokenCount, char **tokens)
 			0, 1.0, &xaddr, _announce(NULL));
 }
 
+static int	parseOwlt(char *text, unsigned int *seconds,
+			uint16_t *milliseconds)
+{
+	char		*decimalPoint;
+	char		secondsText[32];
+	size_t		wholeLength;
+	size_t		fractionLength;
+	size_t		i;
+	uvast		parsedSeconds;
+	unsigned int	parsedMilliseconds = 0;
+
+	CHKERR(text);
+	CHKERR(seconds);
+	CHKERR(milliseconds);
+	decimalPoint = strchr(text, '.');
+	wholeLength = decimalPoint ? (size_t) (decimalPoint - text)
+			: strlen(text);
+	if (wholeLength == 0 || wholeLength >= sizeof(secondsText))
+	{
+		return -1;
+	}
+
+	for (i = 0; i < wholeLength; i++)
+	{
+		if (!isdigit((unsigned char) text[i]))
+		{
+			return -1;
+		}
+	}
+
+	memcpy(secondsText, text, wholeLength);
+	secondsText[wholeLength] = '\0';
+	if (platform_parse_uvast(secondsText, &parsedSeconds) < 0
+	|| parsedSeconds > UINT_MAX)
+	{
+		return -1;
+	}
+
+	if (decimalPoint)
+	{
+		fractionLength = strlen(decimalPoint + 1);
+		if (fractionLength == 0 || fractionLength > 3)
+		{
+			return -1;
+		}
+
+		for (i = 0; i < fractionLength; i++)
+		{
+			if (!isdigit((unsigned char) decimalPoint[1 + i]))
+			{
+				return -1;
+			}
+
+			parsedMilliseconds = (parsedMilliseconds * 10)
+					+ (decimalPoint[1 + i] - '0');
+		}
+
+		while (fractionLength++ < 3)
+		{
+			parsedMilliseconds *= 10;
+		}
+	}
+
+	*seconds = (unsigned int) parsedSeconds;
+	*milliseconds = (uint16_t) parsedMilliseconds;
+	return 0;
+}
+
 static void executeAdd(int tokenCount, char **tokens)
 {
 	uvast		ownFqnn = getOwnFqnn();
@@ -249,8 +317,8 @@ static void executeAdd(int tokenCount, char **tokens)
 	unsigned int	xmitRate;
 	float		confidence;
 	unsigned int	owlt;
+	uint16_t	owltMillis;
 	uvast		parsed_xmitRate;
-	uvast		parsed_owlt;
 	double		parsed_double;
 	char		errMsg[256];
 
@@ -399,16 +467,16 @@ time and earlier than 19 January 2038.");
 			return;
 		}
 
-		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
+		if (parseOwlt(tokens[6], &owlt, &owltMillis) < 0)
 		{
-			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: must be a positive integer within bounds. (Got: %s)", tokens[6]);
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: use non-negative seconds with up to three fractional digits. (Got: %s)", tokens[6]);
 			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
-		owlt = (unsigned int)parsed_owlt;
 
-		oK(rfx_insert_range(fromTime, toTime, fromFqnnNbr,
-				toFqnnNbr, owlt, &xaddr, _announce(NULL)));
+		oK(rfx_insert_range_ms(fromTime, toTime, fromFqnnNbr,
+				toFqnnNbr, owlt, owltMillis, &xaddr,
+				_announce(NULL)));
 		return;
 	}
 
