@@ -1356,7 +1356,7 @@ static void vacateRegion(IonDB *iondb, SdrObject iondbObj, int regionIdx,
 	SdrObject	elt;
 	SdrObject	nextElt;
 	SdrObject	obj;
-	IonContact	contact;
+	IonContact	contact = {0};
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	cxaddr;

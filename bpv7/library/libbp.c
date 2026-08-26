@@ -1925,8 +1925,8 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	SdrObject	dlvElt;
 	SdrObject	bundleAddr;
 	Bundle		bundle;
-	TimerParms	timerParms;
-	pthread_t	timerThread;
+	TimerParms	timerParms = {0};
+	pthread_t	timerThread = 0;
 	int		result;
 
 	CHKERR(sap && dlvBuffer);

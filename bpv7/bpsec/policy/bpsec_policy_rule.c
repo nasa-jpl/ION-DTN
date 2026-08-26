@@ -1717,7 +1717,7 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 {
 	Sdr ionsdr = getIonsdr();
-	BpSecPolicyDbEntry entry;
+	BpSecPolicyDbEntry entry = {0};
 	BpSecPolRule *rule = NULL;
 	char *buffer = NULL;
 	char *cursor = NULL;

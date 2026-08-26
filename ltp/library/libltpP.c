@@ -4748,7 +4748,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	char				memo[64];
 	SdrObject			segRefAddr;
 	LtpXmitSegRef			segRef;
-	SdrObject			sessionObj;
+	SdrObject			sessionObj = 0;
 	LtpXmitSeg			segment;
 	int				segmentLength;
 	SdrObject			sessionElt;
@@ -5156,32 +5156,29 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 		if (segment.pdu.segTypeCode == LtpDsGreenEOB)
 		{
-			/*	We have already already retrieved the
-			 *	sessionObj, from the closed-session
-			 *	check performed above for all data
-			 *	segment references.			*/
-
-			sdr_stage(sdr, (char *) &xsessionBuf,
-					sessionObj, sizeof(LtpExportSession));
-			if (xsessionBuf.totalLength != 0)
+			/*	We have already retrieved the sessionObj, from the closed-session
+			*	check performed above for all data segment references.
+			*	Validate it is not 0 before staging to prevent undefined behavior. */
+			if (sessionObj != 0)
 			{
-				/*	Found the session.	*/
-
-				if (xsessionBuf.redPartLength == 0
-				|| xsessionBuf.stateFlags
-						& LTP_FINAL_ACK)
+				sdr_stage(sdr, (char *) &xsessionBuf,
+						sessionObj, sizeof(LtpExportSession));
+				if (xsessionBuf.totalLength != 0)
 				{
-					closeExportSession(sessionObj);
-					ltpSpanTally(vspan,
-						EXPORT_COMPLETE, 0);
-				}
-				else
-				{
-					xsessionBuf.stateFlags |=
-						LTP_EOB_SENT;
-					sdr_write(sdr, sessionObj,
-						(char *) &xsessionBuf,
-						sizeof(LtpExportSession));
+					/*	Found the session.	*/
+					if (xsessionBuf.redPartLength == 0
+					|| xsessionBuf.stateFlags & LTP_FINAL_ACK)
+					{
+						closeExportSession(sessionObj);
+						ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+					}
+					else
+					{
+						xsessionBuf.stateFlags |= LTP_EOB_SENT;
+						sdr_write(sdr, sessionObj,
+							(char *) &xsessionBuf,
+							sizeof(LtpExportSession));
+					}
 				}
 			}
 		}
