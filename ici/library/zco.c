@@ -2858,6 +2858,7 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 	BulkRef		bulkRef;
 	ZcoFileLien	fileLien;
 	FileRef		fileRef;
+	static int	inodeChangeNoted = 0;
 	int		fd;
 	int		bytesRead;
 	struct stat	statbuf;
@@ -2893,27 +2894,58 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 		sdr_stage(sdr, (char *) &fileRef, fileLien.location,
 				sizeof(FileRef));
 		fd = iopen(fileRef.pathName, O_RDONLY, 0);
-		if (fd >= 0)
+		if (fd < 0)
+		{
+			putSysErrmsg("ZCO can't open source file",
+					fileRef.pathName);
+		}
+		else
 		{
 			if (fstat(fd, &statbuf) < 0)
 			{
+				putSysErrmsg("ZCO can't stat source file",
+						fileRef.pathName);
 				close(fd);	/*	Can't check.	*/
-			}
-			else if (statbuf.st_ino != fileRef.inode)
-			{
-				close(fd);	/*	File changed.	*/
 			}
 			else if (lseek(fd, extent->offset + bytesToSkip,
 					SEEK_SET) < 0)
 			{
+				putSysErrmsg("ZCO can't position in source \
+file", fileRef.pathName);
 				close(fd);	/*	Can't position.	*/
 			}
 			else
 			{
 				bytesRead = read(fd, buffer, bytesAvbl);
 				close(fd);
-				if (bytesRead == bytesAvbl)
+				if (bytesRead != bytesAvbl)
 				{
+					writeMemoNote("[?] ZCO short read from \
+source file", fileRef.pathName);
+				}
+				else
+				{
+					/*	Inode numbers are not
+					 *	stable identifiers
+					 *	everywhere: virtiofs
+					 *	reports a provisional
+					 *	number for a newly
+					 *	created file and
+					 *	renumbers it once, so a
+					 *	mismatch does not mean
+					 *	the content is wrong.
+					 *	The full read is the
+					 *	stronger check.		*/
+
+					if (statbuf.st_ino != fileRef.inode
+					&& !inodeChangeNoted)
+					{
+						inodeChangeNoted = 1;
+						writeMemoNote("[i] ZCO source \
+file inode changed; inode is not a stable identifier on this filesystem",
+							fileRef.pathName);
+					}
+
 					/*	Update xmit progress.	*/
 
 					if (xmitProgress > fileRef.xmitProgress)
