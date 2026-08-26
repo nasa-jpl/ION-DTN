@@ -69,7 +69,7 @@
 #include "galois.h"
 #include "jerasure.h"
 
-#define talloc(type, num) (type *) malloc(sizeof(type)*(num))
+#define talloc(type, num) (type *) calloc(sizeof(type),(num))
 
 static double jerasure_total_xor_bytes = 0;
 static double jerasure_total_gf_bytes = 0;
@@ -877,6 +877,19 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
     if (erasures[i] < k) ddf++; else cdf++;
   }
 
+  /* Explicit guard: No erasures means an empty schedule */
+  if ((ddf + cdf) == 0) {
+    schedule = (int **) calloc(1, sizeof(int *));
+    if (schedule == NULL) return NULL;
+    schedule[0] = (int *) calloc(5, sizeof(int));
+    if (schedule[0] == NULL) {
+      free(schedule);
+      return NULL;
+    }
+    schedule[0][0] = -1;
+    return schedule;
+  }
+
   row_ids = talloc(int, k+m);
   if (!row_ids) return NULL;
   ind_to_row = talloc(int, k+m);
@@ -1298,6 +1311,19 @@ int **jerasure_dumb_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
   int op;
   int index, optodo, i, j;
 
+  /* Explicit boundary guard to prevent initialization bypass */
+  if (k <= 0 || m <= 0 || w <= 0 || bitmatrix == NULL) {
+    operations = (int **) calloc(1, sizeof(int *));
+    if (operations == NULL) return NULL;
+    operations[0] = (int *) calloc(5, sizeof(int));
+    if (operations[0] == NULL) {
+      free(operations);
+      return NULL;
+    }
+    operations[0][0] = -1;
+    return operations;
+  }
+
   operations = talloc(int *, k*m*w*w+1);
   if (!operations) return NULL;
   op = 0;
@@ -1352,6 +1378,19 @@ int **jerasure_smart_bitmatrix_to_schedule(int k, int m, int w, int *bitmatrix)
 
 /*   printf("Scheduling:\n\n");
   jerasure_print_bitmatrix(bitmatrix, m*w, k*w, w); */
+
+  /* Explicit boundary guard to prevent initialization bypass */
+  if (k <= 0 || m <= 0 || w <= 0 || bitmatrix == NULL) {
+    operations = (int **) calloc(1, sizeof(int *));
+    if (operations == NULL) return NULL;
+    operations[0] = (int *) calloc(5, sizeof(int));
+    if (operations[0] == NULL) {
+      free(operations);
+      return NULL;
+    }
+    operations[0][0] = -1;
+    return operations;
+  }
 
   operations = talloc(int *, k*m*w*w+1);
   if (!operations) return NULL;
