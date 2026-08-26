@@ -172,6 +172,12 @@ int agent_cb_comp(void *key, void *cur_val)
 	CHKUSR(rx, -1);
 	CHKUSR(a, -1);
 
+	/*
+	* Static analysis note (Clang scan-build):
+	* The analyzer cannot see that CHKUSR explicitly returns on NULL.
+	* Pointers 'rx' and 'a' are guaranteed non-NULL before reaching
+	* this strncmp operation.
+	*/
 	return strncmp(rx, a->eid.name, AMP_MAX_EID_LEN);
 }
 

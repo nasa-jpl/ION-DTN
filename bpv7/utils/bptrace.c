@@ -1345,9 +1345,15 @@ int	main(int argc, char **argv)
 	}
 
 	/* Normal mode routing */
+	if (traceEid == NULL || ownEid == NULL)
+	{
+		return -1;
+	}
+
 	char* traceEid_num = strchr(traceEid, ':')+1;
 	char* traceEid_dot = strrchr(traceEid, '.')+1;
 	char* ownEid_num = strchr(ownEid, ':')+1;
+
 	printDBG(3, "trace id num: %s\n", traceEid_num);
 	printDBG(3, "own id num: %s\n", ownEid_num);
 	printDBG(3, "ncmp: %d\n", strncmp(traceEid_num, ownEid_num, traceEid_dot - traceEid_num));

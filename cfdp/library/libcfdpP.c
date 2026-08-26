@@ -1178,13 +1178,13 @@ int addFsResp(SdrObject list, CfdpAction action, int status,
 {
 	Sdr			sdr = getIonsdr();
 	CfdpDB			*cfdpConstants = _cfdpConstants();
-	FilestoreResponse	fsresp;
+	FilestoreResponse	fsresp = {0};
 	SdrObject		addr;
 
 	CHKERR(list);
 	CHKERR(firstFileName == NULL || strlen(firstFileName) < 256);
 	CHKERR(secondFileName == NULL || strlen(secondFileName) < 256);
-	CHKERR(message == NULL || strlen(secondFileName) < 256);
+	CHKERR(message == NULL || strlen(message) < 256);
 	CHKERR(sdr_list_list(sdr, sdr_list_user_data(sdr, list))
 			== cfdpConstants->fsreqLists);
 	CHKERR(sdr_begin_xn(sdr));

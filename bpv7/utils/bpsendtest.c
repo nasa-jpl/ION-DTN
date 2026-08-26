@@ -348,7 +348,7 @@ int	main(int argc, char **argv)
 		usage(argv[0], "insufficient arguments.");
 	}
 
-	if (strcmp(ownEid, "dtn:none") == 0)	/*	Anonymous.	*/
+	if (ownEid != NULL && strcmp(ownEid, "dtn:none") == 0)	/*	Anonymous.	*/
 	{
 		ownEid = NULL;
 	}

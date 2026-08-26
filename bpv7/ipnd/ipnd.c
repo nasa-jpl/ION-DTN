@@ -922,67 +922,64 @@ static int	executeConfigure(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "eid") == 0)
 	{
-		/* this check eliminates possibility of having white
-		 * space in eid						*/
 		if (tokenCount != 3)
 		{
-			printText("Specified EID is empty or contains white \
-space.");
+			printText("Specified EID is empty or contains white space.");
 			return -1;
 		}
 
-		istrcpy(ctx->srcEid, tokens[2], MAX_EID_LEN);
+		if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
 
-		/* we need exactly one colon */
+		istrcpy(ctx->srcEid, tokens[2], MAX_EID_LEN);
 		p = strchr(ctx->srcEid, ':');
 		if (p == NULL || strchr(p + 1, ':') != NULL)
 		{
-			printText("Specified EID must contain exactly one \
-colon (:)");
+			printText("Specified EID must contain exactly one colon (:)");
 			return -1;
 		}
-
-		/* only valid ASCII values */
 		for (p = ctx->srcEid; *p; ++p)
 		{
 			if (*p <= 32 || *p >= 127) break;
 		}
-
 		if (*p)
 		{
-			printText("Specified EID must contain only valid \
-ASCII values");
+			printText("Specified EID must contain only valid ASCII values");
 			return -1;
 		}
-
 		isprintf(buffer, sizeof buffer, "[i] Eid: %s.", ctx->srcEid);
 		printText(buffer);
-
 		return 0;
 	}
 
 	if (strcmp(tokens[1], "port") == 0)
 	{
 		TOKENCHK(3);
-
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > 65535)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid port. Must be 0-65535: %s", tokens[2]);
 			printText(errMsg);
 			return -1;
 		}
-		ctx->port = (unsigned short) parsed_uvast;
 
+		if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
+
+		ctx->port = (unsigned short) parsed_uvast;
 		isprintf(buffer, sizeof buffer, "[i] Port: %d.", ctx->port);
 		printText(buffer);
-
 		return 0;
 	}
 
 	if (strcmp(tokens[1], "announce") == 0)
 	{
 		TOKENCHK(4);
-
 		if (strcmp(tokens[2], "period") == 0)
 		{
 			if (platform_parse_int(tokens[3], &parsed_int) < 0 || parsed_int < 0)
@@ -991,8 +988,14 @@ ASCII values");
 				printText(errMsg);
 				return -1;
 			}
-			ctx->announcePeriod = parsed_int;
 
+			if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
+
+			ctx->announcePeriod = parsed_int;
 			printText("[i] Period announced.");
 			return 0;
 		}
@@ -1004,12 +1007,17 @@ ASCII values");
 				printText(errMsg);
 				return -1;
 			}
-			ctx->announceEid = parsed_int;
 
+			if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
+
+			ctx->announceEid = parsed_int;
 			printText("[i] Eid announced.");
 			return 0;
 		}
-
 		SYNTAX_ERROR;
 		return -1;
 	}
@@ -1017,7 +1025,6 @@ ASCII values");
 	if (strcmp(tokens[1], "interval") == 0)
 	{
 		TOKENCHK(4);
-
 		if (platform_parse_int(tokens[3], &parsed_int) < 0 || parsed_int < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval (beacon period) value: %s", tokens[3]);
@@ -1026,40 +1033,39 @@ ASCII values");
 		}
 		intervalValue = (long) parsed_int;
 
+		if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
+
 		if (strcmp(tokens[2], "unicast") == 0)
 		{
 			ctx->announcePeriods[UNICAST] = intervalValue;
-
 			isprintf(buffer, sizeof buffer,
-					"[i] Unicast announce interval: %d.",
-					ctx->announcePeriods[UNICAST]);
+			        "[i] Unicast announce interval: %d.",
+			        ctx->announcePeriods[UNICAST]);
 			printText(buffer);
-
 			return 0;
 		}
 		else if (strcmp(tokens[2], "multicast") == 0)
 		{
 			ctx->announcePeriods[MULTICAST] = intervalValue;
-
 			isprintf(buffer, sizeof buffer,
-					"[i] Multicast announce interval: %d.",
-					ctx->announcePeriods[MULTICAST]);
+			        "[i] Multicast announce interval: %d.",
+			        ctx->announcePeriods[MULTICAST]);
 			printText(buffer);
-
 			return 0;
 		}
 		else if (strcmp(tokens[2], "broadcast") == 0)
 		{
 			ctx->announcePeriods[BROADCAST] = intervalValue;
-
 			isprintf(buffer, sizeof buffer,
-					"[i] Broadcast announce interval: %d.",
-					ctx->announcePeriods[BROADCAST]);
+			        "[i] Broadcast announce interval: %d.",
+			        ctx->announcePeriods[BROADCAST]);
 			printText(buffer);
-
 			return 0;
 		}
-
 		SYNTAX_ERROR;
 		return -1;
 	}
@@ -1067,7 +1073,6 @@ ASCII values");
 	if (strcmp(tokens[1], "multicast") == 0)
 	{
 		TOKENCHK(4);
-
 		if (strcmp(tokens[2], "ttl") == 0)
 		{
 			if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0 || parsed_uvast > 255)
@@ -1076,15 +1081,18 @@ ASCII values");
 				printText(errMsg);
 				return -1;
 			}
+
+			if (ctx == NULL)
+			{
+				printText("IPND context is not initialized.");
+				return -1;
+			}
+
 			ctx->multicastTTL = (unsigned char) parsed_uvast;
-
-			isprintf(buffer, sizeof buffer,
-				"[i] Multicast TTL: %d.", ctx->multicastTTL);
+			isprintf(buffer, sizeof buffer, "[i] Multicast TTL: %d.", ctx->multicastTTL);
 			printText(buffer);
-
 			return 0;
 		}
-
 		SYNTAX_ERROR;
 		return -1;
 	}
@@ -1100,7 +1108,6 @@ ASCII values");
 			printText(buffer);
 			return 0;
 		}
-
 		SYNTAX_ERROR;
 		return -1;
 	}

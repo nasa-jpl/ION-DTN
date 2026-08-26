@@ -1304,8 +1304,11 @@ uint8_t *bpsec_asb_outboundAsbSerialize(uint32_t *length, BpsecOutboundASB *asb)
 	memcpy(cursor, ctxInfo.scSerializedText, ctxInfo.scSerializedLength);
 	cursor += ctxInfo.scSerializedLength;
 
-	memcpy(cursor, parms.scSerializedText, parms.scSerializedLength);
-	cursor += parms.scSerializedLength;
+	if (parms.scSerializedText != NULL)
+	{
+		memcpy(cursor, parms.scSerializedText, parms.scSerializedLength);
+		cursor += parms.scSerializedLength;
+	}
 
 	memcpy(cursor, tgtResults.scSerializedText, tgtResults.scSerializedLength);
 	cursor += tgtResults.scSerializedLength;

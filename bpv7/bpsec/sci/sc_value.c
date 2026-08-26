@@ -693,7 +693,8 @@ int bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, uns
 
 		if(scvm_idx >= 0 && scvm[scvm_idx].scValToCBOR)
 		{
-			if((valBuf = scvm[scvm_idx].scValToCBOR(0, val, &valBufLen)) == NULL)
+			if ((valBuf = scvm[scvm_idx].scValToCBOR(0, val,
+							&valBufLen)) == NULL)
 			{
 				BPSEC_DEBUG_ERR("%s", "Failed to encode value.");
 				*resultLen = 0;
@@ -740,7 +741,12 @@ int bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, uns
 	memcpy(cursor, tmp, idBufLen);
 	cursor += idBufLen;
 
-	memcpy(cursor, valBuf, valBufLen);
+	/* Explicit guard against NULL pointers in zero-length copies */
+	if (valBuf != NULL)
+	{
+		memcpy(cursor, valBuf, valBufLen);
+	}
+
 	MRELEASE(valBuf);
 
 	return 1;

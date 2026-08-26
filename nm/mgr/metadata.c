@@ -99,7 +99,7 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 {
 	meta_fp_t *new_parm;
 
-	if((meta == NULL) || (name == NULL) || (type == AMP_TYPE_UNK))
+	if ((meta == NULL) || (name == NULL) || (type == AMP_TYPE_UNK))
 	{
 		return AMP_FAIL;
 	}
@@ -107,10 +107,17 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 	new_parm = (meta_fp_t *) malloc(sizeof(meta_fp_t));
 	CHKUSR(new_parm, AMP_FAIL);
 
+	/*
+	 * Static analysis note (Clang scan-build):
+	 * The analyzer cannot see that CHKUSR explicitly returns on NULL.
+	 * Pointer 'new_parm' is guaranteed non-NULL before reaching
+	 * this strncpy operation.
+	 */
+
 	strncpy(new_parm->name, name, META_PARM_NAME-1);
 	new_parm->type = type;
 
-	if(vec_push(&(meta->parmspec),new_parm) != VEC_OK)
+	if (vec_push(&(meta->parmspec),new_parm) != VEC_OK)
 	{
 		AMP_DEBUG_ERR("meta_add_parm", "Error assing parm %s", name);
 		free(new_parm);
