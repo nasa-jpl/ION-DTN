@@ -3120,6 +3120,9 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
 
+	memset((char *) &inFdu, 0, sizeof(InFdu));
+	memset((char *) &outFdu, 0, sizeof(OutFdu));
+
 	/* Load CFDP database */
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
@@ -3129,7 +3132,6 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			cfdpdb.ownEntityNbr.buffer, 8) == 0)
 	{
-		memset((char *) &outFdu, 0, sizeof(OutFdu));
 		fduObj = findOutFdu(transactionId, &outFdu, &fduElt);
 		if (fduObj != 0)
 		{
@@ -3143,7 +3145,6 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	}
 	else
 	{
-		memset((char *) &inFdu, 0, sizeof(InFdu));
 		fduObj = findInFdu(transactionId, &inFdu, &fduElt, 0);
 		if (fduObj != 0)
 		{
