@@ -8752,7 +8752,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		nullEidLen;
 	DtnTime		currentDtnTime;
 	int		crcLength;
-	uvast		crcReceived;
+	uvast		crcReceived = 0;
 	uvast		crcComputed = 0;
 	int		bytesParsed;
 
@@ -9120,7 +9120,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	ExtensionDef	*def;
 	unsigned int	lengthOfBlock;
 	int		crcLength;
-	uvast		crcReceived;
+	uvast		crcReceived = 0;
 	uvast		crcComputed = 0;
 	unsigned int	bytesParsed;
 
@@ -9500,7 +9500,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	Bundle		*bundle;
 	int		bytesToSkip;
 	int		crcSize;
-	uvast		crcReceived;
+	uvast		crcReceived = 0;
 	uvast		crcComputed = 0;
 	int		unreceivedPayload;
 	int		bytesRecd;
