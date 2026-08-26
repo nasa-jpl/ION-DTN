@@ -70,26 +70,36 @@ to BIBE when the outduct daemon is
 one that does BIBE transmission.
 The stewardship argument controls
 the disposition of the bundle
-following transmission.  Any value
-other than zero indicates that the
-outduct daemon is one that performs
-"stewardship" procedures.  An outduct
-daemon that performs stewardship
-procedures will disposition the bundle
-as soon as the results of transmission
-at the convergence layer are known,
-by calling one of two functions:
-either bpHandleXmitSuccess or else
-bpHandleXmitFailure.  A value of
-zero indicates that the outduct
-daemon does not perform stewardship
-procedures and will not disposition
-the bundle following transmission;
-instead, the bpDequeue function itself
-will assume that transmission at the
-convergence layer will be successful
-and will disposition the bundle on
-that basis.
+following transmission.  A negative
+value indicates that the outduct
+daemon is one that performs
+"stewardship" procedures, i.e. that
+the convergence-layer protocol is
+reliable.  Such a daemon dispositions
+the bundle as soon as the results of
+transmission at the convergence layer
+are known: bpHandleXmitFailure
+re-forwards the bundle, and
+bpHandleXmitSuccess releases it.  A
+value of zero indicates that the
+outduct daemon does not perform
+stewardship procedures; instead, the
+bpDequeue function itself assumes that
+transmission at the convergence layer
+will be successful and dispositions
+the bundle on that basis before
+returning.
+
+Either way the outduct daemon must
+still call bpHandleXmitSuccess or
+bpHandleXmitFailure when transmission
+concludes, because that is what
+releases the outbound ZCO.  Where
+stewardship was not accepted the
+bundle has already been dispositioned,
+so the call finds no bundle, destroys
+the ZCO and does nothing else -- in
+particular it does not re-forward.
 
 Return Values
 

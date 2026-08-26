@@ -12414,7 +12414,7 @@ int bpAbandon(SdrObject bundleObj, Bundle *bundle, int reason)
 }
 
 int bpDequeue(VOutduct *vduct, SdrObject *bundleZco,
-		BpAncillaryData *ancillaryData, int timeoutInterval)
+		BpAncillaryData *ancillaryData, int stewardship)
 {
 	Sdr		sdr = getIonsdr();
 	int		stewardshipAccepted;
@@ -12432,7 +12432,7 @@ int bpDequeue(VOutduct *vduct, SdrObject *bundleZco,
 
 	CHKERR(vduct && bundleZco && ancillaryData);
 	*bundleZco = 0;			/*	Default behavior.	*/
-	if (timeoutInterval < 0)	/*	Reliable CLA.		*/
+	if (stewardship < 0)		/*	Reliable CLA.		*/
 	{
 		stewardshipAccepted = 1;
 	}
