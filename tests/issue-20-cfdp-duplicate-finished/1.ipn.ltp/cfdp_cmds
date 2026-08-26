@@ -1,0 +1,10 @@
+z 2
+d 2
+f sourceFile
+t receivedFile
+a 10
+&
+z 3
+^
+z 30
+q

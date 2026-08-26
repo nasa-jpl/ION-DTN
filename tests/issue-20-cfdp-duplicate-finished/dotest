@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for ION-DTN issue 20: a transaction could deliver more
+# than one Transaction-Finished indication.
+#
+# Node 1 sends a file to node 2 with transaction closure requested, then
+# cancels the transaction while the Finished PDU is still outstanding.
+# Cancellation and the arrival of the Finished PDU are two of the four
+# code paths that post the indication, and before the fix each posted one
+# unconditionally, so the application saw the indication twice.
+#
+# The count is taken on node 1 only.  Node 1 is the sender, so its event
+# stream carries the outbound transaction's indications and nothing else;
+# a single-node loopback would mix the sender's indication with the
+# receiver's, which are separate transactions and both legitimate.
+
+# set timeouts based on OS type
+if [ "$1" = "linux" ] || [ "$1" = "mac" ] ; then
+    TIMETOWAIT=50
+else
+    TIMETOWAIT=70
+fi
+
+./cleanup
+sleep 2
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+cd 1.ipn.ltp
+./ionstart
+sleep 2
+cd ../2.ipn.ltp
+./ionstart
+cd ..
+
+sleep 12
+
+if [ ! -s ion_nodes ]
+then
+    echo "Error: nodes did not start."
+    exit 1
+fi
+
+echo "Starting cfdptest on each node..."
+cd 1.ipn.ltp
+cfdptest < cfdp_cmds > node1.stdout 2>&1 &
+cd ../2.ipn.ltp
+cfdptest < cfdp_cmds > node2.stdout 2>&1 &
+cd ..
+
+sleep $TIMETOWAIT
+
+killall -9 cfdptest >/dev/null 2>&1
+sleep 1
+
+RETVAL=0
+
+echo ""
+echo "Checking Transaction-Finished indications on the sending node..."
+
+FINISHED=$(grep -c "transaction finished" 1.ipn.ltp/node1.stdout 2>/dev/null)
+if [ -z "$FINISHED" ]
+then
+    FINISHED=0
+fi
+
+if [ "$FINISHED" -eq 1 ]
+then
+    echo "Okay: sender delivered exactly one Transaction-Finished indication."
+else
+    echo "Error: sender delivered $FINISHED Transaction-Finished indications,"
+    echo "       expected exactly 1."
+    echo ""
+    echo "Node 1 event sequence:"
+    grep -E "^Event:" 1.ipn.ltp/node1.stdout 2>/dev/null
+    RETVAL=1
+fi
+
+echo ""
+echo "Stopping ION..."
+cd 1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ..
+
+sleep 15
+
+echo ""
+echo "CFDP duplicate Transaction-Finished test completed."
+exit $RETVAL
