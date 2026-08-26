@@ -2963,11 +2963,14 @@ file inode changed; inode is not a stable identifier on this filesystem",
 			}
 		}
 
-		/*	On any problem reading from file, write fill
-		 *	and return read length zero.			*/
+		/*	On any problem reading from file, report the
+		 *	failure and leave the caller's buffer alone.
+		 *	Filling it and returning zero was
+		 *	indistinguishable from a legitimate zero-byte
+		 *	read, so a caller could transmit fill characters
+		 *	in place of payload without ever being told.	*/
 
-		memset(buffer, ZCO_FILE_FILL_CHAR, bytesAvbl);
-		return 0;
+		return ZCO_SOURCE_ERROR;
 	}
 }
 
@@ -3128,7 +3131,7 @@ vast	zco_transmit(Sdr sdr, ZcoReader *reader, vast length, char *buffer)
 
 	if (failed)
 	{
-		return 0;
+		return ZCO_SOURCE_ERROR;
 	}
 
 	return bytesTransmitted;
@@ -3211,7 +3214,7 @@ vast	zco_receive_headers(Sdr sdr, ZcoReader *reader, vast length,
 
 	if (failed)
 	{
-		return 0;
+		return ZCO_SOURCE_ERROR;
 	}
 
 	return bytesReceived;
@@ -3308,7 +3311,7 @@ vast	zco_receive_source(Sdr sdr, ZcoReader *reader, vast length,
 
 	if (failed)
 	{
-		return 0;
+		return ZCO_SOURCE_ERROR;
 	}
 
 	return bytesReceived;
@@ -3358,9 +3361,9 @@ vast	zco_receive_trailers(Sdr sdr, ZcoReader *reader, vast length,
 		if (buffer)
 		{
 			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader) == 0)
+					bytesAvbl, reader) < bytesAvbl)
 			{
-				failed = 1;	/*	File problem.	*/
+				failed = 1;	/*	Source problem.	*/
 			}
 
 			buffer += bytesAvbl;
@@ -3381,7 +3384,7 @@ vast	zco_receive_trailers(Sdr sdr, ZcoReader *reader, vast length,
 
 	if (failed)
 	{
-		return 0;
+		return ZCO_SOURCE_ERROR;
 	}
 
 	return bytesReceived;

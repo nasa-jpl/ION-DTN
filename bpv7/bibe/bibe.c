@@ -263,7 +263,7 @@ static int stripBpduHeader(SdrObject bpduZco, unsigned int *xmitId,
 	vast		bpduLength;
 	ZcoReader	reader;
 	unsigned char	headerBuf[36];
-	unsigned int	bytesToParse;
+	vast		bytesToParse;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		uvtemp;

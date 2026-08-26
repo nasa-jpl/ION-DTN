@@ -189,6 +189,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 {
 	BpDelivery dlv;
 	ZcoReader reader;
+	vast      bytesReceived;
 	int content_len;
 	Sdr sdr = bp_get_sdr();
 	blob_t *result;
@@ -261,9 +262,15 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 	}
 
 	zco_start_receiving(dlv.adu, &reader);
-	result->length = zco_receive_source(sdr, &reader, result->alloc, (char*)result->value);
 
-	if((sdr_end_xn(sdr) < 0) || (result->length == 0))
+	/*	Hold the result in a signed variable: blob_t.length is
+	 *	size_t, so a ZCO_SOURCE_ERROR return would become an
+	 *	enormous positive length and slip past the check below.	*/
+
+	bytesReceived = zco_receive_source(sdr, &reader, result->alloc,
+			(char*)result->value);
+
+	if((sdr_end_xn(sdr) < 0) || (bytesReceived < 1))
 	{
 		*success = AMP_SYSERR;
 
@@ -273,6 +280,8 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 		bp_release_delivery(&dlv, 1);
 		return NULL;
 	}
+
+	result->length = bytesReceived;
 
 	/* Step 5: Set up the metadata. */
 

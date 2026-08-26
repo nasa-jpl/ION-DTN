@@ -66,7 +66,17 @@ extern "C" {
 
 #include "sdr.h"
 
+/*	Retained for compatibility.  No longer written into a caller's
+ *	buffer: a failed source read now reports ZCO_SOURCE_ERROR.	*/
+
 #define	ZCO_FILE_FILL_CHAR	' '
+
+/*	Returned by zco_transmit and the zco_receive_* functions when the
+ *	source of a ZCO extent could not be read.  Distinguishes a failed
+ *	read from a legitimate read of zero bytes, which is what those
+ *	functions previously returned in both cases.			*/
+
+#define	ZCO_SOURCE_ERROR	(-1)
 
 typedef enum
 {

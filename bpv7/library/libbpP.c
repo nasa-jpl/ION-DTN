@@ -8129,7 +8129,15 @@ static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 	{
 		bytesReceived = zco_receive_source(getIonsdr(), &(work->reader),
 			bytesToReceive, work->buffer + work->bytesBuffered);
-		CHKERR(bytesReceived == bytesToReceive);
+		if (bytesReceived != bytesToReceive)
+		{
+			/*	A failed source read is a bundle-level
+			 *	problem, not grounds for aborting the
+			 *	convergence-layer daemon.		*/
+
+			putErrmsg("Can't read from acquisition ZCO.", NULL);
+			return -1;
+		}
 		work->zcoBytesReceived += bytesReceived;
 		work->bytesBuffered += bytesReceived;
 	}
@@ -9437,7 +9445,10 @@ static int	acqFromWork(AcqWorkArea *work)
 	work->headerLength = bytesParsed;
 	work->preambleLength = bytesParsed;
 	work->bundleLength = bytesParsed;
-	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+	if (advanceWorkBuffer(work, bytesParsed) < 0)
+	{
+		return -1;
+	}
 
 	/*	Bundle structure initialization.			*/
 
@@ -9463,7 +9474,10 @@ static int	acqFromWork(AcqWorkArea *work)
 	}
 
 	work->bundleLength += bytesParsed;
-	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+	if (advanceWorkBuffer(work, bytesParsed) < 0)
+	{
+		return -1;
+	}
 
 	/*	Aquire all extension blocks following the primary block,
 	 *	stopping after the block header for the payload block
@@ -9486,7 +9500,10 @@ static int	acqFromWork(AcqWorkArea *work)
 		}
 
 		work->bundleLength += bytesParsed;
-		CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+		if (advanceWorkBuffer(work, bytesParsed) < 0)
+		{
+			return -1;
+		}
 		if (bundle->payload.length < 0)
 		{
 			/*	No payload block yet.			*/
@@ -9551,7 +9568,10 @@ static int	acqFromWork(AcqWorkArea *work)
 		 *	in the work area's buffer.			*/
 
 		work->bundleLength += bytesToSkip;
-		CHKERR(advanceWorkBuffer(work, bytesToSkip) == 0);
+		if (advanceWorkBuffer(work, bytesToSkip) < 0)
+		{
+			return -1;
+		}
 	}
 	else
 	{
@@ -9576,7 +9596,10 @@ static int	acqFromWork(AcqWorkArea *work)
 		work->zcoBytesReceived += bytesRecd;
 		work->bytesBuffered = 0;
 		work->bundleLength += bytesToSkip;
-		CHKERR(advanceWorkBuffer(work, 0) == 0);
+		if (advanceWorkBuffer(work, 0) < 0)
+		{
+			return -1;
+		}
 	}
 
 	/*	Finally, acquire CBOR break character.			*/
@@ -9590,7 +9613,10 @@ static int	acqFromWork(AcqWorkArea *work)
 	}
 
 	work->bundleLength += bytesParsed;
-	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+	if (advanceWorkBuffer(work, bytesParsed) < 0)
+	{
+		return -1;
+	}
 	if (crcComputed != crcReceived)
 	{
 		writeMemo("[?] CRC check failed for payload block.");
