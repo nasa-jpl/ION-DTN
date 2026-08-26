@@ -2329,12 +2329,11 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 #endif
 	Profile		*profile;
 	unsigned int	maxRtx;
-	char		bogusEid[32];
 	SdrObject	aggrElt;
 	SdrObject	inAggrObj;
 	InAggregator	inAggr;
 	char		srcEid[SDRSTRING_BUFSZ];
-	char		bogusReportToEid[SDRSTRING_BUFSZ];
+	char		bogusReportToEid[SDRSTRING_BUFSZ] = {0};
 	int		result;
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -2365,7 +2364,7 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 		 *	the same parameters as some existing profile
 		 *	and therefore be rejected; must be unique.	*/
 
-		isprintf(bogusEid, sizeof bogusEid, "ipn:%u.2097151", profNum);
+		isprintf(bogusReportToEid, sizeof bogusReportToEid, "ipn:%u.2097151", profNum);
 		if (addProfile(profNum, maxRtx, 0, 0, dlv->timeToLive, "0.1",
 				bogusReportToEid, "") < 0)
 		{
