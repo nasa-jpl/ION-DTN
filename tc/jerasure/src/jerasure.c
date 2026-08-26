@@ -45,20 +45,14 @@
  */
 
 /*
- * ----------------------------------------------------------------------------
+ * -------------------------------------------------------------------------
  * ION-DTN MODIFICATION NOTICE
- * ----------------------------------------------------------------------------
- * This 3rd-party file (Jerasure 2.0) has been modified in-place to address
- * Clang static analysis warnings (scan-build) regarding undefined behavior.
  *
- * Modifications include:
- * - Injected explicit dimension boundary guards to prevent null/garbage
- *   pointer dereferences and out-of-bounds reads during IPA simulation.
- * - Replaced unchecked malloc() and manual loop initialization with calloc()
- *   to guarantee C99 zero-initialization semantics.
+ * This 3rd-party file has been modified in-place to address ION-specific
+ * requirements and static analysis warnings.
  *
- * Modified: August 2026
- * ----------------------------------------------------------------------------
+ * See VERSION.txt
+ * -------------------------------------------------------------------------
  */
 
 #include <stdio.h>
@@ -1217,6 +1211,7 @@ int *jerasure_matrix_multiply(int *m1, int *m2, int r1, int c1, int r2,
                               int c2, int w)
 {
   int *product, i, j, k;
+  size_t product_elems;
 
   /* Explicit guard against invalid dimensions and NULL inputs */
   if (m1 == NULL || m2 == NULL || r1 <= 0 || c1 <= 0 || r2 <= 0 ||
@@ -1224,8 +1219,12 @@ int *jerasure_matrix_multiply(int *m1, int *m2, int r1, int c1, int r2,
     return NULL;
   }
 
+  /* Guard against overflow in element count before allocation */
+  if ((size_t) r1 > ((size_t) -1) / (size_t) c2) return NULL;
+  product_elems = (size_t) r1 * (size_t) c2;
+
   /* Utilize calloc for native zero-initialization semantics */
-  product = (int *) calloc(r1 * c2, sizeof(int));
+  product = (int *) calloc(product_elems, sizeof(int));
   if (product == NULL) return NULL;
 
   for (i = 0; i < r1; i++) {
