@@ -44,6 +44,23 @@
    Revision 1.0 - 2007: James S. Plank
  */
 
+/*
+ * ----------------------------------------------------------------------------
+ * ION-DTN MODIFICATION NOTICE
+ * ----------------------------------------------------------------------------
+ * This 3rd-party file (Jerasure 2.0) has been modified in-place to address
+ * Clang static analysis warnings (scan-build) regarding undefined behavior.
+ *
+ * Modifications include:
+ * - Injected explicit dimension boundary guards to prevent null/garbage
+ *   pointer dereferences and out-of-bounds reads during IPA simulation.
+ * - Replaced unchecked malloc() and manual loop initialization with calloc()
+ *   to guarantee C99 zero-initialization semantics.
+ *
+ * Modified: August 2026
+ * ----------------------------------------------------------------------------
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -789,11 +806,18 @@ static char **set_up_ptrs_for_scheduled_decoding(int k, int m, int *erasures, ch
   return ptrs;
 }
 
-static int set_up_ids_for_scheduled_decoding(int k, int m, int *erasures, int *row_ids, int *ind_to_row)
+static int set_up_ids_for_scheduled_decoding(int k, int m, int *erasures,
+                                             int *row_ids, int *ind_to_row)
 {
   int ddf, cdf;
   int *erased;
   int i, j, x;
+
+  /* Explicit guard against invalid parameters and negative dimensions */
+  if (k <= 0 || m < 0 || erasures == NULL || row_ids == NULL ||
+      ind_to_row == NULL) {
+    return -1;
+  }
 
   ddf = 0;
   cdf = 0;
@@ -1176,17 +1200,27 @@ int jerasure_invertible_bitmatrix(int *mat, int rows)
 }
 
 
-int *jerasure_matrix_multiply(int *m1, int *m2, int r1, int c1, int r2, int c2, int w)
+int *jerasure_matrix_multiply(int *m1, int *m2, int r1, int c1, int r2,
+                              int c2, int w)
 {
   int *product, i, j, k;
 
-  product = (int *) malloc(sizeof(int)*r1*c2);
-  for (i = 0; i < r1*c2; i++) product[i] = 0;
+  /* Explicit guard against invalid dimensions and NULL inputs */
+  if (m1 == NULL || m2 == NULL || r1 <= 0 || c1 <= 0 || r2 <= 0 ||
+      c2 <= 0 || c1 != r2 || w <= 0) {
+    return NULL;
+  }
+
+  /* Utilize calloc for native zero-initialization semantics */
+  product = (int *) calloc(r1 * c2, sizeof(int));
+  if (product == NULL) return NULL;
 
   for (i = 0; i < r1; i++) {
     for (j = 0; j < c2; j++) {
       for (k = 0; k < r2; k++) {
-        product[i*c2+j] ^= galois_single_multiply(m1[i*c1+k], m2[k*c2+j], w);
+        product[i * c2 + j] ^= galois_single_multiply(
+                                 m1[i * c1 + k],
+                                 m2[k * c2 + j], w);
       }
     }
   }
@@ -1229,17 +1263,31 @@ void jerasure_do_scheduled_operations(char **ptrs, int **operations, int packets
 }
 
 void jerasure_schedule_encode(int k, int m, int w, int **schedule,
-                                   char **data_ptrs, char **coding_ptrs, int size, int packetsize)
+                              char **data_ptrs, char **coding_ptrs,
+                              int size, int packetsize)
 {
   char **ptr_copy;
   int i, tdone;
 
-  ptr_copy = talloc(char *, (k+m));
+  /* Explicit guard against invalid parameters and negative dimensions */
+  if (k <= 0 || m < 0 || w <= 0 || packetsize <= 0 || size <= 0 ||
+      data_ptrs == NULL || (m > 0 && coding_ptrs == NULL)) {
+    return;
+  }
+
+  ptr_copy = talloc(char *, (k + m));
+  if (ptr_copy == NULL) {
+    return;
+  }
+
   for (i = 0; i < k; i++) ptr_copy[i] = data_ptrs[i];
-  for (i = 0; i < m; i++) ptr_copy[i+k] = coding_ptrs[i];
-  for (tdone = 0; tdone < size; tdone += packetsize*w) {
+  for (i = 0; i < m; i++) ptr_copy[i + k] = coding_ptrs[i];
+
+  for (tdone = 0; tdone < size; tdone += packetsize * w) {
     jerasure_do_scheduled_operations(ptr_copy, schedule, packetsize);
-    for (i = 0; i < k+m; i++) ptr_copy[i] += (packetsize*w);
+    for (i = 0; i < k + m; i++) {
+      ptr_copy[i] += (packetsize * w);
+    }
   }
   free(ptr_copy);
 }

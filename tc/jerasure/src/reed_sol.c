@@ -44,6 +44,17 @@
    Revision 1.0 - 2007: James S. Plank
  */
 
+/*
+ * -------------------------------------------------------------------------
+ * ION-DTN MODIFICATION NOTICE
+ *
+ * This 3rd-party file has been modified in-place to address ION-specific
+ * requirements and static analysis warnings.
+ *
+ * See VERSION.txt
+ * -------------------------------------------------------------------------
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,6 +91,12 @@ int *reed_sol_vandermonde_coding_matrix(int k, int m, int w)
 {
   int i, j;
   int *vdm, *dist;
+
+  /* Guard to prevent undefined matrix states and garbage reads */
+  if (k <= 0 || m <= 0 || w <= 0)
+  {
+          return NULL;
+  }
 
   vdm = reed_sol_big_vandermonde_distribution_matrix(k+m, k, w);
   if (vdm == NULL) return NULL;
