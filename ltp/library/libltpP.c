@@ -2180,9 +2180,11 @@ void	findSeat(char *lsiCmd, LtpVseat **vseat, PsmAddress *vseatElt)
 	PsmPartition	ltpwm = getIonwm();
 	PsmAddress	elt;
 
-	CHKVOID(ionLocked());
 	CHKVOID(vseat);
 	CHKVOID(vseatElt);
+	*vseat = NULL;
+	*vseatElt = 0;
+	CHKVOID(ionLocked());
 	CHKVOID(lsiCmd);
 	for (elt = sm_list_first(ltpwm, (_ltpvdb(NULL))->seats); elt;
 			elt = sm_list_next(ltpwm, elt))
@@ -2192,6 +2194,11 @@ void	findSeat(char *lsiCmd, LtpVseat **vseat, PsmAddress *vseatElt)
 		{
 			break;
 		}
+	}
+
+	if (elt == 0)
+	{
+		*vseat = NULL;
 	}
 
 	*vseatElt = elt;	/*	(Zero if vseat was not found.)	*/
@@ -2261,8 +2268,8 @@ int	addSeat(char *lsiCmd)
 int	removeSeat(char *lsiCmd)
 {
 	Sdr		sdr = getIonsdr();
-	LtpVseat	*vseat;
-	PsmAddress	vseatElt;
+	LtpVseat	*vseat = NULL;
+	PsmAddress	vseatElt = 0;
 	SdrObject	seatElt;
 	SdrObject	seatObj;
 	OBJ_POINTER(LtpSeat, seat);
@@ -2319,6 +2326,9 @@ void	findSpan(uvast engineId, LtpVspan **vspan, PsmAddress *vspanElt)
 	CHKVOID(ionLocked());
 	CHKVOID(vspan);
 	CHKVOID(vspanElt);
+	*vspan = NULL;
+	*vspanElt = 0;
+
 	for (elt = sm_list_first(ltpwm, (_ltpvdb(NULL))->spans); elt;
 			elt = sm_list_next(ltpwm, elt))
 	{
@@ -3357,6 +3367,7 @@ static void getExportSession(unsigned int sessionNbr, SdrObject *sessionObj)
 	Sdr	sdr = getIonsdr();
 	SdrObject elt;
 
+	*sessionObj = 0;
 	CHKVOID(ionLocked());
 	if (sdr_hash_retrieve(sdr, (_ltpConstants())->exportSessionsHash,
 			    (char *) &sessionNbr, (SdrAddress *) &elt, NULL) == 1)
@@ -3367,7 +3378,6 @@ static void getExportSession(unsigned int sessionNbr, SdrObject *sessionObj)
 
 	/*	Unknown session.					*/
 
-	*sessionObj = 0;
 }
 
 static void getCanceledExport(unsigned int sessionNbr, SdrObject *sessionObj,
@@ -3378,6 +3388,8 @@ static void getCanceledExport(unsigned int sessionNbr, SdrObject *sessionObj,
 	SdrObject elt;
 	SdrObject obj;
 
+	*sessionObj = 0;
+	*sessionElt = 0;
 	CHKVOID(ionLocked());
 	for (elt = sdr_list_first(sdr, (_ltpConstants())->deadExports); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -3394,8 +3406,6 @@ static void getCanceledExport(unsigned int sessionNbr, SdrObject *sessionObj,
 
 	/*	Not a known canceled export session.			*/
 
-	*sessionObj = 0;
-	*sessionElt = 0;
 }
 
 static void destroyDataXmitSeg(SdrObject dsElt, SdrObject dsObj, LtpXmitSeg *ds)
@@ -3510,8 +3520,8 @@ static void closeExportSession(SdrObject sessionObj)
 	SdrObject	dbobj = getLtpDbObject();
 	OBJ_POINTER(LtpExportSession, session);
 	OBJ_POINTER(LtpSpan, span);
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 	LtpDB		db;
 	SdrObject	elt;
 	SdrObject	sdu; /* A ZcoRef object. */
@@ -3869,6 +3879,8 @@ static void getCanceledImport(LtpVspan *vspan, unsigned int sessionNbr,
 	SdrObject elt;
 	SdrObject obj;
 
+	*sessionObj = 0;
+	*sessionElt = 0;
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr,
 			vspan->spanElt));
@@ -3887,8 +3899,6 @@ static void getCanceledImport(LtpVspan *vspan, unsigned int sessionNbr,
 
 	/*	Not a known canceled import session.			*/
 
-	*sessionObj = 0;
-	*sessionElt = 0;
 }
 
 static void destroyRsXmitSeg(SdrObject rsElt, SdrObject rsObj, LtpXmitSeg *rs)
@@ -3950,8 +3960,8 @@ static void	stopVImportSession(LtpImportSession *session)
 	Sdr			sdr = getIonsdr();
 	PsmPartition		ltpwm = getIonwm();
 	LtpSpan			span;
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	LtpVImportSession	arg;
 
 	sdr_read(sdr, (char *) &span, session->span, sizeof(LtpSpan));
@@ -4119,8 +4129,8 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span,
 	SdrObject	elt2;
 	LtpEvent	event;
 	time_t		currentTime;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 
 	/*	The closed-sessions list is in ascending session
 	 *	number order, so we insert at the end of the list.	*/
@@ -5260,8 +5270,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 static void	signalLso(uvast engineId)
 {
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt != 0 && vspan->localXmitRate > 0)
@@ -5368,8 +5378,8 @@ static int	cancelSessionBySender(LtpExportSession *session,
 	LtpDB		db;
 	SdrObject	spanObj = session->span;
 	LtpSpan		span;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 	SdrObject	elt;
 	SdrObject	sdu;			/* A ZcoRef object. */
 
@@ -8646,8 +8656,8 @@ static int	handleRA(uvast sourceEngineId, LtpDB *ltpdb,
 	LtpPdu			*pdu = &(segment->pdu);
 	char			*endOfHeader;
 	unsigned int		rptSerialNbr;
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	SdrObject		sessionObj;
 	LtpImportSession	session;
 	SdrObject		elt;
@@ -8797,8 +8807,8 @@ static int	handleCS(uvast sourceEngineId, LtpDB *ltpdb,
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
 	LtpPdu		*pdu = &(segment->pdu);
 	char		*endOfHeader;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 	SdrObject	spanObj;
 	OBJ_POINTER(LtpSpan, span);
 	SdrObject	sessionObj;
@@ -8926,8 +8936,8 @@ static int	handleCAS(LtpDB *ltpdb, unsigned int sessionNbr,
 	SdrObject		sessionElt;
 	LtpExportSession	sessionBuf;
 	LtpSpan			spanBuf;
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 
 	endOfHeader = *cursor;
 #if LTPDEBUG
@@ -9114,8 +9124,8 @@ static int	handleCR(uvast sourceEngineId, LtpDB *ltpdb, unsigned int sessionNbr,
 	LtpExportSession	sessionBuf;
 	SdrObject		spanObj;
 	LtpSpan			spanBuf;
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	SdrObject		elt;
 	SdrObject		sdu;	/*	A ZcoRef object.	*/
 
@@ -9279,8 +9289,8 @@ static int	handleCAR(uvast sourceEngineId, LtpDB *ltpdb,
 	Sdr		sdr = getIonsdr();
 	LtpPdu		*pdu = &(segment->pdu);
 	char		*endOfHeader;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
+	LtpVspan	*vspan = NULL;
+	PsmAddress	vspanElt = 0;
 	SdrObject	sessionObj;
 	SdrObject	sessionElt;
 
@@ -10088,8 +10098,8 @@ int	ltpResendCheckpoint(unsigned int sessionNbr, unsigned int ckptSerialNbr)
 	LtpXmitSegRef		segRef;
 	SdrObject		segRefObj;
 	OBJ_POINTER(LtpSpan, span);
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 
 #if LTPDEBUG
 putErrmsg("Resending checkpoint.", itoa(sessionNbr));
@@ -10217,8 +10227,8 @@ int	ltpResendXmitCancel(unsigned int sessionNbr)
 	SdrObject		sessionElt;
 	LtpExportSession	sessionBuf;
 	OBJ_POINTER(LtpSpan, span);
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 
 #if LTPDEBUG
 putErrmsg("Resending cancel by sender.", itoa(sessionNbr));
@@ -10282,8 +10292,8 @@ int	ltpResendReport(uvast engineId, unsigned int sessionNbr,
 		unsigned int rptSerialNbr)
 {
 	Sdr			sdr = getIonsdr();
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	SdrObject		sessionObj;
 	LtpImportSession	sessionBuf;
 	SdrObject		elt;
@@ -10394,8 +10404,8 @@ putErrmsg("Resending report that is still in queue!", itoa(sessionNbr));
 int	ltpResendRecvCancel(uvast engineId, unsigned int sessionNbr)
 {
 	Sdr			sdr = getIonsdr();
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	SdrObject		sessionObj;
 	SdrObject		sessionElt;
 	LtpImportSession	sessionBuf;
@@ -10458,8 +10468,8 @@ putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 int	ltpHandleStaleImportSession(uvast engineId, unsigned int sessionNbr)
 {
 	Sdr			sdr = getIonsdr();
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
+	LtpVspan		*vspan = NULL;
+	PsmAddress		vspanElt = 0;
 	SdrObject		sessionObj;
 	LtpImportSession	sessionBuf;
 #if LTPDEBUG
