@@ -57,8 +57,6 @@ extern int sendBytesByUDP(int *bundleSocket, char *from, int length,
 extern int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 		unsigned int bundleLength, SdrObject bundleZco,
 		unsigned char *buffer);
-extern int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
-		char *into, int length);
 
 #ifdef __cplusplus
 }

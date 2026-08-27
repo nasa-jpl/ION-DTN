@@ -383,8 +383,15 @@ int	main(int argc, char *argv[])
 		rtp.local_addr.addr_len = sizeof(struct sockaddr_in6);
 	}
 
-	/* Create and bind socket using helper function */
-	if (createNetworkSocket(SOCK_DGRAM, &rtp.local_addr, &rtp.linkSocket) < 0)
+	/*
+	 * Create and bind socket using helper function.  This is a sending
+	 * socket, bound to the wildcard address of the peer's own family, so
+	 * it must not be made dual-stack: the destination family always
+	 * matches the peer, and widening the ephemeral port to IPv4 serves no
+	 * purpose.
+	 */
+	if (createNetworkSocketEx(SOCK_DGRAM, &rtp.local_addr, ION_SOCK_V6ONLY,
+			    &rtp.linkSocket) < 0)
 	{
 		putErrmsg("udplso: Can't create and bind UDP socket", NULL);
 		return 1;

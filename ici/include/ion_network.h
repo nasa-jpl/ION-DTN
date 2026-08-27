@@ -57,6 +57,15 @@ extern int resolveNetworkAddress(const IonEndpointSpec *spec,
 extern int resolveNetworkAddressTCP(const IonEndpointSpec *spec,
                 IonNetworkAddress                         *result);
 
+/*
+ * Passive (bind-side) resolution.  The shared resolver defaults to BP's port
+ * when the endpoint names none, which is wrong for every other protocol; a
+ * bind-side caller states its own default here.
+ */
+extern int resolveNetworkAddressPassive(const char *endpoint,
+		unsigned short defaultPort, int socket_type, int protocol,
+		IonNetworkAddress *result);
+
 /* Cached versions */
 extern int resolveNetworkAddressCached(const char *endpoint,
                 IonNetworkAddress                 *result);
@@ -65,10 +74,26 @@ extern int resolveNetworkAddressCachedTCP(const char *endpoint,
 
 /* Endpoint parsing */
 extern int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec);
+
+/*
+ * Reports whether a passive endpoint is the family-agnostic wildcard (an
+ * omitted host or "*"), the only spelling for which a listening socket should
+ * request dual-stack.  An explicit "[::]" or "0.0.0.0" stays single-family.
+ */
+extern int isDualStackWildcard(const char *endpoint);
 extern const char *formatNetworkAddress(const IonNetworkAddress *addr,
                 char *buffer, size_t buflen);
 
 /* Socket creation helpers */
+
+/* Flags for createNetworkSocketEx() */
+#define ION_SOCK_DUALSTACK (1) /* Accept IPv4 on an IPv6 socket */
+#define ION_SOCK_V6ONLY	   (2) /* Force IPV6_V6ONLY = 1 */
+
+extern int createNetworkSocketEx(int	 socket_type,
+		const IonNetworkAddress *local_addr, int flags, int *socket_fd);
+
+/* Backward compatibility wrapper - dual-stack on the wildcard address */
 extern int createNetworkSocket(int       socket_type,
                 const IonNetworkAddress *local_addr, int *socket_fd);
 

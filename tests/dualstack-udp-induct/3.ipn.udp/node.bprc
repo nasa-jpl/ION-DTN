@@ -1,0 +1,14 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 q
+a endpoint ipn:3.1 q
+a protocol udp
+a induct udp 127.0.0.1:6003 udpcli
+a outduct udp [::1]:6001 udpclo
+a outduct udp [::1]:6004 udpclo
+a plan ipn:1.0
+a planduct ipn:1.0 udp [::1]:6001
+a plan ipn:4.0
+a planduct ipn:4.0 udp [::1]:6004
+w 1
+s

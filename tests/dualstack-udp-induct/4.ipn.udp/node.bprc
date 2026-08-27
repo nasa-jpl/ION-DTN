@@ -1,0 +1,10 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:4.0 q
+a endpoint ipn:4.1 q
+a protocol udp
+# A second induct under test: the explicit IPv6 wildcard, which must
+# stay IPv6-only and refuse IPv4.
+a induct udp [::]:6004 udpcli
+w 1
+s

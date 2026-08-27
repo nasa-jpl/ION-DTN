@@ -1,0 +1,15 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a protocol udp
+# The induct under test: one socket, family-agnostic wildcard address.
+a induct udp *:6001 udpcli
+a outduct udp 127.0.0.1:6002 udpclo
+a outduct udp 127.0.0.1:6003 udpclo
+a plan ipn:2.0
+a planduct ipn:2.0 udp 127.0.0.1:6002
+a plan ipn:3.0
+a planduct ipn:3.0 udp 127.0.0.1:6003
+w 1
+s

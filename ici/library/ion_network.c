@@ -6,6 +6,8 @@
 #include "ion_network.h"
 #include "ion.h"
 
+#include <pthread.h> /* addr_cache_mutex */
+
 /* Address cache for frequent resolutions */
 typedef struct
 {
@@ -16,7 +18,73 @@ typedef struct
 	int               failed_count;
 } NetworkAddressCache;
 
-static NetworkAddressCache addr_cache = { 0 };
+/*
+ * The cache was a single unlocked entry.  Under ION_LWT -- RTEMS and the cFS
+ * integration -- every daemon shares one address space, so that entry is
+ * concurrently mutable state with no mutex; and a single entry thrashes
+ * between peers whenever more than one outduct resolves.  A small table under
+ * one mutex fixes both.  The mutex is held only while the table is read or
+ * written, never across getaddrinfo().
+ */
+#define ION_ADDRESS_CACHE_SLOTS (8)
+
+static NetworkAddressCache addr_cache[ION_ADDRESS_CACHE_SLOTS];
+static pthread_mutex_t	   addr_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/*
+ * Returns the slot holding this endpoint, or NULL if absent. Caller holds
+ * addr_cache_mutex.
+ */
+static NetworkAddressCache *findCacheEntry(const char *endpoint)
+{
+	int i;
+
+	for (i = 0; i < ION_ADDRESS_CACHE_SLOTS; i++)
+	{
+		if (addr_cache[i].endpoint[0] != '\0' &&
+				strcmp(addr_cache[i].endpoint, endpoint) == 0)
+		{
+			return &addr_cache[i];
+		}
+	}
+
+	return NULL;
+}
+
+/*
+ * Returns the slot to use for this endpoint: the one already holding it, else
+ * an unused one, else the least recently resolved.  Caller holds
+ * addr_cache_mutex.
+ */
+static NetworkAddressCache *claimCacheEntry(const char *endpoint)
+{
+	NetworkAddressCache *entry;
+	NetworkAddressCache *oldest;
+	int		     i;
+
+	entry = findCacheEntry(endpoint);
+	if (entry)
+	{
+		return entry;
+	}
+
+	oldest = &addr_cache[0];
+	for (i = 0; i < ION_ADDRESS_CACHE_SLOTS; i++)
+	{
+		if (addr_cache[i].endpoint[0] == '\0')
+		{
+			return &addr_cache[i];
+		}
+
+		if (addr_cache[i].cache_time < oldest->cache_time)
+		{
+			oldest = &addr_cache[i];
+		}
+	}
+
+	memset(oldest, 0, sizeof *oldest);
+	return oldest;
+}
 
 int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 {
@@ -130,7 +198,31 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 		}
 	}
 
-	/* Handle special hostname "@" */
+	/*
+	 * Wildcard recognition.  "" and "*" both mean "all interfaces,
+	 * whichever address families this host has", and are canonicalized to
+	 * "*" so that the resolver can tell them apart from an explicit "::".
+	 * Each wildcard spelling is pinned to a family hint here, so that the
+	 * address finally bound never depends on the order in which
+	 * getaddrinfo() happens to return the passive wildcards -- an order
+	 * POSIX does not specify.
+	 */
+	if (spec->hostname[0] == '\0' || strcmp(spec->hostname, "*") == 0)
+	{
+		istrcpy(spec->hostname, "*", sizeof(spec->hostname));
+		spec->family_hint = AF_UNSPEC; /* Prefer IPv6. */
+		spec->is_numeric_host = 0;
+	}
+	else if (strcmp(spec->hostname, "0.0.0.0") == 0)
+	{
+		/* Explicit IPv4-only wildcard. */
+		spec->family_hint = AF_INET;
+	}
+
+	/*
+	 * Handle special hostname "@".  Note that "@" is the local host name,
+	 * not a wildcard: it must keep resolving to a specific address.
+	 */
 	if (strcmp(spec->hostname, "@") == 0)
 	{
 		getNameOfHost(spec->hostname, sizeof(spec->hostname));
@@ -140,53 +232,96 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 	return 0;
 }
 
-int resolveNetworkAddressEx(const IonEndpointSpec *spec,
-		IonNetworkAddress *result, int socket_type, int protocol)
+static int isWildcardHost(const char *hostname)
+{
+	return (strcmp(hostname, "*") == 0 || strcmp(hostname, "::") == 0 ||
+			strcmp(hostname, "0.0.0.0") == 0);
+}
+
+int isDualStackWildcard(const char *endpoint)
+{
+	IonEndpointSpec spec;
+
+	/*
+	 * Only the family-agnostic wildcard -- an omitted host or "*" -- asks
+	 * a listening socket to serve both address families.  An explicit
+	 * "[::]" is the IPv6 wildcard and "0.0.0.0" the IPv4 wildcard; each
+	 * carries its own family hint and stays single-family.
+	 */
+	if (!endpoint || parseNetworkEndpoint(endpoint, &spec) < 0)
+	{
+		return 0;
+	}
+
+	return (isWildcardHost(spec.hostname) && spec.family_hint == AF_UNSPEC);
+}
+
+/*
+ * Resolves the endpoint within a single address family.  Returns 0 on success;
+ * on failure returns -1 and reports the getaddrinfo() status in *gaiStatus (0
+ * if getaddrinfo() itself succeeded but no returned address was usable).
+ * Diagnostics are left to the caller, so that a failed first attempt in a
+ * family fallback sequence doesn't post an error for a resolution that ends up
+ * succeeding.
+ */
+static int resolveInFamily(const IonEndpointSpec *spec,
+		IonNetworkAddress *result, int socket_type, int protocol,
+		int family, int isWildcard, const char *service, int *gaiStatus)
 {
 	struct addrinfo hints, *res, *rp;
-	int             status;
-
-	if (!spec || !result)
-	{
-		return -1;
-	}
+	const char     *node;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = spec->family_hint;
+	hints.ai_family = family;
 	hints.ai_socktype = socket_type;
 	hints.ai_protocol = protocol;
-	hints.ai_flags = AI_ADDRCONFIG;
 
-	if (spec->is_numeric_host)
+	/*
+	 * AI_ADDRCONFIG is deliberately not set: it would suppress the IPv6
+	 * wildcard on a host that has no IPv6 address configured yet, which is
+	 * exactly the address a passive socket needs to bind.
+	 */
+	hints.ai_flags = 0;
+
+	if (isWildcard)
 	{
-		hints.ai_flags |= AI_NUMERICHOST;
+		/*
+		 * Passive resolution: the kernel supplies the wildcard address
+		 * of the requested family.
+		 */
+		hints.ai_flags |= AI_PASSIVE;
+		node = NULL;
+	}
+	else
+	{
+		if (spec->is_numeric_host)
+		{
+			hints.ai_flags |= AI_NUMERICHOST;
+		}
+
+		node = spec->hostname;
 	}
 
-	const char *service = (spec->service[0]) ? spec->service : "4556";
-
-	status = getaddrinfo(spec->hostname, service, &hints, &res);
-	if (status != 0)
+	*gaiStatus = getaddrinfo(node, service, &hints, &res);
+	if (*gaiStatus != 0)
 	{
-		char error_msg[512];
-		snprintf(error_msg, sizeof(error_msg),
-				"getaddrinfo failed for %s:%s - %s",
-				spec->hostname, service, gai_strerror(status));
-		putErrmsg("Network address resolution failed", error_msg);
 		return -1;
 	}
 
-	/* Try each address - test socket()
-	   For now, this is used for only UDP client for remote address
-	   so we don't check for bind() but in the future we might want to */
+	/*
+	 * Take the first returned address whose family this host can actually
+	 * create a socket for.
+	 */
 	for (rp = res; rp != NULL; rp = rp->ai_next)
 	{
 		int test_sock = socket(rp->ai_family, rp->ai_socktype,
 				rp->ai_protocol);
+
 		if (test_sock == -1)
 		{
-			continue; /* Can't even create socket for this family */
+			continue; /* Family unsupported. */
 		}
-		/* close test socket */
+
 		closesocket(test_sock);
 		memcpy(&result->addr, rp->ai_addr, rp->ai_addrlen);
 		result->addr_len = rp->ai_addrlen;
@@ -197,7 +332,74 @@ int resolveNetworkAddressEx(const IonEndpointSpec *spec,
 	}
 
 	freeaddrinfo(res);
-	putErrmsg("No usable addresses found", spec->hostname);
+	return -1;
+}
+
+int resolveNetworkAddressEx(const IonEndpointSpec *spec,
+		IonNetworkAddress *result, int socket_type, int protocol)
+{
+	const char *service;
+	int	    isWildcard;
+	int	    status = 0;
+
+	if (!spec || !result)
+	{
+		return -1;
+	}
+
+	service = (spec->service[0]) ? spec->service : "4556";
+	isWildcard = isWildcardHost(spec->hostname);
+
+	if (isWildcard && spec->family_hint == AF_UNSPEC)
+	{
+		/*
+		 * "*" (or an omitted host) means "all interfaces, whichever
+		 * families this host has".  Prefer the IPv6 wildcard, so that
+		 * one socket can serve both families, but fall back to the
+		 * IPv4 wildcard on a host whose kernel has no IPv6 support at
+		 * all. The preference is expressed as two explicit attempts
+		 * rather than as a reliance on the order in which
+		 * getaddrinfo() returns the two passive wildcards, which POSIX
+		 * does not specify.
+		 */
+		if (resolveInFamily(spec, result, socket_type, protocol,
+				    AF_INET6, 1, service, &status) == 0)
+		{
+			return 0;
+		}
+
+		if (resolveInFamily(spec, result, socket_type, protocol,
+				    AF_INET, 1, service, &status) == 0)
+		{
+			writeMemo("[i] No IPv6 support on this host; wildcard \
+address is bound as IPv4.");
+			return 0;
+		}
+	}
+	else
+	{
+		if (resolveInFamily(spec, result, socket_type, protocol,
+				    spec->family_hint, isWildcard, service,
+				    &status) == 0)
+		{
+			return 0;
+		}
+	}
+
+	if (status != 0)
+	{
+		char error_msg[512];
+
+		snprintf(error_msg, sizeof(error_msg),
+				"getaddrinfo failed for %s:%s - %s",
+				spec->hostname, service, gai_strerror(status));
+		putErrmsg("Network address resolution failed", error_msg);
+	}
+	else
+	{
+		putErrmsg("No usable addresses found", spec->hostname);
+	}
+
 	return -1;
 }
 
@@ -214,10 +416,46 @@ int resolveNetworkAddressTCP(const IonEndpointSpec *spec,
 	return resolveNetworkAddressEx(spec, result, SOCK_STREAM, IPPROTO_TCP);
 }
 
-int resolveNetworkAddressCached(const char *endpoint, IonNetworkAddress *result)
+int resolveNetworkAddressPassive(const char *endpoint, unsigned short defaultPort,
+		int socket_type, int protocol, IonNetworkAddress *result)
 {
 	IonEndpointSpec spec;
-	time_t          current_time;
+
+	if (!endpoint || !result)
+	{
+		return -1;
+	}
+
+	if (parseNetworkEndpoint(endpoint, &spec) < 0)
+	{
+		return -1;
+	}
+
+	/*
+	 * A bind-side caller supplies its own default port, since the shared
+	 * resolver's default is BP-specific and wrong for other protocols.
+	 */
+	if (spec.service[0] == '\0' && defaultPort != 0)
+	{
+		snprintf(spec.service, sizeof(spec.service), "%hu", defaultPort);
+		spec.port = defaultPort;
+	}
+
+	/*
+	 * No caching here.  A bind is resolved once at startup, so the cache
+	 * would carry no benefit, and keeping passive resolutions out of it
+	 * leaves the table for the outduct peers it exists to serve.
+	 */
+
+	return resolveNetworkAddressEx(&spec, result, socket_type, protocol);
+}
+
+int resolveNetworkAddressCached(const char *endpoint, IonNetworkAddress *result)
+{
+	IonEndpointSpec	     spec;
+	NetworkAddressCache *entry;
+	time_t		     current_time;
+	int		     failures;
 
 	if (!endpoint || !result)
 	{
@@ -227,14 +465,18 @@ int resolveNetworkAddressCached(const char *endpoint, IonNetworkAddress *result)
 	current_time = time(NULL);
 
 	/* Check cache */
-	if (addr_cache.is_valid && strcmp(addr_cache.endpoint, endpoint) == 0
-			&& (current_time - addr_cache.cache_time)
-					< ION_ADDRESS_CACHE_INTERVAL_SEC)
+	pthread_mutex_lock(&addr_cache_mutex);
+	entry = findCacheEntry(endpoint);
+	if (entry && entry->is_valid &&
+			(current_time - entry->cache_time) <
+					ION_ADDRESS_CACHE_INTERVAL_SEC)
 	{
-
-		*result = addr_cache.cached_addr;
+		*result = entry->cached_addr;
+		pthread_mutex_unlock(&addr_cache_mutex);
 		return 0;
 	}
+
+	pthread_mutex_unlock(&addr_cache_mutex);
 
 	/* Parse and resolve */
 	if (parseNetworkEndpoint(endpoint, &spec) < 0)
@@ -244,23 +486,40 @@ int resolveNetworkAddressCached(const char *endpoint, IonNetworkAddress *result)
 
 	if (resolveNetworkAddress(&spec, result) < 0)
 	{
-		addr_cache.failed_count++;
-		if (addr_cache.failed_count >= ION_MAX_FAILED_LOOKUPS)
+		/*
+		 * Failures are counted per endpoint.  A peer whose name will
+		 * not resolve must not push an unrelated peer over the retry
+		 * limit, nor evict that peer's valid entry -- the limit stops
+		 * the daemon, so charging it to the wrong endpoint is fatal to
+		 * a duct that was resolving perfectly well.
+		 */
+		pthread_mutex_lock(&addr_cache_mutex);
+		entry = claimCacheEntry(endpoint);
+		istrcpy(entry->endpoint, endpoint, sizeof entry->endpoint);
+		entry->cache_time = current_time;
+		entry->is_valid = 0;
+		entry->failed_count++;
+		failures = entry->failed_count;
+		pthread_mutex_unlock(&addr_cache_mutex);
+
+		if (failures >= ION_MAX_FAILED_LOOKUPS)
 		{
 			putErrmsg("Maximum DNS failures reached", endpoint);
 			return -2; /* Signal to stop trying */
 		}
-		addr_cache.is_valid = 0;
+
 		return -1;
 	}
 
 	/* Update cache */
-	strncpy(addr_cache.endpoint, endpoint, sizeof(addr_cache.endpoint) - 1);
-	addr_cache.endpoint[sizeof(addr_cache.endpoint) - 1] = '\0';
-	addr_cache.cached_addr = *result;
-	addr_cache.cache_time = current_time;
-	addr_cache.is_valid = 1;
-	addr_cache.failed_count = 0;
+	pthread_mutex_lock(&addr_cache_mutex);
+	entry = claimCacheEntry(endpoint);
+	istrcpy(entry->endpoint, endpoint, sizeof entry->endpoint);
+	entry->cached_addr = *result;
+	entry->cache_time = current_time;
+	entry->is_valid = 1;
+	entry->failed_count = 0;
+	pthread_mutex_unlock(&addr_cache_mutex);
 
 	return 0;
 }
@@ -336,8 +595,8 @@ int isIPv6Address(const char *addr_str)
 	return inet_pton(AF_INET6, addr_str, &(sa.sin6_addr)) != 0;
 }
 
-int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
-				int *socket_fd)
+int createNetworkSocketEx(int socket_type, const IonNetworkAddress *local_addr,
+		int flags, int *socket_fd)
 {
 	int sock;
 
@@ -362,12 +621,47 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 		return -1;
 	}
 
-	/* For IPv6, set IPv6-only to avoid conflicts */
 	if (local_addr->family == AF_INET6)
 	{
-		int ipv6only = 1;
-		setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6only,
-						sizeof(ipv6only));
+		const struct sockaddr_in6 *sin6 =
+				(const struct sockaddr_in6 *) &local_addr->addr;
+		int v6only = 1;
+
+		/*
+		 * Dual-stack is requested by the caller, and only for the
+		 * family-agnostic wildcard -- an omitted host or "*" -- which
+		 * the resolver binds as the IPv6 wildcard so that one socket
+		 * can serve both families.  An explicit "[::]" resolves to the
+		 * same unspecified address but is an IPv6 wildcard by spelling,
+		 * so its caller asks for IPv6 only; the address alone cannot
+		 * tell the two apart, so the distinction rides in on the flags.
+		 * The IN6_IS_ADDR_UNSPECIFIED guard keeps an IPv6 literal
+		 * single-family even if a caller passes the flag by mistake.
+		 * Deriving this from the flags and the resolved address, rather
+		 * than from a new structure member, keeps both public
+		 * structures byte-identical.
+		 */
+		if ((flags & ION_SOCK_DUALSTACK) && !(flags & ION_SOCK_V6ONLY) &&
+				IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr))
+		{
+			v6only = 0;
+		}
+
+		/* Must precede bind(). */
+
+		if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &v6only,
+				    sizeof(v6only)) < 0 &&
+				v6only == 0)
+		{
+			/*
+			 * Platform refuses dual-stack sockets, as OpenBSD does
+			 * and as some hardened sysctl settings do.  Degrade to
+			 * IPv6-only rather than failing to come up at all.
+			 */
+			writeMemoNote("[i] Dual-stack unavailable; socket \
+will accept IPv6 only",
+					"IPV6_V6ONLY");
+		}
 	}
 
 	/* Bind to local address - structure automatically correct from getaddrinfo()
@@ -382,4 +676,11 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 
 	*socket_fd = sock;
 	return 0;
+}
+
+int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
+		int *socket_fd)
+{
+	return createNetworkSocketEx(socket_type, local_addr,
+			ION_SOCK_DUALSTACK, socket_fd);
 }

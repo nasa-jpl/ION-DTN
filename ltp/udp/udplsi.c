@@ -88,7 +88,9 @@ int	main(int argc, char *argv[])
 	pthread_mutex_init(&rtp.lock, NULL);
 
 	/* Dual-stack address resolution */
-	int resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.local_addr);
+	int resolveResult = resolveNetworkAddressPassive(endpointSpec,
+			LtpUdpDefaultPortNbr, SOCK_DGRAM, IPPROTO_UDP,
+			&rtp.local_addr);
 	if (resolveResult < 0)
 	{
 		putErrmsg("udplsi: Can't resolve dual-stack address",
@@ -114,8 +116,15 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	/* Create and bind socket using helper function */
-	if (createNetworkSocket(SOCK_DGRAM, &rtp.local_addr, &rtp.linkSocket) < 0)
+	/*
+	 * Create and bind socket using helper function.  Request dual-stack
+	 * only for the family-agnostic wildcard, so that an explicit "[::]"
+	 * binds IPv6-only rather than quietly serving IPv4.
+	 */
+	int sockFlags = isDualStackWildcard(endpointSpec) ?
+			ION_SOCK_DUALSTACK : ION_SOCK_V6ONLY;
+	if (createNetworkSocketEx(SOCK_DGRAM, &rtp.local_addr, sockFlags,
+			    &rtp.linkSocket) < 0)
 	{
 		putErrmsg("udplsi: Can't create and bind UDP socket", NULL);
 		return 1;

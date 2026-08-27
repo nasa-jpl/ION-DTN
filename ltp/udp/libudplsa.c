@@ -155,7 +155,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	pthread_cleanup_pop(1);	/*	Free iovecs.			*/
 	pthread_cleanup_pop(1);	/*	Free buffers.			*/
 #else
-	struct sockaddr_in	fromAddr;
+	struct sockaddr_storage fromAddr;
 	socklen_t		fromSize;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/

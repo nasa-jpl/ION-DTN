@@ -1,0 +1,212 @@
+#!/bin/sh
+trap 'killm f' EXIT
+#
+# One convergence-layer induct, both address families.
+#
+# A udpcli induct given a family-agnostic wildcard address binds the IPv6
+# wildcard with IPV6_V6ONLY cleared, so a single socket accepts IPv4 and
+# IPv6 peers alike.
+#
+# Node 1 runs the induct under test.  Node 2 reaches it over IPv4 and
+# node 3 over IPv6, both in the same run against the same socket, so a
+# pass means one induct really did serve both -- not that each family
+# works when configured on its own.
+
+. ../test_utils.sh
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that a single udpcli induct bound to the family-agnostic
+    wildcard accepts bundles from an IPv4 peer and an IPv6 peer in the same
+    run, while an induct bound to the explicit IPv6 wildcard [::] accepts the
+    IPv6 peer but refuses the IPv4 one."
+echo
+echo "########################################"
+
+# An IPv6 loopback is required to drive the IPv6 half of the test.  Probe
+# it portably, trying the ping spellings used across Linux, the BSDs and
+# Solaris, and skip where none reports the loopback reachable.
+ipv6_loopback_reachable() {
+    ping6 -c 1 ::1       >/dev/null 2>&1 && return 0   # Linux, *BSD, macOS
+    ping -6 -c 1 ::1     >/dev/null 2>&1 && return 0   # Linux (iputils)
+    ping -A inet6 ::1 3  >/dev/null 2>&1 && return 0   # Solaris
+    return 1
+}
+if ! ipv6_loopback_reachable; then
+    echo "IPv6 loopback (::1) not reachable; skipping." >&2
+    exit 2
+fi
+
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+RECV=./ionreceivefile.txt
+
+echo "Cleaning up old ION ..."
+./cleanup >/dev/null 2>&1
+
+# Required so that the nodes can coexist on one host.
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+RETVAL=1
+
+echo "Starting node 1 (induct under test: udp *:6001) ..."
+( cd 1.ipn.udp && ./ionstart ) || { echo "node 1 failed to start" >&2; exit 1; }
+echo "Starting node 2 (IPv4 peer) ..."
+( cd 2.ipn.udp && ./ionstart ) || { echo "node 2 failed to start" >&2; exit 1; }
+echo "Starting node 3 (IPv6 peer) ..."
+( cd 3.ipn.udp && ./ionstart ) || { echo "node 3 failed to start" >&2; exit 1; }
+echo "Starting node 4 (induct under test: udp [::]:6004) ..."
+( cd 4.ipn.udp && ./ionstart ) || { echo "node 4 failed to start" >&2; exit 1; }
+
+waitForLog "udpcli is running" 1.ipn.udp/ion.log 30000 || {
+    echo "FAIL: node 1 udpcli induct did not start." >&2
+    exit 1
+}
+waitForLog "udpcli is running" 4.ipn.udp/ion.log 30000 || {
+    echo "FAIL: node 4 udpcli induct did not start." >&2
+    exit 1
+}
+
+# The induct must report the IPv6 wildcard.  A dual-stack socket is an
+# AF_INET6 socket, so an induct that came up on IPv4 here would still
+# pass the IPv4 half below while silently having lost IPv6 entirely.
+echo
+echo "Checking what the induct bound to ..."
+grep -F "UDP CLA socket bound to" 1.ipn.udp/ion.log | tail -1
+if grep -qF "UDP CLA socket bound to [::]:6001 (IPv6)" 1.ipn.udp/ion.log
+then
+    echo "PASS: induct bound the IPv6 wildcard."
+else
+    echo "FAIL: induct did not bind the IPv6 wildcard; a wildcard address" >&2
+    echo "      must resolve passively to [::] so one socket can serve both" >&2
+    echo "      families." >&2
+    exit 1
+fi
+
+printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
+
+# ---- IPv4 peer -------------------------------------------------------
+echo
+echo "Node 2 -> node 1 over IPv4 ..."
+( cd 1.ipn.udp && exec bpsink ipn:1.1 ) > $RECV &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
+
+( cd 2.ipn.udp && exec bpsource ipn:1.1 ) < $IONSENDFILE &
+BPSRCPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$RECV" 25000
+then
+    echo "PASS: bundle from the IPv4 peer was delivered."
+    V4OK=1
+else
+    echo "FAIL: bundle from the IPv4 peer was not delivered." >&2
+    V4OK=0
+fi
+kill -9 $BPSRCPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+: > $RECV
+
+# ---- IPv6 peer, same induct, same socket -----------------------------
+echo
+echo "Node 3 -> node 1 over IPv6 (same induct) ..."
+( cd 1.ipn.udp && exec bpsink ipn:1.1 ) > $RECV &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
+
+( cd 3.ipn.udp && exec bpsource ipn:1.1 ) < $IONSENDFILE &
+BPSRCPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$RECV" 25000
+then
+    echo "PASS: bundle from the IPv6 peer was delivered."
+    V6OK=1
+else
+    echo "FAIL: bundle from the IPv6 peer was not delivered." >&2
+    V6OK=0
+fi
+kill -9 $BPSRCPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+
+# ---- The explicit [::] induct is IPv6-only ---------------------------
+# Node 4's induct is bound to "[::]", the IPv6 wildcard by spelling.
+# Unlike the family-agnostic "*", it must accept IPv6 but refuse IPv4.
+echo
+echo "Checking node 4 induct ([::]:6004) bound the IPv6 wildcard ..."
+grep -F "UDP CLA socket bound to" 4.ipn.udp/ion.log | tail -1
+if grep -qF "UDP CLA socket bound to [::]:6004 (IPv6)" 4.ipn.udp/ion.log
+then
+    echo "PASS: node 4 induct bound [::]:6004."
+    V6ONLY_BOUND=1
+else
+    echo "FAIL: node 4 induct did not bind [::]:6004." >&2
+    V6ONLY_BOUND=0
+fi
+
+# Negative: an IPv4 peer must NOT reach the [::] induct.  Non-delivery is
+# proved by a bounded wait -- a loopback bundle that was going to arrive
+# would have done so at once.
+echo
+echo "Node 2 -> node 4 over IPv4 (must be refused) ..."
+( cd 4.ipn.udp && exec bpsink ipn:4.1 ) > $RECV &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
+
+( cd 2.ipn.udp && exec bpsource ipn:4.1 ) < $IONSENDFILE &
+BPSRCPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$RECV" 8000
+then
+    echo "FAIL: an IPv4 peer reached the [::] induct; it is not IPv6-only." >&2
+    V4REFUSED=0
+else
+    echo "PASS: the IPv4 peer was refused by the [::] induct."
+    V4REFUSED=1
+fi
+kill -9 $BPSRCPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+: > $RECV
+
+# Positive: an IPv6 peer must reach the same [::] induct.
+echo
+echo "Node 3 -> node 4 over IPv6 (must be delivered) ..."
+( cd 4.ipn.udp && exec bpsink ipn:4.1 ) > $RECV &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
+
+( cd 3.ipn.udp && exec bpsource ipn:4.1 ) < $IONSENDFILE &
+BPSRCPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$RECV" 25000
+then
+    echo "PASS: the IPv6 peer reached the [::] induct."
+    V6ACCEPTED=1
+else
+    echo "FAIL: the IPv6 peer did not reach the [::] induct." >&2
+    V6ACCEPTED=0
+fi
+kill -9 $BPSRCPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+
+echo
+if [ "$V4OK" = "1" ] && [ "$V6OK" = "1" ] && [ "$V6ONLY_BOUND" = "1" ] && \
+   [ "$V4REFUSED" = "1" ] && [ "$V6ACCEPTED" = "1" ]
+then
+    echo "The wildcard induct served both families; the [::] induct stayed IPv6-only."
+    RETVAL=0
+else
+    echo "FAIL: dual-stack wildcard or IPv6-only [::] behavior was wrong" >&2
+    echo "      (* v4=$V4OK v6=$V6OK; [::] bound=$V6ONLY_BOUND v4-refused=$V4REFUSED v6=$V6ACCEPTED)." >&2
+    RETVAL=1
+fi
+
+echo "Stopping ION ..."
+( cd 4.ipn.udp && ./ionstop ) >/dev/null 2>&1
+( cd 3.ipn.udp && ./ionstop ) >/dev/null 2>&1
+( cd 2.ipn.udp && ./ionstop ) >/dev/null 2>&1
+( cd 1.ipn.udp && ./ionstop ) >/dev/null 2>&1
+
+exit $RETVAL

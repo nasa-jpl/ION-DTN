@@ -1,0 +1,8 @@
+#!/bin/sh
+rm -f ion.log ionsendfile.txt ionreceivefile.txt ion_nodes
+for d in 1.ipn.udp 2.ipn.udp 3.ipn.udp 4.ipn.udp; do
+    rm -f "$d/ion.log" "$d/ion.sdr" "$d/ion.sdrlog"
+done
+rm -f /tmp/ionds1 /tmp/ionds2 /tmp/ionds3 /tmp/ionds4
+
+killm f

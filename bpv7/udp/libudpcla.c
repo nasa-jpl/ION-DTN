@@ -147,32 +147,6 @@ when connectivity is restored.");
 	return bytesSent;
 }
 
-/*	*	*	Receiver functions	*	*	*	*/
-
-int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
-		char *into, int length)
-{
-	int       bytesRead;
-	socklen_t fromSize;
-
-	CHKERR(fromAddr && length);
-	fromSize = sizeof(struct sockaddr_in);
-	bytesRead = irecvfrom(bundleSocket, into, length, 0,
-			(struct sockaddr *) fromAddr, &fromSize);
-	if (bytesRead < 0)
-	{
-		if (errno == EBADF) /*	Shutdown.		*/
-		{
-			return 0;
-		}
-
-		putSysErrmsg("CLI read() error on socket", NULL);
-		return -1;
-	}
-
-	return bytesRead;
-}
-
 /*
  * DUAL-STACK FUNCTIONS - use getaddrinfo() for automatic IPv4/IPv6 handling
  */
@@ -214,6 +188,7 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 {
 	IonNetworkAddress bind_addr;
 	socklen_t         addr_len;
+	int               sockFlags;
 
 	if (!endpoint || !claSock)
 	{
@@ -227,14 +202,21 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	claSock->shutdown_socket = -1;
 
 	/* getaddrinfo() does all the IPv4/IPv6 work automatically */
-	if (resolveNetworkAddressCached(endpoint, &bind_addr) < 0)
+	if (resolveNetworkAddressPassive(endpoint, BpUdpDefaultPortNbr,
+			    SOCK_DGRAM, IPPROTO_UDP, &bind_addr) < 0)
 	{
 		putErrmsg("Can't resolve UDP CLA address", endpoint);
 		return -1;
 	}
 
-	/* Create and bind dual-stack socket with standard options */
-	if (createNetworkSocket(SOCK_DGRAM, &bind_addr, &claSock->main_socket) < 0)
+	/*
+	 * Request dual-stack only for the family-agnostic wildcard, so that
+	 * an explicit "[::]" binds IPv6-only rather than quietly serving IPv4.
+	 */
+	sockFlags = isDualStackWildcard(endpoint) ?
+			ION_SOCK_DUALSTACK : ION_SOCK_V6ONLY;
+	if (createNetworkSocketEx(SOCK_DGRAM, &bind_addr, sockFlags,
+			    &claSock->main_socket) < 0)
 	{
 		putErrmsg("Can't initialize UDP CLA socket", endpoint);
 		return -1;
