@@ -204,8 +204,9 @@ void imcFindGroup(uvast fqgn, SdrObject *addr, SdrObject *eltp)
 
 	CHKVOID(addr);
 	CHKVOID(eltp);
-	CHKVOID(ionLocked());
+	*addr = 0;			/*	Default.		*/
 	*eltp = 0;			/*	Default.		*/
+	CHKVOID(ionLocked());
 	elt = locateGroup(fqgn, &nextGroupElt);
 	if (elt == 0)			/*	Not found.		*/
 	{
@@ -232,8 +233,8 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	PsmAddress	vschemeElt;
 	uvast		arrayLength;
 	uvast		fqgn;
-	SdrObject	groupAddr;
-	SdrObject	groupElt;
+	SdrObject	groupAddr = 0;
+	SdrObject	groupElt = 0;
 	ImcGroup	group;
 	SdrObject	elt;
 	uvast		fqnn;
