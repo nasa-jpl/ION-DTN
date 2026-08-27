@@ -351,6 +351,9 @@ static int	hashDestId(unsigned short portNbr, unsigned int ipAddress)
 		unsigned short	portNbr;
 	} w;
 
+	/* Explicitly zero the entire footprint, including compiler padding */
+	memset(&w, 0, sizeof(w));
+
 	char		*name = (char *) &w;
 	int		length = sizeof(unsigned int) + sizeof(unsigned short);
 	int		i = 0;
