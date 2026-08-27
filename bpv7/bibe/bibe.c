@@ -640,8 +640,8 @@ int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
-	SdrObject	bclaObj;
-	SdrObject	bclaElt;
+	SdrObject	bclaObj = 0;
+	SdrObject	bclaElt = 0;
 	Bcla		bcla;
 	uvast		uvtemp;
 	int		reasonCode;
