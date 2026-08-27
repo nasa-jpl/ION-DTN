@@ -8,6 +8,17 @@
  * Generic routines for Galois fields
  */
 
+/*
+ * -------------------------------------------------------------------------
+ * ION-DTN MODIFICATION NOTICE
+ *
+ * This 3rd-party file has been modified in-place to address ION-specific
+ * requirements and static analysis warnings.
+ *
+ * See VERSION.txt
+ * -------------------------------------------------------------------------
+ */
+
 #include "gf_int.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -547,9 +558,12 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
   int cols, i, j;
   uint32_t tmp;
 
+  /* Explicit boundary guard to prevent shift overflows */
+  if (rows <= 0 || rows > 32) return;
+
   cols = rows;
 
-  for (i = 0; i < rows; i++) inv[i] = (1 << i);
+  for (i = 0; i < rows; i++) inv[i] = (1U << i);
 
   /* First -- convert into upper triangular */
 
@@ -558,8 +572,8 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
     /* Swap rows if we ave a zero i,i element.  If we can't swap, then the
        matrix was not invertible */
 
-    if ((mat[i] & (1 << i)) == 0) {
-      for (j = i+1; j < rows && (mat[j] & (1 << i)) == 0; j++) ;
+    if ((mat[i] & (1U << i)) == 0) {
+      for (j = i+1; j < rows && (mat[j] & (1U << i)) == 0; j++) ;
       if (j == rows) {
         fprintf(stderr, "galois_invert_matrix: Matrix not invertible!!\n");
         assert(0);
@@ -570,7 +584,7 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
 
     /* Now for each j>i, add A_ji*Ai to Aj */
     for (j = i+1; j != rows; j++) {
-      if ((mat[j] & (1 << i)) != 0) {
+      if ((mat[j] & (1U << i)) != 0) {
         mat[j] ^= mat[i];
         inv[j] ^= inv[i];
       }
@@ -581,7 +595,7 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
 
   for (i = rows-1; i >= 0; i--) {
     for (j = 0; j < i; j++) {
-      if (mat[j] & (1 << i)) {
+      if (mat[j] & (1U << i)) {
         /*  mat[j] ^= mat[i]; */
         inv[j] ^= inv[i];
       }
@@ -591,8 +605,11 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
 
 uint32_t gf_bitmatrix_inverse(uint32_t y, int w, uint32_t pp)
 {
-  uint32_t mat[32], inv[32], mask;
+  uint32_t mat[32] = {0}, inv[32] = {0}, mask;
   int i;
+
+  /* Explicit guard against invalid widths */
+  if (w <= 0 || w > 32) return 0;
 
   mask = (w == 32) ? 0xffffffff : ((uint32_t)1 << w) - 1;
   for (i = 0; i < w; i++) {
