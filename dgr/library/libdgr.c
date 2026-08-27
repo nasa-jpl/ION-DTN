@@ -586,13 +586,21 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 static void	adjustActiveDestChain(DgrSAP *sap, int destIdx)
 {
 	int	ceiling;
+	int	initialMoreActive;
 	DgrDest	*dest;
 	DgrDest	*other = NULL;
 	DgrDest	*next;
 	DgrDest	*prev;
 
 	dest = sap->dests + destIdx;
-	ceiling = dest->moreActiveDest;
+
+	/*
+	 * Static analysis note (scan-build): Cached locally to prevent
+	 * false null pointer dereference warnings after the loop.
+	 */
+	initialMoreActive = dest->moreActiveDest;
+	ceiling = initialMoreActive;
+
 	while (ceiling < DGR_MAX_DESTS)
 	{
 		other = sap->dests + ceiling;
@@ -606,23 +614,23 @@ static void	adjustActiveDestChain(DgrSAP *sap, int destIdx)
 		ceiling = other->moreActiveDest;
 	}
 
-	if (ceiling != dest->moreActiveDest)	/*	more active now	*/
+	if (ceiling != initialMoreActive)	/*	more active now	*/
 	{
 		/*	Detach from current neighbors in list.		*/
 
 		if (dest->lessActiveDest == -1)	/*	currently least	*/
 		{
-			sap->leastActiveDest = dest->moreActiveDest;
+			sap->leastActiveDest = initialMoreActive;
 		}
 		else	/*	Not currently the least active dest.	*/
 		{
 			prev = sap->dests + dest->lessActiveDest;
-			prev->moreActiveDest = dest->moreActiveDest;
+			prev->moreActiveDest = initialMoreActive;
 		}
 
 		/*	(Cannot already be the most active dest.)	*/
 
-		next = sap->dests + dest->moreActiveDest;
+		next = sap->dests + initialMoreActive;
 		next->lessActiveDest = dest->lessActiveDest;
 
 		/*	Insert before new ceiling, overtaking another.	*/
