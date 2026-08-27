@@ -39,8 +39,16 @@ When the remote responder supports the v2 directory listing format
 (introduced in ION 4.2), B<bpcp -r> uses a structured manifest that
 distinguishes regular files, directories, and symbolic links, and that
 signals when a directory listing is incomplete (e.g., entries dropped
-because of over-length names).  With older responders, B<bpcp -r> falls
-back to the legacy listing format and best-effort behavior.
+because of over-length names).  When the responder also supports recursive
+directory listings, B<bpcp -r> can fetch the full remote tree manifest in
+a single directory-listing transaction.  With older responders, B<bpcp -r>
+falls back to the legacy listing format and best-effort behavior.
+
+=item B<-x>
+
+Force legacy iterative traversal for recursive remote copies.  This disables
+the recursive directory-listing extension and makes B<bpcp> query each remote
+subdirectory separately.
 
 =item B<-F>
 

@@ -147,7 +147,7 @@ typedef enum
 	CfdpProxyClosureRequest,
 	CfdpDirectoryListingRequest = 16,
 	CfdpDirectoryListingResponse,
-	/*	18 reserved for a future recursive listing request.	*/
+	/*	18 reserved.						*/
 	CfdpDirectoryListingResponseV2 = 19
 } CfdpUserMsgType;
 

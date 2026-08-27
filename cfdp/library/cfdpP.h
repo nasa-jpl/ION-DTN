@@ -228,7 +228,7 @@ typedef struct
 	SdrObject	  proxyFilestoreResponses;    /* sdrlist */
 	char		  directoryName[256];
 	char		  directoryDestFileName[256];
-	unsigned int	  directoryListingOptions;	/* v2 request bits */
+	unsigned int	  directoryListingOptions;	/* request option bits */
 	int		  directoryListingResponseCode;
 	int		  directoryListingIncomplete;	/* v2 response flag */
 } CfdpUserOpsData;

@@ -1201,7 +1201,7 @@ custody transfer>");
 	PUTS("\t   u '<message text>'");
 	PUTS("\tx\tList local directory (supports wildcards)");
 	PUTS("\t   x [directory_path_or_pattern]");
-	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
+	PUTS("\tL [-r] <remote_dir> <local_file>\tList remote directory (ION extension).");
 	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
 	PUTS("\t   &");
@@ -1748,30 +1748,57 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 static void	requestDirListing(int tokenCount, char **tokens, CfdpReqParms *parms)
 {
 	CfdpDirListTask	task;
+	unsigned int	listingOptions = 0;
+	int		directoryToken = 1;
+	int		result;
 
-	if (tokenCount != 3)
+	if (tokenCount == 4 && strcmp(tokens[1], "-r") == 0)
 	{
-		PUTS("Syntax: L <remote_directory> <local_temp_file>");
+		listingOptions = CFDP_DIRLIST_OPTION_RECURSIVE;
+		directoryToken = 2;
+	}
+	else if (tokenCount != 3)
+	{
+		PUTS("Syntax: L [-r] <remote_directory> <local_temp_file>");
 		return;
 	}
 
-	task.directoryName = tokens[1];
-	task.destFileName = tokens[2];
+	task.directoryName = tokens[directoryToken];
+	task.destFileName = tokens[directoryToken + 1];
 
-	if (cfdp_rls(&(parms->destinationEntityNbr),
+	if (listingOptions == 0)
+	{
+		result = cfdp_rls(&(parms->destinationEntityNbr),
 			sizeof(BpUtParms),
 			(unsigned char *) &(parms->utParms),
 			NULL, NULL, NULL, NULL, 0, NULL, 0,
 			parms->msgsToUser,
 			parms->fsRequests,
 			&task,
-			&(parms->transactionId)) < 0)
+			&(parms->transactionId));
+	}
+	else
+	{
+		result = cfdp_rls_extended(&(parms->destinationEntityNbr),
+			sizeof(BpUtParms),
+			(unsigned char *) &(parms->utParms),
+			NULL, NULL, NULL, NULL, 0, NULL, 0,
+			parms->msgsToUser,
+			parms->fsRequests,
+			&task,
+			listingOptions,
+			&(parms->transactionId));
+	}
+
+	if (result < 0)
 	{
 		putErrmsg("Can't request directory listing.", NULL);
 		return;
 	}
 
-	PUTS_FMT("Directory listing requested for: %s -> %s", tokens[1], tokens[2]);
+	PUTS_FMT("%s directory listing requested for: %s -> %s",
+			(listingOptions == 0 ? "Flat" : "Recursive"),
+			task.directoryName, task.destFileName);
 	parms->msgsToUser = 0;
 	parms->fsRequests = 0;
 }
