@@ -81,6 +81,13 @@ static int	updateAdus(Sdr sdr)
 		}
 
 		sdr_write(sdr, aduObj, (char *) &adu, sizeof(OutAdu));
+
+		/* Ensure profile found before reading profile->aggrTimeLimit */
+		if (profileElt == 0)
+		{
+			continue;
+		}
+
 		if (adu.ageOfAdu >= 0 && (unsigned int)adu.ageOfAdu >= profile->aggrTimeLimit)
 		{
 			if (createAdu(profile, aduObj, aduElt) < 0)
