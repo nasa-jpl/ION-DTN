@@ -14,6 +14,15 @@ ION-specific modifications:
   declaration errors on Solaris 11 and other strict compilers. memset() is
   C standard and portable across Linux, FreeBSD, macOS, and Solaris.
 
+- src/jerasure.c: Injected explicit dimension boundary guards to prevent
+  null/garbage pointer dereferences and out-of-bounds reads during IPA
+  simulation. Replaced unchecked malloc() and manual loop initialization
+  with calloc().
+
+- src/reed_sol.c: Injected explicit dimension boundary guards to prevent
+  uninitialized heap memory access during IPA simulation of degenerate
+  matrix states.
+
 Build scope:
   Only src/jerasure.c, reed_sol.c and galois.c are compiled.
   tc/library/ion_fec.c uses only reed_sol_vandermonde_coding_matrix(),

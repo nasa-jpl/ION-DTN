@@ -11,15 +11,26 @@ required by Jerasure for ION's TC (Trusted Collective) component.
 ION-specific modifications:
 - include/gf_complete.h: Changed gf_error() to gf_error(void) for strict
   prototype compliance (-Wstrict-prototypes)
+
 - src/gf_general.c: Changed sscanf() return checks from == 0 to != 1 to
   properly handle EOF in addition to parse failures (CodeQL fix)
+
 - src/gf_method.c: Changed sscanf() return checks from == 0 to != 1 to
   properly handle EOF in addition to parse failures (CodeQL fix)
+
 - src/gf.c, src/gf_w4.c, src/gf_w8.c, src/gf_w16.c: Added #include <string.h>
   and replaced bzero() with memset() for portability. bzero() is a legacy BSD
   function not declared without <strings.h>, causing implicit function
   declaration errors on Solaris 11 and other strict compilers. memset() is
   C standard and portable across Linux, FreeBSD, macOS, and Solaris.
+
+- src/gf.c: Addressed static analysis warnings to resolve
+  uninitialized memory and shift overflows. Initialized mat and inv arrays to
+  zero in gf_bitmatrix_inverse to prevent garbage value returns on off-nominal
+  paths. Replaced signed literal shifts (1 << i) with unsigned (1U << i) and
+  added explicit width boundary guards in gf_invert_binary_matrix to prevent
+  signed integer overflow and constrain IPA bounds.
+
 - src/gf.c: Reduced the width dispatch in gf_init_hard() and
   gf_scratch_size() to the widths ION can reach.
   ION enters gf-complete only through tc/library/ion_fec.c, which encodes at
