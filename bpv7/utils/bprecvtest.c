@@ -107,8 +107,8 @@ int	main(int argc, char **argv)
 	int		pilotReceived = 0;
 	int		filesReceived = 0;
 	int		bytesReceived = 0;
-	struct timeval	startt;
-	struct timeval	endt;
+	struct timeval	startt = {0};
+	struct timeval	endt = {0};
 
 	if (ownEid == NULL)
 	{
