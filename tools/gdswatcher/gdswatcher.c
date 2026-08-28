@@ -10,8 +10,8 @@ static void buildWatchMessage(char *buf, size_t buflen, char* token_str)
     getCurrentTime(&time);
 
     /* Build message buffer */
-    isprintf(buf, buflen, "%ld%03d %s\n", time.tv_sec, time.tv_usec / 1000,
-            token_str); 
+    isprintf(buf, buflen, "%ld%03ld %s\n", time.tv_sec, time.tv_usec / 1000,
+            token_str);
 }
 
 /* Write the specified character as a watch char to the file ion.watch. 
