@@ -1188,7 +1188,13 @@ failed.", tag);
 				{
 					writeMemoNote("[?] tcpcl session \
 lost (keepalive)", tag);
-					ionKillMainThread(procName());
+
+					/*	Unblock the receiver thread,
+					 *	which may be blocked in
+					 *	irecv() on a half-dead
+					 *	socket, before we exit.		*/
+
+					shutdown(session->sock, SD_BOTH);
 					running = 0;
 					break;
 				}
@@ -1208,7 +1214,11 @@ lost (keepalive)", tag);
 			{
 				writeMemoNote("[?] tcpcl session lost \
 (ack)", tag);
-				ionKillMainThread(procName());
+
+				/*	Unblock the receiver thread (see
+				 *	the keepalive path above).	*/
+
+				shutdown(session->sock, SD_BOTH);
 				running = 0;
 				break;
 			}
@@ -1356,6 +1366,17 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	if (receiveSdnv(session, &eidLength) < 1)
 	{
 		putErrmsg("Can't get EID length in TCPCL contact header",
+				session->outductName);
+		return 0;
+	}
+
+	if (eidLength >= MAX_EID_LEN)
+	{
+		/*	A peer's own EID is bounded by MAX_EID_LEN, so
+		 *	an overstated length is a malformed header:
+		 *	reject it rather than allocating it.		*/
+
+		writeMemoNote("[?] TCPCL contact header EID too long",
 				session->outductName);
 		return 0;
 	}
