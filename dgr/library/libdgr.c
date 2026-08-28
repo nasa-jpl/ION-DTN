@@ -2134,6 +2134,11 @@ recvfrom");
 			continue;	/*	Invalid segment.	*/
 		}
 
+		if (svcDataLength > (uvast) bytesRemaining)
+		{
+			continue;	/*	Overstated length.	*/
+		}
+
 		if (rptSerialNbr != 0)
 		{
 			continue;	/*	Not supported.		*/
