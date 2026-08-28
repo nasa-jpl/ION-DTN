@@ -7820,6 +7820,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 
 	CHKERR(work && bytes);
 	CHKERR(length >= 0);
+	if (length == 0)
+	{
+		return 0;	/*	Nothing to append.		*/
+	}
+
 	if (work->congestive)
 	{
 		return 0;	/*	No ZCO space; append no more.	*/
