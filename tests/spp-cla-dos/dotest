@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# SPP CLA malformed-packet denial-of-service regression test.
+#
+# The SPP/EPP/File CLA provider contract reports a rejected (e.g. oversized)
+# packet by returning 0 from its *_indication() call.  sppcli used to map
+# that 0 onto ionKillMainThread(), so a single malformed packet from any
+# sender took the whole induct down -- an unauthenticated remote DoS.  The
+# induct must instead skip the rejected packet and keep receiving.
+#
+# This test drives the spp_loopback stub provider (a FIFO), first proving
+# the induct works, then writing one oversized frame-length header into the
+# FIFO (which the provider rejects with a 0 return), and finally proving the
+# induct is still alive by delivering a second bundle through it.
+#
+. ../test_utils.sh
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ensure sppcli skips a rejected (malformed) SPP packet and keeps
+    receiving, rather than terminating the induct.  A single malformed packet
+    must not be a denial of service."
+echo
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping." >&2
+    exit 2
+fi
+
+FIFO=/tmp/spp_loopback_fifo
+CONFIGDIR="./config"
+BUILDDIR="${BUILDDIR:-../..}"
+FAIL=0
+
+# Locate the loopback stub provider library.
+for cand in \
+    "${BUILDDIR}/bpv7/spp/stub/.libs/libspp_loopback_provider.so" \
+    "${BUILDDIR}/bpv7/spp/stub/.libs/libspp_loopback_provider.dylib" \
+    "${BUILDDIR}/.libs/libspp_loopback_provider.so" \
+    "${BUILDDIR}/.libs/libspp_loopback_provider.dylib"
+do
+    if [ -f "$cand" ]; then STUBLIB="$cand"; break; fi
+done
+if [ -z "$STUBLIB" ]; then
+    echo "Cannot find libspp_loopback_provider; run 'make buildcheck' first." >&2
+    exit 2
+fi
+STUBLIB=$(cd "$(dirname "$STUBLIB")" && pwd)/$(basename "$STUBLIB")
+echo "Using stub library: ${STUBLIB}"
+
+# SPP config: APID,seq_count,packet_type,sec_header_flag
+SPP_CONFIG="123,0,0,0"
+
+echo "Cleaning up old ION ..."
+# The runtests harness runs ./cleanup before us; call it too so the test is
+# self-contained when run standalone.  ./cleanup removes every artifact.
+./cleanup >/dev/null 2>&1
+
+# Bake the resolved library path and SPP config into a runtime bprc.
+sed -e "s|STUBLIB|${STUBLIB}|g" -e "s|SPP_CONFIG|${SPP_CONFIG}|g" \
+    "${CONFIGDIR}/loopback.bprc" > "${CONFIGDIR}/loopback_runtime.bprc"
+
+echo "Starting ION..."
+ionadmin "${CONFIGDIR}/loopback.ionrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopback_runtime.bprc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+
+# Wait for the SPP induct to come up.
+if ! waitForLog "sppcli is running" ion.log 30000; then
+    echo "ERROR: sppcli induct did not start; aborting." >&2
+    exit 1
+fi
+sleep 2
+
+echo "Starting bpsink..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+# --- Baseline: prove the induct delivers before the attack. -------------
+PRE="SPP-DOS-PRECHECK-MESSAGE"
+echo "Sending baseline bundle..."
+bpsource ipn:1.1 "$PRE"
+if waitForFileContent "$PRE" testfile2 20000; then
+    echo "OK: baseline bundle delivered; induct is up."
+else
+    echo "ERROR: baseline bundle never delivered; test setup is broken." >&2
+    cat testfile2
+    FAIL=1
+fi
+
+# --- Attack: one malformed (oversized) SPP frame. -----------------------
+if [ "$FAIL" -eq 0 ]; then
+    echo "Injecting one malformed (oversized) SPP frame into the FIFO..."
+    python3 -B ./inject_bad_packet.py "$FIFO"
+    # Give sppcli a moment to read and reject it.  Before the fix, this is
+    # where ionKillMainThread() would take the induct down.
+    sleep 2
+
+    # --- Survival check 1: the sppcli process must still be alive. -------
+    if pgrep -f "sppcli.*loopback" >/dev/null; then
+        echo "OK: sppcli is still running after the malformed packet."
+    else
+        echo "ERROR: sppcli is gone after a single malformed packet (DoS)." >&2
+        FAIL=1
+    fi
+fi
+
+# --- Survival check 2: the induct still delivers a real bundle. ---------
+if [ "$FAIL" -eq 0 ]; then
+    POST="SPP-DOS-SURVIVED-MESSAGE"
+    echo "Sending a bundle after the malformed packet..."
+    bpsource ipn:1.1 "$POST"
+    if waitForFileContent "$POST" testfile2 20000; then
+        echo "SUCCESS: induct kept receiving after the malformed packet."
+    else
+        echo "ERROR: induct stopped delivering after the malformed packet." >&2
+        cat testfile2
+        FAIL=1
+    fi
+fi
+
+# Tear down ION and the CLA daemons (tests stop their own ION).  Do NOT
+# remove artifacts here: on failure the harness skips ./cleanup so ion.log,
+# testfile2, and any .sdr are preserved as evidence; ./cleanup removes them
+# before the next run and after a passing run.
+echo "Shutting down ION..."
+kill "$BPSINK_PID" 2>/dev/null
+sleep 1
+pkill -9 -f "sppcli" 2>/dev/null
+pkill -9 -f "sppclo" 2>/dev/null
+sleep 1
+ionstop
+sleep 1
+killm
+
+exit $FAIL

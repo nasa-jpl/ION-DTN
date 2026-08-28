@@ -67,13 +67,24 @@ static void	*handleFileBundles(void *parm)
 		switch (bundleLength)
 		{
 		case -1:
-			/* FALLTHROUGH */
+			/*	System error reported by the provider.	*/
 
-		case 0:
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
+			rtp->running = 0;
+			continue;
 
-			/* FALLTHROUGH */
+		case 0:
+			/*	The provider rejected a malformed frame
+			 *	(0 = error in the provider contract).  Skip
+			 *	it and keep reading rather than taking down
+			 *	the induct on a single bad frame.  (A
+			 *	provider that returns 0 for the same frame
+			 *	indefinitely, rather than advancing past it,
+			 *	would spin here; the contract expects the
+			 *	provider to make progress.)		*/
+
+			continue;
 
 		case 1:				/*	Normal stop.	*/
 			rtp->running = 0;

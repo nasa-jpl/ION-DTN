@@ -1,0 +1,23 @@
+# bprc configuration file for the SPP loopback test.
+# Command: % bpadmin loopback.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the SPP protocol.
+a protocol spp 1400 100
+
+# Add an induct. (receive from loopback)
+# STUBLIB will be replaced by dotest script with the actual library path
+a induct spp loopback 'sppcli loopback STUBLIB'
+
+# Add an outduct. (send to loopback)
+# STUBLIB and SPP_CONFIG will be replaced by dotest script
+a outduct spp loopback 'sppclo loopback STUBLIB SPP_CONFIG'

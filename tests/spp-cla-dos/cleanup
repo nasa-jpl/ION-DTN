@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Cleanup for the SPP CLA malformed-packet DoS test.
+# The runtests harness calls this before every run and after a passing run,
+# so it must remove every artifact the test can leave behind.
+
+# Generated during the run.
+rm -f ion.log testfile1 testfile2 ion_nodes
+rm -f ./config/loopback_runtime.bprc
+rm -f /tmp/spp_loopback_fifo
+rm -rf __pycache__
+
+# SDR / persistence files that ION can leave in the working directory.
+rm -f ion.sdr ion.sdrlog *.sdr *.sdrlog xnref core
+
+# Force down any ION IPC state and any CLA daemons still blocked on the FIFO.
+killm f
+pkill -9 -f "sppcli" 2>/dev/null
+pkill -9 -f "sppclo" 2>/dev/null
+
+exit 0

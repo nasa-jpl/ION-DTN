@@ -70,13 +70,22 @@ static void	*handleEncapsulationPackets(void *parm)
 		switch (bundleLength)
 		{
 		case -1:
-			/* FALLTHROUGH */
+			/*	System error reported by the provider.	*/
 
-		case 0:
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
+			rtp->running = 0;
+			continue;
 
-			/* FALLTHROUGH */
+		case 0:
+			/*	The provider rejected a malformed packet
+			 *	(0 = error in the provider contract).  Skip
+			 *	it and keep receiving; killing the induct
+			 *	here would let an unauthenticated remote
+			 *	sender stop reception with a single
+			 *	malformed packet.			*/
+
+			continue;
 
 		case 1:				/*	Normal stop.	*/
 			rtp->running = 0;
