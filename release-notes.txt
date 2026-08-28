@@ -192,6 +192,63 @@ Features included:
 
 February 2026
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.2.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ION Open Source 4.2.0.  Highlights of the changes since the 4.2.0-b beta
+follow; see the git history for the complete list.
+
+Security:
+
+This release resolves a coordinated set of remotely triggerable
+vulnerabilities in bundle and segment parsing.  Wire-supplied element
+counts and lengths are now bounded before they are used to size an
+allocation or a copy, closing:
+
+- a heap out-of-bounds write in the BPv7 IMC extension-block parser;
+- out-of-bounds writes in the LTP and BPv7 bundle-sequence parsers on
+  32-bit builds;
+- an out-of-bounds read in the SDNV decoder.
+
+Several unauthenticated denial-of-service defects were also fixed:
+
+- an assertion abort on an unparsable acquired EID;
+- an SDR transaction leak on a saga decode error;
+- an out-of-bounds read of non-NUL-terminated file-transfer metadata;
+- a UDP convergence-layer induct shutdown on a short or empty datagram.
+
+System-wide hardening: unbounded sprintf calls were replaced with bounded
+isprintf across BP, LTP, BSSP, BPsec, DTKA, AMS, NM, TC, ZCO, and RTEMS;
+the ICI CBOR string decoders were bounded against their buffered input; and
+sdr_table_create was guarded against a row-size overflow.
+
+Reliability:
+
+- Contact Graph Routing was further hardened: the negative-result cache is
+  armed only for genuinely routeless destinations, and a disabledRoute
+  route-handle use-after-free was root-caused and guarded.
+- Clock daemons now exit cleanly when the SDR heap is halted; robust SDR
+  lock recovery no longer deadlocks on the reversibility log; a volatile
+  database race that left a dangling pointer was fixed; and duplicate
+  TTL-expiry deletion reports under loopback LTP were eliminated.
+
+Protocol:
+
+- Status report generation is now DISABLED by default, in conformance with
+  RFC 9171 Section 5.1 (see the note at the top of this file).
+- The received ipn/imc EID CBOR encoding form (two- vs three-element) is
+  preserved, so that BPsec integrity blocks over the primary block remain
+  verifiable (RFC 9758).
+
+Convergence layers and platform:
+
+- A wildcard UDP induct now serves IPv4 and IPv6 from a single socket.
+- The DCCP convergence layer was removed.  BSSP is now deprecated: it is
+  disabled by default and scheduled for removal in 4.2.1.
+- AddressSanitizer builds (--enable-asan) now work with Clang as well as
+  GCC.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.2.0-b =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

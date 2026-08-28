@@ -6,7 +6,7 @@
 
 AC_PREREQ([2.69])
 
-AC_INIT([ION], [4.2.0-b], [https://github.com/nasa-jpl/ION-DTN/issues], [],
+AC_INIT([ION], [4.2.0], [https://github.com/nasa-jpl/ION-DTN/issues], [],
         [https://github.com/nasa-jpl/ION-DTN])
 
 AM_INIT_AUTOMAKE([1.16 subdir-objects -Wall foreign])
@@ -302,7 +302,7 @@ AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES],
 # ION will build BPv7 only
 #
 
-VER="4.2.0-b"
+VER="4.2.0"
 VER="-DVNAME=ION-OPEN-SOURCE-$VER"
 AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS $VER -DBUILD_BPv7"
