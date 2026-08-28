@@ -695,7 +695,9 @@ int	main(int argc, char *argv[])
 		{
 			/*	Must fragment this bundle.		*/
 
-			if (bundle.bundleProcFlags & BDL_DOES_NOT_FRAGMENT)
+			if (bpFragmentationDisabled() ||
+					(bundle.bundleProcFlags &
+							BDL_DOES_NOT_FRAGMENT))
 			{
 				/*	Bundle can't be fragmented,
 				 *	cannot be sent to this

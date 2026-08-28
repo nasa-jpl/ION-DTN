@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for the node-level fragmentation controls:
+#   m disable-fragmentation { 0 | 1 }
+#   m source-nofragment     { 0 | 1 }
+#
+# Topology: node 2 -> node 3 over UDP.  Node 2's only outduct caps the
+# payload at 560 bytes, so a ~40 KB file can reach node 3 only if node 2
+# fragments it; delivery therefore proves fragmentation occurred, and
+# non-delivery proves it was suppressed.
+#
+# Three phases, run against one continuously-running node so the runtime,
+# no-restart nature of the controls is exercised.  The phases are ordered
+# so a bundle held back in an earlier phase can never be released and
+# delivered in a later one (see the note at each phase):
+#
+#   A  defaults (both controls 0)          -> file IS delivered
+#   B  m source-nofragment 1               -> file is NOT delivered
+#   C  m disable-fragmentation 1           -> file is NOT delivered
+
+CONFIGFILES=" \
+./2.ipn.udp/amroc.bprc \
+./2.ipn.udp/amroc.ionconfig \
+./2.ipn.udp/amroc.ionrc \
+./2.ipn.udp/amroc.ionsecrc \
+./3.ipn.udp/amroc.bprc \
+./3.ipn.udp/amroc.ionconfig \
+./3.ipn.udp/amroc.ionrc \
+./3.ipn.udp/amroc.ionsecrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the bprc fragmentation controls.  Node 2 forwards a
+    file larger than its 560-byte outduct payload cap to node 3.  With
+    fragmentation permitted the file is fragmented and reassembled at
+    node 3; with 'm disable-fragmentation 1' the node fragments nothing
+    and the oversized bundle is never delivered; with 'm source-nofragment
+    1' the locally sourced bundle is stamped do-not-fragment, so node 2
+    (honoring that flag) also declines to fragment it."
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+RECVDIR=../3.ipn.udp
+
+# Count the files bprecvfile has written at node 3 so far.  A shell glob is
+# used rather than 'find -maxdepth', which is a GNU extension the Solaris
+# find(1) rejects (leaving the count stuck at zero).
+recvcount() {
+    count=0
+    for f in "$RECVDIR"/testfile*
+    do
+        [ -e "$f" ] && count=$((count + 1))
+    done
+    echo "$count"
+}
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR="$PWD"
+rm -f ./ion_nodes
+
+cd 2.ipn.udp || exit 1
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then echo "Node 2 not started: Aborting Test"; exit 1; fi
+
+cd ../3.ipn.udp || exit 1
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then echo "Node 3 not started: Aborting Test"; exit 1; fi
+
+echo "Starting bprecvfile on node 3..."
+sleep 1
+bprecvfile ipn:3.1 &
+cd ../2.ipn.udp || exit 1
+
+RETVAL=0
+
+#----------------------------------------------------------------------
+# Phase A: defaults -- fragmentation permitted, so the file is delivered.
+#----------------------------------------------------------------------
+echo
+echo "=== Phase A: defaults (fragmentation permitted) ==="
+BEFORE=$(recvcount)
+bpsendfile ipn:2.1 ipn:3.1 sourceFile
+sleep 6
+AFTER=$(recvcount)
+if [ "$AFTER" -eq $((BEFORE + 1)) ] \
+   && cmp -s sourceFile "$RECVDIR/testfile1"
+then
+    echo "PASS: oversized bundle was fragmented and reassembled at node 3."
+else
+    echo "FAIL: file was not delivered/reassembled with fragmentation on."
+    RETVAL=1
+fi
+
+#----------------------------------------------------------------------
+# Phase B: m source-nofragment 1 -- node 2 stamps its own bundle
+# do-not-fragment and therefore declines to fragment it.  The bundle
+# carries the flag permanently, so it can never be delivered later,
+# regardless of any subsequent control change.
+#----------------------------------------------------------------------
+echo
+echo "=== Phase B: m source-nofragment 1 (should NOT deliver) ==="
+echo "m source-nofragment 1" | bpadmin
+sleep 1
+BEFORE=$(recvcount)
+bpsendfile ipn:2.1 ipn:3.1 sourceFile
+sleep 6
+AFTER=$(recvcount)
+if [ "$AFTER" -eq "$BEFORE" ]
+then
+    echo "PASS: locally sourced oversized bundle was not fragmented or delivered."
+else
+    echo "FAIL: bundle was delivered despite m source-nofragment 1."
+    RETVAL=1
+fi
+
+#----------------------------------------------------------------------
+# Phase C: m disable-fragmentation 1 (and clear source-nofragment) --
+# node 2 fragments nothing.  disable-fragmentation is left ON through the
+# end of the test, so the bundle held back here is never released.
+#----------------------------------------------------------------------
+echo
+echo "=== Phase C: m disable-fragmentation 1 (should NOT deliver) ==="
+printf "m source-nofragment 0\nm disable-fragmentation 1\n" | bpadmin
+sleep 1
+BEFORE=$(recvcount)
+bpsendfile ipn:2.1 ipn:3.1 sourceFile
+sleep 6
+AFTER=$(recvcount)
+if [ "$AFTER" -eq "$BEFORE" ]
+then
+    echo "PASS: oversized bundle was not fragmented or delivered."
+else
+    echo "FAIL: bundle was delivered despite m disable-fragmentation 1."
+    RETVAL=1
+fi
+
+echo
+if [ $RETVAL -eq 0 ]; then
+    echo "Fragmentation-control test PASSED."
+else
+    echo "Fragmentation-control test FAILED."
+fi
+exit $RETVAL

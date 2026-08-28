@@ -134,6 +134,8 @@ payload length");
 	PUTS("\t   m primarycrc <set CRC type for locally sourced primary block, 0, 1, or 2>");
 	PUTS("\t   m payloadcrc <set CRC type for locally sourced payload block, 0, 1, or 2>");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
+	PUTS("\t   m disable-fragmentation { 0 | 1 }");
+	PUTS("\t   m source-nofragment { 0 | 1 }");
 	PUTS("\t   m bsl <local ipn eid> <key reg. file path name> <policy config. file pathname>");
 	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
 	PUTS("\t   m srmode <status report mode: none | traditional | compressed | both>");
@@ -2186,6 +2188,90 @@ static void	manageMaxcount(int tokenCount, char **tokens)
 	}
 }
 
+static int parseBooleanArg(const char *token, int *value)
+{
+	char *end;
+	long  parsed;
+
+	parsed = strtol(token, &end, 10);
+	if (*token == '\0' || *end != '\0' || (parsed != 0 && parsed != 1))
+	{
+		return -1; /* Not exactly "0" or "1". */
+	}
+
+	*value = (int) parsed;
+	return 0;
+}
+
+static void manageDisableFragmentation(int tokenCount, char **tokens)
+{
+	Sdr	  sdr = getIonsdr();
+	SdrObject bpdbObj = getBpDbObject();
+	BpVdb	 *vdb = getBpVdb();
+	BpDB	  bpdb;
+	int	  disable;
+
+	if (tokenCount != 3 || parseBooleanArg(tokens[2], &disable) < 0)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.disableFragmentation = disable;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change disableFragmentation.", NULL);
+		return;
+	}
+
+	/*
+	 * Mirror into the volatile database so forwarder and CLO daemons
+	 * observe the change without a restart.
+	 */
+	if (vdb != NULL)
+	{
+		vdb->disableFragmentation = disable;
+	}
+}
+
+static void manageSourceNoFragment(int tokenCount, char **tokens)
+{
+	Sdr	  sdr = getIonsdr();
+	SdrObject bpdbObj = getBpDbObject();
+	BpVdb	 *vdb = getBpVdb();
+	BpDB	  bpdb;
+	int	  mark;
+
+	if (tokenCount != 3 || parseBooleanArg(tokens[2], &mark) < 0)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.markSourceNoFragment = mark;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change markSourceNoFragment.", NULL);
+		return;
+	}
+
+	/*
+	 * Mirror into the volatile database so a bundle sourced immediately
+	 * after this command is marked correctly.
+	 */
+
+	if (vdb != NULL)
+	{
+		vdb->markSourceNoFragment = mark;
+	}
+}
+
 #if USING_BSL
 static void	manageBSL(int tokenCount, char **tokens)
 {
@@ -2521,6 +2607,18 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxcount") == 0)
 	{
 		manageMaxcount(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "disable-fragmentation") == 0)
+	{
+		manageDisableFragmentation(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "source-nofragment") == 0)
+	{
+		manageSourceNoFragment(tokenCount, tokens);
 		return;
 	}
 

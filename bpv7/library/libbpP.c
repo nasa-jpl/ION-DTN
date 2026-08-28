@@ -1573,6 +1573,8 @@ static BpVdb	*_bpvdb(char **name)
 		newVdb->transitSemaphore = SM_SEM_NONE;
 		newVdb->transitPid = ERROR;
 		newVdb->watching = db->watching;
+		newVdb->disableFragmentation = db->disableFragmentation;
+		newVdb->markSourceNoFragment = db->markSourceNoFragment;
 		if ((newVdb->schemes = sm_list_create(wm)) == 0
 		|| (newVdb->plans = sm_list_create(wm)) == 0
 		|| (newVdb->inducts = sm_list_create(wm)) == 0
@@ -1984,6 +1986,20 @@ BpDB	*getBpConstants(void)
 BpVdb	*getBpVdb(void)
 {
 	return _bpvdb(NULL);
+}
+
+int	bpFragmentationDisabled(void)
+{
+	BpVdb	*vdb = getBpVdb();
+
+	return (vdb != NULL && vdb->disableFragmentation) ? 1 : 0;
+}
+
+int	bpSourceNoFragment(void)
+{
+	BpVdb	*vdb = getBpVdb();
+
+	return (vdb != NULL && vdb->markSourceNoFragment) ? 1 : 0;
 }
 
 int	bpStart(void)
@@ -6702,6 +6718,11 @@ when asking for status reports.");
 		{
 			bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
 		}
+	}
+
+	if (bpSourceNoFragment())
+	{
+		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
 	}
 
 	if (ackRequested)

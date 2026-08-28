@@ -389,7 +389,8 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 
 		if (route->maxVolumeAvbl < route->bundleECCC
 		&& bundle->payload.length > 1
-		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
+		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT)
+		&& !bpFragmentationDisabled())
 		{
 			if (proactivelyFragment(bundle, bundleObj, route) < 0)
 			{

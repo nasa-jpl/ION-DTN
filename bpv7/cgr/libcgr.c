@@ -2065,7 +2065,8 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	/*	Determine whether or not fragmentation of this bundle
 	 *	is prohibited.						*/
 
-	doNotFragment = bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT;
+	doNotFragment = bpFragmentationDisabled() ||
+			(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT);
 	route->maxVolumeAvbl = route->bundleECCC;
 
 	/*	Now compute expected bundle delivery time by adding

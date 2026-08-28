@@ -88,6 +88,30 @@ for any bundle sourced at a node that lacks a synchronized clock (such that
 the creation time in the ID of every locally sourced bundle is always zero).
 The default value is -1, i.e., unlimited.
 
+=item B<m disable-fragmentation> { 0 | 1 }
+
+The B<manage fragmentation> command.  When set to 1, this node performs no
+Bundle Protocol fragmentation: neither the bundles it sources nor the
+in-transit bundles it forwards are ever fragmented, regardless of whether a
+given bundle's "bundle must not be fragmented" flag is set.  A bundle that is
+too large for an outduct (or for the residual volume of a contact) is
+reforwarded and, failing an alternative, sent to limbo rather than being
+split.  Reassembly of fragments arriving from other nodes is unaffected, and
+so is BIBE segmentation, which is a separate mechanism.  The default value is
+0 (fragmentation permitted).  The setting takes effect at runtime, without a
+node restart, and persists across restarts.
+
+=item B<m source-nofragment> { 0 | 1 }
+
+The B<manage source fragmentation policy> command.  When set to 1, every
+bundle sourced at this node is marked "bundle must not be fragmented", so that
+no node along the delivery path fragments it.  Whereas
+B<m disable-fragmentation> governs only the fragmentation this node itself
+performs, this command stamps the do-not-fragment flag into the bundle,
+carrying the policy end to end.  The two commands are independent and may be
+used separately or together.  The default value is 0 (locally sourced bundles
+are fragmentable unless the sending application requests otherwise).
+
 =item B<m custodymode> { none | bibe | orangebook }
 
 The B<manage custody mode> command.  This command sets the custody transfer

@@ -768,6 +768,11 @@ typedef struct
 						 *	source EIDs, or just the
 						 *	sentinel "any" (= accept
 						 *	all; the default).	*/
+
+	/*	Fragmentation control					*/
+
+	int		disableFragmentation;	/*	Boolean.	*/
+	int		markSourceNoFragment;	/*	Boolean.	*/
 } BpDB;
 
 #define BP_STATUS_RECEIVE	0
@@ -863,6 +868,8 @@ typedef struct
 	int		transitPid;	/*	For stopping bptransit.	*/
 	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
+	int		disableFragmentation;	/*	Boolean.	*/
+	int		markSourceNoFragment;	/*	Boolean.	*/
 
 	/*	For finding structures in database.			*/
 
@@ -1013,6 +1020,22 @@ extern int bpFragment(Bundle *bundle, SdrObject bundleObj, SdrObject *queueElt,
 			 *	bundles from one original bundle and
 			 *	destroys the original bundle.  Returns
 			 *	0 on success, -1 on any failure.	*/
+
+extern int bpFragmentationDisabled(void);
+			/*	Returns 1 if this node is configured (via
+			 *	bprc "m disable-fragmentation 1") to suppress
+			 *	all BP fragmentation, 0 otherwise.  When set,
+			 *	the forwarder and CLO treat every bundle as
+			 *	non-fragmentable regardless of its DoNotFragment
+			 *	flag.  Does not affect BIBE segmentation.	*/
+
+extern int bpSourceNoFragment(void);
+			/*	Returns 1 if this node is configured (via
+			 *	bprc "m source-nofragment 1") to mark every
+			 *	locally sourced bundle "must not be fragmented",
+			 *	0 otherwise.  This carries the do-not-fragment
+			 *	policy end to end, so downstream nodes also
+			 *	refrain from fragmenting the bundle.		*/
 
 extern int bpEnqueue(VPlan *vplan, Bundle *bundle, SdrObject bundleObj);
 			/*	This function is invoked by a forwarder
