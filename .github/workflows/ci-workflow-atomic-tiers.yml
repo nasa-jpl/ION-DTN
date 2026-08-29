@@ -396,7 +396,6 @@ jobs:
       SMOKE_SUBSET: >-
         ../demos/bench-dgr
         ../demos/bench-tcp
-        ../demos/bench-bssp
         1000.loopback
         1002.loopback-valgrind
         bping

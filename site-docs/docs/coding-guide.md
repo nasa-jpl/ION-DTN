@@ -941,7 +941,7 @@ CodeSonar flags calls to functions like `fseek()`, `sdr_list_data()`, `psp()`, a
 
 ### Useless Assignment — `sm_TaskVar()` Pattern
 
-ION's semaphore-accessor functions (e.g., `_ipnfwSemaphore`, `ltpcloSemaphore`, `bsspcloSemaphore`) use the `sm_TaskVar()` pattern:
+ION's semaphore-accessor functions (e.g., `_ipnfwSemaphore`, `ltpcloSemaphore`) use the `sm_TaskVar()` pattern:
 
 ```c
 static int *_fooSemaphore(int *newValue)

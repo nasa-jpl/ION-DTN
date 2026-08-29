@@ -206,7 +206,7 @@ When `PRESERVE_TEST_LOGS` is set to `1` (`export PRESERVE_TEST_LOGS=1`), `runtes
 1. **`killm f` once upfront** — reaps any orphan ION daemons before per-test sweeps, so the artifact removal isn't racing live processes that hold the files open.
 2. For each test in turn:
    - The test's own `./cleanup` script (if present) — handles named config artifacts that only the test knows about.
-   - `cleanup_staging_files` — generic runtime cruft (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`, `core`, `core.*`) under the test directory and `/tmp`.
+   - `cleanup_staging_files` — generic runtime cruft (`bpacq*`, `ltpacq*`, `*.sdr`, `xnref*`, `*.sdrlog`, `core`, `core.*`) under the test directory and `/tmp`.
    - `ion.log` and `ion-system.log` removal (depth 3, so multi-node `nodeN/ion.log` files are caught).
 3. Finally, removes `tests/retest` and `tests/progress` so the campaign bookkeeping is also reset.
 
@@ -430,7 +430,7 @@ A crash that occurs before diagnostics runs (e.g., SIGSEGV in a test daemon) lea
 
 `runtests` runs `ulimit -c unlimited` at entry so that crashes actually produce a core in environments where the default core-file limit is 0. This is best-effort; restricted environments (containers with `RLIMIT_CORE` hard limit 0) silently leave the limit at 0 and `ion-diagnostics` simply reports no cores found.
 
-Core files and acquisition staging files (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`) are removed by `cleanup_staging_files` after diagnostics finishes, so disk usage doesn't grow across a long campaign while still preserving `ion.log` and `ion-system.log` for inspection.
+Core files and acquisition staging files (`bpacq*`, `ltpacq*`, `*.sdr`, `xnref*`, `*.sdrlog`) are removed by `cleanup_staging_files` after diagnostics finishes, so disk usage doesn't grow across a long campaign while still preserving `ion.log` and `ion-system.log` for inspection.
 
 Stale `ion-system.log` files from prior runs are swept out of each test directory before the test starts, so they cannot be mistakenly uploaded by CI as if they belonged to the current run.
 

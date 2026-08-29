@@ -81,12 +81,6 @@ echo "1" > test_bpsec_boot.rc
 echo 'a { "event_set": { "es_ref": "test", "desc": "dummy" } }' >> test_bpsec_boot.rc
 bpsecadmin test_bpsec_boot.rc > /dev/null 2>&1
 
-# Boot BSSP (deprecated; only present when built with --enable-bssp)
-if command -v bsspadmin > /dev/null 2>&1; then
-    echo "1 32" > test_bssp_boot.rc
-    bsspadmin test_bssp_boot.rc > /dev/null 2>&1
-fi
-
 # Boot DTKA
 echo "1" > test_dtka_boot.rc
 dtkaadmin test_dtka_boot.rc > /dev/null 2>&1
@@ -147,23 +141,6 @@ run_file_test "bpsecadmin" "test_bpsec_rule.rc" \
     'd { "policyrule": { "rule_id": 70000 } }' \
     "Invalid rule ID" \
     "bpsecadmin rejected out-of-bounds policy rule ID." || exit $RETVAL
-
-# ==========================================
-# BSSPADMIN (deprecated; only present when built with --enable-bssp)
-# ==========================================
-if command -v bsspadmin > /dev/null 2>&1; then
-    run_file_test "bsspadmin" "test_bssp_sessions.rc" \
-        "1 -5" \
-        "Invalid max sessions" \
-        "bsspadmin rejected negative max sessions." || exit $RETVAL
-
-    run_file_test "bsspadmin" "test_bssp_qtime.rc" \
-        "m ownqtime foo" \
-        "Invalid own Q time" \
-        "bsspadmin rejected trailing garbage in ownqtime." || exit $RETVAL
-else
-    echo "Skipping bsspadmin tests: BSSP not built (deprecated, --enable-bssp)."
-fi
 
 # ==========================================
 # CFDPADMIN

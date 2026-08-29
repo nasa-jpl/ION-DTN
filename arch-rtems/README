@@ -43,8 +43,8 @@ and bundle forwarding.
 * **ION Admin Public API**: Programmatic configuration (no config files required)
 * **SPACE_ORDER=3**: 64-bit pointer addressing
 * **Conditional Compilation**:
-  Modular build system with optional DGR and BSSP support
-* **Minimal Feature Set**: BP + LTP core (optional AMS, BSS, DGR, BSSP, CFDP)
+  Modular build system with optional DGR support
+* **Minimal Feature Set**: BP + LTP core (optional AMS, BSS, DGR, CFDP)
 * **Increased Memory**: Heap and workspace sizes optimized for 64-bit
 
 ### Module Configuration
@@ -54,7 +54,6 @@ via flags in `wscript`:
 
 **Currently Disabled (Minimal Configuration):**
 * **DGR** (Datagram Retransmission) - Set `ENABLE_DGR = 0`
-* **BSSP** (Bundle Streaming Service Protocol) - Set `ENABLE_BSSP = 0`
 
 **Always Excluded:**
 * **AMS/RAMS** (Asynchronous Message Service)
@@ -70,7 +69,6 @@ via flags in `wscript`:
 To enable optional modules, edit `arch-rtems/wscript`:
 ```python
 ENABLE_DGR = 1    # Enable DGR convergence layer
-ENABLE_BSSP = 1   # Enable BSSP convergence layer
 ```
 
 ### Transport Layer
@@ -80,7 +78,7 @@ ENABLE_BSSP = 1   # Enable BSSP convergence layer
 * **RTEMS libbsd Networking**: Full BSD socket API with initialized TCP/IP stack
 * **Network Initialization**:
   Automatic BSD networking stack and loopback interface (lo0) setup
-* **Conditional Convergence Layers**: DGR and BSSP can be enabled as needed
+* **Conditional Convergence Layers**: DGR can be enabled as needed
 * **Current status**:
   FULLY OPERATIONAL - Complete end-to-end bundle transmission verified
 
@@ -169,8 +167,8 @@ for complete installation instructions.
 * `libbp.a`: 2.0 MB (BP library)
 * Build time: ~1.5 seconds (116 compilation units)
 
-**Note:** With `ENABLE_DGR=0` and `ENABLE_BSSP=0`,
-the DGR and BSSP libraries are not built,
+**Note:** With `ENABLE_DGR=0`,
+the DGR library is not built,
 resulting in a smaller binary size.
 
 **Verifying rtems-libbsd Installation:**
@@ -319,18 +317,16 @@ which require file I/O, text parsing, and POSIX shell execution.
 Uses WAF (Waf build system) with rtems_waf integration:
 * Builds static libraries conditionally based on configuration flags
 * Minimal build: `libici.a`, `libltp.a`, `libbp.a`
-* Optional libraries: `libdgr.a`, `libbssp.a`, `libcfdp.a` (when enabled)
+* Optional libraries: `libdgr.a`, `libcfdp.a` (when enabled)
 * Links into single RTEMS executable: `ion.exe`
 * Symbol table (`mysymtab.c`) for dynamic task spawning with conditional exports
 * Conditional compilation via preprocessor defines
-  (`ENABLE_DGR`, `ENABLE_BSSP`, `NASA_PROTECTED_FLIGHT_CODE`)
+  (`ENABLE_DGR`, `NASA_PROTECTED_FLIGHT_CODE`)
 
 **Conditional Compilation:**
 
 The build system uses preprocessor guards to exclude unused modules:
 * Source files conditionally added to build based on flags
-* Symbol table entries wrapped with `#ifdef ENABLE_BSSP` guards
-* Runtime code in `ionexit.c` uses `#ifdef ENABLE_BSSP` for cleanup
 * Library dependencies dynamically adjusted at build time
 
 ### Known Limitations
@@ -340,7 +336,7 @@ The build system uses preprocessor guards to exclude unused modules:
 * Loopback only (127.0.0.1 via libbsd, no real network interfaces configured)
 * No CFDP file transfer capability (excluded by default)
 * No AMS multicast support (not built)
-* DGR and BSSP convergence layers excluded by default
+* DGR convergence layer excluded by default
   (can be enabled via wscript flags)
 
 ### Adapting to Your Platform
@@ -409,6 +405,6 @@ The port successfully integrates RTEMS libbsd networking:
 * Enable and test CFDP for file transfer
 * Port to real ARM hardware (Raspberry Pi 4, Xilinx ZynqMP, etc.)
 * Multi-node testing over real networks
-* Enable DGR/BSSP for additional protocol support as needed
+* Enable DGR for additional protocol support as needed
 * Performance benchmarking and optimization
 * Test with hardware-accelerated cryptography

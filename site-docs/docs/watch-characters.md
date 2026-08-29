@@ -201,23 +201,3 @@ per-session statistics. Requires Python 3.6+ and matplotlib.
 `&` - custody refusal signal is received (by requester)
 
 `$` - bundle retransmitted due to expiration of custody request timer
-
-## BSSP Watch Characters
-
-`D` - bssp send completed
-
-`E` - bssp block constructed for issuance
-
-`F` - bssp block issued
-
-`G` - bssp block popped from best-efforts transmission queue
-
-`H` - positive ACK received for bssp block, session ended
-
-`S` - bssp block received
-
-`T` - bssp block popped from reliable transmission queue
-
-`-` - unacknowledged best-efforts block requeued for reliable transmission
-
-`*` - session canceled locally by sender

@@ -418,18 +418,6 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 
 	*vduct = NULL;			/*	Default.		*/
 	protClassReqd = bundle->qosFlags & BP_PROTOCOL_ANY;
-#if 0
-	/*	BSSP is deprecated.					*/
-
-	if (protClassReqd & BP_RELIABLE_STREAMING)
-	{
-		/*	BSSP is required, no other protocol will do.
-		 *	Exclude BP_BEST_EFFORT and BP_RELIABLE even if
-		 *	(erroneously) asserted in ancillaryData flags.	*/
-
-		protClassReqd = BP_RELIABLE_STREAMING;
-	}
-#endif
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
 		protClassReqd = BP_PROTOCOL_ANY;

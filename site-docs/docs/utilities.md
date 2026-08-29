@@ -32,11 +32,10 @@ Flags can be combined in any order.
 2. TCA/TCC - Trusted Custody services (if enabled)
 3. BP - Bundle Protocol
 4. LTP - Licklider Transmission Protocol
-5. BSSP - Bundle Streaming Service Protocol (if enabled)
-6. CFDP - CCSDS File Delivery Protocol
-7. RFX - Contact plan system
-8. SDR cleanup (unless `k` flag used)
-9. IPC resources cleanup (unless `n` flag used)
+5. CFDP - CCSDS File Delivery Protocol
+6. RFX - Contact plan system
+7. SDR cleanup (unless `k` flag used)
+8. IPC resources cleanup (unless `n` flag used)
 
 **Scope:** `ionexit` operates on a single ION instance — the one associated with the current working directory. It does not affect other ION instances on the same host. In multi-node environments, each node must be shut down individually by running `ionexit` from that node's working directory, or use `killm f` to stop all instances at once.
 
@@ -53,7 +52,6 @@ dtpcadmin .    # Stop DTPC daemons
 cfdpadmin .    # Stop CFDP daemons
 bpadmin .      # Stop BP daemons
 ltpadmin .     # Stop LTP daemons
-bsspadmin .    # Stop BSSP daemons
 ionadmin .     # Stop ION core (rfxclock)
 ```
 

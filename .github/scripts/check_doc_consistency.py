@@ -123,7 +123,6 @@ ADMIN_PAIRS = [
     ("ltp/doc/pod5/ltpsecrc.pod", "ltp/utils/ltpsecadmin.c"),
     ("cfdp/doc/pod5/cfdprc.pod", "cfdp/utils/cfdpadmin.c"),
     ("dtpc/doc/pod5/dtpcrc.pod", "dtpc/utils/dtpcadmin.c"),
-    ("bssp/doc/pod5/bssprc.pod", "bssp/utils/bsspadmin.c"),
 ]
 
 # pod3 API reference  ->  header(s) declaring the documented functions
@@ -153,7 +152,6 @@ POD3_API = {
         "cfdp/include/cfdpops.h",
     ],
     "dgr/doc/pod3/dgr.pod": ["dgr/include/dgr.h"],
-    "bssp/doc/pod3/bssp.pod": ["bssp/include/bssp.h"],
     "dtpc/doc/pod3/dtpc.pod": ["dtpc/include/dtpc.h"],
     "bss/doc/pod3/bss.pod": ["bss/include/bss.h"],
 }

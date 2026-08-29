@@ -44,11 +44,6 @@ typedef struct
 extern DtpcVdb	*getDtpcVdb(void);
 #endif
 
-#ifdef ENABLE_BSSP
-#include "bsspP.h"
-#include "bssp.h"
-#endif
-
 typedef enum
 {
 	DAEMON_NOT_STARTED = 0,	/* PID is ERROR or <= 0 */
@@ -316,9 +311,6 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 #endif
 #ifdef ENABLE_DTPC
 	DtpcVdb *dtpcvdb = NULL;
-#endif
-#ifdef ENABLE_BSSP
-	BsspVdb *bsspvdb = NULL;
 #endif
 	DaemonStatus status;
 
@@ -597,22 +589,6 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 	}
 #endif
 
-#ifdef ENABLE_BSSP
-	/*	BSSP daemons						*/
-
-	bsspvdb = getBsspVdb();
-	if (bsspvdb != NULL)
-	{
-		status = checkDaemonStatus(bsspvdb->clockPid, "bsspclock");
-		if (!showOnlyRunning || status == DAEMON_RUNNING)
-		{
-			printDaemonEx("BSSP", "bsspclock", bsspvdb->clockPid,
-					status, "Event scheduler",
-					logToFile, quietMode, anyChanged);
-		}
-	}
-#endif
-
 	/* Print footer only for stdout (not for log file) */
 	if (!logToFile)
 	{
@@ -722,10 +698,6 @@ static int run_daemonwatch(int interval, int showOnlyRunning,
 
 #ifdef ENABLE_DTPC
 	dtpc_attach();
-#endif
-
-#ifdef ENABLE_BSSP
-	bssp_attach();
 #endif
 
 	/*	Initial display.					*/

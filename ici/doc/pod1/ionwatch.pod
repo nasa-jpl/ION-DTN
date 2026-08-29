@@ -57,10 +57,6 @@ CCSDS File Delivery Protocol (cfdpclock)
 
 Delay-Tolerant Payload Conditioning (dtpcclock, dtpcd)
 
-=item B<BSSP>
-
-Bundle Streaming Service Protocol (bsspclock)
-
 =back
 
 =head1 OPTIONS
@@ -209,7 +205,7 @@ displays accurate status information.  If STALE entries appear, it indicates a d
 crashed or was forcibly killed (kill -9) before it could clean up.
 
 B<ionwatch> only displays daemons for protocols that were compiled into the
-ION build.  Optional protocols (CFDP, DTPC, BSSP) will only appear if they were
+ION build.  Optional protocols (CFDP, DTPC) will only appear if they were
 enabled during compilation.
 
 =head1 BUGS

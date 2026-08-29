@@ -27,7 +27,7 @@ ION's stack uses these terms precisely, and this document follows them:
 ```
 
 - **CLA** — *Convergence Layer Adapter*: the interface between BP and a convergence layer. In ION the LTP CLA is `ltpcli` (input) / `ltpclo` (output). **This document is not about the CLA.**
-- **CL** — *Convergence Layer*: LTP itself (also BSSP, STCP, TCPCLv4, etc.).
+- **CL** — *Convergence Layer*: LTP itself (also STCP, TCPCLv4, etc.).
 - **LS** — *Link Service* (a.k.a. *UCS*, Underlying Communication Service): the layer **below** a CL that actually moves bytes. Its two daemons are the **LSO** (Link Service Output) and **LSI** (Link Service Input). The UDP examples are `udplso`/`udplsi`.
 - **UCS / radio** — the physical underlying service the LS drives (UDP socket in the stock build; a bus, serial line, or radio in flight).
 

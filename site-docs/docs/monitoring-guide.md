@@ -88,7 +88,6 @@ Identifies which ION protocol layer the daemon belongs to:
 - **BP** - Bundle Protocol (application layer)
 - **CFDP** - CCSDS File Delivery Protocol
 - **DTPC** - Delay-Tolerant Payload Conditioning
-- **BSSP** - Bundle Streaming Service Protocol
 
 #### Daemon Column
 The name of the daemon process. Common daemons include:
@@ -119,9 +118,6 @@ The name of the daemon process. Common daemons include:
 - `dtpcclock` - Event scheduler for DTPC
 - `dtpcd` - Main DTPC daemon
 
-**BSSP Daemons:**
-- `bsspclock` - Event scheduler for BSSP
-
 #### PID Column
 The Process ID of the daemon as registered in the volatile database. A PID of -1 or 0 indicates the daemon was never started.
 
@@ -140,7 +136,7 @@ Brief description of the daemon's function to help understand its role in the IO
 ### Interpreting ionwatch Output
 
 **Healthy System:**
-All required daemons show "Running" status. Optional protocol daemons (CFDP, DTPC, BSSP) may show "Not Started" if those protocols are not configured.
+All required daemons show "Running" status. Optional protocol daemons (CFDP, DTPC) may show "Not Started" if those protocols are not configured.
 
 **Daemon Failure:**
 If a daemon shows "STALE" status, it has crashed or been killed. Check ion.log for error messages and restart the daemon or the entire ION node.

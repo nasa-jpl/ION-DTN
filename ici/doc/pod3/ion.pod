@@ -34,12 +34,6 @@ I<dgr> (Datagram Retransmission), a library that enables data to be
 transmitted via UDP with reliability comparable to that provided by TCP.  DGR
 is an alternative implementation of LTP, designed for use within an internet.
 
-I<bssp> (Bundle Streaming Service Protocol), a protocol that supports
-delay-tolerant data streaming.  BSSP delivers data in transmission order
-with minimum latency but possibly with omissions, for immediate display,
-and at the same time it delivers the same data reliably in background so
-that the streamed data can be "rewound" for possibly improved presentation.
-
 I<bp> (Bundle Protocol), a core DTN protocol that provides delay-tolerant
 forwarding of data through a network in which continuous end-to-end
 connectivity is never assured, including support for delay-tolerant

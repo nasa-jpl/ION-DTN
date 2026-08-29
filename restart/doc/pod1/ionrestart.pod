@@ -30,7 +30,7 @@ B<ionrestart> will attempt to restart all core ION protocols including
 LTP, BP, and CFDP, but any protocols which were not operating at the time
 of the transaction reversal are not restarted.  Also, protocols that
 B<ionrestart> has not yet been adapted to cleanly terminate and restart
-(including, at the time of this writing, BSSP and DTPC) are not restarted.
+(including, at the time of this writing, DTPC) are not restarted.
 
 =head1 EXIT STATUS
 

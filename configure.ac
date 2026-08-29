@@ -362,20 +362,6 @@ AS_IF([test "x$enable_dgr" != xno],
 AM_CONDITIONAL([ENABLE_DGR], [test "x$enable_dgr" != xno])
 
 #
-# allow the user running configure to enable BSSP (deprecated, off by default)
-#
-AC_ARG_ENABLE([bssp],
-  [AS_HELP_STRING([--enable-bssp], [enable BSSP convergence layer (deprecated)])],
-  [AS_CASE(["$enableval"],
-     [yes|no], [],
-     [AC_MSG_ERROR([bad value ${enableval} for --enable-bssp])])],
-  [enable_bssp=no])
-AS_IF([test "x$enable_bssp" = xyes],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_BSSP"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_BSSP"])
-AM_CONDITIONAL([ENABLE_BSSP], [test "x$enable_bssp" = xyes])
-
-#
 # allow the user running configure to disable DTPC
 #
 AC_ARG_ENABLE([dtpc],
@@ -1317,7 +1303,6 @@ ADD_PODMAN(tc)
 ADD_PODMAN(ams)
 ADD_PODMAN(cfdp)
 ADD_PODMAN(bss)
-ADD_PODMAN(bssp)
 ADD_PODMAN(dtpc)
 ADD_PODMAN(restart)
 
@@ -1360,7 +1345,7 @@ AC_CONFIG_COMMANDS([podman-stubs], [
     ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
     nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
     ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \
-    bssp/doc/podman.mk dtpc/doc/podman.mk restart/doc/podman.mk; do
+    dtpc/doc/podman.mk restart/doc/podman.mk; do
     test -f "$f" || echo "# stub" > "$f"
   done
 ])
@@ -1389,7 +1374,6 @@ ION Configuration Summary
 
   Optional Convergence Layers:
     DGR (Datagram Retransmission):           ${enable_dgr:-no}
-    BSSP (Bundle Streaming Service):         ${enable_bssp:-no}
     IMC (Interplanetary Multicast):          ${enable_imc:-no}
 
   Optional Protocols:
@@ -1401,7 +1385,6 @@ ION Configuration Summary
 
   To enable BSL:    ./configure --enable-bsl
   To disable DGR:   ./configure --disable-dgr
-  To enable BSSP:   ./configure --enable-bssp
   To disable DTPC:  ./configure --disable-dtpc
   To disable TC:    ./configure --disable-tc
 

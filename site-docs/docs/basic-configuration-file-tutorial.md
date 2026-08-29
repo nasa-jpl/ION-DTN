@@ -10,7 +10,6 @@ Daemon and Configuration
 
 * ionadmin is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
 * ltpadmin is the administration and configuration interface for LTP operations on the local ION node.
-* bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ION node.
 * bpadmin is the administrative interface for bundle protocol operations on the local ION node.
 * ipnadmin is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
 * dtn2admin is the administration and configuration interface for the DTN addressing system and routing on the ION node. (dtn://)

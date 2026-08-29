@@ -8,7 +8,6 @@ DIR_PAIRS=(
   "../../ams man/ams"
   "../../bpv7 man/bpv7"
   "../../bss man/bss"
-  "../../bssp man/bssp"
   "../../cfdp man/cfdp"
   "../../dgr man/dgr"
   "../../dtpc man/dtpc"

@@ -1,5 +1,5 @@
 /*	This is a sample selectcla.c file that selects the first
- *	bssp outduct it finds if the service number in the outbound
+ *	stcp outduct it finds if the service number in the outbound
  *	bundle's destination EID is 99; otherwise it selects the
  *	first ltp or tcp outduct it finds.
  *
@@ -12,7 +12,7 @@
 
 	if (bundle->destination.ssp.ipn.serviceNbr == 99)
 	{
-		if (strcmp(protocol->name, "bssp") == 0)
+		if (strcmp(protocol->name, "stcp") == 0)
 		{
 			return 1;
 		}

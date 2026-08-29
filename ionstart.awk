@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin bsspadmin
+# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -46,7 +46,6 @@
 # configfile.tag.ipnrc
 # configfile.tag.dtn2rc
 # configfile.tag.dtpcrc
-# configfile.tag.bssprc
 # it will NOT check for the file existence beforehand.
 # it will NOT run the program.
 #
@@ -70,7 +69,6 @@ BEGIN {
     programs[9]   = "bibeadmin"
     programs[10]  = "dtn2admin"
     programs[11]  = "dtpcadmin"
-    programs[12]  = "bsspadmin"
 
     # programoptions are special options for certain programs that take them
     # rcname is the name of an rc file associated with the program
@@ -85,7 +83,6 @@ BEGIN {
     rcname["dtn2admin"]    = dtn2rc
     rcname["dtpcadmin"]    = dtpcrc
     rcname["ltpadmin"]     = ltprc
-    rcname["bsspadmin"]    = bssprc
 
     # firstline is associative array of the "first line" for a program
     # lastline is associative array of the "last line" for a program
@@ -265,11 +262,6 @@ END {
     print "There were " warn " warning(s) and " error " error(s) in your config file."
     if ( error > 0 ) {
         print "ION node startup will not be attempted"
-        exit 1
-    }
-
-    if(firstline["bsspadmin"] > 0 && firstline["ipnadmin"]>0){
-        print "\nError: bss and ipn are mutually exclusive!"
         exit 1
     }
 

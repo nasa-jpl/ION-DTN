@@ -159,7 +159,6 @@ To build ION with enhanced watch character support, use the `--enable-ewchar` op
 For minimal builds targeting resource-constrained environments, ION 4.1.4-b.1 introduces options to selectively disable optional convergence layer modules:
 
 - `--disable-dgr` - Disable the DGR (Datagram Retransmission) convergence layer
-- `--disable-bssp` - Disable the BSSP (Bundle Streaming Service Protocol) convergence layer
 
 These options can reduce the compiled size and runtime resource requirements when these specific convergence layers are not needed for your deployment.
 
@@ -306,7 +305,7 @@ For ION 4.1.3s and later:
 It's also possible to build the individual packages of ION, using the development Makefiles in the package subdirectories. If you choose this option, be aware of the dependencies among the packages:
 
 - The "ici" package must be built (run `make` and `make install`) before any other package.
-- The "bp" package is dependent on "dgr", "ltp", and "bssp" as well as "ici"
+- The "bp" package is dependent on "dgr" and "ltp" as well as "ici"
 - The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bp"
 - The "restart" package is dependent on "cfdp", "bp", "ltp", and "ici"
 

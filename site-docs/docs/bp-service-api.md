@@ -92,12 +92,9 @@ ltpadmin .
 Stopping ltpadmin.
 ionadmin .
 Stopping ionadmin.
-bsspadmin .
-BSSP not initialized yet.
-Stopping bsspadmin.
 This is a single-ION instance configuration. Run killm.
 killm
-Sending TERM to acsadmin lt-acsadmin    acslist lt-acslist      aoslsi lt-aoslsi        aoslso lt-aoslso        bibeadmin lt-bibeadmin  bibeclo lt-bibeclo     bpadmin lt-bpadmin      bpcancel lt-bpcancel    bpchat lt-bpchat        bpclm lt-bpclm  bpclock lt-bpclock      bpcounter lt-bpcounter         bpdriver lt-bpdriver    bpecho lt-bpecho        bping lt-bping  bplist lt-bplist        bpnmtest lt-bpnmtest    bprecvfile lt-bprecvfile       bpsecadmin lt-bpsecadmin        bpsendfile lt-bpsendfile        bpsink lt-bpsink        bpsource lt-bpsource    bpstats lt-bpstats     bpstats2 lt-bpstats2    bptrace lt-bptrace      bptransit lt-bptransit  brsccla lt-brsccla      brsscla lt-brsscla      bsscounter lt-bsscounter       bssdriver lt-bssdriver  bsspadmin lt-bsspadmin  bsspcli lt-bsspcli      bsspclo lt-bsspclo      bsspclock lt-bsspclock  bssrecv lt-bssrecv     bssStreamingApp lt-bssStreamingApp      cgrfetch lt-cgrfetch    cpsd lt-cpsd    dgr2file lt-dgr2file    dgrcli lt-dgrcli        dgrclo lt-dgrclo        dtka lt-dtka    dtkaadmin lt-dtkaadmin         dtn2admin lt-dtn2admin  dtn2adminep lt-dtn2adminep      dtn2fw lt-dtn2fw        dtpcadmin lt-dtpcadmin  dtpcclock lt-dtpcclock         dtpcd lt-dtpcd  dtpcreceive lt-dtpcreceive      dtpcsend lt-dtpcsend    file2dgr lt-file2dgr    file2sdr lt-file2sdr    file2sm lt-file2sm     file2tcp lt-file2tcp    file2udp lt-file2udp    hmackeys lt-hmackeys    imcadmin lt-imcadmin    imcadminep lt-imcadminep      imcfw lt-imcfw   ionadmin lt-ionadmin    ionexit lt-ionexit      ionrestart lt-ionrestart        ionsecadmin lt-ionsecadmin      ionunlock lt-ionunlock         ionwarn lt-ionwarn      ipnadmin lt-ipnadmin    ipnadminep lt-ipnadminep        ipnd lt-ipnd    ipnfw lt-ipnfw  lgagent lt-lgagent     lgsend lt-lgsend        ltpadmin lt-ltpadmin    ltpcli lt-ltpcli        ltpclo lt-ltpclo        ltpclock lt-ltpclock    ltpcounter lt-ltpcounter       ltpdeliv lt-ltpdeliv    ltpdriver lt-ltpdriver  ltpmeter lt-ltpmeter    ltpsecadmin lt-ltpsecadmin      nm_agent lt-nm_agent  nm_mgr lt-nm_mgr         owltsim lt-owltsim      owlttb lt-owlttb        psmshell lt-psmshell    psmwatch lt-psmwatch    ramsgate lt-ramsgate  rfxclock lt-rfxclock     sdatest lt-sdatest      sdr2file lt-sdr2file    sdrmend lt-sdrmend      sdrwatch lt-sdrwatch    sm2file lt-sm2file    smlistsh lt-smlistsh     smrbtsh lt-smrbtsh      stcpcli lt-stcpcli      stcpclo lt-stcpclo      tcaadmin lt-tcaadmin    tcaboot lt-tcaboot    tcacompile lt-tcacompile tcapublish lt-tcapublish        tcarecv lt-tcarecv      tcc lt-tcc      tccadmin lt-tccadmin    tcp2file lt-tcp2file  tcpbsi lt-tcpbsi         tcpbso lt-tcpbso        tcpcli lt-tcpcli        tcpclo lt-tcpclo        udp2file lt-udp2file    udpbsi lt-udpbsi      udpbso lt-udpbso         udpcli lt-udpcli        udpclo lt-udpclo        udplsi lt-udplsi        udplso lt-udplso                amsbenchr lt-amsbenchr         amsbenchs lt-amsbenchs  amsd lt-amsd    amshello lt-amshello    amslog lt-amslog        amslogprt lt-amslogprt  amsshell lt-amsshell   amsstop lt-amsstop      bputa lt-bputa  cfdpadmin lt-cfdpadmin  cfdpclock lt-cfdpclock  cfdptest lt-cfdptest    bpcp lt-bpcp    bpcpd lt-bpcpd ...
+Sending TERM to acsadmin lt-acsadmin    acslist lt-acslist      aoslsi lt-aoslsi        aoslso lt-aoslso        bibeadmin lt-bibeadmin  bibeclo lt-bibeclo     bpadmin lt-bpadmin      bpcancel lt-bpcancel    bpchat lt-bpchat        bpclm lt-bpclm  bpclock lt-bpclock      bpcounter lt-bpcounter         bpdriver lt-bpdriver    bpecho lt-bpecho        bping lt-bping  bplist lt-bplist        bpnmtest lt-bpnmtest    bprecvfile lt-bprecvfile       bpsecadmin lt-bpsecadmin        bpsendfile lt-bpsendfile        bpsink lt-bpsink        bpsource lt-bpsource    bpstats lt-bpstats     bpstats2 lt-bpstats2    bptrace lt-bptrace      bptransit lt-bptransit  brsccla lt-brsccla      brsscla lt-brsscla      bsscounter lt-bsscounter       bssdriver lt-bssdriver  bssrecv lt-bssrecv     bssStreamingApp lt-bssStreamingApp      cgrfetch lt-cgrfetch    cpsd lt-cpsd    dgr2file lt-dgr2file    dgrcli lt-dgrcli        dgrclo lt-dgrclo        dtka lt-dtka    dtkaadmin lt-dtkaadmin         dtn2admin lt-dtn2admin  dtn2adminep lt-dtn2adminep      dtn2fw lt-dtn2fw        dtpcadmin lt-dtpcadmin  dtpcclock lt-dtpcclock         dtpcd lt-dtpcd  dtpcreceive lt-dtpcreceive      dtpcsend lt-dtpcsend    file2dgr lt-file2dgr    file2sdr lt-file2sdr    file2sm lt-file2sm     file2tcp lt-file2tcp    file2udp lt-file2udp    hmackeys lt-hmackeys    imcadmin lt-imcadmin    imcadminep lt-imcadminep      imcfw lt-imcfw   ionadmin lt-ionadmin    ionexit lt-ionexit      ionrestart lt-ionrestart        ionsecadmin lt-ionsecadmin      ionunlock lt-ionunlock         ionwarn lt-ionwarn      ipnadmin lt-ipnadmin    ipnadminep lt-ipnadminep        ipnd lt-ipnd    ipnfw lt-ipnfw  lgagent lt-lgagent     lgsend lt-lgsend        ltpadmin lt-ltpadmin    ltpcli lt-ltpcli        ltpclo lt-ltpclo        ltpclock lt-ltpclock    ltpcounter lt-ltpcounter       ltpdeliv lt-ltpdeliv    ltpdriver lt-ltpdriver  ltpmeter lt-ltpmeter    ltpsecadmin lt-ltpsecadmin      nm_agent lt-nm_agent  nm_mgr lt-nm_mgr         owltsim lt-owltsim      owlttb lt-owlttb        psmshell lt-psmshell    psmwatch lt-psmwatch    ramsgate lt-ramsgate  rfxclock lt-rfxclock     sdatest lt-sdatest      sdr2file lt-sdr2file    sdrmend lt-sdrmend      sdrwatch lt-sdrwatch    sm2file lt-sm2file    smlistsh lt-smlistsh     smrbtsh lt-smrbtsh      stcpcli lt-stcpcli      stcpclo lt-stcpclo      tcaadmin lt-tcaadmin    tcaboot lt-tcaboot    tcacompile lt-tcacompile tcapublish lt-tcapublish        tcarecv lt-tcarecv      tcc lt-tcc      tccadmin lt-tccadmin    tcp2file lt-tcp2file  tcpcli lt-tcpcli        tcpclo lt-tcpclo        udp2file lt-udp2file    udpcli lt-udpcli        udpclo lt-udpclo        udplsi lt-udplsi        udplso lt-udplso                amsbenchr lt-amsbenchr         amsbenchs lt-amsbenchs  amsd lt-amsd    amshello lt-amshello    amslog lt-amslog        amslogprt lt-amslogprt  amsshell lt-amsshell   amsstop lt-amsstop      bputa lt-bputa  cfdpadmin lt-cfdpadmin  cfdpclock lt-cfdpclock  cfdptest lt-cfdptest    bpcp lt-bpcp    bpcpd lt-bpcpd ...
 Sending KILL to the processes...
 Checking if all processes ended...
 Deleting shared memory to remove SDR...
@@ -143,31 +140,30 @@ The standard `./configure; make; sudo make install; sudo ldconfig` process shoul
 ```bash
 $ cd /usr/local/lib
 $ ls
-libamp.a                 libbp.so.0.0.0    libcgr.a          libdtpc.la        libmbedcrypto.so.7   libtc.so.0.0.0      libudpcla.a
-libamp.la                libbss.a          libcgr.la         libdtpc.so        libmbedtls.a         libtcaP.a           libudpcla.la
-libamp.so                libbss.la         libcgr.so         libdtpc.so.0      libmbedtls.so        libtcaP.la          libudpcla.so
-libamp.so.0              libbss.so         libcgr.so.0       libdtpc.so.0.0.0  libmbedtls.so.14     libtcaP.so          libudpcla.so.0
-libamp.so.0.0.0          libbss.so.0       libcgr.so.0.0.0   libici.a          libmbedx509.a        libtcaP.so.0        libudpcla.so.0.0.0
-libampAgentADM.a         libbss.so.0.0.0   libdgr.a          libici.la         libmbedx509.so       libtcaP.so.0.0.0    libudplsa.a
-libampAgentADM.la        libbssp.a         libdgr.la         libici.so         libmbedx509.so.1     libtcc.a            libudplsa.la
-libampAgentADM.so        libbssp.la        libdgr.so         libici.so.0       libstcpcla.a         libtcc.la           libudplsa.so
-libampAgentADM.so.0      libbssp.so        libdgr.so.0       libici.so.0.0.0   libstcpcla.la        libtcc.so           libudplsa.so.0
-libampAgentADM.so.0.0.0  libbssp.so.0      libdgr.so.0.0.0   libltp.a          libstcpcla.so        libtcc.so.0         libudplsa.so.0.0.0
-libams.a                 libbssp.so.0.0.0  libdtka.a         libltp.la         libstcpcla.so.0      libtcc.so.0.0.0     libzfec.a
-libams.la                libcfdp.a         libdtka.la        libltp.so         libstcpcla.so.0.0.0  libtcpbsa.a         libzfec.la
-libbp.a                  libcfdp.la        libdtka.so        libltp.so.0       libtc.a              libtcpbsa.la        libzfec.so
-libbp.la                 libcfdp.so        libdtka.so.0      libltp.so.0.0.0   libtc.la             libtcpbsa.so        libzfec.so.0
-libbp.so                 libcfdp.so.0      libdtka.so.0.0.0  libmbedcrypto.a   libtc.so             libtcpbsa.so.0      libzfec.so.0.0.0
-libbp.so.0               libcfdp.so.0.0.0  libdtpc.a         libmbedcrypto.so  libtc.so.0           libtcpbsa.so.0.0.0
+libamp.a                 libbp.so.0        libcgr.so.0       libdtpc.so.0        libmbedtls.a         libtc.so.0.0.0    libudpcla.so.0.0.0
+libamp.la                libbp.so.0.0.0    libcgr.so.0.0.0   libdtpc.so.0.0.0    libmbedtls.so        libtcaP.a         libudplsa.a
+libamp.so                libbss.a          libdgr.a          libici.a            libmbedtls.so.14     libtcaP.la        libudplsa.la
+libamp.so.0              libbss.la         libdgr.la         libici.la           libmbedx509.a        libtcaP.so        libudplsa.so
+libamp.so.0.0.0          libbss.so         libdgr.so         libici.so           libmbedx509.so       libtcaP.so.0      libudplsa.so.0
+libampAgentADM.a         libbss.so.0       libdgr.so.0       libici.so.0         libmbedx509.so.1     libtcaP.so.0.0.0  libudplsa.so.0.0.0
+libampAgentADM.la        libbss.so.0.0.0   libdgr.so.0.0.0   libici.so.0.0.0     libstcpcla.a         libtcc.a          libzfec.a
+libampAgentADM.so        libcfdp.a         libdtka.a         libltp.a            libstcpcla.la        libtcc.la         libzfec.la
+libampAgentADM.so.0      libcfdp.la        libdtka.la        libltp.la           libstcpcla.so        libtcc.so         libzfec.so
+libampAgentADM.so.0.0.0  libcfdp.so        libdtka.so        libltp.so           libstcpcla.so.0      libtcc.so.0       libzfec.so.0
+libams.a                 libcfdp.so.0      libdtka.so.0      libltp.so.0         libstcpcla.so.0.0.0  libtcc.so.0.0.0   libzfec.so.0.0.0
+libams.la                libcfdp.so.0.0.0  libdtka.so.0.0.0  libltp.so.0.0.0     libtc.a              libudpcla.a
+libbp.a                  libcgr.a          libdtpc.a         libmbedcrypto.a     libtc.la             libudpcla.la
+libbp.la                 libcgr.la         libdtpc.la        libmbedcrypto.so    libtc.so             libudpcla.so
+libbp.so                 libcgr.so         libdtpc.so        libmbedcrypto.so.7  libtc.so.0           libudpcla.so.0
 
 
 $ cd /usr/local/include
 $ ls
-ams.h               bpsec_instr.h  cfdpops.h  eureka.h       llcv.h    platform.h     rfc9173_utils.h  sdrhash.h    sdrxn.h    tcaP.h
-bcb_aes_gcm_sc.h    bpsec_util.h   crypto.h   icinm.h        ltp.h     platform_sm.h  rfx.h            sdrlist.h    smlist.h   tcc.h
-bib_hmac_sha2_sc.h  bss.h          dgr.h      ion.h          lyst.h    psa            sci.h            sdrmgt.h     smrbt.h    tccP.h
-bp.h                bssp.h         dtka.h     ion_test_sc.h  mbedtls   psm.h          sda.h            sdrstring.h  sptrace.h  zco.h
-bpsec_asb.h         cfdp.h         dtpc.h     ionsec.h       memmgr.h  radix.h        sdr.h            sdrtable.h   tc.h
+ams.h               bpsec_instr.h  crypto.h  icinm.h        ltp.h       platform_sm.h    rfx.h      sdrlist.h    smlist.h   tcc.h
+bcb_aes_gcm_sc.h    bpsec_util.h   dgr.h     ion.h          lyst.h      psa              sci.h      sdrmgt.h     smrbt.h    tccP.h
+bib_hmac_sha2_sc.h  bss.h          dtka.h    ion_test_sc.h  mbedtls     psm.h            sda.h      sdrstring.h  sptrace.h  zco.h
+bp.h                cfdp.h         dtpc.h    ionsec.h       memmgr.h    radix.h          sdr.h      sdrtable.h   tc.h
+bpsec_asb.h         cfdpops.h      eureka.h  llcv.h         platform.h  rfc9173_utils.h  sdrhash.h  sdrxn.h      tcaP.h
 ```
 
 In this document, we assume that ION was built and installed via the `./configure` installation process using the full open-source codebase and with the standard set of options.

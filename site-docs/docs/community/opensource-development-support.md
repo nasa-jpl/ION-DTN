@@ -30,7 +30,7 @@ ION distinguishes four types of modules based on mission needs, requirements, an
 1. Core Modules - these are currently operational DTNl capabilities in flight and/or ground stations: BPv6 (with custody transfer, only ION 4.1.3s or earlier), BPv7, LTP, IPN, BSS, TCPCL v3, STCPCL, UDPCL, SABR (CGR), BPSEC, CFDP, AMP/ADM, DTPC
 2. Prototype Modules - these planned capabilities under prototype testing and development. IMC, BIBE w/CT, AMS/DGR, AMP/ADM, DTKA , SPP CLA (under development)
 3. Experimental Modules - these are experimental modules UNIBO-CGR, dtn-suite (unified API), BP Socket (in development)
-4. Deprecated Modules - these are deprecated capabilities, e.g., BSSP.
+4. Deprecated Modules - these are deprecated capabilities.
 
 ### Operating Systems & Testing
 

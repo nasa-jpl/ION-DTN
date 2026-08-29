@@ -18,7 +18,7 @@ This is the certified target for the ION 4.2.0 release.
   - Licklider Transmission Protocol (LTP) over UDP
   - TCP convergence layer (TCPCL)
   - CFDP (file delivery loopback)
-  - BSSP and DGR convergence layers
+  - DGR convergence layer
   - AMS (minimal core: `libams` + `amscommon` + `loadmib` + DGR/TCP/UDP
     transport services; pitch/catch loopback under `amsd`)
 - Driver: ION Admin Public API (no configuration files)

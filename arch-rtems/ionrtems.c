@@ -117,7 +117,6 @@ static void printBuildInfo(void)
 	printf("  Built                      : %s %s\n", __DATE__, __TIME__);
 	printf("  Compiler                   : %s\n", __VERSION__);
 	puts("=== Active compile flags ===");
-	printf("  ENABLE_BSSP                : %d\n", IS_ENABLED(ENABLE_BSSP));
 	printf("  ENABLE_DGR                 : %d\n", IS_ENABLED(ENABLE_DGR));
 	printf("  ENABLE_TCPCL               : %d\n", IS_ENABLED(ENABLE_TCPCL));
 	printf("  ENABLE_CFDP                : %d\n", IS_ENABLED(ENABLE_CFDP));

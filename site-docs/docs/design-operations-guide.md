@@ -83,10 +83,6 @@
       - [Configuring LTP](#configuring-ltp)
       - [Running LTP](#running-ltp)
       - [Testing LTP](#testing-ltp)
-    - [Bundle Streaming Service Protocol (BSSP)](#bundle-streaming-service-protocol-bssp)
-      - [Building BSSP](#building-bssp)
-      - [Configuring BSSP](#configuring-bssp)
-      - [Running BSSP](#running-bssp)
     - [Bundle Protocol (BP)](#bundle-protocol-bp)
       - [Compile Options for BP](#compile-options-for-bp)
       - [Building BP](#building-bp)
@@ -312,13 +308,11 @@ The ION distribution comprises the following software packages:
   DTN (BP, nominally over LTP) as its "unitdata transport" layer.
 - bss (Bundle Streaming Service), a system for efficient data
   streaming over a delay-tolerant network. The bss package
-  includes (a) a convergence-layer protocol (bssp) that preserves
-  in-order arrival of all data that were never lost en route, yet
-  ensures that all data arrive at the destination eventually, and (b)
-  a library for building delay-tolerant streaming applications, which
-  enables low-latency presentation of streamed data received in real
-  time while offering rewind/playback capability for the entire stream
-  including late-arriving retransmitted data.
+  includes a library for building delay-tolerant streaming
+  applications, which enables low-latency presentation of streamed
+  data received in real time while offering rewind/playback
+  capability for the entire stream including late-arriving
+  retransmitted data.
 - tc (Trusted Collective), a system for propagating critical yet
   non-confidential information in a trustworthy manner. tc can be
   thought of as a delay-tolerant functional analog to the servers in
@@ -3027,67 +3021,6 @@ the LTP component of ION:
 For details, see the man pages for ltpdriver(1) and ltpcounter(1) in
 Appendix A.
 
-### Bundle Streaming Service Protocol (BSSP)
-
-#### Building BSSP
-
-Make sure that the "ici" component of ION has been built for the
-   platform on which you plan to run BSSP.
-
-Edit the Makefile in **ion/bssp**:\
-
-- As for ici, make sure PLATFORMS is set to the name of the platform
-  on which you plan to run BSSP.
-- Set OPT to the directory containing the bin, lib, include, etc.
-  directories where the ici package is installed (for example:
-  /usr/local).
-
-Then run:
-
-```bash
-cd ion/bssp
-make
-sudo make install
-```
-
-#### Configuring BSSP
-
-The BSSP administration command (**bssprc**) file provides the
-information needed to configure BSSP on a given ION node. For details,
-see the man page for bssprc(5) in Appendix A.
-
-The bssprc file has a command option specifying the max_block_size. This
-is to prevent retransmission inefficiency when the blocks size of a
-stream data is too large. The unit of retransmission for BSSP is the
-block, so if the block size is too large, it is very expensive to the
-network to provide retransmission. If one needs bulk data transfer,
-instead of streaming, one should use BP with reliability LTP instead of
-using BSSP. If you are using udpbso and udpbsi as the underlying
-convergence layer, then the max_block_size parameter for bssprc cannot
-be larger than 65507 bytes, because each UDP datagram can only be as
-large as 65507 bytes (payload) + 20 (IP Header) + 8 (UDP Header) = 65535
-byte.
-
-#### Running BSSP
-
-The executable programs used in operation of the bssp component of ION
-include:
-
-- The **bsspadmin** protocol configuration utility, invoked at node
-  startup time and as needed thereafter.
-- The **bsspclock** background daemon, which affects scheduled BSSP
-  events such as segment retransmissions.
-- The **udpbsi** and **udpbso** link service input and output tasks,
-  which handle transmission of BSSP segments encapsulated in UDP
-  datagrams (mainly for testing purposes; in space domain, the
-  appropriate CCSDS link layer will be used instead of UDP).
-
-**bsspadmin** starts/stops the **bsspclock** task and, as mandated by
-configuration, the **udpbsi** and **udblso** tasks.
-
-For details, see the man pages for bsspadmin(1), bsspclock(1),
-bsspmeter(1), udpbsi(1), and udpbso(1) in Appendix A.
-
 ### Bundle Protocol (BP)
 
 #### Compile Options for BP
@@ -3146,7 +3079,7 @@ build. IMC is discussed in section 1.8.4 above.
 
 #### Building BP
 
-Make sure that the "ici", "ltp", "dgr", and "bssp" components of ION
+Make sure that the "ici", "ltp", and "dgr" components of ION
    have been built for the platform on which you plan to run BP.
 
 Edit the Makefile in **ion/bp**:

@@ -42,9 +42,6 @@ else
     echo "ionadmin ."
     ionadmin .
     sleep 1
-    echo "bsspadmin ."
-    bsspadmin .
-    sleep 1
     echo "ION instance in $CURRENT_WD ended, please double-check that all processes were terminated."
     echo "Use killm to clear out all remaining shared memory allocations and semaphore if needed."
 fi

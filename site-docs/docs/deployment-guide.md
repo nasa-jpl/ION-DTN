@@ -516,9 +516,9 @@ this:
 ```c
 if (bundle-\>destination.ssp.ipn.serviceNbr == 99)
 {
-    if (strcmp(protocol-\>name, "bssp") == 0)
+    if (strcmp(protocol-\>name, "stcp") == 0)
     {
-        return 1; /\* Use a BSSP outduct for this bundle. \*/
+        return 1; /\* Use a STCP outduct for this bundle. \*/
     }
 }
 ```
@@ -613,7 +613,7 @@ assures that they do so.
 ION requires several runtime configuration settings to be defined at the
 time a node is initialized. Most notable are the settings for the Admin
 functions of ION. ION provides a variety of administration utilities
-including ionadmin, ionsecadmin, ltpadmin, bsspadmin, bpadmin, ipnadmin,
+including ionadmin, ionsecadmin, ltpadmin, bpadmin, ipnadmin,
 and cfdpadmin. Each of the corresponding modules that is to be used at
 runtime will need to be configured. The commands that perform these
 configuration tasks are normally presented to the admin utility in an
@@ -757,9 +757,9 @@ exercising the admin utilities in interactive mode.
 
 For documentation on the admin commands, see the man pages. The man page
 names are in the form of `<xxx>rc`, where `<xxx>` gets replaced by the specific
-module name (bp, dtn2, ion, ionsec, ipn, ltp, bssp, cfdp). The
+module name (bp, dtn2, ion, ionsec, ipn, ltp, cfdp). The
 directories in which to find these files are: ./ici/doc/pod5,
-./ltp/doc/pod5, ./bssp/doc/pod5, ./bp/doc/pod5, and ./cfdp/doc/pod5.
+./ltp/doc/pod5, ./bp/doc/pod5, and ./cfdp/doc/pod5.
 
 ### Regions and Contact Plans
 
@@ -1836,7 +1836,7 @@ all bundles to prevent premature bundle expiration.
 
 ### Node numbers
 
-In ION we always use the same numeric value for LTP (and BSSP) engine
+In ION we always use the same numeric value for LTP engine
 number and BP node number -- and for CFDP entity number and AMS
 continuum number as well. The idea is that a given ION node has a single
 identifying number, which by convention we use wherever a protocol
@@ -1853,7 +1853,7 @@ the syntax for duct names, since duct name syntax is different for
 different CL protocols. Here's a summary of duct name syntax for the CL
 protocols supported as of ION 3.6.1:
 
-- LTP and BSSP: the duct name is simply the engine number, which in
+- LTP: the duct name is simply the engine number, which in
   ION is always the same as the BP node number. E.g., "9". The induct
   name is the number of the local node. One outduct is needed for each
   node to which bundles will be sent by the indicated protocol

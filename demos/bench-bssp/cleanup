@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-#
-# Scott Burleigh
-# December 8, 2014
-
-echo "Cleaning up old ION..."
-export ION_NODE_LIST_DIR=$PWD
-killm f
-rm -f ion_nodes 2.bench.bssp/ion.log 2.bench.bssp/bpdriverAduFile 3.bench.bssp/ion.log

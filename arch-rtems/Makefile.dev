@@ -166,17 +166,6 @@ BSSSOURCES =      \
 	libbss.c     \
 	libbssP.c
 
-BSSPSOURCES =      \
-	libbssp.c     \
-	libbsspP.c    \
-	bsspclock.c   \
-	bsspadmin.c   \
-	udpbsi.c      \
-	udpbso.c      \
-	libtcpbsa.c   \
-	tcpbsi.c      \
-	tcpbso.c
-
 CFDPSOURCES =      \
 	bputa.c      \
 	cfdpclock.c  \
@@ -220,7 +209,7 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(BSSSOURCES) $(BSSPSOURCES) $(AMSSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(BSSSOURCES) $(AMSSOURCES)
 #	*** NOTE *** ION will build with SBSPSOURCES and NMSOURCES included.
 #	But IT WON'T RUN.  The object file uses up too much of the RTEMS
 #	memory allocation in this configuration; there's not enough memory
@@ -254,9 +243,8 @@ INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
 -I../nm/shared/utils
 #	-I../dgr/include
 #	-I../bss/include
-#	-I../bssp/include
 
-INCLUDES = $(INCLUDES_T) -I../bssp/include -I../bssp/library -I../cfdp/include -I../cfdp/library -I../ams/include
+INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../cfdp/library -I../ams/include
 
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)

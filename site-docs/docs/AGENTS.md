@@ -33,7 +33,7 @@ ION provides two BPSec implementations:
 - `ici/` - Interplanetary Communication Infrastructure (core foundation)
 - `ltp/` - Licklider Transmission Protocol implementation
 - `bpv7/` - Bundle Protocol v7 implementation
-- `cfdp/`, `ams/`, `dtpc/`, `bss/`, `bssp/`, `dgr/`, `nm/`, `tc/` - Higher-level services
+- `cfdp/`, `ams/`, `dtpc/`, `bss/`, `dgr/`, `nm/`, `tc/` - Higher-level services
 - `tests/` - Comprehensive test suite with self-contained test scenarios
 - `configs/` - Example ION configuration files (.rc files)
 - `demos/` - Demonstration scenarios
@@ -69,7 +69,6 @@ ION uses a **multi-process architecture** with layered services where components
 - `ams/` - Asynchronous Message Service (pub/sub messaging)
 - `dtpc/` - Delay-Tolerant Payload Conditioning (TCP-like retransmission)
 - `bss/` - Bundle Streaming Service
-- `bssp/` - Bundle Streaming Service Protocol
 - `dgr/` - Datagram Retransmission (UDP-like with reliability)
 - `nm/` - Network Management
 - `tc/` - Trusted Collective / DTKA (Delay-Tolerant Key Administration)
@@ -198,7 +197,6 @@ cd tests && ./runtestset retest
 --enable-ewchar               # Enhanced watch character support
 --enable-commandline-history  # Command history (ground systems only)
 --disable-dgr                 # Disable DGR convergence layer
---disable-bssp                # Disable BSSP convergence layer
 
 # Custom compiler flags
 ./configure CFLAGS="-DGDSWATCHER -Itools/gdswatcher"

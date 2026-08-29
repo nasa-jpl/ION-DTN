@@ -95,7 +95,7 @@ this option, be aware of the dependencies among the packages:
 	The "ici" package must be built ("make" and "make install")
 	before any other package.
 
-	The "bp" package is dependent on "dgr" and "ltp" and "bssp"
+	The "bp" package is dependent on "dgr" and "ltp"
 	as well as "ici".
 
 	The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bp".

@@ -128,11 +128,6 @@ ln -s ../bpv7/bpsec/utils/bpsec_util.h .
 
 # bpv7/brs - not included
 
-# bpv7/bssp
-ln -s ../bpv7/bssp/bsspcla.h .
-ln -s ../bpv7/bssp/bsspclo.c .
-ln -s ../bpv7/bssp/bsspcli.c .
-
 # bpv7/cgr
 ln -s ../bpv7/cgr/libcgr.c .
 
@@ -347,28 +342,6 @@ ln -s ../bpv7/test/bpcrash.c .
 #ln -s ../bss/test/bsscounter.c .
 #ln -s ../bss/test/bssdriver.c .
 #ln -s ../bss/test/bsstest.h .
-
-# bssp/daemon
-ln -s ../bssp/daemon/bsspclock.c .
-
-# bssp/library
-ln -s ../bssp/library/libbssp.c .
-ln -s ../bssp/library/libbsspP.c .
-ln -s ../bssp/library/bsspP.h .
-
-# bssp/udp
-ln -s ../bssp/udp/udpbsa.h .
-ln -s ../bssp/udp/udpbsi.c .
-ln -s ../bssp/udp/udpbso.c .
-
-# bssp/tcp
-ln -s ../bssp/tcp/tcpbsa.h .
-ln -s ../bssp/tcp/tcpbsi.c .
-ln -s ../bssp/tcp/tcpbso.c .
-ln -s ../bssp/tcp/libtcpbsa.c .
-
-# bssp/utils
-ln -s ../bssp/utils/bsspadmin.c .
 
 # adding CFDP
 # cfdp/library

@@ -25,10 +25,6 @@ if ENABLE_TC
 AM_CFLAGS += -I$(srcdir)/tc/include
 endif
 
-if ENABLE_BSSP
-AM_CFLAGS += -I$(srcdir)/bssp/include
-endif
-
 if ENABLE_DTPC
 AM_CFLAGS += -I$(srcdir)/dtpc/include
 endif
@@ -92,7 +88,6 @@ EXTRA_DIST =	\
 	$(tcextra) \
 	$(bssextra) \
 	$(dtpcextra) \
-	$(bsspextra) \
 	$(amsextra) \
 	$(cfdpextra) \
 	$(nmextra) \
@@ -222,7 +217,6 @@ distclean-local:
 	rm -f $(top_builddir)/ams/doc/podman.mk
 	rm -f $(top_builddir)/cfdp/doc/podman.mk
 	rm -f $(top_builddir)/bss/doc/podman.mk
-	rm -f $(top_builddir)/bssp/doc/podman.mk
 	rm -f $(top_builddir)/dtpc/doc/podman.mk
 	rm -f $(top_builddir)/restart/doc/podman.mk
 	rm -f $(top_builddir)/tests/testrules.mk
@@ -256,14 +250,6 @@ tcclean-local:
 CLEAN_LOCAL_DEPS += tcclean-local
 endif
 
-if ENABLE_BSSP
-bsspclean-local:
-	rm -f $(top_builddir)/bssp/doc/*.1
-	rm -f $(top_builddir)/bssp/doc/*.3
-	rm -f $(top_builddir)/bssp/doc/*.5
-CLEAN_LOCAL_DEPS += bsspclean-local
-endif
-
 if ENABLE_DTPC
 dtpcclean-local:
 	rm -f $(top_builddir)/dtpc/doc/*.1
@@ -284,7 +270,6 @@ build-man-directories:
 	mkdir -p $(top_builddir)/tc/doc
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
-	mkdir -p $(top_builddir)/bssp/doc
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
 	mkdir -p $(top_builddir)/nm/doc
@@ -299,7 +284,6 @@ bin_PROGRAMS = \
 	$(tcbin) \
 	$(bssbin) \
 	$(dtpcbin) \
-	$(bsspbin) \
 	$(restartbin) \
 	$(nmbin) \
 	$(amsbin) \
@@ -314,7 +298,6 @@ lib_LTLIBRARIES = \
 	$(tclib) \
 	$(bsslib) \
 	$(dtpclib) \
-	$(bssplib) \
 	$(amslib) \
 	$(cfdplib) \
 	$(nmlib) \
@@ -342,7 +325,6 @@ include_HEADERS = \
 	$(tcinclude) \
 	$(bssinclude) \
 	$(dtpcinclude) \
-	$(bsspinclude) \
 	$(amsinclude) \
 	$(cfdpinclude)
 
@@ -353,7 +335,6 @@ noinst_HEADERS = \
 	$(bpnoinst) \
 	$(bssnoinst) \
 	$(dtpcnoinst) \
-	$(bsspnoinst) \
 	$(amsnoinst) \
 	$(cfdpnoinst)
 
@@ -367,7 +348,6 @@ man_MANS = \
 	$(tcmans) \
 	$(bssmans) \
 	$(dtpcmans) \
-	$(bsspmans) \
 	$(amsmans) \
 	$(cfdpmans) \
 	$(nmmans) \
@@ -744,12 +724,6 @@ psmwatch_SOURCES = ici/utils/psmwatch.c
 psmwatch_LDADD = libici.la -lm
 psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-if ENABLE_BSSP
-    ionwatchbssplib = libbssp.la
-else
-    ionwatchbssplib =
-endif
-
 if ENABLE_DTPC
     ionwatchdtpclib = libdtpc.la
 else
@@ -757,8 +731,8 @@ else
 endif
 
 ionwatch_SOURCES = ici/utils/ionwatch.c
-ionwatch_LDADD = libici.la libltp.la $(bplib) libcfdp.la $(ionwatchdtpclib) $(ionwatchbssplib) -lm
-ionwatch_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/ltp/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/cfdp/library -I$(srcdir)/dtpc/library -I$(srcdir)/bssp/library
+ionwatch_LDADD = libici.la libltp.la $(bplib) libcfdp.la $(ionwatchdtpclib) -lm
+ionwatch_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/ltp/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/cfdp/library -I$(srcdir)/dtpc/library
 
 sdrmend_SOURCES = ici/utils/sdrmend.c
 sdrmend_LDADD = libici.la -lm
@@ -1243,12 +1217,6 @@ bpbin += \
 	dgrclo
 endif # end ENABLE_DGR
 
-if ENABLE_BSSP
-bpbin += \
-	bsspcli \
-	bsspclo
-endif # end ENABLE_BSSP
-
 bplib = \
 	libbp.la \
 	libcgr.la \
@@ -1700,18 +1668,6 @@ ipnd_SOURCES = \
 	bpv7/ipnd/ipnd.c
 ipnd_LDADD = libici.la $(bplib)
 ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-# --- BSSP Executables --- #
-
-if ENABLE_BSSP
-bsspcli_SOURCES = bpv7/bssp/bsspcli.c
-bsspcli_LDADD = libbssp.la libici.la $(bplib) $(PTHREAD_LIBS)
-bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-bsspclo_SOURCES = bpv7/bssp/bsspclo.c
-bsspclo_LDADD = libbssp.la libici.la $(bplib)
-bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif # end ENABLE_BSSP
 
 # --- LTP Executables --- #
 
@@ -2580,100 +2536,6 @@ bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 ##############
 #
-# BSSP SECTION
-#
-##############
-
-if ENABLE_BSSP
-
-# Define pod2man stuff
-bsspPODM1 = pod2man -s 1 -c "BSSP executables"
-bsspPODM3 = pod2man -s 3 -c "BSSP library functions"
-bsspPODM5 = pod2man -s 5 -c "BSSP configuration files"
-
-bsspcflags = -I$(srcdir)/bssp/library -I$(srcdir)/bssp/include
-
-bsspbin = \
-	bsspadmin \
-	bsspclock \
-	tcpbsi \
-	tcpbso \
-	udpbsi \
-	udpbso
-
-bssplib = \
-	libbssp.la \
-	libtcpbsa.la
-
-bsspinclude = \
-	bssp/include/bssp.h
-
-bsspnoinst = \
-	bssp/library/bsspP.h
-
-bsspextra = \
-	bssp/doc/pod1/bsspadmin.pod \
-	bssp/doc/pod1/udpbso.pod \
-	bssp/doc/pod3/bssp.pod \
-	bssp/doc/pod5/bssprc.pod
-
-bsspmans = \
-	bssp/doc/bsspadmin.1 \
-	bssp/doc/udpbso.1 \
-	bssp/doc/bssp.3 \
-	bssp/doc/bssprc.5
-
-# --- Libraries --- #
-
-libbssp_la_SOURCES = \
-	bssp/library/libbssp.c \
-	bssp/library/libbsspP.c
-libbssp_la_CPPFLAGS = -I$(srcdir)/ici/library
-libbssp_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-libbssp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbssp_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
-
-libtcpbsa_la_SOURCES = bssp/tcp/libtcpbsa.c
-libtcpbsa_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-libtcpbsa_la_LDFLAGS = $(ION_LINK_FLAGS)
-libtcpbsa_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
-
-# --- Daemon Executables --- #
-
-bsspclock_SOURCES = bssp/daemon/bsspclock.c
-bsspclock_LDADD = libbssp.la libici.la -lm $(bplib)
-bsspclock_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-
-# --- Utility Programs --- #
-
-bsspadmin_SOURCES = bssp/utils/bsspadmin.c
-bsspadmin_LDADD = libbssp.la libici.la -lm $(bplib) $(LINENOISE_LDADD)
-bsspadmin_CFLAGS = $(bsspcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
-
-# --- UDP Executables --- #
-
-udpbsi_SOURCES = bssp/udp/udpbsi.c
-udpbsi_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
-udpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-
-udpbso_SOURCES = bssp/udp/udpbso.c
-udpbso_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
-udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-
-# --- TCP Executables --- #
-
-tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
-tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-
-tcpbso_SOURCES = bssp/tcp/tcpbso.c
-tcpbso_LDADD = libbssp.la libtcpbsa.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
-tcpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
-
-endif # ENABLE_BSSP
-
-##############
-#
 # DTPC SECTION
 #
 ##############
@@ -2764,12 +2626,6 @@ endif # ENABLE_DTPC
 #
 ##########################
 
-if ENABLE_BSSP
-    ionexitbssplib = libbssp.la
-else
-    ionexitbssplib =
-endif
-
 if ENABLE_DTPC
     ionexitdtpclib = libdtpc.la
 else
@@ -2788,10 +2644,7 @@ restartbin = ionrestart ionexit
 
 ionexit_SOURCES = restart/utils/ionexit.c
 ionexit_CPPFLAGS = -I$(srcdir)/cfdp/library
-if ENABLE_BSSP
-ionexit_CPPFLAGS += -I$(srcdir)/bssp/library
-endif
-ionexit_LDADD = libltp.la $(ionexitbssplib) libcfdp.la $(ionexitdtpclib) $(ionexittclib) libici.la -lm $(bplib)
+ionexit_LDADD = libltp.la libcfdp.la $(ionexitdtpclib) $(ionexittclib) libici.la -lm $(bplib)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/dtpc/include -I$(srcdir)/dtpc/library -I$(srcdir)/tc/include -I$(srcdir)/tc/authority -I$(srcdir)/tc/client
 
 ionrestart_SOURCES = restart/utils/ionrestart.c
@@ -3075,6 +2928,5 @@ include $(top_builddir)/tc/doc/podman.mk       # am--include-marker
 include $(top_builddir)/ams/doc/podman.mk      # am--include-marker
 include $(top_builddir)/cfdp/doc/podman.mk     # am--include-marker
 include $(top_builddir)/bss/doc/podman.mk      # am--include-marker
-include $(top_builddir)/bssp/doc/podman.mk     # am--include-marker
 include $(top_builddir)/dtpc/doc/podman.mk     # am--include-marker
 include $(top_builddir)/restart/doc/podman.mk  # am--include-marker

@@ -448,17 +448,11 @@ All data acquired by the BSS background thread is written to a BSS database comp
 
 Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not responsible for populating this structure; it's strictly for the private use of the BSS library.
 
-### Bundle Streaming Service (BSS) & Bundle Streaming Service Protocol (BSSP CLA)
-
-The Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP) CLA are independent modules.
-
-The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transport UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport.
+### Bundle Streaming Service (BSS)
 
 A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionics system or the radio.
 
-However, it is also possible that a mission may utilize different types of transports, for example, using multiple downlinks via  S, X, Ka-band or optical, each with different reliability mechanism (or not). Alternatively, a flight system may also use commercial communications services with differentiated delays and levels of reliability. In such case, BSSP can be used to approximate such configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLAs are implemented and tested.
-
-The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry. When the user scenario is appropriate, BSS can certainly be used over BSSP CLA, but that is not a requirement.
+The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry.
 
 ## BSS APIs
 

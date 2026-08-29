@@ -4794,7 +4794,7 @@ int	addProtocol(char *protocolName, int protocolClass)
 
 	memset((char *) &clpbuf, 0, sizeof(ClProtocol));
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
-	if (protocolClass == 26 || strcmp(protocolName, "bssp") == 0)
+	if (protocolClass == 26)
 	{
 		clpbuf.protocolClass = BP_PROTOCOL_ANY;
 	}

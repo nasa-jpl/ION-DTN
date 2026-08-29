@@ -160,8 +160,6 @@ bpv7/ipnd/ipnd.c
 bpv7/ipnd/helper.c
 bpv7/ipnd/beacon.c
 bpv7/ipnd/bpa.c
-bpv7/bssp/bsspcli.c
-bpv7/bssp/bsspclo.c
 bpv7/ltp/ltpcli.c
 bpv7/ltp/ltpclo.c
 bpv7/tcp/tcpcli.c
@@ -195,7 +193,7 @@ bpv7/daemon/bpclm.c
 }
 
 # Optional: ENABLE_IMC
-# Skipped TC, DTKA, AMS, CFDP, BSS, BSSP, dTPC, ionrestart, ionexit
+# Skipped TC, DTKA, AMS, CFDP, BSS, dTPC, ionrestart, ionexit
 
 
 # Skipped: NM Manager not intended for embedded use

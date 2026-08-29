@@ -52,11 +52,9 @@ def build(bld):
     # note about ROM usage addded by each added module:
     # dgr ~ no added ROM usage
     # tcpcl ~ 40KiB
-    # bssp ~ 75KiB
     # ams ~ core library + amsd daemon (RAMS/test/utils excluded)
 
     ENABLE_DGR = 1
-    ENABLE_BSSP = 1
     ENABLE_TCPCL = 1
     ENABLE_AMS = 1
 
@@ -91,12 +89,9 @@ def build(bld):
         'MAX_POSIX_TASKS=100',
     ]
 
-    # Add conditional defines for DGR and BSSP
+    # Add conditional defines for DGR
     if ENABLE_DGR == 1:
         iondefines += ['ENABLE_DGR']
-
-    if ENABLE_BSSP == 1:
-        iondefines += ['ENABLE_BSSP']
 
     if ENABLE_TCPCL == 1:
         iondefines += ['ENABLE_TCPCL']
@@ -232,10 +227,6 @@ def build(bld):
     if ENABLE_DGR == 1:
         bpsources += ['dgrcli.c', 'dgrclo.c']
 
-    # Conditionally add BSSP convergence layer sources
-    if ENABLE_BSSP == 1:
-        bpsources += ['bsspcli.c', 'bsspclo.c']
-
     # Conditionally add TCPCL convergence layer sources
     if ENABLE_TCPCL == 1:
         bpsources += ['tcpcli.c', 'tcpclo.c']
@@ -349,20 +340,6 @@ def build(bld):
 
     bssinclude = ['./', '../bss/include']
 
-    bsspsources = [
-        'bsspclock.c',
-        'bsspadmin.c',
-        'udpbsi.c',
-        'udpbso.c',
-        'libtcpbsa.c',
-        'tcpbsi.c',
-        'tcpbso.c',
-    ]
-
-    bsspinclude = ['./', '../bssp/include', '../bssp/library']
-
-    bssplibsources = ['libbssp.c', 'libbsspP.c']
-
     cfdpsources = ['bputa.c', 'cfdpclock.c', 'cfdpadmin.c']
 
     cfdplibsources = ['libcfdp.c', 'libcfdpP.c', 'libcfdpops.c']
@@ -408,14 +385,10 @@ def build(bld):
     testsources = ['bpsource.c', 'bpsink.c', 'bpcrash.c']
 
     # Minimal BP/LTP port - excluding AMS, BSS
-    # DGR and BSSP conditionally included based on ENABLE_DGR and ENABLE_BSSP flags
+    # DGR conditionally included based on the ENABLE_DGR flag
     csrcs = (
         ['ionrtems.c'] + icisources + ltpsource + bpsources + testsources + cfdpsources
     )
-
-    # Conditionally add BSSP daemon and admin sources
-    if ENABLE_BSSP == 1:
-        csrcs += bsspsources
 
     # amsd is a daemon main (spawned via pseudoshell); the rest of AMS
     # lives in the 'ams' static library built below.
@@ -423,16 +396,12 @@ def build(bld):
         csrcs += ['amsd.c']
 
     # Minimal BP/LTP port - excluding BSS
-    # DGR and BSSP conditionally included based on flags
+    # DGR conditionally included based on the ENABLE_DGR flag
     includes = ['./'] + iciinclude + ltpinclude + bpinclude + cfdpinclude
 
     # Conditionally add DGR include paths
     if ENABLE_DGR == 1:
         includes += dgrinclude
-
-    # Conditionally add BSSP include paths
-    if ENABLE_BSSP == 1:
-        includes += bsspinclude
 
     if ENABLE_AMS == 1:
         includes += amsinclude
@@ -469,28 +438,13 @@ def build(bld):
             use=['ici', 'm'],
         )
 
-    # Conditionally build BSSP library
-    if ENABLE_BSSP == 1:
-        bld.stlib(
-            target='bssp',
-            cflags=ionflags,
-            source=bssplibsources,
-            includes=bsspinclude + iciinclude,
-            defines=iondefines,
-            use=['ici', 'm'],
-        )
-
-    # Build BP library with conditional DGR and BSSP dependencies
+    # Build BP library with conditional DGR dependency
     bp_includes = bpinclude + ltpinclude + iciinclude
     bp_use = ['ici', 'ltp', 'm']
 
     if ENABLE_DGR == 1:
         bp_includes += dgrinclude
         bp_use.insert(-1, 'dgr')  # Insert before 'm'
-
-    if ENABLE_BSSP == 1:
-        bp_includes += bsspinclude
-        bp_use.insert(-1, 'bssp')  # Insert before 'm'
 
     bld.stlib(
         target='bp',
@@ -526,12 +480,9 @@ def build(bld):
     # Minimal BP/LTP port - only required libraries
     libuse = ['ici', 'bp', 'ltp', 'cfdp', 'm']
 
-    # Conditionally add DGR and BSSP to linked libraries
+    # Conditionally add DGR to linked libraries
     if ENABLE_DGR == 1:
         libuse.insert(-1, 'dgr')  # Insert before 'm'
-
-    if ENABLE_BSSP == 1:
-        libuse.insert(-1, 'bssp')  # Insert before 'm'
 
     if ENABLE_AMS == 1:
         libuse.insert(-1, 'ams')  # Insert before 'm'

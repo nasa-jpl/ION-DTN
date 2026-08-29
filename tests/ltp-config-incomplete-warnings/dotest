@@ -108,14 +108,13 @@ echo "=== Checking system functionality ==="
 #     and the two follow-ons can fire on some ARC pods even when others
 #     in the same batch don't)
 #   - Shutdown chatter from subsystems that this test never starts (DTPC,
-#     BSSP, CFDP all log "Can't find <name> database" on rfx_stop)
+#     CFDP all log "Can't find <name> database" on rfx_stop)
 LTP_ERR_EXCLUDE="Can't find ION security database\
 |Can't execute new process\
 |Can't catalogue volatile database\
 |Can't initialize ION security vdb\
 |Can't initialize the ION security system\
 |Can't find DTPC database\
-|Can't find BSSP database\
 |Can't find CFDP database"
 
 if grep -E "Can't|ERROR|FAILURE" ion.log | \

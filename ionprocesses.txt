@@ -99,14 +99,6 @@ bsscounter
 lt-bsscounter
 bssdriver
 lt-bssdriver
-bsspadmin
-lt-bsspadmin
-bsspcli
-lt-bsspcli
-bsspclo
-lt-bsspclo
-bsspclock
-lt-bsspclock
 bssrecv
 lt-bssrecv
 bssStreamingApp
@@ -289,10 +281,6 @@ tccadmin
 lt-tccadmin
 tcp2file
 lt-tcp2file
-tcpbsi
-lt-tcpbsi
-tcpbso
-lt-tcpbso
 tcpcli
 lt-tcpcli
 tcpclo
@@ -305,10 +293,6 @@ tcputa
 lt-tcputa
 udp2file
 lt-udp2file
-udpbsi
-lt-udpbsi
-udpbso
-lt-udpbso
 udpcli
 lt-udpcli
 udpclo

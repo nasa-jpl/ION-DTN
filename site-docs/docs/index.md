@@ -74,7 +74,7 @@ layer adapters that carry them over the underlying links.
                   ·  pluggable external routers
    ─────────────────────────────────────────────────────────────────────────────
         Convergence layers (CLAs):  LTP · TCPCLv4 (+TLS) · STCP · TCP · UDP
-                                     · BSSP · SPP · BRS · file
+                                     · SPP · BRS · file
    ─────────────────────────────────────────────────────────────────────────────
         Contact plan & rate control (rfxclock)  ·  link service  ·  SDR / PSM / ZCO
 ```
@@ -113,9 +113,8 @@ a broad set:
   space links, with contact‑plan‑driven rate control.
 - **TCP, STCP, UDP, DCCP** — simpler IP‑based convergence layers.
 - **BRS** — Bundle Relay Service, for reaching nodes behind firewalls/NAT.
-- **BSSP, SPP, EPP, and file** — the Bundle Streaming Service protocol,
-  CCSDS Space Packet Protocol / Encapsulation Packet Protocol, and a
-  file‑based CLA. See the
+- **SPP, EPP, and file** — the CCSDS Space Packet Protocol /
+  Encapsulation Packet Protocol and a file‑based CLA. See the
   [SPP/EPP/File CLA description](./spp-epp-file-cla-description.md) and the
   [CLA API](./cla-api.md) for writing your own.
 

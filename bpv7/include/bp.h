@@ -391,7 +391,6 @@ typedef struct
 #endif
 #define	BP_RELIABLE		(8)	/*	Reliable CL okay.	*/
 #if 0
-#define	BP_RELIABLE_STREAMING	(16)	/*	BSSP mandatory.		*/
 #define	BP_BIBE_REQUESTED	(32)	/*	Forward via BIBE.	*/
 #endif
 #define	BP_CT_REQUESTED		(64)	/*	BIBE must be reliable.	*/

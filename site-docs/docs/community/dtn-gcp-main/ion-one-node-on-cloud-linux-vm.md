@@ -78,7 +78,6 @@ The following tools are a few examples of programs availale to you after ION is 
 **1. Daemon and Configuration:**
 - `ionadmin` is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
 - `ltpadmin` is the administration and configuration interface for LTP operations on the local ION node.
-- `bsspadmin` is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ion node.
 - `bpadmin` is the administrative interface for bundle protocol operations on the local ion node.
 - `ipnadmin` is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
 - `ionstart` is a script which completely configures an ION node with the proper configuration file(s).

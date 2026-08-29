@@ -146,7 +146,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | --- | --- | --- | --- | --- | --- |
 | `tests/ipaddr-caching-udpclo` | address-caching | Dual-stack IPv4/IPv6 address caching/re-resolution in udpclo | Regression | ION-specific (no ratified standard) | UDP CLO DNS re-resolution; invalid-address fallback logging |
 | `tests/ipaddr-caching-udplso` | address-caching | IP address caching/periodic re-resolution in udplso (LTP) | Regression | ION-specific (no ratified standard) | LTP UDP link service DNS re-resolution |
-| `tests/bssp` | bssp | Exercise BSSP protocol and API | Integration | ION-specific (no ratified standard) | Bundle Streaming Service Protocol |
 | `tests/loopback-bp-dccp` | dccp | BP over DCCP convergence layer loopback | Integration | ION-specific (no ratified standard) | DCCP CLA; single-node loopback |
 | `tests/loopback-ltp-dccp` | dccp | LTP over DCCP loopback | Integration | ION-specific (no ratified standard) | DCCP as LTP link-service; LTP per RFC 5326 |
 | `tests/file-transfer` | file-epp-spp | File CLA store-and-forward file transfer | System-dataflow | ION-specific (no ratified standard) | File CLA sneakernet scenario; separate send/receive files |
@@ -248,7 +247,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `demos/bench-cgr` | cgr-benchmark | Contact graph routing (SABR) throughput/performance benchmark | Benchmark | CCSDS 734.3-B-1 | CGR/SABR perf over STCP on one host; secondary: ROUTING |
 | `demos/bench-ams` | throughput-benchmark | AMS two-node message throughput benchmark | Benchmark | CCSDS 735.1-B | AMS benchtest, 1000 msgs of 1000 bytes; secondary: APP-SVC/ams |
 | `demos/bench-bibect` | throughput-benchmark | BIBE custodial-retransmission throughput over UDP | Benchmark | draft-ietf-dtn-bibect | BIBE over UDP with custodial retransmission; secondary: CUSTODY/bibe-custody |
-| `demos/bench-bssp` | throughput-benchmark | BSSP convergence-layer throughput benchmark | Benchmark | ION-specific (no ratified standard) | BSSP CLA same-host; secondary: CLA/bssp |
 | `demos/bench-dgr` | throughput-benchmark | DGR convergence-layer throughput benchmark | Benchmark | ION-specific (no ratified standard) | DGR (Internet-compatible LTP variant); secondary: CLA/dgr |
 | `demos/bench-ltp` | throughput-benchmark | LTP convergence-layer throughput benchmark | Benchmark | RFC 5326 | LTP CLA same-host; CCSDS 734.1-B-1 equivalent |
 | `demos/bench-ltp-xlsa` | throughput-benchmark | LTP throughput benchmark over shared-memory xlsa link | Benchmark | RFC 5326 | LTP over ION-specific xlsa ring; delay/drop/rate sweeps |

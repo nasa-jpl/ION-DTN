@@ -524,10 +524,6 @@ Here is a list of all possible ION daemons:
 * brsscla lt-brsscla \\
 * bsscounter lt-bsscounter \\
 * bssdriver lt-bssdriver \\
-* bsspadmin lt-bsspadmin \\
-* bsspcli lt-bsspcli \\
-* bsspclo lt-bsspclo \\
-* bsspclock lt-bsspclock \\
 * bssrecv lt-bssrecv \\
 * bssStreamingApp lt-bssStreamingApp \\
 * cgrfetch lt-cgrfetch \\
@@ -601,13 +597,9 @@ Here is a list of all possible ION daemons:
 * tcc lt-tcc\\
 * tccadmin lt-tccadmin \\
 * tcp2file lt-tcp2file \\
-* tcpbsi lt-tcpbsi \\
-* tcpbso lt-tcpbso \\
 * tcpcli lt-tcpcli \\
 * tcpclo lt-tcpclo \\
 * udp2file lt-udp2file \\
-* udpbsi lt-udpbsi \\
-* udpbso lt-udpbso \\
 * udpcli lt-udpcli \\
 * udpclo lt-udpclo \\
 * udplsi lt-udplsi \\

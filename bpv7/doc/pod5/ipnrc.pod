@@ -146,10 +146,10 @@ I<duct_expression> identifies the convergence-layer outduct over which
 bundles for this plan are queued.  It is a string of the form
 "I<protocol_name>/I<duct_name>", where I<protocol_name> is the
 convergence-layer protocol (e.g., B<ltp>, B<tcp>, B<stcp>, B<udp>,
-B<bssp>, B<dgr>, B<bibe>) and I<duct_name> is the name of an outduct that
+B<dgr>, B<bibe>) and I<duct_name> is the name of an outduct that
 has already been declared for that protocol via B<a outduct> in
-bprc(5).  The form of I<duct_name> is protocol-specific: for B<ltp> and
-B<bssp> it is the remote engine number (e.g., B<18>); for B<tcp>,
+bprc(5).  The form of I<duct_name> is protocol-specific: for B<ltp>
+it is the remote engine number (e.g., B<18>); for B<tcp>,
 B<stcp>, B<udp>, and B<dgr> it is the remote endpoint as
 "I<host>:I<port>" (e.g., B<127.0.0.1:4556>); for B<bibe> it is an
 ipn-scheme EID (e.g., B<ipn:2.0>).  For instance,

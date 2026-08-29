@@ -27,7 +27,6 @@ dtpcadmin .    # Stop DTPC daemons (if running)
 cfdpadmin .    # Stop CFDP daemons
 bpadmin .      # Stop BP daemons
 ltpadmin .     # Stop LTP daemons
-bsspadmin .    # Stop BSSP daemons (if running)
 ionadmin .     # Stop ION core (rfxclock)
 ```
 
@@ -45,7 +44,6 @@ ionadmin .     # Stop ION core (rfxclock)
 | `ltpadmin .` | LTP | ltpclock, ltpmeter, link service adapters |
 | `bpadmin .` | BP | bpclock, forwarders, CLAs, transit daemons |
 | `cfdpadmin .` | CFDP | cfdpclock, UT layer service |
-| `bsspadmin .` | BSSP | bsspclock, link service adapters |
 | `dtpcadmin .` | DTPC | dtpcclock, dtpcd |
 
 ### Method 2: ionexit (Recommended for Normal Shutdown)
@@ -79,12 +77,11 @@ Flags can be combined in any order.
 3. **TCC** - Trusted Custody Client instances (if enabled)
 4. **BP** - Bundle Protocol
 5. **LTP** - Licklider Transmission Protocol
-6. **BSSP** - Bundle Streaming Service Protocol (if enabled)
-7. **CFDP** - CCSDS File Delivery Protocol
-8. **RFX** - Contact plan/range system
-9. **Grace period** - 3-second wait for flag-polled processes to detect shutdown
-10. **SDR** - Shared Data Region cleanup (unless `k` flag used)
-11. **IPC** - Inter-process communication resources (unless `n` flag used)
+6. **CFDP** - CCSDS File Delivery Protocol
+7. **RFX** - Contact plan/range system
+8. **Grace period** - 3-second wait for flag-polled processes to detect shutdown
+9. **SDR** - Shared Data Region cleanup (unless `k` flag used)
+10. **IPC** - Inter-process communication resources (unless `n` flag used)
 
 #### How ionexit signals processes to stop
 
@@ -171,7 +168,7 @@ Time   Action
        ltpStop() — sm_SemEnd to spans/clients/delivery,
                    SIGTERM to ltpclock/ltpdeliv/LSIs
        [wait until each process exits]
-       bsspStop(), cfdpStop() — similar pattern
+       cfdpStop() — similar pattern
        [wait up to 5s each]
        rfx_stop() — SIGTERM to rfxclock
        [wait up to 5s]

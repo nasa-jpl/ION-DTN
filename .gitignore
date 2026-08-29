@@ -51,7 +51,6 @@ mod/
 /ams/doc/podman.mk
 /cfdp/doc/podman.mk
 /bss/doc/podman.mk
-/bssp/doc/podman.mk
 /dtpc/doc/podman.mk
 /bpv6/doc/podman.mk
 
@@ -170,14 +169,10 @@ bpnmtest
 bpsecadmin
 bptransit
 bpversion
-bsspclock
 bssrecv
 bssStreamingApp
 bsscounter
 bssdriver
-bsspadmin
-bsspcli
-bsspclo
 cgrfetch
 compile
 cgrfetch
@@ -219,11 +214,7 @@ tcapublish
 tcarecv
 tcc
 tccadmin
-tcpbsi
-tcpbso
 tcputa
-udpbsi
-udpbso
 sppclo
 sppcli
 
@@ -406,17 +397,6 @@ bss/doc/html/man1/bssrecv.html
 bss/doc/html/man1/bssStreamingApp.html
 bss/doc/html/man3/bss.html
 bss/i86_64-fedora/lib/libbss.so
-bssp/doc/html/man1/bsspadmin.html
-bssp/doc/html/man1/bsspclock.html
-bssp/doc/html/man1/tcpbsi.html
-bssp/doc/html/man1/tcpbso.html
-bssp/doc/html/man1/udpbsi.html
-bssp/doc/html/man1/udpbso.html
-bssp/doc/html/man3/bssp.html
-bssp/doc/html/man5/bssprc.html
-bssp/i86_64-fedora/lib/libbssp.so
-bssp/i86_64-fedora/lib/libbsspP.so
-bssp/i86_64-fedora/lib/libtcpbsa.so
 cfdp/doc/html/man1/bpcp.html
 cfdp/doc/html/man1/bpcpd.html
 cfdp/doc/html/man1/bputa.html
@@ -649,7 +629,6 @@ cbrcustodytest
 ams/x86_64-linux/check
 bpv7/x86_64-linux/check
 bss/x86_64-linux/check
-bssp/x86_64-linux/check
 cfdp/x86_64-linux/check
 dgr/x86_64-linux/check
 dtpc/x86_64-linux/check
