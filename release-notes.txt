@@ -249,6 +249,17 @@ Convergence layers and platform:
 - AddressSanitizer builds (--enable-asan) now work with Clang as well as
   GCC.
 
+Roadmap (a snapshot of plans for the next release; subject to change):
+
+- TCPCLv4 convergence layer (all-C implementation).
+- Complete the Object/Address to SdrObject/SdrAddress rename (removal of
+  the deprecated names).
+- Remove the BSSP convergence layer (deprecated in this release).
+- Relay bundle backup and restore.
+- Pluggable external router API.
+- CFDP dual-mode command-line / daemon tool.
+- Additional convergence layers and platform ports (PPP serial link, cFS).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.2.0-b =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
