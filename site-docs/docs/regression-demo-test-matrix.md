@@ -146,8 +146,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | --- | --- | --- | --- | --- | --- |
 | `tests/ipaddr-caching-udpclo` | address-caching | Dual-stack IPv4/IPv6 address caching/re-resolution in udpclo | Regression | ION-specific (no ratified standard) | UDP CLO DNS re-resolution; invalid-address fallback logging |
 | `tests/ipaddr-caching-udplso` | address-caching | IP address caching/periodic re-resolution in udplso (LTP) | Regression | ION-specific (no ratified standard) | LTP UDP link service DNS re-resolution |
-| `tests/loopback-bp-dccp` | dccp | BP over DCCP convergence layer loopback | Integration | ION-specific (no ratified standard) | DCCP CLA; single-node loopback |
-| `tests/loopback-ltp-dccp` | dccp | LTP over DCCP loopback | Integration | ION-specific (no ratified standard) | DCCP as LTP link-service; LTP per RFC 5326 |
 | `tests/file-transfer` | file-epp-spp | File CLA store-and-forward file transfer | System-dataflow | ION-specific (no ratified standard) | File CLA sneakernet scenario; separate send/receive files |
 | `tests/loopback-epp` | file-epp-spp | EPP CLA loopback with stub provider library | Integration | ION-specific (no ratified standard) | EPP CLA; custom loopback stub provider |
 | `tests/loopback-file` | file-epp-spp | File CLA loopback with simple file provider library | Integration | ION-specific (no ratified standard) | File CLA; custom loopback provider |

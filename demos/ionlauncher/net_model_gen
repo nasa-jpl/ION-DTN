@@ -78,8 +78,8 @@ class NetHopsDict(TypedDict):
     fromIP: str
     toNode: str
     toIP: str
-    bpLayer: Literal["ltp", "tcp", "udp", "stcp", "dccp"]
-    ltpLayer: Literal["", "udp", "dccp"]
+    bpLayer: Literal["ltp", "tcp", "udp", "stcp"]
+    ltpLayer: Literal["", "udp"]
     portnum: int
     maxRate: int
     symmetric: bool

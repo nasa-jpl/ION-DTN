@@ -29,7 +29,6 @@ settings.local-backup.json
 
 # Keep empty m4/ macro dir but ignore temp files inside it
 m4/*
-!m4/dccp_macro.m4
 !m4/.gitkeep
 
 # Temp mod directory (Podman)
@@ -178,10 +177,6 @@ compile
 cgrfetch
 compile
 cpsd
-dccpcli
-dccpclo
-dccplsi
-dccplso
 dgrcli
 dgrclo
 dtka
@@ -358,8 +353,6 @@ bpv7/doc/html/man1/bptransit.html
 bpv7/doc/html/man1/brsccla.html
 bpv7/doc/html/man1/brsscla.html
 bpv7/doc/html/man1/cgrfetch.html
-bpv7/doc/html/man1/dccpcli.html
-bpv7/doc/html/man1/dccpclo.html
 bpv7/doc/html/man1/dgrcli.html
 bpv7/doc/html/man1/dgrclo.html
 bpv7/doc/html/man1/dtn2admin.html
@@ -459,8 +452,6 @@ ici/i86_64-fedora/lib/libici.so
 ici/i86_64-fedora/lib/libicinm.so
 ici/libbloom-master/build/libbloom.so
 ici/libbloom-master/build/test-libbloom
-ltp/doc/html/man1/dccplsi.html
-ltp/doc/html/man1/dccplso.html
 ltp/doc/html/man1/ltpadmin.html
 ltp/doc/html/man1/ltpclock.html
 ltp/doc/html/man1/ltpcounter.html
@@ -489,7 +480,6 @@ bpdriverAduFile
 tests/linking/ion*links.dot
 tests/issue-330-cfdpclock-FDU-removal/1.cfdp.ipn.bp.ltp.udp/testfile
 tests/issue-352-bpcp-ltp/*.ipn.cfdp.bp.ltp/test*
-tests/loopback-*-dccp/dccptest.txt
 
 # ams test configuration file
 demos/bench-ams/node*/9.petition.log

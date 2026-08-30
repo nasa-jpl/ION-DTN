@@ -97,7 +97,6 @@ ltp/daemon/ltpclock.c
 ltp/daemon/ltpmeter.c
 ltp/daemon/ltpdeliv.c
 ltp/udp/udplsi.c
-ltp/dccp/dccplsi.c
     );
 # ltp/udp/udplso.c  # TODO: needs updates for VxWorks
 my @dgr_sources = qw(
@@ -182,7 +181,7 @@ bpv7/daemon/bpclock.c
 bpv7/daemon/bptransit.c
 bpv7/daemon/bpclm.c
     );
-# bibe, dccp, dgr, brs executables
+# bibe, dgr, brs executables
 # bpv7/test/bping.c  # FIXME
 
 # These aren't ION_LWT ready

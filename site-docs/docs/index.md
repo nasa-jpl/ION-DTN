@@ -111,7 +111,7 @@ a broad set:
 - **LTP** — the Licklider Transmission Protocol (RFC 5326), ION's
   workhorse for reliable delivery over long‑delay, high‑error, one‑way
   space links, with contact‑plan‑driven rate control.
-- **TCP, STCP, UDP, DCCP** — simpler IP‑based convergence layers.
+- **TCP, STCP, UDP** — simpler IP‑based convergence layers.
 - **BRS** — Bundle Relay Service, for reaching nodes behind firewalls/NAT.
 - **SPP, EPP, and file** — the CCSDS Space Packet Protocol /
   Encapsulation Packet Protocol and a file‑based CLA. See the

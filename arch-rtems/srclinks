@@ -137,8 +137,6 @@ ln -s ../bpv7/daemon/bptransit.c .
 ln -s ../bpv7/daemon/bpclm.c .
 ln -s ../bpv7/daemon/cpsd.c .
 
-# bpv7/dccp - not included
-
 # bpv7/dgr
 ln -s ../bpv7/dgr/dgrcli.c .
 ln -s ../bpv7/dgr/dgrclo.c .
