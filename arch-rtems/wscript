@@ -153,6 +153,7 @@ def build(bld):
         'crc.c',
         'ion.c',
         'ion_admin.c',
+        'ion_atomic.c',
         'ion_network.c',
         'ionsec.c',
         'libicinm.c',

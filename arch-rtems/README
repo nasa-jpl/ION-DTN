@@ -323,6 +323,55 @@ Uses WAF (Waf build system) with rtems_waf integration:
 * Conditional compilation via preprocessor defines
   (`ENABLE_DGR`, `NASA_PROTECTED_FLIGHT_CODE`)
 
+**Source Files: Symlinks vs. Separately-Maintained Copies:**
+
+Almost every source file in this directory is a symbolic link into the
+main ION tree, created by the `./srclinks` generator
+(the `ion_links.pl` Perl script is a newer, still-incomplete alternative).
+Symlinked files are never edited here;
+they track their upstream counterparts automatically.
+
+A small set of files are instead real, hand-maintained files
+because they cannot be shared with the main tree unchanged.
+Any file below that is not produced by `srclinks` must be reviewed by hand
+whenever the corresponding upstream code changes.
+
+* **RTEMS-only, no upstream counterpart** (correctly separate) -
+  * `ionrtems.c` - the port's entry point:
+    system-clock init (`initClock()`), libbsd network bring-up
+    (`initNetwork()`), and the built-in loopback test.
+    Customize this per BSP/target.
+  * `mysymtab.c` - the RTEMS symbol table used to spawn ION's
+    `ION_LWT` daemons as tasks; entries are guarded by the same
+    `ENABLE_*` flags as the build.
+  * `rtems_stubs.c` - libc/socket stubs, conditionally excluded when
+    `USING_RTEMS_LIBBSD` is defined.
+  * `pmqlsi.c`, `pmqlso.c`, `pmqlsa.h` - the POSIX-message-queue LTP
+    link service, an embedded-only convergence layer with no equivalent
+    in the main tree.
+
+* **Shared with `ltp/udp/` via symlink** (no longer separate) -
+  * `libudplsa.c`, `udplsi.c`, `udplso.c`, `udplsa.h` - these are now
+    symlinks into `ltp/udp/`, sharing the main-tree UDP link service.
+    They were once copies: the upstream daemons migrated their hot-path
+    mutexes to lock-free `ion_atomic` (`ici/include/ion_atomic.h`),
+    `udplso.c` dropped its `#ifdef RTEMS` `IPHDR_SIZE`, and the LSO's
+    SIGTERM handler now uses the portable `isignal()` wrapper upstream,
+    so the port no longer needs its own copies. RTEMS GCC provides C11
+    `<stdatomic.h>`, so pulling in `ion_atomic.c` (added to
+    `icilibsources`) lets the port build and run these unchanged -
+    verified by the QEMU loopback test.
+    Keep `ion_atomic.c` in the build if you touch these.
+
+* **RTEMS-specific logger backend (correctly separate)** -
+  * `gdslogger.c` - pulled into `ici/library/ion.c` when `GDSLOGGER` is
+    defined (see `wscript`). It routes ION memos to stdout so log output
+    reaches the QEMU serial console, which the loopback test scrapes. It
+    is deliberately distinct from the includable snippet of the same name
+    at `tools/gdslogger/gdslogger.c`, which writes to the `ion.log` file
+    instead; sharing that here would leave the QEMU run with no visible
+    log. Keep this stdout variant for the port.
+
 **Conditional Compilation:**
 
 The build system uses preprocessor guards to exclude unused modules:

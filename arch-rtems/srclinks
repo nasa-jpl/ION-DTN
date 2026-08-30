@@ -25,6 +25,7 @@ ln -s ../ici/library/smlist.c .
 ln -s ../ici/library/smrbt.c .
 ln -s ../ici/library/ion.c .
 ln -s ../ici/library/ion_admin.c .
+ln -s ../ici/library/ion_atomic.c .
 ln -s ../ici/library/ion_network.c .
 ln -s ../ici/library/ionsec.c .
 ln -s ../ici/library/rfx.c .
@@ -394,10 +395,12 @@ ln -s ../ltp/daemon/ltpmeter.c .
 ln -s ../ltp/utils/ltpadmin.c .
 ln -s ../ltp/utils/ltpsecadmin.c .
 
-# ltp/udp - not included, this port
-#           POSIX msg queue under ltp
-#           for data transfer within
-#           a single host only
+# ltp/udp - UDP link service (shares ltp/udp with the main tree;
+#           the atomic running-flag needs ici/library/ion_atomic.c above)
+ln -s ../ltp/udp/libudplsa.c .
+ln -s ../ltp/udp/udplsi.c .
+ln -s ../ltp/udp/udplso.c .
+ln -s ../ltp/udp/udplsa.h .
 
 # ams/library - core AMS (RAMS/test/utils still excluded)
 ln -s ../ams/library/amscommon.h .
