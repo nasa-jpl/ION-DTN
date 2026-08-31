@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+BUILD_DIR=${ION_TEST_BUILD_DIR:-$(CDPATH= cd -- "$TEST_DIR/../.." && pwd)}
+
+"$TEST_DIR/run-parser.sh" "$BUILD_DIR"
+"$TEST_DIR/run-cgr-boundary.sh" "$BUILD_DIR"
+"$TEST_DIR/run-utcdelta.sh" "$BUILD_DIR"
+"$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
+CLOCK_ERROR_TEXT=0.050 CLOCK_ERROR_MS=50 \
+	"$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
+CONTACT_MODE=legacy "$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
+
+echo "PASS: subsecond contact-plan regression suite"

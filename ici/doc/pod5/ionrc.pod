@@ -279,12 +279,13 @@ will recreate the current list of ranges in the node's ION database; the
 file's name will be "ranges.ionrc".  This file can be used to initialize
 the contact plan for a new node.
 
-=item B<m utcdelta> I<local_time_sec_after_UTC>
+=item B<m utcdelta> I<local_time_sec_after_UTC>[I<.milliseconds>]
 
 This management command sets ION's understanding of the current difference
 between correct UTC time and the localtime equivalent of the current calendar
 (i.e., Unix epoch) time as reported by the clock for the local ION node's
-computer.  This delta is automatically applied to locally
+computer.  The value may include one to three fractional decimal digits,
+for example C<0.250> or C<-0.125>.  This delta is automatically applied to locally
 obtained time values whenever ION needs to know the current time.  For
 machines that are synchronized by NTP, the value of this delta should be 0,
 the default.
@@ -304,10 +305,11 @@ Note that this means that setting the UTC delta is not a one-time node
 configuration activity but rather an ongoing node administration chore,
 because a drifting clock typically keeps on drifting.
 
-=item B<m clockerr> I<known_maximum_clock_error>
+=item B<m clockerr> I<known_maximum_clock_error>[I<.milliseconds>]
 
 This management command sets ION's understanding of the accuracy of the
-scheduled start and stop times of planned contacts, in seconds.  The
+scheduled start and stop times of planned contacts, in seconds with optional
+millisecond precision.  The
 default value is 1.  When revising local data transmission and reception
 rates, I<ionadmin> will adjust contact start and stop times by this
 interval to be sure not to send bundles that arrive before the neighbor

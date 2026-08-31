@@ -1,8 +1,9 @@
 # Subsecond OWLT fork
 
 This branch is an experimental, backward-syntax-compatible extension of
-ION Open Source 4.2.0-b.  It addresses OWLT precision without changing contact
-start and stop timestamps.
+ION Open Source 4.2.0-b.  The two committed OWLT changes address range
+precision independently of the later contact-timeline work documented in
+`SUBSECOND_CONTACT.md`.
 
 ## Supported milestone
 
@@ -19,7 +20,8 @@ start and stop timestamps.
 
 ## Deliberate limits
 
-- Contact start and stop timestamps remain `time_t` values.
+- This OWLT milestone alone does not alter contact start and stop timestamps;
+  the optional follow-on milestone in `SUBSECOND_CONTACT.md` does.
 - Fractional range announcements through CPS are rejected rather than silently
   losing precision.
 - LTP's event timeline and retransmission timers remain whole-second.  UDPCL is

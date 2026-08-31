@@ -222,6 +222,11 @@ run_file_test "ionadmin" "test_ion_utc.rc" \
     "Invalid UTC delta" \
     "ionadmin rejected trailing garbage in utcdelta." || exit $RETVAL
 
+run_file_test "ionadmin" "test_ion_utc_precision.rc" \
+    "m utcdelta -0.1234" \
+    "Invalid UTC delta" \
+    "ionadmin rejected more than three fractional utcdelta digits." || exit $RETVAL
+
 run_file_test "ionadmin" "test_ion_clock.rc" \
     "m clockerr 99999999999999999999" \
     "Invalid clock error" \
