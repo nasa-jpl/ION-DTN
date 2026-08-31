@@ -2046,8 +2046,9 @@ hypothetical contact, as that contact is now discovered.");
 		writeTimestampUTC(fromTime, buf1);
 		writeTimestampUTC(toTime, buf2);
 		isprintf(contactIdString, sizeof contactIdString,
-				"from %s until %s, %lu->%lu", buf1, buf2,
-				fromFqnn, toFqnn);
+			"from %s until %s,"
+			UVAST_FIELDSPEC "->" UVAST_FIELDSPEC,
+			buf1, buf2, fromFqnn, toFqnn);
 		writeMemoNote("[?] Overlapping contact ignored",
 				contactIdString);
 		if (sdr_end_xn(sdr) < 0)
@@ -2094,9 +2095,10 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
-node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
-confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromFqnn,
-		contact->toFqnn, contact->xmitRate, contact->confidence);
+			node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " \
+			is %10zu bytes/sec, confidence %f.", fromTimeBuffer,
+			toTimeBuffer, contact->fromFqnn, contact->toFqnn,
+			contact->xmitRate, contact->confidence);
 	return buffer;
 }
 
@@ -2565,7 +2567,8 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 		writeTimestampUTC(contact->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
-UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
+				UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %zu %f\n",
+				fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
 		textLen = strlen(buffer);
@@ -2601,7 +2604,8 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 		writeTimestampUTC(contact->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
-UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
+				UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %zu %f\n",
+				fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
 		textLen = strlen(buffer);
@@ -2985,8 +2989,9 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
 			 *	asserted range, which is prohibited.	*/
 
 			isprintf(rangeIdString, sizeof rangeIdString,
-					"from %lu, %lu->%lu", fromTime,
-					fromFqnn, toFqnn);
+        				"from %lld,"
+					UVAST_FIELDSPEC "->" UVAST_FIELDSPEC,
+        				(long long)fromTime, fromFqnn, toFqnn);
 			if (rxref->owlt == owlt)
 			{
 				writeMemoNote("[?] This range is already \

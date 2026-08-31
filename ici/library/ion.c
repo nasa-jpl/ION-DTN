@@ -1424,8 +1424,9 @@ void	putFqn(char *toBuffer, uvast fqn)
 	allocatorNbr = (fqn >> 32) & 0xffffffff;
 	if (allocatorNbr > 0)	/*	Must delimit allocator number.	*/
 	{
-		isprintf(toBuffer, FQN_MAX_LENGTH, "%lu.%lu", allocatorNbr,
-				fqn & 0xffffffff);
+		isprintf(toBuffer, FQN_MAX_LENGTH, "%lu.%lu",
+			(unsigned long)allocatorNbr,
+			(unsigned long)(fqn & 0xffffffff));
 	}
 	else
 	{
@@ -2170,7 +2171,7 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "wmKey:           %d",
 			parms->wmKey);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
+	isprintf(buffer, sizeof buffer, "wmSize:          %zu",
 			parms->wmSize);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "wmAddress:       %#lx",
@@ -2179,7 +2180,7 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "sdrWmSize:       %ld",
+	isprintf(buffer, sizeof buffer, "sdrWmSize:       %zu",
 			parms->sdrWmSize);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrWmKey:        %d",
@@ -2188,7 +2189,7 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
 			parms->configFlags);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "heapWords:       %ld",
+	isprintf(buffer, sizeof buffer, "heapWords:       %zu",
 			parms->heapWords);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "heapKey:         %d",
@@ -2203,7 +2204,7 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
 			parms->pathName);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "traceShmSize:    %ld",
+	isprintf(buffer, sizeof buffer, "traceShmSize:    %zu",
 			parms->traceShmSize);
 	writeMemo(buffer);
 }

@@ -1416,19 +1416,19 @@ void	sdr_report(SdrUsageSummary *usage)
 		count = usage->smallPoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			isprintf(buf, sizeof buf, "    %12d of size %12ld",
+			isprintf(buf, sizeof buf, "    %12d of size %12zu",
 					count, size);
 			writeMemo(buf);
 		}
 	}
 
-	isprintf(buf, sizeof buf, "       total avbl: %12ld",
+	isprintf(buf, sizeof buf, "       total avbl: %12zu",
 			usage->smallPoolFree);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "     total unavbl: %12ld",
+	isprintf(buf, sizeof buf, "     total unavbl: %12zu",
 			usage->smallPoolAllocated);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "       total size: %12ld",
+	isprintf(buf, sizeof buf, "       total size: %12zu",
 			usage->smallPoolSize);
 	writeMemo(buf);
 	size = WORD_SIZE;
@@ -1440,36 +1440,36 @@ void	sdr_report(SdrUsageSummary *usage)
 		count = usage->largePoolFreeBlockCount[i];
 		if (count > 0)
 		{
-			isprintf(buf, sizeof buf, "    %12d of order %12ld",
+			isprintf(buf, sizeof buf, "    %12d of order %12zu",
 					count, size);
 			writeMemo(buf);
 		}
 	}
 
-	isprintf(buf, sizeof buf, "       total avbl: %12ld",
+	isprintf(buf, sizeof buf, "       total avbl: %12zu",
 			usage->largePoolFree);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "     total unavbl: %12ld",
+	isprintf(buf, sizeof buf, "     total unavbl: %12zu",
 			usage->largePoolAllocated);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "       total size: %12ld",
+	isprintf(buf, sizeof buf, "       total size: %12zu",
 			usage->largePoolSize);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "total heap size:   %12ld",
+	isprintf(buf, sizeof buf, "total heap size:   %12zu",
 			usage->heapSize);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "total unused:      %12ld",
+	isprintf(buf, sizeof buf, "total unused:      %12zu",
 			usage->unusedSize);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "max total used:    %12ld",
+	isprintf(buf, sizeof buf, "max total used:    %12zu",
 			usage->heapSize - usage->unusedSize);
 	writeMemo(buf);
-	isprintf(buf, sizeof buf, "total now in use:  %12ld",
+	isprintf(buf, sizeof buf, "total now in use:  %12zu",
 			usage->heapSize - (usage->smallPoolFree +
 			usage->largePoolFree + usage->unusedSize));
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "largest free blk:  %12ld",
+	isprintf(buf, sizeof buf, "largest free blk:  %12zu",
 			usage->largestFreeBlock);
 	writeMemo(buf);
 
@@ -1504,7 +1504,7 @@ void	sdr_report(SdrUsageSummary *usage)
 		writeMemo(buf);
 	}
 
-	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
+	isprintf(buf, sizeof buf, "max xn log len:    %12zu",
 			usage->maxLogLength);
 	writeMemo(buf);
 }
@@ -1560,7 +1560,7 @@ void	sdr_stats(Sdr sdrv)
 			sdrSnap.xnDepth);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "       transaction log size: %14ld",
+	isprintf(buf, sizeof buf, "       transaction log size: %14zu",
 			sdrSnap.logSize);
 	writeMemo(buf);
 
@@ -1575,46 +1575,46 @@ void	sdr_stats(Sdr sdrv)
 	istrcpy(buf, " ", sizeof buf);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "                   sdr size: %14ld",
+	isprintf(buf, sizeof buf, "                   sdr size: %14zu",
 			sdrSnap.dsSize);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "              sdr heap size: %14ld",
+	isprintf(buf, sizeof buf, "              sdr heap size: %14zu",
 			sdrSnap.heapSize);
 	writeMemo(buf);
 
 	sdr_usage(sdrv, &usage);
 	computeFreeSpace(sdrv, &mapSnap, &usage);
 
-	isprintf(buf, sizeof buf, "            small pool size: %14ld",
-			mapSnap.endOfSmallPool - mapSnap.startOfSmallPool);
+	isprintf(buf, sizeof buf, "            small pool size: %14zu",
+			(size_t)(mapSnap.endOfSmallPool - mapSnap.startOfSmallPool));
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "            small pool free: %14ld",
+	isprintf(buf, sizeof buf, "            small pool free: %14zu",
 			usage.smallPoolFree);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "            large pool size: %14ld",
-			mapSnap.endOfLargePool - mapSnap.startOfLargePool);
+	isprintf(buf, sizeof buf, "            large pool size: %14zu",
+			(size_t)(mapSnap.endOfLargePool - mapSnap.startOfLargePool));
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "            large pool free: %14ld",
+	isprintf(buf, sizeof buf, "            large pool free: %14zu",
 			usage.largePoolFree);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "            unassigned free: %14ld",
+	isprintf(buf, sizeof buf, "            unassigned free: %14zu",
 			mapSnap.unassignedSpace);
 	writeMemo(buf);
 
 	istrcpy(buf, " ", sizeof buf);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "            sdr heap in use: %14ld",
+	isprintf(buf, sizeof buf, "            sdr heap in use: %14zu",
 			sdrSnap.heapSize - (usage.smallPoolFree
 			+ usage.largePoolFree + mapSnap.unassignedSpace));
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "        max sdr heap in use: %14ld",
+	isprintf(buf, sizeof buf, "        max sdr heap in use: %14zu",
 			sdrSnap.heapSize - mapSnap.unassignedSpace);
 	writeMemo(buf);
 

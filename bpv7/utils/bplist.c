@@ -301,7 +301,7 @@ static void printBundle(SdrObject bundleObj)
 			& BP_MINIMUM_LATENCY ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Expiration (Unix Epoch 1970) sec %10lu", bundle->expirationTime);
+			"Expiration (Unix Epoch 1970) sec %10lld", (long long)(bundle->expirationTime));
 	PUTS(buf);
 	expirationTimeDtnMsec = ((uvast)bundle->expirationTime - EPOCH_2000_SEC) * 1000;
 	isprintf(buf, sizeof buf,
@@ -311,7 +311,7 @@ static void printBundle(SdrObject bundleObj)
 	PUTS(buf);
 	printExtensions(sdr, bundle->extensions);
 	isprintf(buf, sizeof buf,
-			"Payload len %10lu", bundle->payload.length);
+			"Payload len %10lld", (long long)(bundle->payload.length));
 	PUTS(buf);
 	printPayload(sdr, bundle);
 	printQueueState(sdr, bundle);
@@ -420,9 +420,9 @@ static int	printAll(int detail)
 
 		/*	Need to print detail of bundle.			*/
 
-		isprintf(buf, sizeof buf, "Current ctime sec %lu", getCtime());
+		isprintf(buf, sizeof buf, "Current ctime sec %lld", (long long)getCtime());
 		PUTS(buf);
-		isprintf(buf, sizeof buf, "Event ctime sec   %lu", event->time);
+		isprintf(buf, sizeof buf, "Event ctime sec   %lld", (long long)event->time);
 		PUTS(buf);
 		printBundle(event->ref);
 	}

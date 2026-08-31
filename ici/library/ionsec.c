@@ -421,8 +421,8 @@ static SdrObject locatePublicKey(uvast fqnn, time_t effectiveTime,
 	}
 
 	CHKZERO(vdb);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", fqnn,
-			effectiveTime);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lld", fqnn,
+			(long long)effectiveTime);
 	argRef->fqnn = fqnn;
 	argRef->effectiveTime = effectiveTime;
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, argRef,
@@ -499,8 +499,8 @@ int	sec_addPublicKey(uvast fqnn, time_t effectiveTime,
 	CHKERR(fqnn > 0);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", fqnn,
-			effectiveTime);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lld", fqnn,
+			(long long)effectiveTime);
 	argRef.fqnn = fqnn;
 	argRef.effectiveTime = effectiveTime;
 	CHKERR(sdr_begin_xn(sdr));
@@ -648,7 +648,7 @@ int	sec_addOwnPublicKey(time_t effectiveTime, int keyLen,
 	CHKERR(secdb);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lld", (long long)effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (locateOwnPublicKey(effectiveTime, &nextKey) != 0)
 	{
@@ -704,7 +704,7 @@ int	sec_removeOwnPublicKey(time_t effectiveTime)
 		return 0;
 	}
 
-	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lld", (long long)effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	keyElt = locateOwnPublicKey(effectiveTime, NULL);
 	if (keyElt == 0)
@@ -783,7 +783,7 @@ int	sec_addPrivateKey(time_t effectiveTime, int keyLen,
 	CHKERR(secdb);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lld", (long long)effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (locatePrivateKey(effectiveTime, &nextKey) != 0)
 	{
@@ -839,7 +839,7 @@ int	sec_removePrivateKey(time_t effectiveTime)
 		return 0;
 	}
 
-	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
+	isprintf(keyId, sizeof keyId, ":%lld", (long long)effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	keyElt = locatePrivateKey(effectiveTime, NULL);
 	if (keyElt == 0)

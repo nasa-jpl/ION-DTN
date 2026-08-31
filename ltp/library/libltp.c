@@ -635,27 +635,27 @@ void	ltp_print_span_sessions(uvast engineId)
 	PUTS(buffer);
 
 	isprintf(buffer, sizeof buffer,
-			"  Export sessions: %ld",
+			"  Export sessions: %zu",
 			sdr_list_length(sdr, span->exportSessions));
 	PUTS(buffer);
 
 	isprintf(buffer, sizeof buffer,
-			"  Import sessions: %ld",
+			"  Import sessions: %zu",
 			sdr_list_length(sdr, span->importSessions));
 	PUTS(buffer);
 
 	isprintf(buffer, sizeof buffer,
-			"  Dead imports: %ld",
+			"  Dead imports: %zu",
 			sdr_list_length(sdr, span->deadImports));
 	PUTS(buffer);
 
 	isprintf(buffer, sizeof buffer,
-			"  Closed imports: %ld",
+			"  Closed imports: %zu",
 			sdr_list_length(sdr, span->closedImports));
 	PUTS(buffer);
 
 	isprintf(buffer, sizeof buffer,
-			"  Pending segments: %ld",
+			"  Pending segments: %zu",
 			sdr_list_length(sdr, span->segments));
 	PUTS(buffer);
 
@@ -688,22 +688,22 @@ void	ltp_print_span_sessions(uvast engineId)
 		PUTS(buffer);
 
 		isprintf(buffer, sizeof buffer,
-				"    Checkpoints pending: %ld",
+				"    Checkpoints pending: %zu",
 				sdr_list_length(sdr, session->checkpoints));
 		PUTS(buffer);
 
 		isprintf(buffer, sizeof buffer,
-				"    Claims (reception reports): %ld",
+				"    Claims (reception reports): %zu",
 				sdr_list_length(sdr, session->claims));
 		PUTS(buffer);
 
 		isprintf(buffer, sizeof buffer,
-				"    Red segments (unsent): %ld",
+				"    Red segments (unsent): %zu",
 				sdr_list_length(sdr, session->redSegments));
 		PUTS(buffer);
 
 		isprintf(buffer, sizeof buffer,
-				"    Green segments (unsent): %ld",
+				"    Green segments (unsent): %zu",
 				sdr_list_length(sdr, session->greenSegments));
 		PUTS(buffer);
 	}

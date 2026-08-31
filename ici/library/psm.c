@@ -1644,13 +1644,13 @@ void	psm_report(PsmUsageSummary *usage)
 	}
 
 	isprintf(textbuf, sizeof textbuf,
-			"       total avbl: %10ld", usage->smallPoolFree);
+			"       total avbl: %10zu", usage->smallPoolFree);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"     total unavbl: %10ld", usage->smallPoolAllocated);
+			"     total unavbl: %10zu", usage->smallPoolAllocated);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"       total size: %10ld", usage->smallPoolSize);
+			"       total size: %10zu", usage->smallPoolSize);
 	writeMemo(textbuf);
 	size = WORD_SIZE;
 	istrcpy(textbuf, "large pool free blocks:", sizeof textbuf);
@@ -1670,19 +1670,19 @@ void	psm_report(PsmUsageSummary *usage)
 	}
 
 	isprintf(textbuf, sizeof textbuf,
-			"       total avbl: %10ld", usage->largePoolFree);
+			"       total avbl: %10zu", usage->largePoolFree);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"     total unavbl: %10ld", usage->largePoolAllocated);
+			"     total unavbl: %10zu", usage->largePoolAllocated);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"       total size: %10ld", usage->largePoolSize);
+			"       total size: %10zu", usage->largePoolSize);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"total partition:   %10ld", usage->partitionSize);
+			"total partition:   %10zu", usage->partitionSize);
 	writeMemo(textbuf);
 	isprintf(textbuf, sizeof textbuf,
-			"total unused:      %10ld", usage->unusedSize);
+			"total unused:      %10zu", usage->unusedSize);
 	writeMemo(textbuf);
 }
 
