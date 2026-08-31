@@ -923,27 +923,47 @@ SdrObject _sdrmalloc(Sdr sdrv, size_t nbytes)
 	CHKZERO(sdrv);
 	XNCHKZERO(!(nbytes == 0 || nbytes > LARGE_BLK_LIMIT));
 
-	/*	Defensive check: verify current task still owns the
-	 *	transaction.  After transaction crash/cancellation,
-	 *	another task may have taken ownership while this
-	 *	task's call stack is still unwinding.  If we don't
-	 *	own the transaction, return 0 to avoid corrupting
-	 *	the new owner's transaction.			*/
+	/*	Defensive check: verify this task AND thread still own
+	 *	the transaction.  After a transaction crash/cancellation,
+	 *	another task or thread may have taken ownership while
+	 *	this call stack is still unwinding.  sm_TaskIdSelf() is
+	 *	process-granular (getpid() on Linux), so a sibling thread
+	 *	that re-locked the SDR would share our task id; sdr_in_xn()
+	 *	also checks the owning thread, so use it to avoid
+	 *	corrupting another owner's transaction.			*/
 
-	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	if (!sdr_in_xn(sdrv))
 	{
 #ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
-			"[!] SDR malloc owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
-			sdr->sdrOwnerTask, sm_TaskIdSelf());
+			"[!] SDR malloc not xn owner: sdrOwnerTask=%d, self=%d \
+(task or thread mismatch)", sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
 #endif
-		return 0;	/*	No longer transaction owner.	*/
+		return 0;	/*	Not the transaction owner.	*/
 	}
 
 	object = mallocLarge(sdrv, nbytes);
+
+	/*	mallocLarge walks the large-pool free lists via sdrFetch.
+	 *	If that metadata is corrupt, a fetch trips an SDR boundary
+	 *	check, which calls crashXn -- the transaction is aborted
+	 *	and the SDR lock released.  crashXn does not unwind
+	 *	mallocLarge's call stack, so mallocLarge can run to
+	 *	completion on zeroed structures and still return a
+	 *	non-zero but invalid object.  Handing that back would let
+	 *	the caller proceed to sdr_write/sdr_stage outside any
+	 *	transaction, tripping an assertion that aborts the whole
+	 *	process.  If we no longer hold the transaction, fail the
+	 *	allocation cleanly so the caller gets a NULL return.	*/
+
+	if (object != 0 && !sdr_in_xn(sdrv))
+	{
+		return 0;
+	}
+
 	if (object != 0)
 	{
 		if (sdr->configFlags & SDR_BOUNDED)
@@ -1107,20 +1127,22 @@ void _sdrfree(Sdr sdrv, SdrObject object, PutSrc src)
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
 
-	/*	Defensive check: verify current task still owns the
-	 *	transaction.  After transaction crash/cancellation,
-	 *	another task may have taken ownership while this
-	 *	task's call stack is still unwinding.  If we don't
-	 *	own the transaction, silently return to avoid
-	 *	corrupting the new owner's transaction.		*/
+	/*	Defensive check: verify this task AND thread still own
+	 *	the transaction.  After a transaction crash/cancellation,
+	 *	another task or thread may have taken ownership while
+	 *	this call stack is still unwinding.  sm_TaskIdSelf() is
+	 *	process-granular (getpid() on Linux), so a sibling thread
+	 *	that re-locked the SDR would share our task id; sdr_in_xn()
+	 *	also checks the owning thread, so use it to avoid
+	 *	corrupting another owner's transaction.			*/
 
-	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	if (!sdr_in_xn(sdrv))
 	{
 #ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
-			"[!] SDR free owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
-			sdr->sdrOwnerTask, sm_TaskIdSelf());
+			"[!] SDR free not xn owner: sdrOwnerTask=%d, self=%d \
+(task or thread mismatch)", sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
 #endif

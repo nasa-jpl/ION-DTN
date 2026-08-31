@@ -2617,24 +2617,26 @@ void _sdrput(const char *file, int line, Sdr sdrv, SdrAddress into, char *from,
 	CHKVOID(from);
 	sdr = sdrv->sdr;
 
-	/*	Defensive check: verify current task still owns the
-	 *	transaction.  After transaction crash/cancellation,
-	 *	another task may have taken ownership while this
-	 *	task's call stack is still unwinding.  If we don't
-	 *	own the transaction, silently return to avoid
-	 *	corrupting the new owner's transaction.		*/
+	/*	Defensive check: verify this task AND thread still own
+	 *	the transaction.  After a transaction crash/cancellation,
+	 *	another task or thread may have taken ownership while
+	 *	this call stack is still unwinding.  sm_TaskIdSelf() is
+	 *	process-granular (getpid() on Linux), so a sibling thread
+	 *	that re-locked the SDR would share our task id; sdr_in_xn()
+	 *	also checks the owning thread, so use it to avoid
+	 *	corrupting another owner's transaction.			*/
 
-	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	if (!sdr_in_xn(sdrv))
 	{
 #ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
-			"[!] SDR write owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
-			sdr->sdrOwnerTask, sm_TaskIdSelf());
+			"[!] SDR write not xn owner: sdrOwnerTask=%d, self=%d \
+(task or thread mismatch)", sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
 #endif
-		return;		/*	No longer transaction owner.	*/
+		return;		/*	Not the transaction owner.	*/
 	}
 	if (length > sdr->dsSize || into > sdr->dsSize - length)
 	{
