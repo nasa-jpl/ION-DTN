@@ -5,6 +5,11 @@ This report records the validation performed for commit
 `ion-open-source-4.2.0-b` source at
 `aa056ff51f12a4cc82bb4bf6e6652a5e3804b6c2`.
 
+The four review commits were subsequently replayed onto upstream
+`integration` at `a3700b4dfe8c239e0afb8a1308dc41809a15f372`. The resulting
+tree at `0db5315b3` built successfully and the complete
+`tests/subsecond-contact/dotest` gate passed on that base as well.
+
 ## Result summary
 
 | Gate | Patched fork | Stock ION control | Interpretation |
@@ -74,6 +79,7 @@ Archived raw logs for this validation are stored outside the source tree in:
 /home/yasin/ion-subsecond-test-results/upstream-tcpv6-control-20260831/
 /home/yasin/ion-subsecond-test-results/targeted-final-20260831/
 /home/yasin/ion-subsecond-test-results/upstream-control-20260831/
+/home/yasin/ion-subsecond-test-results/integration-targeted-0db5315b3-20260831-v3/
 ```
 
 ## Scope boundaries
