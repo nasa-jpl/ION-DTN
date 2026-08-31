@@ -640,7 +640,111 @@ static int	computeBucket(unsigned int userDataSize)
 	return bucket;
 }
 
-static void insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
+/*	The free-list splice functions (insertFreeBlock, removeFromBucket,
+ *	and the coalescing in mallocLarge and freeLarge) perform several
+ *	sdrPatch writes as they relink blocks.  If a link is corrupt, an
+ *	out-of-range address trips the SDR boundary check partway through
+ *	and crashXn aborts the transaction without unwinding the splice,
+ *	leaving the free list half-relinked -- permanent on a non-
+ *	reversible SDR.  To make a splice atomic with respect to such a
+ *	fault, every link is validated up front, before any write.
+ *
+ *	Validation has two tiers so the search hot path pays no more than
+ *	the original code did:
+ *
+ *	loadFreeBlock is the lightweight, in-loop tier.  It confirms that
+ *	'leader' lies in the large pool with a sane userDataSize and loads
+ *	the leading overhead, so the search loop can size-compare and
+ *	advance safely -- but it does NOT fetch the trailing overhead,
+ *	which is exactly the one fetch the original loop already did.
+ *
+ *	validateFreeBlock is the full tier, used where a block is actually
+ *	mutated (the selected block before removal, its free-list
+ *	neighbors, and the insertion list head).  It additionally fetches
+ *	the trailing overhead and checks that it points back to the leader
+ *	-- the defining structural invariant of a large block -- which is
+ *	what a splice must be able to rely on.  A too-small block merely
+ *	walked past is never mutated, so it needs only loadFreeBlock;
+ *	corruption in it is caught if and when it is later touched.
+ *
+ *	Each sdrFetch here is preceded by a bounds check, so validation
+ *	itself never trips the SDR boundary check.			*/
+
+static int	loadFreeBlock(Sdr sdrv, SdrAddress leader, BigOhd1 *leading)
+{
+	SdrMap		*map = _mapImage(sdrv);
+	SdrAddress	maxUserData;
+
+	/*	Leader must lie within the large pool with room for at
+	 *	least the leading and trailing overhead.		*/
+
+	if (leader < map->startOfLargePool
+	|| leader > map->endOfLargePool
+	|| (map->endOfLargePool - leader) < LARGE_BLOCK_OHD)
+	{
+		return 0;
+	}
+
+	sdrFetch(*leading, leader);
+
+	/*	userDataSize must be a nonzero multiple of LG_OHD_SIZE,
+	 *	and the whole block must fit within the pool.		*/
+
+	maxUserData = (map->endOfLargePool - leader) - LARGE_BLOCK_OHD;
+	if (leading->userDataSize == 0
+	|| (leading->userDataSize & (LG_OHD_SIZE - 1)) != 0
+	|| leading->userDataSize > maxUserData)
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
+static int	validateFreeBlock(Sdr sdrv, SdrAddress leader, BigOhd1 *leading,
+			SdrAddress *trailer, BigOhd2 *trailing)
+{
+	SdrAddress	tlr;
+
+	if (!loadFreeBlock(sdrv, leader, leading))
+	{
+		return 0;
+	}
+
+	tlr = leader + sizeof(BigOhd1) + leading->userDataSize;
+	sdrFetch(*trailing, tlr);
+
+	/*	Trailing overhead must point back to this leader -- the
+	 *	defining structural invariant of a large block.		*/
+
+	if (trailing->start != leader)
+	{
+		return 0;
+	}
+
+	*trailer = tlr;
+	return 1;
+}
+
+/*	reportFreeListCorruption logs the corrupt link and aborts the
+ *	current transaction.  It is called only after validateFreeBlock
+ *	has rejected a link and before any splice write, so the abort
+ *	leaves the free list no worse than it already was.  Returns -1
+ *	so an int-returning splice function can tail-return it.		*/
+
+static int	reportFreeListCorruption(Sdr sdrv, SdrAddress leader)
+{
+	char	buf[128];
+
+	isprintf(buf, sizeof buf,
+		"Corrupt large-pool free-list link at " UVAST_FIELDSPEC ".",
+		(uvast) leader);
+	putErrmsg(buf, NULL);
+	crashXn(sdrv);
+	return -1;
+}
+
+static int insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 {
 	SdrMap	*map = _mapImage(sdrv);
 	BigOhd1	leading;
@@ -650,18 +754,31 @@ static void insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 	size_t	newFreeBytes;
 	SdrAddress nextLeader;
 	BigOhd1	nextLeading;
-	SdrAddress nextTrailer;
-	BigOhd2	nextTrailing;
+	SdrAddress nextTrailer = 0;	/*	Set iff nextLeader != 0.	*/
+	BigOhd2	nextTrailing = {0};
 
 	sdrFetch(leading, leader);
 	sdrFetch(trailing, trailer);
 	bucket = computeBucket(leading.userDataSize);
+
+	/*	Validate the current list head before splicing, so a
+	 *	corrupt link cannot leave the splice half-applied.	*/
+
+	sdrFetch(nextLeader, ADDRESS_OF(largePoolFree[bucket].firstFreeBlock));
+	if (nextLeader != 0
+	&& !validateFreeBlock(sdrv, nextLeader, &nextLeading, &nextTrailer,
+			&nextTrailing))
+	{
+		return reportFreeListCorruption(sdrv, nextLeader);
+	}
+
+	/*	Inputs validated; perform the splice.			*/
+
 	newFreeBlocks = map->largePoolFree[bucket].freeBlocks + 1;
 	patchMap(largePoolFree[bucket].freeBlocks, newFreeBlocks);
 	newFreeBytes = map->largePoolFree[bucket].freeBytes +
 			leading.userDataSize;
 	patchMap(largePoolFree[bucket].freeBytes, newFreeBytes);
-	sdrFetch(nextLeader, ADDRESS_OF(largePoolFree[bucket].firstFreeBlock));
 	if (nextLeader == 0)
 	{
 		leading.next = 0;
@@ -669,10 +786,6 @@ static void insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 	else
 	{
 		leading.next = nextLeader;
-		sdrFetch(nextLeading, nextLeader);
-		nextTrailer = nextLeader + sizeof(BigOhd1) +
-				nextLeading.userDataSize;
-		sdrFetch(nextTrailing, nextTrailer);
 		nextTrailing.prev = leader;
 		sdrPatch(nextTrailer, nextTrailing);
 	}
@@ -681,9 +794,10 @@ static void insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 	trailing.prev = 0;
 	sdrPatch(trailer, trailing);
 	patchMap(largePoolFree[bucket].firstFreeBlock, leader);
+	return 0;
 }
 
-static void removeFromBucket(Sdr sdrv, int bucket, SdrAddress leader,
+static int removeFromBucket(Sdr sdrv, int bucket, SdrAddress leader,
 		SdrAddress trailer)
 {
 	SdrMap	*map = _mapImage(sdrv);
@@ -693,35 +807,54 @@ static void removeFromBucket(Sdr sdrv, int bucket, SdrAddress leader,
 	size_t	newFreeBytes;
 	SdrAddress nextLeader;
 	BigOhd1	nextLeading;
-	SdrAddress nextTrailer;
-	BigOhd2	nextTrailing;
+	SdrAddress nextTrailer = 0;	/*	Set iff nextLeader != 0.	*/
+	BigOhd2	nextTrailing = {0};
 	SdrAddress prevLeader;
 	BigOhd1	prevLeading;
+	SdrAddress prevTrailer;
+	BigOhd2	prevTrailing;
 
 	sdrFetch(leading, leader);
 	sdrFetch(trailing, trailer);
+	nextLeader = leading.next;
+	prevLeader = trailing.prev;
+
+	/*	Validate both neighbor links before splicing, so a
+	 *	corrupt link cannot leave the splice half-applied.	*/
+
+	if (nextLeader != 0
+	&& !validateFreeBlock(sdrv, nextLeader, &nextLeading, &nextTrailer,
+			&nextTrailing))
+	{
+		return reportFreeListCorruption(sdrv, nextLeader);
+	}
+
+	if (prevLeader != 0
+	&& !validateFreeBlock(sdrv, prevLeader, &prevLeading, &prevTrailer,
+			&prevTrailing))
+	{
+		return reportFreeListCorruption(sdrv, prevLeader);
+	}
+
+	/*	Inputs validated; perform the splice.			*/
+
 	newFreeBlocks = map->largePoolFree[bucket].freeBlocks - 1;
 	patchMap(largePoolFree[bucket].freeBlocks, newFreeBlocks);
 	newFreeBytes = map->largePoolFree[bucket].freeBytes -
 			leading.userDataSize;
 	patchMap(largePoolFree[bucket].freeBytes, newFreeBytes);
-	if ((nextLeader = leading.next) != 0)		/*	!last	*/
+	if (nextLeader != 0)				/*	!last	*/
 	{
-		sdrFetch(nextLeading, nextLeader);
-		nextTrailer = nextLeader + sizeof(BigOhd1)
-				+ nextLeading.userDataSize;
-		sdrFetch(nextTrailing, nextTrailer);
 		nextTrailing.prev = trailing.prev;
 		sdrPatch(nextTrailer, nextTrailing);
 	}
 
-	if ((prevLeader = trailing.prev) == 0)		/*	1st.	*/
+	if (prevLeader == 0)				/*	1st.	*/
 	{
 		patchMap(largePoolFree[bucket].firstFreeBlock, nextLeader);
 	}
 	else						/*	!1st.	*/
 	{
-		sdrFetch(prevLeading, prevLeader);
 		prevLeading.next = nextLeader;
 		sdrPatch(prevLeader, prevLeading);
 	}
@@ -730,6 +863,7 @@ static void removeFromBucket(Sdr sdrv, int bucket, SdrAddress leader,
 	sdrPatch(leader, leading);
 	trailing.prev = LARGE_IN_USE;
 	sdrPatch(trailer, trailing);
+	return 0;
 }
 
 void	sdr_set_search_limit(Sdr sdrv, unsigned int newLimit)
@@ -799,7 +933,12 @@ static SdrObject mallocLarge(Sdr sdrv, size_t nbytes)
 			break;
 		}
 
-		sdrFetch(leading, leader);
+		if (!loadFreeBlock(sdrv, leader, &leading))
+		{
+			reportFreeListCorruption(sdrv, leader);
+			return 0;
+		}
+
 		if (leading.userDataSize >= nbytes)
 		{
 			break;	/*	Found adequate free block.	*/
@@ -826,7 +965,11 @@ static SdrObject mallocLarge(Sdr sdrv, size_t nbytes)
 
 		if (leader)	/*	Found large enough free block.	*/
 		{
-			sdrFetch(leading, leader);
+			if (!loadFreeBlock(sdrv, leader, &leading))
+			{
+				reportFreeListCorruption(sdrv, leader);
+				return 0;
+			}
 		}
 		else		/*	Need to increase pool size.	*/
 		{
@@ -859,9 +1002,19 @@ static SdrObject mallocLarge(Sdr sdrv, size_t nbytes)
 
 	/*	Free block found.  Must remove from bucket.		*/
 
-	trailer = leader + sizeof(BigOhd1) + leading.userDataSize;
-	sdrFetch(trailing, trailer);
-	removeFromBucket(sdrv, bucket, leader, trailer);
+	/*	Fully validate the selected block -- including its trailing
+	 *	overhead -- before removing it from its bucket.		*/
+
+	if (!validateFreeBlock(sdrv, leader, &leading, &trailer, &trailing))
+	{
+		reportFreeListCorruption(sdrv, leader);
+		return 0;
+	}
+
+	if (removeFromBucket(sdrv, bucket, leader, trailer) < 0)
+	{
+		return 0;	/*	Corruption; transaction aborted.	*/
+	}
 
 	/*	Split off surplus, if large enough to be a block, as
 	 *	separate free block -- but only if the new free block
@@ -907,7 +1060,10 @@ static SdrObject mallocLarge(Sdr sdrv, size_t nbytes)
 		sdrPatch(newLeader, newLeading);
 		trailing.start = newLeader;
 		sdrPatch(trailer, trailing);
-		insertFreeBlock(sdrv, newLeader, trailer);
+		if (insertFreeBlock(sdrv, newLeader, trailer) < 0)
+		{
+			return 0;	/*	Corruption; xn aborted.	*/
+		}
 	}
 
 	return (SdrObject) (leader + LG_OHD_SIZE);
@@ -1061,7 +1217,11 @@ static void freeLarge(Sdr sdrv, SdrAddress addr)
 					+ nextLeading.userDataSize;
 			sdrFetch(nextTrailing, nextTrailer);
 			bucket = computeBucket(nextLeading.userDataSize);
-			removeFromBucket(sdrv, bucket, nextLeader, nextTrailer);
+			if (removeFromBucket(sdrv, bucket, nextLeader,
+					nextTrailer) < 0)
+			{
+				return;	/*	Corruption; xn aborted.	*/
+			}
 
 			/*	Concatenate with block being freed.
 				Trailer of subsequent block becomes
@@ -1089,7 +1249,11 @@ static void freeLarge(Sdr sdrv, SdrAddress addr)
 			prevLeader = prevTrailing.start;
 			sdrFetch(prevLeading, prevLeader);
 			bucket = computeBucket(prevLeading.userDataSize);
-			removeFromBucket(sdrv, bucket, prevLeader, prevTrailer);
+			if (removeFromBucket(sdrv, bucket, prevLeader,
+					prevTrailer) < 0)
+			{
+				return;	/*	Corruption; xn aborted.	*/
+			}
 
 			/*	Concatenate with block being freed.
 				Leader of prior block becomes the
@@ -1106,9 +1270,11 @@ static void freeLarge(Sdr sdrv, SdrAddress addr)
 		}
 	}
 
-	/*	Insert the (possibly consolidated) free block.		*/
+	/*	Insert the (possibly consolidated) free block.  If the
+	 *	list head is corrupt, insertFreeBlock aborts the
+	 *	transaction; nothing more to do here either way.	*/
 
-	insertFreeBlock(sdrv, leader, trailer);
+	oK(insertFreeBlock(sdrv, leader, trailer));
 }
 
 void _sdrfree(Sdr sdrv, SdrObject object, PutSrc src)
