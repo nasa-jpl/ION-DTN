@@ -455,7 +455,7 @@ To add more VMs:
 - Update [group_vars/all.yml][group-vars] if template name changes
 
 [temp-zone]: docs/TEMPLATE_ZONE_SETUP.md
-[git-matrix]: ../../tests/git_matrix.py
+[git-matrix]: ../../.github/scripts/git_matrix.py
 [create-zone]: create-zones-parallel.yml
 [run-zones]: run-tests-in-zone.sh
 [destroy-zone]: destroy-zone.yml

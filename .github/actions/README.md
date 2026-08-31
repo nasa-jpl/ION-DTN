@@ -71,7 +71,7 @@ distributing tests across runners/batches.
 - [`.github/workflows/ci-workflow-solaris.yml`](../workflows/ci-workflow-solaris.yml)
   (generate-matrix job)
 
-**Implementation:** Uses [`tests/git_matrix.py`](../../tests/git_matrix.py) script
+**Implementation:** Uses [`git_matrix.py`](../../.github/scripts/git_matrix.py) script
 to distribute tests based on git history.
 
 ---

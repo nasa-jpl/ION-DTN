@@ -138,7 +138,7 @@ jobs:
               if [ "$FORCE_UPDATE" == "true" ]; then
                 echo "⚠️ Warning: Force update ignored - only works when specific tests are provided via tests_to_run"
               fi
-              ./tests/benchmark.py
+              .github/scripts/benchmark.py
             fi
           } >> benchmark.log 2> >(tee -a benchmark.log >&2)
 

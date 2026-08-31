@@ -133,10 +133,10 @@ jobs:
           # via git_matrix.py --tests; otherwise generate the full matrix.
           if [ -n "${{ env.TESTS_TO_RUN }}" ]; then
             echo "Restricting test matrix to: ${{ env.TESTS_TO_RUN }}"
-            TESTSET=$(./tests/git_matrix.py -r ${{ env.RUNNERS }} \
+            TESTSET=$(./github/scripts/git_matrix.py -r ${{ env.RUNNERS }} \
                       -t ${{ env.TESTS_TO_RUN }})
           else
-            TESTSET=$(./tests/git_matrix.py -r ${{ env.RUNNERS }})
+            TESTSET=$(./github/scripts/git_matrix.py -r ${{ env.RUNNERS }})
           fi
           # Transform the array into objects with a 1-based batch index
           TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')

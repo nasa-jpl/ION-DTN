@@ -261,4 +261,4 @@ GitHub Actions workflows in `.github/workflows/`:
 
 - **Atomic test tiers**: Parallel execution across multiple runners
 - **Benchmark-based distribution**: Tests distributed targeting equal execution time
-- **Matrix-based parallelization**: [`git_matrix.py`](../../tests/git_matrix.py) generates concurrent test batches for ARC/Solaris runners
+- **Matrix-based parallelization**: [`git_matrix.py`](../../.github/scripts/git_matrix.py) generates concurrent test batches for ARC/Solaris runners

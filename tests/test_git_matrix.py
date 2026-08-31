@@ -9,14 +9,21 @@ Tests validate the following functionality:
 - JSON output formatting
 """
 
+import importlib.util
 import io
 import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-# Import the script to test
-import git_matrix
+# Import the script to test from its new location
+spec = importlib.util.spec_from_file_location(
+    "git_matrix", Path(__file__).parent.parent / ".github" / "scripts" / "git_matrix.py"
+)
+git_matrix = importlib.util.module_from_spec(spec)
+# Register module so @patch decorators can find it
+sys.modules['git_matrix'] = git_matrix
+spec.loader.exec_module(git_matrix)
 
 
 class TestGitMatrix(unittest.TestCase):

@@ -51,9 +51,9 @@ runs:
 
         # Run the python script to get the base distribution
         if [ -n "$TESTS_TO_RUN" ]; then
-          TESTSET=$(python3 ./tests/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG -t $TESTS_TO_RUN)
+          TESTSET=$(python3 .github/scripts/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG -t $TESTS_TO_RUN)
         else
-          TESTSET=$(python3 ./tests/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG)
+          TESTSET=$(python3 .github/scripts/git_matrix.py -r $RUNNERS $SOLARIS_FLAG $EXCLUDE_OPTIONAL_FLAG)
         fi
 
         # Apply specific jq transformations based on the platform target

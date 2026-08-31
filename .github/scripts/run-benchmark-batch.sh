@@ -23,7 +23,8 @@ for test in "${TESTS[@]}"; do
     fi
 
     echo "Benchmarking $test (resolved to $target_path)..."
-    python3 tests/benchmark.py --force-update --target-path "$target_path" || {
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    python3 "$SCRIPT_DIR/benchmark.py" --force-update --target-path "$target_path" || {
         TEST_STATUS=$?
         echo "::error::Benchmark failed for $test with status $TEST_STATUS"
         exit $TEST_STATUS
