@@ -316,6 +316,7 @@ static IonVdb	*_ionvdb(char **name)
 		sdr_read(sdr, (char *) &iondb, _iondbObject(NULL),
 				sizeof(IonDB));
 		vdb->deltaFromUTC = iondb.deltaFromUTC;
+		vdb->deltaFromUTCMillis = iondb.deltaFromUTCMillis;
 		vdb->heapMemProtectPercent = iondb.heapMemProtectPercent;
 		vdb->wmMemProtectPercent = iondb.wmMemProtectPercent;
 		vdb->heapThresholdBreached = 0;
@@ -968,6 +969,7 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 				ZcoOutbound);
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.maxClockError = 1;
+		iondbBuf.maxClockErrorMillis = 0;
 		iondbBuf.clockIsSynchronized = 1;
 		iondbBuf.heapMemProtectPercent = 10;
 		iondbBuf.wmMemProtectPercent = 10;
@@ -1665,14 +1667,21 @@ void	stopIonMemTrace(int verbose)
 
 int	setDeltaFromUTC(int newDelta)
 {
+	return setDeltaFromUTCMs(newDelta, 0);
+}
+
+int	setDeltaFromUTCMs(int newDelta, int16_t newDeltaMillis)
+{
 	Sdr	ionsdr = _ionsdr(NULL);
 	SdrObject iondbObject = _iondbObject(NULL);
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	IonDB	iondb;
 
+	CHKERR(newDeltaMillis >= -999 && newDeltaMillis <= 999);
 	CHKERR(sdr_begin_xn(ionsdr));
 	sdr_stage(ionsdr, (char *) &iondb, iondbObject, sizeof(IonDB));
 	iondb.deltaFromUTC = newDelta;
+	iondb.deltaFromUTCMillis = newDeltaMillis;
 	sdr_write(ionsdr, iondbObject, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(ionsdr) < 0)
 	{
@@ -1681,20 +1690,43 @@ int	setDeltaFromUTC(int newDelta)
 	}
 
 	ionvdb->deltaFromUTC = newDelta;
+	ionvdb->deltaFromUTCMillis = newDeltaMillis;
 	return 0;
 }
 
 time_t	getCtime(void)
 {
-	IonVdb	*ionvdb = _ionvdb(NULL);
-	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
-	time_t	ctime;
+	time_t		seconds;
+	uint16_t	milliseconds;
+
+	getCtimeMs(&seconds, &milliseconds);
+	return seconds;
+}
+
+void	getCtimeMs(time_t *seconds, uint16_t *milliseconds)
+{
+	IonVdb		*ionvdb = _ionvdb(NULL);
+	int		deltaSeconds = ionvdb ? ionvdb->deltaFromUTC : 0;
+	int		deltaMilliseconds = ionvdb
+				? ionvdb->deltaFromUTCMillis : 0;
+	struct timeval	now;
+
+	CHKVOID(seconds);
+	CHKVOID(milliseconds);
 #if defined(FSWCLOCK)
+{
+	time_t	ctime;
+
 #include "fswctime.c"
+	now.tv_sec = ctime;
+	now.tv_usec = 0;
+}
 #else
-	ctime = time(NULL);
+	getCurrentTime(&now);
 #endif
-	return ctime - delta;
+	ionShiftTimestamp(now.tv_sec, (uint16_t) (now.tv_usec / 1000),
+			-(long) deltaSeconds, -deltaMilliseconds, seconds,
+			milliseconds);
 }
 
 static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
@@ -1776,6 +1808,114 @@ time_t	readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 	return readTimestamp(timestampBuffer, referenceTime, 1);
 }
 
+int	readTimestampUTCMs(char *timestampBuffer, time_t referenceTime,
+		time_t *seconds, uint16_t *milliseconds)
+{
+	char		baseTimestamp[TIMESTAMPBUFSZ];
+	char		*decimalPoint;
+	size_t		baseLength;
+	size_t		fractionLength;
+	unsigned int	parsedMilliseconds = 0;
+	size_t		i;
+
+	CHKERR(timestampBuffer);
+	CHKERR(seconds);
+	CHKERR(milliseconds);
+	*milliseconds = 0;
+	decimalPoint = strrchr(timestampBuffer, '.');
+	if (decimalPoint == NULL)
+	{
+		*seconds = readTimestampUTC(timestampBuffer, referenceTime);
+		return *seconds == 0 ? -1 : 0;
+	}
+
+	baseLength = decimalPoint - timestampBuffer;
+	fractionLength = strlen(decimalPoint + 1);
+	if (baseLength == 0 || baseLength >= sizeof baseTimestamp
+	|| fractionLength == 0 || fractionLength > 3)
+	{
+		return -1;
+	}
+
+	for (i = 0; i < fractionLength; i++)
+	{
+		if (!isdigit((unsigned char) decimalPoint[1 + i]))
+		{
+			return -1;
+		}
+
+		parsedMilliseconds = (parsedMilliseconds * 10)
+				+ (decimalPoint[1 + i] - '0');
+	}
+
+	while (fractionLength++ < 3)
+	{
+		parsedMilliseconds *= 10;
+	}
+
+	memcpy(baseTimestamp, timestampBuffer, baseLength);
+	baseTimestamp[baseLength] = '\0';
+	*seconds = readTimestampUTC(baseTimestamp, referenceTime);
+	if (*seconds == 0)
+	{
+		return -1;
+	}
+
+	*milliseconds = (uint16_t) parsedMilliseconds;
+	return 0;
+}
+
+int	ionCompareTimestamp(time_t firstSeconds, uint16_t firstMilliseconds,
+		time_t secondSeconds, uint16_t secondMilliseconds)
+{
+	if (firstSeconds < secondSeconds)
+	{
+		return -1;
+	}
+
+	if (firstSeconds > secondSeconds)
+	{
+		return 1;
+	}
+
+	if (firstMilliseconds < secondMilliseconds)
+	{
+		return -1;
+	}
+
+	if (firstMilliseconds > secondMilliseconds)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+void	ionShiftTimestamp(time_t baseSeconds, uint16_t baseMilliseconds,
+		long deltaSeconds, int deltaMilliseconds, time_t *resultSeconds,
+		uint16_t *resultMilliseconds)
+{
+	long	milliseconds = (long) baseMilliseconds + deltaMilliseconds;
+
+	CHKVOID(baseMilliseconds <= 999);
+	CHKVOID(resultSeconds);
+	CHKVOID(resultMilliseconds);
+	while (milliseconds < 0)
+	{
+		deltaSeconds--;
+		milliseconds += 1000;
+	}
+
+	while (milliseconds >= 1000)
+	{
+		deltaSeconds++;
+		milliseconds -= 1000;
+	}
+
+	*resultSeconds = baseSeconds + deltaSeconds;
+	*resultMilliseconds = (uint16_t) milliseconds;
+}
+
 void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
 	struct tm	tsbuf;
@@ -1808,6 +1948,24 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
+}
+
+void	writeTimestampUTCMs(time_t timestamp, uint16_t milliseconds,
+		char *timestampBuffer)
+{
+	char	wholeSeconds[TIMESTAMPBUFSZ];
+
+	CHKVOID(timestampBuffer);
+	CHKVOID(milliseconds <= 999);
+	writeTimestampUTC(timestamp, wholeSeconds);
+	if (milliseconds == 0)
+	{
+		istrcpy(timestampBuffer, wholeSeconds, TIMESTAMPBUFSZ);
+		return;
+	}
+
+	isprintf(timestampBuffer, TIMESTAMPBUFSZ, "%s.%03u", wholeSeconds,
+			milliseconds);
 }
 
 time_t	ionReferenceTime(time_t *newValue)

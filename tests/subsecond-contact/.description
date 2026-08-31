@@ -1,0 +1,2 @@
+Validates millisecond contact parsing, persistence, dispatch, CGR boundaries,
+clock error, signed UTC delta, BP time, and legacy whole-second compatibility.

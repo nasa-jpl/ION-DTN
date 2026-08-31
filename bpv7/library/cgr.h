@@ -164,12 +164,12 @@ typedef struct
 	/*	Contact that forms the initial hop of the route.	*/
 
 	uvast		toFqnn;	/*	Initial-hop neighbor.	*/
-	time_t		fromTime;	/*	As from time(2).	*/
+	double		fromTime;	/* Unix time, fractional. */
 
 	/*	Time at which route shuts down: earliest contact
 	 *	end time among all contacts in the end-to-end path.	*/
 
-	time_t		toTime;		/*	As from time(2).	*/
+	double		toTime;		/* Unix time, fractional. */
 
 	/*	Details of the route.					*/
 

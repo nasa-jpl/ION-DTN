@@ -182,6 +182,16 @@ int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
 		return 1;
 	}
 
+	if (contact->fromTimeMs < argContact->fromTimeMs)
+	{
+		return -1;
+	}
+
+	if (contact->fromTimeMs > argContact->fromTimeMs)
+	{
+		return 1;
+	}
+
 	/*	Matching start time too.				*/
 
 	return 0;
@@ -201,6 +211,16 @@ int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 	}
 
 	if (event->time > argEvent->time)
+	{
+		return 1;
+	}
+
+	if (event->timeMillis < argEvent->timeMillis)
+	{
+		return -1;
+	}
+
+	if (event->timeMillis > argEvent->timeMillis)
 	{
 		return 1;
 	}
@@ -605,7 +625,8 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 
 static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
 			uvast fromFqnn, uvast toFqnn, time_t fromTime,
-			time_t toTime, int *isPreceding, PsmAddress *adjacentAddr)
+			uint16_t fromTimeMs, time_t toTime, uint16_t toTimeMs,
+			int *isPreceding, PsmAddress *adjacentAddr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	cxelt;
@@ -664,7 +685,8 @@ static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
 
 		/*	Check if existing contact ends when new one begins.	*/
 
-		if (cxref->toTime == fromTime)
+		if (ionCompareTimestamp(cxref->toTime, cxref->toTimeMs,
+				fromTime, fromTimeMs) == 0)
 		{
 #if DEBUG_RFX
 			printf("[RFX]   -> Found PRECEDING adjacent contact (ends at %ld)\n", cxref->toTime);
@@ -680,7 +702,8 @@ static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
 
 		/*	Check if existing contact begins when new one ends.	*/
 
-		if (cxref->fromTime == toTime)
+		if (ionCompareTimestamp(cxref->fromTime, cxref->fromTimeMs,
+				toTime, toTimeMs) == 0)
 		{
 #if DEBUG_RFX
 			printf("[RFX]   -> Found FOLLOWING adjacent contact (starts at %ld)\n", cxref->fromTime);
@@ -708,7 +731,8 @@ static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
  *	and recreate them with the exact boundary time.			*/
 
 static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
-			PsmAddress precedingCxaddr, time_t boundaryTime)
+			PsmAddress precedingCxaddr, time_t boundaryTime,
+			uint16_t boundaryTimeMs)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonEvent	oldEvent;
@@ -726,6 +750,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 		/*	Delete the old event from timeline.		*/
 
 		oldEvent.time = precedingCxref->stopXmit;
+		oldEvent.timeMillis = precedingCxref->stopXmitMs;
 		oldEvent.type = IonStopXmit;
 		oldEvent.ref = precedingCxaddr;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -734,6 +759,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 		/*	Update the cxref field.				*/
 
 		precedingCxref->stopXmit = boundaryTime;
+		precedingCxref->stopXmitMs = boundaryTimeMs;
 
 		/*	Create new event with updated time.		*/
 
@@ -745,6 +771,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 
 		newEvent = (IonEvent *) psp(ionwm, addr);
 		newEvent->time = boundaryTime;
+		newEvent->timeMillis = boundaryTimeMs;
 		newEvent->type = IonStopXmit;
 		newEvent->ref = precedingCxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -766,6 +793,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 		/*	Delete the old event from timeline.		*/
 
 		oldEvent.time = precedingCxref->stopFire;
+		oldEvent.timeMillis = precedingCxref->stopFireMs;
 		oldEvent.type = IonStopFire;
 		oldEvent.ref = precedingCxaddr;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -774,6 +802,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 		/*	Update the cxref field.				*/
 
 		precedingCxref->stopFire = boundaryTime;
+		precedingCxref->stopFireMs = boundaryTimeMs;
 
 		/*	Create new event with updated time.		*/
 
@@ -785,6 +814,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 
 		newEvent = (IonEvent *) psp(ionwm, addr);
 		newEvent->time = boundaryTime;
+		newEvent->timeMillis = boundaryTimeMs;
 		newEvent->type = IonStopFire;
 		newEvent->ref = precedingCxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -811,7 +841,10 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	PsmAddress	cxelt;
 	PsmAddress	addr;
 	IonEvent	*event;
-	time_t		currentTime = getCtime();
+	time_t		currentTime;
+	uint16_t	currentTimeMs;
+
+	getCtimeMs(&currentTime, &currentTimeMs);
 
 	/*	If the CXref already exists, just return its address.	*/
 
@@ -820,6 +853,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	arg.fromFqnn = cxref->fromFqnn;
 	arg.toFqnn = cxref->toFqnn;
 	arg.fromTime = cxref->fromTime;
+	arg.fromTimeMs = cxref->fromTimeMs;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
 	if (cxelt)
@@ -862,6 +896,11 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	iondbObj = getIonDbObject();
 	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
+	cxref->startXmitMs = cxref->fromTimeMs;
+	cxref->stopXmitMs = cxref->toTimeMs;
+	cxref->startFireMs = cxref->fromTimeMs;
+	cxref->stopFireMs = cxref->toTimeMs;
+	cxref->purgeTimeMs = cxref->toTimeMs;
 #if DEBUG_RFX
 	printf("[RFX] insertCXref: maxClockError=%d for contact " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " [%ld, %ld]\n",
 		iondb.maxClockError, cxref->fromFqnn, cxref->toFqnn, cxref->fromTime, cxref->toTime);
@@ -877,7 +916,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		adjacentContact = findAdjacentContact(vdb, cxref->regionNbr,
 				cxref->fromFqnn, cxref->toFqnn,
-				cxref->fromTime, cxref->toTime, &isPreceding,
+				cxref->fromTime, cxref->fromTimeMs, cxref->toTime,
+				cxref->toTimeMs, &isPreceding,
 				&adjacentCxaddr);
 
 		if (cxref->fromFqnn == getOwnFqnn())
@@ -908,8 +948,10 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			}
 			else
 			{
-				cxref->startXmit = cxref->fromTime
-						+ iondb.maxClockError;
+				ionShiftTimestamp(cxref->fromTime, cxref->fromTimeMs,
+						(long) iondb.maxClockError,
+						(int) iondb.maxClockErrorMillis,
+						&cxref->startXmit, &cxref->startXmitMs);
 			}
 
 			if (adjacentContact && !isPreceding)
@@ -929,8 +971,10 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			}
 			else
 			{
-				cxref->stopXmit = cxref->toTime
-						- iondb.maxClockError;
+				ionShiftTimestamp(cxref->toTime, cxref->toTimeMs,
+						-(long) iondb.maxClockError,
+						-(int) iondb.maxClockErrorMillis,
+						&cxref->stopXmit, &cxref->stopXmitMs);
 			}
 		}
 
@@ -957,8 +1001,10 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			}
 			else
 			{
-				cxref->startFire = cxref->fromTime
-						+ iondb.maxClockError;
+				ionShiftTimestamp(cxref->fromTime, cxref->fromTimeMs,
+						(long) iondb.maxClockError,
+						(int) iondb.maxClockErrorMillis,
+						&cxref->startFire, &cxref->startFireMs);
 			}
 
 			if (adjacentContact && !isPreceding)
@@ -970,8 +1016,10 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			}
 			else
 			{
-				cxref->stopFire = cxref->toTime
-						- iondb.maxClockError;
+				ionShiftTimestamp(cxref->toTime, cxref->toTimeMs,
+						-(long) iondb.maxClockError,
+						-(int) iondb.maxClockErrorMillis,
+						&cxref->stopFire, &cxref->stopFireMs);
 			}
 		}
 		else	/*	Not a transmission to the local node.	*/
@@ -990,7 +1038,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			printf("[RFX] Calling updateAdjacentStopEvents for preceding contact\n");
 #endif
 			if (updateAdjacentStopEvents(vdb, adjacentContact,
-					adjacentCxaddr, cxref->fromTime) < 0)
+					adjacentCxaddr, cxref->fromTime, cxref->fromTimeMs) < 0)
 			{
 				psm_free(ionwm, cxaddr);
 				return 0;
@@ -1019,6 +1067,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->startXmit;
+		event->timeMillis = cxref->startXmitMs;
 		event->type = IonStartXmit;
 		event->ref = cxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
@@ -1039,6 +1088,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->stopXmit;
+		event->timeMillis = cxref->stopXmitMs;
 		event->type = IonStopXmit;
 		event->ref = cxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
@@ -1059,6 +1109,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->startFire;
+		event->timeMillis = cxref->startFireMs;
 		event->type = IonStartFire;
 		event->ref = cxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
@@ -1079,6 +1130,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->stopFire;
+		event->timeMillis = cxref->stopFireMs;
 		event->type = IonStopFire;
 		event->ref = cxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
@@ -1099,6 +1151,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		event = (IonEvent *) psp(ionwm, addr);
 		event->time = cxref->purgeTime;
+		event->timeMillis = cxref->purgeTimeMs;
 		event->type = IonPurgeContact;
 		event->ref = cxaddr;
 		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
@@ -1109,7 +1162,9 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 		}
 	}
 
-	if (cxref->type != CtRegistration && cxref->toTime > currentTime)
+	if (cxref->type != CtRegistration
+	&& ionCompareTimestamp(cxref->toTime, cxref->toTimeMs,
+			currentTime, currentTimeMs) > 0)
 	{
 		/*	Affects routes.					*/
 
@@ -1120,7 +1175,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 static void	insertContact(int regionIdx, IonDB *iondb, SdrObject iondbObj,
-			time_t fromTime, time_t toTime, uvast fromFqnn,
+			time_t fromTime, uint16_t fromTimeMs, time_t toTime,
+			uint16_t toTimeMs, uvast fromFqnn,
 			uvast toFqnn, size_t xmitRate, float confidence,
 			ContactType contactType, PsmAddress *cxaddr)
 {
@@ -1136,13 +1192,16 @@ static void	insertContact(int regionIdx, IonDB *iondb, SdrObject iondbObj,
 	(void)iondbObj;
 
 	contact.fromTime = fromTime;
+	contact.fromTimeMs = fromTimeMs;
 	contact.toTime = toTime;
+	contact.toTimeMs = toTimeMs;
 	contact.fromFqnn = fromFqnn;
 	contact.toFqnn = toFqnn;
 	contact.xmitRate = xmitRate;
 	contact.confidence = confidence;
 	contact.type = contactType;
-	volume = xmitRate * (toTime - fromTime);
+	volume = xmitRate * ((toTime - fromTime)
+			+ (((double) toTimeMs - fromTimeMs) / 1000.0));
 	contact.mtv[0] = volume;		/*	Bulk.		*/
 	contact.mtv[1] = volume;		/*	Standard.	*/
 	contact.mtv[2] = volume;		/*	Expedited.	*/
@@ -1163,7 +1222,9 @@ static void	insertContact(int regionIdx, IonDB *iondb, SdrObject iondbObj,
 	memset((char *) &newCx, 0, sizeof(IonCXref));
 	newCx.regionNbr = regionNbr;
 	newCx.fromTime = fromTime;
+	newCx.fromTimeMs = fromTimeMs;
 	newCx.toTime = toTime;
+	newCx.toTimeMs = toTimeMs;
 	newCx.fromFqnn = fromFqnn;
 	newCx.toFqnn = toFqnn;
 	newCx.xmitRate = xmitRate;
@@ -1179,7 +1240,8 @@ static void	deleteContact(PsmAddress cxaddr)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	time_t		currentTime = getCtime();
+	time_t		currentTime;
+	uint16_t	currentTimeMs;
 	IonCXref	*cxref;
 	SdrObject	obj;
 	IonEvent	event;
@@ -1188,6 +1250,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	PsmAddress	elt;
 	PsmAddress	citation;
 
+	getCtimeMs(&currentTime, &currentTimeMs);
 	cxref = (IonCXref *) psp(ionwm, cxaddr);
 
 	/*	Delete contact from non-volatile database.		*/
@@ -1210,6 +1273,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->startXmit)
 	{
 		event.time = cxref->startXmit;
+		event.timeMillis = cxref->startXmitMs;
 		event.type = IonStartXmit;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1218,6 +1282,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->stopXmit)
 	{
 		event.time = cxref->stopXmit;
+		event.timeMillis = cxref->stopXmitMs;
 		event.type = IonStopXmit;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1226,6 +1291,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->startFire)
 	{
 		event.time = cxref->startFire;
+		event.timeMillis = cxref->startFireMs;
 		event.type = IonStartFire;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1234,6 +1300,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->stopFire)
 	{
 		event.time = cxref->stopFire;
+		event.timeMillis = cxref->stopFireMs;
 		event.type = IonStopFire;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1242,6 +1309,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->startRecv)
 	{
 		event.time = cxref->startRecv;
+		event.timeMillis = cxref->startRecvMs;
 		event.type = IonStartRecv;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1250,6 +1318,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->stopRecv)
 	{
 		event.time = cxref->stopRecv;
+		event.timeMillis = cxref->stopRecvMs;
 		event.type = IonStopRecv;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1258,6 +1327,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	if (cxref->purgeTime)
 	{
 		event.time = cxref->purgeTime;
+		event.timeMillis = cxref->purgeTimeMs;
 		event.type = IonPurgeContact;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 				&event, rfx_erase_data, NULL);
@@ -1273,7 +1343,10 @@ static void	deleteContact(PsmAddress cxaddr)
 	 *	DON'T zero rates - let the IonStop events handle it.
 	 *	This prevents interference with adjacent contacts.	*/
 
-	if (currentTime >= cxref->startXmit && currentTime < cxref->stopXmit)
+	if (ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->startXmit, cxref->startXmitMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->stopXmit, cxref->stopXmitMs) < 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->toFqnn, &nextElt);
 		if (neighbor)
@@ -1286,7 +1359,10 @@ static void	deleteContact(PsmAddress cxaddr)
 		}
 	}
 
-	if (currentTime >= cxref->startFire && currentTime < cxref->stopFire)
+	if (ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->startFire, cxref->startFireMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->stopFire, cxref->stopFireMs) < 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
@@ -1299,7 +1375,10 @@ static void	deleteContact(PsmAddress cxaddr)
 		}
 	}
 
-	if (currentTime >= cxref->startRecv && currentTime < cxref->stopRecv)
+	if (ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->startRecv, cxref->startRecvMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs,
+			cxref->stopRecv, cxref->stopRecvMs) < 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
@@ -1335,7 +1414,9 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	/*	Delete contact from index.				*/
 
-	if (cxref->type != CtRegistration && cxref->toTime > currentTime)
+	if (cxref->type != CtRegistration
+	&& ionCompareTimestamp(cxref->toTime, cxref->toTimeMs,
+			currentTime, currentTimeMs) > 0)
 	{
 		/*	Affects routes.					*/
 
@@ -1380,6 +1461,7 @@ static void vacateRegion(IonDB *iondb, SdrObject iondbObj, int regionIdx,
 		arg.fromFqnn = contact.fromFqnn;
 		arg.toFqnn = contact.toFqnn;
 		arg.fromTime = contact.fromTime;
+		arg.fromTimeMs = contact.fromTimeMs;
 		oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 				&arg, &cxelt));
 		if (cxelt)
@@ -1702,6 +1784,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 	PsmAddress	nextElt;
 	int		regionIdx;
 
+	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
 	arg.fromFqnn = fqnn;
 	arg.toFqnn = fqnn;
@@ -1737,12 +1820,22 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 	sdr_write(sdr, iondbObj, (char *) iondb, sizeof(IonDB));
 	regionIdx = ionPickRegion(regionNbr);
 	CHKVOID(regionIdx == 0 || regionIdx == 1);
-	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
-			MAX_POSIX_TIME, fqnn, fqnn, 0, 1.0,
+	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME, 0,
+			MAX_POSIX_TIME, 0, fqnn, fqnn, 0, 1.0,
 			CtRegistration, cxaddr);
 }
 
 int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
+		uvast fromFqnn, uvast toFqnn, size_t xmitRate, float confidence,
+		PsmAddress *cxaddr, int announce)
+{
+	return rfx_insert_contact_ms(regionNbr, fromTime, 0, toTime, 0,
+			fromFqnn, toFqnn, xmitRate, confidence, cxaddr,
+			announce);
+}
+
+int	rfx_insert_contact_ms(uint32_t regionNbr, time_t fromTime,
+		uint16_t fromTimeMs, time_t toTime, uint16_t toTimeMs,
 		uvast fromFqnn, uvast toFqnn, size_t xmitRate, float confidence,
 		PsmAddress *cxaddr, int announce)
 {
@@ -1763,6 +1856,14 @@ int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
 	char		contactIdString[128];
 
 	CHKERR(cxaddr);
+	CHKERR(fromTimeMs <= 999);
+	CHKERR(toTimeMs <= 999);
+	if (announce && (fromTimeMs != 0 || toTimeMs != 0))
+	{
+		writeMemo("[?] Fractional contact announcement is not yet supported.");
+		return 10;
+	}
+
 	*cxaddr = 0;			/*	Default.		*/
 	if (regionNbr == 0)
 	{
@@ -1799,6 +1900,8 @@ between 0.0 and 1.0.");
 
 	if (fromTime == MAX_POSIX_TIME)	/*	Registration.		*/
 	{
+		fromTimeMs = 0;
+		toTimeMs = 0;
 		CHKZERO(fromFqnn == toFqnn);
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
@@ -1807,6 +1910,8 @@ between 0.0 and 1.0.");
 	}
 	else if (fromTime == 0)		/*	Hypothetical.		*/
 	{
+		fromTimeMs = 0;
+		toTimeMs = 0;
 		CHKZERO(fromFqnn != toFqnn);
 		CHKZERO(fromFqnn == ownFqnn || toFqnn == ownFqnn);
 		toTime = MAX_POSIX_TIME;
@@ -1822,15 +1927,17 @@ between 0.0 and 1.0.");
 			return 5;
 		}
 
-		if (fromTime == toTime)	/*	Predicted.		*/
+		if (ionCompareTimestamp(fromTime, fromTimeMs, toTime, toTimeMs) == 0)
+					/*	Predicted.		*/
 		{
 			CHKZERO(fromFqnn != ownFqnn && toFqnn != ownFqnn);
-			fromTime = getCtime();	/*	Now.		*/
+			getCtimeMs(&fromTime, &fromTimeMs); /* Now. */
 			contactType = CtPredicted;
 		}
 		else			/*	Scheduled.		*/
 		{
-			if (toTime < fromTime)
+			if (ionCompareTimestamp(toTime, toTimeMs, fromTime,
+					fromTimeMs) < 0)
 			{
 				writeMemo("[?] Can't insert contact, To time \
 must be later than From time.");
@@ -1950,8 +2057,8 @@ hypothetical contact, as that contact is now discovered.");
 				case CtHypothetical:
 					/*	Replace this one.	*/
 
-					if (rfx_remove_contact(cxref->regionNbr,
-							&cxref->fromTime,
+					if (rfx_remove_contact_ms(cxref->regionNbr,
+							&cxref->fromTime, cxref->fromTimeMs,
 							cxref->fromFqnn,
 							cxref->toFqnn, 0) < 0)
 					{
@@ -1980,14 +2087,16 @@ hypothetical contact, as that contact is now discovered.");
 
 		/*	New contact is scheduled or predicted.		*/
 
-		if (cxref->fromTime > toTime)	/*	Future contact.	*/
+		if (ionCompareTimestamp(cxref->fromTime, cxref->fromTimeMs,
+				toTime, toTimeMs) > 0)	/*	Future contact.	*/
 		{
 			/*	No more potential overlaps.		*/
 
 			break;			/*	Out of loop.	*/
 		}
 
-		if (cxref->toTime < fromTime)
+		if (ionCompareTimestamp(cxref->toTime, cxref->toTimeMs,
+				fromTime, fromTimeMs) < 0)
 		{
 			/*	Prior contact, no overlap.		*/
 
@@ -1997,7 +2106,10 @@ hypothetical contact, as that contact is now discovered.");
 
 		/*	Check for exact adjacency (allowed).		*/
 
-		if (cxref->toTime == fromTime || cxref->fromTime == toTime)
+		if (ionCompareTimestamp(cxref->toTime, cxref->toTimeMs,
+				fromTime, fromTimeMs) == 0
+			|| ionCompareTimestamp(cxref->fromTime, cxref->fromTimeMs,
+				toTime, toTimeMs) == 0)
 		{
 			/*	Contacts are exactly adjacent, which
 			 *	is permitted.  Not an overlap.		*/
@@ -2017,8 +2129,8 @@ hypothetical contact, as that contact is now discovered.");
 			 *	predicted contact.  The predicted
 			 *	contact is overridden.			*/
 
-			if (rfx_remove_contact(cxref->regionNbr,
-					&cxref->fromTime, cxref->fromFqnn,
+			if (rfx_remove_contact_ms(cxref->regionNbr,
+					&cxref->fromTime, cxref->fromTimeMs, cxref->fromFqnn,
 					cxref->toFqnn, 0) < 0)
 			{
 				sdr_cancel_xn(sdr);
@@ -2043,8 +2155,8 @@ hypothetical contact, as that contact is now discovered.");
 		/*	New contact overlaps with a non-predicted
 		 *	contact.					*/
 
-		writeTimestampUTC(fromTime, buf1);
-		writeTimestampUTC(toTime, buf2);
+		writeTimestampUTCMs(fromTime, fromTimeMs, buf1);
+		writeTimestampUTCMs(toTime, toTimeMs, buf2);
 		isprintf(contactIdString, sizeof contactIdString,
 				"from %s until %s, %lu->%lu", buf1, buf2,
 				fromFqnn, toFqnn);
@@ -2068,7 +2180,8 @@ hypothetical contact, as that contact is now discovered.");
 	registerInRegion(regionNbr, fromFqnn, &iondb, iondbObj, announce);
 	registerInRegion(regionNbr, toFqnn, &iondb, iondbObj, announce);
 	regionIdx = ionPickRegion(regionNbr);
-	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromFqnn,
+	insertContact(regionIdx, &iondb, iondbObj, fromTime, fromTimeMs,
+			toTime, toTimeMs, fromFqnn,
 			toFqnn, xmitRate, confidence, contactType, cxaddr);
 
 	/*	Notify other nodes in the region if necessary.		*/
@@ -2091,8 +2204,10 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	CHKNULL(cxaddr);
 	CHKNULL(buffer);
 	contact = (IonCXref *) psp(getIonwm(), cxaddr);
-	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
-	writeTimestampUTC(contact->toTime, toTimeBuffer);
+	writeTimestampUTCMs(contact->fromTime, contact->fromTimeMs,
+			fromTimeBuffer);
+	writeTimestampUTCMs(contact->toTime, contact->toTimeMs,
+			toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
 node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
 confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromFqnn,
@@ -2100,13 +2215,15 @@ confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromFqnn,
 	return buffer;
 }
 
-int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
-		uvast toFqnn, size_t xmitRate, float confidence, int announce)
+int	rfx_revise_contact_ms(uint32_t regionNbr, time_t fromTime,
+		uint16_t fromTimeMs, uvast fromFqnn, uvast toFqnn,
+		size_t xmitRate, float confidence, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	time_t		currentTime = getCtime();
+	time_t		currentTime;
+	uint16_t	currentTimeMs;
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
@@ -2117,11 +2234,19 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 	IonNeighbor	*neighbor;
 
 	CHKERR(confidence <= 1.0);
+	if (announce && fromTimeMs != 0)
+	{
+		writeMemo("[?] Fractional contact announcement is not yet supported.");
+		return 3;
+	}
+
+	getCtimeMs(&currentTime, &currentTimeMs);
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
 	arg.fromFqnn = fromFqnn;
 	arg.toFqnn = toFqnn;
 	arg.fromTime = fromTime;
+	arg.fromTimeMs = fromTimeMs;
 	CHKERR(sdr_begin_xn(sdr));
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
@@ -2159,7 +2284,10 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 
 	/*	Apply to current state of affected neighbor, if any.	*/
 
-	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
+	if (ionCompareTimestamp(currentTime, currentTimeMs, cxref->startXmit,
+			cxref->startXmitMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs, cxref->stopXmit,
+			cxref->stopXmitMs) <= 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->toFqnn, &nextElt);
 		if (neighbor)
@@ -2168,7 +2296,10 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 		}
 	}
 
-	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
+	if (ionCompareTimestamp(currentTime, currentTimeMs, cxref->startFire,
+			cxref->startFireMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs, cxref->stopFire,
+			cxref->stopFireMs) <= 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
@@ -2177,7 +2308,10 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 		}
 	}
 
-	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
+	if (ionCompareTimestamp(currentTime, currentTimeMs, cxref->startRecv,
+			cxref->startRecvMs) >= 0
+	&& ionCompareTimestamp(currentTime, currentTimeMs, cxref->stopRecv,
+			cxref->stopRecvMs) <= 0)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
@@ -2212,6 +2346,13 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 	}
 
 	return 0;
+}
+
+int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
+		uvast toFqnn, size_t xmitRate, float confidence, int announce)
+{
+	return rfx_revise_contact_ms(regionNbr, fromTime, 0, fromFqnn,
+			toFqnn, xmitRate, confidence, announce);
 }
 
 static void	removeAllContacts(uint32_t regionNbr, uvast fromFqnn,
@@ -2269,6 +2410,7 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromFqnn,
 		arg.fromFqnn = cxref->fromFqnn;
 		arg.toFqnn = cxref->toFqnn;
 		arg.fromTime = cxref->fromTime;
+		arg.fromTimeMs = cxref->fromTimeMs;
 		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg, &nextElt);
 	}
@@ -2350,6 +2492,7 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 			arg.fromFqnn = contact.fromFqnn;
 			arg.toFqnn = contact.toFqnn;
 			arg.fromTime = contact.fromTime;
+			arg.fromTimeMs = contact.fromTimeMs;
 			oK(sm_rbt_search(ionwm, vdb->contactIndex,
 					rfx_order_contacts, &arg, &cxelt));
 			if (cxelt)
@@ -2420,7 +2563,7 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 }
 
 static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
-			uvast fromFqnn, uvast toFqnn, int announce)
+			uint16_t fromTimeMs, uvast fromFqnn, uvast toFqnn, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
@@ -2435,6 +2578,7 @@ static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
 	arg.fromFqnn = fromFqnn;
 	arg.toFqnn = toFqnn;
 	arg.fromTime = fromTime;
+	arg.fromTimeMs = fromTimeMs;
 
 	/*	Get the contact.					*/
 
@@ -2467,8 +2611,8 @@ static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
 	}
 }
 
-int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
-		uvast toFqnn, int announce)
+int	rfx_remove_contact_ms(uint32_t regionNbr, time_t *fromTime,
+		uint16_t fromTimeMs, uvast fromFqnn, uvast toFqnn, int announce)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -2478,11 +2622,17 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
 	 *	these two nodes".					*/
 
 	CHKERR(regionNbr > 0);
+	if (announce && fromTime && fromTimeMs != 0)
+	{
+		writeMemo("[?] Fractional contact announcement is not yet supported.");
+		return 1;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
-		removeOneContact(regionNbr, *fromTime, fromFqnn, toFqnn,
-				announce);
+		removeOneContact(regionNbr, *fromTime, fromTimeMs, fromFqnn,
+				toFqnn, announce);
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
@@ -2496,6 +2646,13 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
 	}
 
 	return 0;
+}
+
+int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
+		uvast toFqnn, int announce)
+{
+	return rfx_remove_contact_ms(regionNbr, fromTime, 0, fromFqnn,
+			toFqnn, announce);
 }
 
 void	rfx_brief_contacts(uint32_t regionNbr)
@@ -2562,8 +2719,10 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 			break;
 		}
 
-		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
-		writeTimestampUTC(contact->toTime, toTimeBuffer);
+		writeTimestampUTCMs(contact->fromTime, contact->fromTimeMs,
+			fromTimeBuffer);
+		writeTimestampUTCMs(contact->toTime, contact->toTimeMs,
+			toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
@@ -2598,8 +2757,10 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 			break;
 		}
 
-		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
-		writeTimestampUTC(contact->toTime, toTimeBuffer);
+		writeTimestampUTCMs(contact->fromTime, contact->fromTimeMs,
+			fromTimeBuffer);
+		writeTimestampUTCMs(contact->toTime, contact->toTimeMs,
+			toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
@@ -2625,11 +2786,15 @@ void	rfx_contact_state(uvast fqnn, size_t *secRemaining, size_t *xmitRate)
 	uint32_t	regionNbr;
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	time_t		currentTime = getCtime();
+	time_t		currentTime;
+	uint16_t	currentTimeMs;
 	IonCXref	arg;
 	PsmAddress	elt;
 	IonCXref	*contact;
 	int		candidateContacts = 0;
+	unsigned long long remainingMillis;
+
+	getCtimeMs(&currentTime, &currentTimeMs);
 
 	*secRemaining = 0;		/*	Default.		*/
 	*xmitRate = ((size_t) -1);	/*	Default.		*/
@@ -2658,7 +2823,8 @@ void	rfx_contact_state(uvast fqnn, size_t *secRemaining, size_t *xmitRate)
 			continue;	/*	Wrong node.		*/
 		}
 
-		if (contact->toTime <= currentTime)
+		if (ionCompareTimestamp(contact->toTime, contact->toTimeMs,
+				currentTime, currentTimeMs) <= 0)
 		{
 			continue;	/*	Contact already ended.	*/
 		}
@@ -2669,12 +2835,16 @@ void	rfx_contact_state(uvast fqnn, size_t *secRemaining, size_t *xmitRate)
 		}
 
 		candidateContacts++;
-		if (contact->fromTime > currentTime)
+		if (ionCompareTimestamp(contact->fromTime, contact->fromTimeMs,
+				currentTime, currentTimeMs) > 0)
 		{
 			break;		/*	Not current contact.	*/
 		}
 
-		*secRemaining = contact->toTime - currentTime;
+		remainingMillis = ((unsigned long long)
+				(contact->toTime - currentTime)) * 1000
+				+ contact->toTimeMs - currentTimeMs;
+		*secRemaining = (size_t) ((remainingMillis + 999) / 1000);
 		*xmitRate = contact->xmitRate;
 		return;
 	}
@@ -2986,6 +3156,7 @@ int	rfx_insert_range_ms(time_t fromTime, time_t toTime, uvast fromFqnn,
 					&arg1, rfx_erase_data, NULL);
 			arg2.ref = *rxaddr;
 			arg2.time = rxref->fromTime;
+			arg2.timeMillis = 0;
 			arg2.type = IonStartImputedRange;
 			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
 					&arg2, rfx_erase_data, NULL);
@@ -3158,6 +3329,7 @@ static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 
 	event.ref = rxaddr;
 	event.time = rxref->fromTime;
+	event.timeMillis = 0;
 	if (rxref->rangeElt)
 	{
 		event.type = IonStartAssertedRange;
@@ -3540,6 +3712,7 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 	/*	Now remove the alarm.					*/
 
 	event.time = alarm->nextTimeout;
+	event.timeMillis = 0;
 	event.type = IonAlarmTimeout;
 	event.ref = alarmAddr;		/*	Needed for search.	*/
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
@@ -3599,7 +3772,9 @@ static int loadContact(SdrObject elt, uint32_t regionNbr)
 	cxref.fromFqnn = contact.fromFqnn;
 	cxref.toFqnn = contact.toFqnn;
 	cxref.fromTime = contact.fromTime;
+	cxref.fromTimeMs = contact.fromTimeMs;
 	cxref.toTime = contact.toTime;
+	cxref.toTimeMs = contact.toTimeMs;
 	cxref.xmitRate = contact.xmitRate;
 	cxref.confidence = contact.confidence;
 	cxref.type = contact.type;
