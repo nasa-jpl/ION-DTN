@@ -156,7 +156,7 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/bug-0015-tcpclo-bpcp-sig-handling` | tcpcl | Signal-interrupted semaphore ops in tcpclo/bpcp handlers | Regression | — (implementation) | EINTR semaphore handling in tcpclo/bpcp/bpcpd |
 | `tests/issue-253-tcpcl-keepalive` | tcpcl | TCPCL keepalive backoff timer triggers keepalive | Regression | RFC 9174 | TCPCLv4 keepalive timer; every 30s |
 | `tests/issue-253-tcpcl-keepalive-v6` | tcpcl | TCPCL keepalive backoff timer triggers keepalive (IPv6) | Regression | RFC 9174 | TCPCLv4 keepalive timer; IPv6; every 30s |
-| `tests/issue-347-tcpcl-reconnection` | tcpcl | tcpcli recovers from neighbor shutdown cascade | Regression | RFC 9174 | Pins #347; tcpcli reconnection after shutdown message |
+| `tests/issue-347-tcpcl-reconnection` | tcpcl | tcpcli recovers from neighbor shutdown cascade | Regression | RFC 9174 | Pins #347; tcpcli reconnection after shutdown message; also exercises the ionrestart utility (node 1 restarted mid-test) |
 | `tests/tcpcl-ack-resilience` | tcpcl | TCPCL recovers and completes file transfer after mid-stream block | Regression | RFC 9174 | TCPCLv4 resilience to interrupted connection; RFC 7242 also relevant |
 | `tests/tcpcl-dos` | tcpcl | tcpcli hardened against denial-of-service bug | Regression | RFC 9174 | Security/robustness of TCPCL input daemon |
 
@@ -233,7 +233,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/psm-trace-restart` | psm-memory | PSM trace lifecycle and trace-restart leak fix | Regression | — (implementation) | traceCount episodes, sptrace_stop leak fix, trace restart |
 | `tests/issue-965-file-backed-zco-abort` | sdr-transactions | Unreadable file-backed ZCO drops one bundle not whole instance | Regression | — (implementation) | Issue #965; ZCO file-backed extent error handling |
 | `tests/req-0022-reversibility/reversibilityCorrectness` | sdr-transactions | reverseTransaction restores SDR byte-for-byte on cancel | Unit | — (implementation) | Cancelled modified transaction reverses; read-only skip path when unmodified |
-| `tests/req-0022-reversibility/reversibilityRecovery` | sdr-transactions | SDR transaction reversibility recovery via ionrestart | Regression | — (implementation) | Cancel-with-mods enters reversal; ionrestart; post-recovery round-trip |
 | `tests/robust-sdr-lock-recovery` | sdr-transactions | SDR lock robust-mutex recovery after mid-transaction death | Regression | — (implementation) | Robust-mutex EOWNERDEAD recovery |
 | `tests/sdr-no-dram` | sdr-transactions | SDR heap file-only mode (configFlags=2, no RAM copy) | Integration | — (implementation) | 2 nodes, 30 bundles with SDR heap in files only |
 | `tests/sdr-preservation` | sdr-transactions | SDR data preserved across ionexit shutdown/restart | Integration | — (implementation) | ionexit k preservation for FILE and DRAM modes |

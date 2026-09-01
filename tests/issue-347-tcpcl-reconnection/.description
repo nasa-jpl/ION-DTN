@@ -1,1 +1,1 @@
-Verify that a cascading failure in the tcpcli caused by a shutdown message from the neighboring node is fixed
+Verify the tcpcli cascading-failure fix (shutdown message from a neighboring node), and exercise the ionrestart utility by restarting node 1 mid-test and confirming it re-establishes its TCPCL connection

@@ -75,7 +75,10 @@ echo "Node 1 is stopped."
 sleep 30
 
 echo ""
-# Now to restart node 1
+# Now to restart node 1 with ionrestart (NOT a fresh ionstart).  This
+# step is also the regression suite's coverage of the ionrestart
+# utility: a passing run confirms that a node restarted via ionrestart
+# re-establishes its TCPCL connection and resumes delivery below.
 echo "Restarting node 1"
 cd ../1.ipn.tcp/
 ./ionrestart

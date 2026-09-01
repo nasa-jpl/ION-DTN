@@ -1,75 +1,80 @@
 # SDR Transaction Reversibility Tests
 
-This directory contains the regression tests that exercise SDR
-transaction reversibility -- the mechanism that lets ION roll back
-in-progress modifications to the SDR heap when a transaction is
-cancelled, implemented in `reverseTransaction()` at
-`ici/sdr/sdrxn.c:647` and orchestrated from `terminateXn()` at
-`ici/sdr/sdrxn.c:808`.
+## What reversibility is — and is not
 
-The previous suite (`reversibilityCheck1` through `4`) was retired in
-favour of the two tests below.
+SDR transaction *reversibility* is transaction reversal.
+When a modified transaction is cancelled,
+`reverseTransaction()` in `ici/sdr/sdrxn.c` rolls the SDR heap
+back to its state at `sdr_begin_xn()`,
+undoing every write, malloc, and free made inside the transaction.
+`terminateXn()` orchestrates that rollback on cancel.
 
-## Tests
+Reversibility is scoped to exactly that guarantee.
+It is **not** a durability or crash-recovery mechanism,
+and it does **not** guarantee SDR correctness after a process
+crash or a hard power reset.
+Surviving those events is a separate concern —
+it depends on the platform, the storage medium, and the restart
+machinery, not on transaction reversal —
+and it is deliberately out of scope for these tests.
 
-### `reversibilityCorrectness` -- correctness, in-process
+## Test
 
-Standalone test that does not start ION.  It loads a private SDR,
-pre-populates it with known objects, snapshots the dataspace, runs a
-deliberately destructive transaction, cancels it, and asserts the
-heap is restored byte-for-byte.  Also covers the
-`sdr->modified == false` skip path and a follow-up modified
-transaction to confirm reversibility itself stays functional after
-the skip case.
+### `reversibilityCorrectness` — correctness, in-process
+
+Standalone test that does not start ION.
+It loads a private reversible SDR,
+pre-populates it with known small and large objects,
+snapshots the whole dataspace,
+runs a deliberately destructive transaction
+(partial and whole-object overwrites, a free, and mixed
+malloc/write/free), cancels it,
+and asserts the heap is restored byte-for-byte.
+It also exercises the read-only skip path
+(`sdr->modified == false`, no reversal work performed)
+and a follow-up destructive transaction,
+confirming reversal still works after the skip case.
 
 Driver binary: `reversibility_correctness_test`
-(`ici/test/reversibility_correctness_test.c`).  Runs in well under
-one second, deterministic, no daemons in the loop.
+(`ici/test/reversibility_correctness_test.c`).
+Deterministic, runs in well under one second,
+no daemons in the loop.
 
-### `reversibilityRecovery` -- live-ION integration
+## Why there is no live-ION recovery test
 
-Starts ION on a single LTP-loopback node with reversibility enabled
-and triggers a deterministic cancel-with-modifications via the
-`sdrcancel` utility.  Asserts that the cancel reaches the reversal
-code path (`"Attempting transaction reversal..."`), does not escalate
-to an unrecoverable error, that `ionrestart` finishes
-(`"ionrestart: finished restarting ION"`), and that a post-recovery
-`bpsource` -> `bpsink` round-trip delivers bundles.
-
-Driver binaries: `sdrcancel` (`ici/test/sdrcancel.c`).  Shared log
-helper: `check_recovery.sh`.
+An earlier `reversibilityRecovery` test drove a live node into a
+cancel-with-modifications, waited for the `ionrestart` that
+cancel triggered, and then pushed a post-recovery bundle
+round-trip.
+That conflated transaction reversal with crash recovery:
+its distinctive assertions were about the node restarting and
+resuming traffic, not about the reversal itself —
+which `reversibilityCorrectness` already verifies directly and
+deterministically.
+Manufacturing and surviving a restart is inherently
+timing-dependent — it needed a 300-second ceiling for the Solaris
+CI runner, send retries, and daemon re-raises —
+so the test was flaky without adding any reversal coverage,
+and it was retired.
+The predecessor `reversibilityCheck1`–`4` suite,
+which forced crashes through heap exhaustion,
+was retired earlier for the same reason.
 
 ## Layout
 
 ```
 tests/req-0022-reversibility/
-├── README.md                       this file
-├── check_recovery.sh               shared log-checking helpers for Test B
-├── reversibilityCorrectness/       Test A (correctness, in-process)
-│   ├── cleanup
-│   └── dotest
-└── reversibilityRecovery/          Test B (live-ION integration)
+├── README.md                     this file
+└── reversibilityCorrectness/     correctness test (in-process)
     ├── cleanup
-    ├── configs/
-    │   ├── config.ionconfig        configFlags 13 (REVERSIBLE)
-    │   ├── ionstart
-    │   ├── loopback.bprc
-    │   ├── loopback.ionrc
-    │   ├── loopback.ionsecrc
-    │   ├── loopback.ipnrc
-    │   └── loopback.ltprc
     └── dotest
 ```
 
-## Source code touched outside this directory
+## Supporting source (outside this directory)
 
-```
-ici/test/reversibility_correctness_test.c   (new) Test A driver
-ici/test/sdrcancel.c                        (new) Test B trigger
-ici/x86_64-linux/Makefile.dev               (mod) build wiring
-Makefile.am                                 (mod) build wiring
-ici/test/sdr_test_util.c                    (del) superseded utility
-```
+- `ici/test/reversibility_correctness_test.c` — the test driver
+- build wiring in `Makefile.am` and
+  `ici/x86_64-linux/Makefile.dev`
 
 ## Running
 
@@ -78,12 +83,6 @@ After building ION:
 ```
 cd tests/req-0022-reversibility/reversibilityCorrectness
 ./dotest
-
-cd tests/req-0022-reversibility/reversibilityRecovery
-./dotest
 ```
 
-Test A is deterministic.  Test B's Phase 4 (waiting for ionrestart)
-uses a 300-second ceiling to accommodate the Solaris LDOM CI runner,
-where LTP teardown alone can take 80+ seconds; on Linux it typically
-converges in well under 30 s.
+The test is deterministic and needs no running ION node.

@@ -72,6 +72,17 @@ memory, for faster data retrieval.]
 =item SDR_REVERSIBLE (4)
 
 Transactions in the SDR are written ahead to a log, making them reversible.
+When this bit is set, a transaction that is cancelled after modifying the
+heap is rolled back from that log.  On a running node the rollback is then
+followed by a "reversal cleanup" step that reloads working memory, which ION
+hardwires to the ionrestart(1) utility -- so a reversal on a live node
+restarts the node.  That cleanup command is fixed when the node is
+initialized and is B<not> configurable through this file; the only control
+this file offers is this bit itself.  Clearing the bit disables reversibility
+(and therefore the automatic restart), but then a transaction that is
+cancelled after modifying the heap can no longer be backed out and instead
+raises an unrecoverable SDR error.  See ionrestart(1) for the restart
+behavior and how to suppress it.
 
 =item SDR_BOUNDED (8)
 
@@ -168,4 +179,4 @@ traceShmSize 20000000
 
 =head1 SEE ALSO
 
-ionadmin(1)
+ionadmin(1), ionrestart(1)

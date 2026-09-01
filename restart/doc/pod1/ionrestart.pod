@@ -32,6 +32,26 @@ of the transaction reversal are not restarted.  Also, protocols that
 B<ionrestart> has not yet been adapted to cleanly terminate and restart
 (including, at the time of this writing, DTPC) are not restarted.
 
+=head1 DISABLING THE AUTOMATIC RESTART
+
+The command that the SDR runs as its "reversal cleanup" task is wired into the
+node when it is initialized: ION loads the SDR profile with a fixed cleanup
+command of B<ionrestart>.  This command is B<not> exposed as a field of the
+ionconfig(5) file, so at present there is no configuration option that changes
+it or suppresses it -- reversal and restart are coupled by default on a live
+node.
+
+The only operator-visible control over this behavior is the B<SDR_REVERSIBLE>
+bit of B<configFlags> in ionconfig(5).  Clearing that bit disables transaction
+reversibility altogether, and therefore the automatic B<ionrestart> as well;
+but it also removes the rollback safety net, so a transaction that is cancelled
+after modifying the heap can no longer be backed out and instead raises an
+unrecoverable SDR error.  There is at present no way to reverse a transaction
+without also restarting the node.
+
+Whether this coupling should be decoupled by default, and whether the cleanup
+command should become configurable, is under review for a future release.
+
 =head1 EXIT STATUS
 
 =over 4
@@ -62,4 +82,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpadmin(1), cfdpadmin(1), ionadmin(1), ltpadmin(1)
+bpadmin(1), cfdpadmin(1), ionadmin(1), ionconfig(5), ltpadmin(1)

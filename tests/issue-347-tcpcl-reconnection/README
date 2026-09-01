@@ -24,3 +24,9 @@ The cliRunning variable is still exposed to the keepalive and receiver thread
 but should only be treated as read-only to prevent this problem from
 occuring again. The cliRunning variable should only be written to by the spawn
 receiver thread OR in the case of a massive failure.
+
+This test also serves as the regression suite's coverage of the
+ionrestart utility. Node 1 is stopped mid-test and brought back with
+ionrestart (not a fresh ionstart), so a passing run additionally
+confirms that a node restarted via ionrestart re-establishes its TCPCL
+connection and resumes bundle delivery.
