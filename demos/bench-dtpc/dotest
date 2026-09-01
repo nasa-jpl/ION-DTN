@@ -1,20 +1,37 @@
 #!/bin/sh
 trap 'killm f' EXIT
 #
-# DTPC throughput benchmark.
+# DTPC two-node demonstration and delivery smoke test.
 #
-# Two-node loopback setup: sender (node 2) feeds a stream of DTPC
-# payload records to the DTPC daemon, which aggregates them into bundles
-# that are carried to node 3.
-# The receiver (node 3) runs dtpcreceive, which counts delivered payloads
-# and reports per-second throughput.
+# Node 2 publishes application payload records on a topic.  Its DTPC
+# entity aggregates them into application data units under a transmission
+# profile and hands each ADU to BP for carriage to node 3 over TCP, where
+# dtpcreceive delivers them to a subscriber on the same topic.
 #
 
 set -u
 
 TOPDIR=$(pwd)
-MAX_RATE=200000000 # 200 Mbit/s — dtpcsend's built-in rate cap
-WAIT_AFTER_SEND=3  # aggrTimeLimit=1s + processing slack
+
+# dtpcsend's built-in rate cap.  Sending at the cap simply means "do not
+# throttle"; nothing here is timed, so this is not a measurement.
+RATE=200000000
+
+# Readiness check, invoked from a node directory.
+SYSUP=../../../system_up
+
+# Topic the sender publishes on and the receiver subscribes to.
+TOPIC=11
+
+# Subscriber endpoint on node 3.
+DEST=ipn:3.129
+
+# Bound on how long to wait for each scenario's records to arrive.  The
+# profiles flush on a one-second aggregation time limit and the link is
+# loopback TCP, so delivery is prompt; this is headroom, not an
+# expectation.  A shortfall fails here rather than hanging until the
+# harness kills the run.
+WAIT_SECS=30
 
 # Source shared test helpers for polling.
 . ../../tests/test_utils.sh
@@ -38,7 +55,22 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: measure DTPC throughput for various use-case patterns"
+echo "PURPOSE: demonstrate Delay-Tolerant Payload Conditioning -- the
+    aggregation of many small application payload records into application
+    data units under a transmission profile -- and confirm end-to-end
+    delivery.  Node 2 publishes records on a topic and node 3 subscribes
+    to it; the two nodes reside on the same computer and are joined by the
+    TCP convergence layer.  Four scenarios exercise the three configured
+    profiles across the aggregation regimes they select: records that all
+    fit within one ADU, records that fill an ADU by size, and records
+    larger than the aggregation limit, which are never aggregated at all.
+    Every profile sets maxRtx to zero, so DTPC's own retransmission and
+    in-order delivery features are disabled and the records ride the
+    reliability of the convergence layer alone.  This is a configuration
+    demonstration and a delivery smoke test -- a moderate, fixed number of
+    records is published under each profile and delivery is confirmed --
+    not a throughput measurement (loopback throughput is not
+    representative of any real deployment)."
 
 echo
 echo "CONFIG: 2 node custom:"
@@ -49,7 +81,7 @@ for N in $CONFIGFILES; do
     echo "# EOF"
     echo
 done
-echo "OUTPUT: Per-test sender wall time and receiver throughput."
+echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
@@ -71,114 +103,213 @@ cd "$TOPDIR/3.bench.dtpc" || exit 1
 ./ionstart
 cd "$TOPDIR" || exit 1
 
-RETVAL=0
-
-# run_test TESTNUM LABEL CYCLES RECLEN TOPIC PROFILE [SEND_RATE] [ELISION]
+# Each node's ionstart paces its administration steps with fixed one-second
+# sleeps, so the two nodes come up in whatever order the host happens to
+# schedule them.  Each node both listens and connects, so whichever one
+# finishes first finds its peer's port closed, logs
 #
-# Starts dtpcreceive on node 3 for the given topic, runs dtpcsend on
-# node 2 for the requested cycle count, waits WAIT_AFTER_SEND seconds for
-# the aggregation-time-limit flush to land, then interrupts the receiver
-# so it prints its final tally.  ELISION=1 enables the built-in
-# duplicate-length elision function; any other value disables it.
-run_test() {
-    TESTNUM=$1
-    LABEL=$2
-    CYCLES=$3
-    RECLEN=$4
-    TOPIC=$5
-    PROFILE=$6
-    RATE=${7:-$MAX_RATE}
-    ELISION=${8:-0}
+#   Can't connect to TCP socket (refused): 127.0.0.1:<peer>
+#
+# and waits out a retry interval of several seconds before connecting.
+#
+# Publishing into that window demonstrates nothing: the records sit in the
+# queue until the session comes up, which can be after the wait for their
+# delivery has already expired.  Wait for the convergence layer to be
+# ready on both nodes first, so every run starts from the same state.
+# Waiting is bounded; on timeout, report what did not come up and stop
+# rather than exercise a half-started system.
+
+echo "Waiting for both nodes to be ready..."
+
+# Ask each node whether its subsystems are up, rather than inferring it
+# from the passage of time.  system_up polls and reports the number of
+# checks that succeeded, so three is the answer for the three requested
+# here; anything less means a subsystem never started.
+
+for NODE in 2 3; do
+    ( cd "$TOPDIR/$NODE.bench.dtpc" &&
+        "$SYSUP" -i "p 60" -b "p 60" -D "p 60" ) >/dev/null 2>&1
+    UPCHECKS=$?
+    if [ "$UPCHECKS" -ne 3 ]; then
+        echo "Node $NODE did not come up (ion, bp or dtpc); giving up."
+        exit 1
+    fi
+done
+
+# The subsystems are running, but the induct still has to bind its socket
+# before the peer can reach it.
+
+for NODE in 2 3; do
+    if ! waitForLog "tcpcli is running" \
+        "$TOPDIR/$NODE.bench.dtpc/ion.log" 60000; then
+        echo "Node $NODE never reported its induct listening; giving up."
+        exit 1
+    fi
+done
+
+# Both inducts are listening now, so neither node can be refused from this
+# point on.  The outducts still have to establish their sessions, and a
+# node that was already refused once is waiting out its retry, so wait for
+# the connection itself rather than assume it is immediate.
+
+for NODE in 2 3; do
+    if ! waitForLog "Connected to TCP socket" \
+        "$TOPDIR/$NODE.bench.dtpc/ion.log" 60000; then
+        echo "Node $NODE never connected to its peer; giving up."
+        exit 1
+    fi
+done
+
+RETVAL=0
+RECV_LOG="$TOPDIR/3.bench.dtpc/recv.log"
+rm -f "$RECV_LOG"
+
+# One subscriber serves every scenario.  DTPC delivers to whoever holds the
+# topic open at the time an ADU arrives, so the subscriber has to be up
+# before the first record is published and is left up throughout; that also
+# keeps the count cumulative across scenarios.
+cd "$TOPDIR/3.bench.dtpc" || exit 1
+echo ""
+echo "Subscribing to topic $TOPIC on node 3."
+dtpcreceive "$TOPIC" >"$RECV_LOG" 2>&1 &
+RCVPID=$!
+cd "$TOPDIR" || exit 1
+
+# dtpcreceive reports its running payload count every five seconds, and it
+# starts doing so only once it holds the topic open.  Wait for the first
+# such report rather than for the process to merely exist: a record
+# published before the topic is open has nobody to be delivered to.
+if ! waitForLog "Payloads received" "$RECV_LOG" 30000; then
+    echo "dtpcreceive never opened topic $TOPIC; giving up."
+    cat "$RECV_LOG"
+    exit 1
+fi
+
+# Newest running payload count printed by dtpcreceive, or nothing at all
+# until it has printed its first one.  The receiver reports the count every
+# five seconds, so this is what a bounded wait can watch without having to
+# interrupt the receiver to learn where it stands.
+receivedCount() {
+    sed -n 's/^Payloads received: \([0-9][0-9]*\).*/\1/p' "$RECV_LOG" |
+        tail -1
+}
+
+# Records published across all scenarios so far.  Checking the cumulative
+# total after each one charges a shortfall to the scenario that caused it
+# rather than to the end of the run.
+EXPECTED=0
+
+# run_scenario LABEL CYCLES RECLEN PROFILE
+#
+# Publishes CYCLES records of RECLEN bytes under PROFILE, then waits, with
+# a bound, for the subscriber's running count to reach the cumulative total
+# of everything published so far.
+run_scenario() {
+    LABEL=$1
+    CYCLES=$2
+    RECLEN=$3
+    PROFILE=$4
+
+    # Stop at the first shortfall.  Once records have gone missing every
+    # later scenario is measured against a cumulative total that already
+    # cannot be reached, so going on would only bury the scenario that
+    # actually failed under three more that could not have passed.
+    [ "$RETVAL" -eq 0 ] || return 1
+
+    EXPECTED=$((EXPECTED + CYCLES))
+    SEND_LOG="$TOPDIR/2.bench.dtpc/send.${PROFILE}.${RECLEN}.log"
+    rm -f "$SEND_LOG"
 
     echo ""
     echo "========================================"
-    echo "Test ${TESTNUM}: ${LABEL}"
-    echo "  cycles=${CYCLES} reclen=${RECLEN} topic=${TOPIC} profile=${PROFILE}"
+    echo "$LABEL"
+    echo "  publishing ${CYCLES} records of ${RECLEN} B under profile" \
+        "${PROFILE}"
     echo "========================================"
 
-    RECV_LOG="$TOPDIR/3.bench.dtpc/recv.${TESTNUM}.log"
-    SEND_LOG="$TOPDIR/2.bench.dtpc/send.${TESTNUM}.log"
-    rm -f "$RECV_LOG" "$SEND_LOG"
+    cd "$TOPDIR/2.bench.dtpc" || exit 1
+    # Elision is left disabled: the built-in elision function suppresses
+    # records that repeat a length already in the ADU, which would make the
+    # delivered count deliberately smaller than the published one and so
+    # unusable as a delivery check.
+    dtpcsend "$CYCLES" "$RATE" "$RECLEN" "$TOPIC" "$PROFILE" "$DEST" 0 \
+        >"$SEND_LOG" 2>&1
+    cd "$TOPDIR" || exit 1
 
-    cd "$TOPDIR/3.bench.dtpc" || exit 1
-    dtpcreceive "$TOPIC" >"$RECV_LOG" 2>&1 &
-    RCVPID=$!
-    waitForPidReady "$RCVPID" 2000 50 || {
+    echo "Waiting up to ${WAIT_SECS}s for delivery on node 3..."
+    elapsed=0
+    got=0
+    while [ "$elapsed" -lt "$WAIT_SECS" ]; do
+        got=$(receivedCount)
+        got=${got:-0}
+        if [ "$got" -ge "$EXPECTED" ]; then
+            break
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    if [ "$got" -ge "$EXPECTED" ]; then
+        echo "Delivered ${got} of ${EXPECTED} records published so far."
+    else
+        echo "FAILURE: only ${got} of ${EXPECTED} records published so" \
+            "far were delivered after ${WAIT_SECS}s."
+        tail -20 "$SEND_LOG"
         RETVAL=1
         return 1
-    }
-
-    cd "$TOPDIR/2.bench.dtpc" || exit 1
-    START=$(date +%s)
-    dtpcsend "$CYCLES" "$RATE" "$RECLEN" "$TOPIC" "$PROFILE" "ipn:3.129" \
-        "$ELISION" >"$SEND_LOG" 2>&1
-    SEND_END=$(date +%s)
-    SEND_S=$((SEND_END - START))
-
-    sleep "$WAIT_AFTER_SEND"
-    killAndWaitForPidToDie "$RCVPID" 2 2000
-
-    echo "--- Sender ---"
-    grep -E 'Time \(seconds\)|Total payloads|Total bytes|Throughput' \
-        "$SEND_LOG" || tail -5 "$SEND_LOG"
-    echo "Sender wall time: ${SEND_S} s"
-
-    echo "--- Receiver ---"
-    grep -E 'Time \(seconds\)|Throughput|Final tally' "$RECV_LOG" ||
-        tail -10 "$RECV_LOG"
-
-    final=$(sed -n \
-        's/.*Final tally of payloads received: \([0-9][0-9]*\).*/\1/p' \
-        "$RECV_LOG" | tail -1)
-    final=${final:-0}
-    if [ "$ELISION" = "1" ]; then
-        echo "Receiver saw ${final}/${CYCLES} payloads (elision enabled)"
-        if [ "$final" -lt 1 ]; then
-            RETVAL=1
-        fi
-    elif [ "$final" -lt "$CYCLES" ]; then
-        echo "WARNING: receiver saw ${final}/${CYCLES} payloads"
-        RETVAL=1
     fi
-
-    cd "$TOPDIR" || exit 1
 }
 
-BENCH_START=$(date +%s)
+# Profile 3 caps aggregation at 10 MB, so records this small are all still
+# accumulating when the one-second aggregation time limit flushes them:
+# the whole scenario travels as a single ADU.
+run_scenario "Scenario 1: small records, aggregated into one ADU" \
+    200 50 3
 
-# ----- Test 1: many tiny records, large aggregation ADU -------------------
-# Profile 3: aggrSizeLimit=10 MB.  50000 records of 50 bytes fit into a
-# single aggregated ADU, so every insertRecord() walks the whole in-progress
-# ADU via estimateLength().  This is where the O(records^2) cost lives.
-run_test 1 "50000 x 50B records, large-aggr profile" \
-    50000 50 11 3
+# Profile 2 caps aggregation at 1 MB.  The scenario stays under that too,
+# but at a record size representative of telemetry or sensor traffic.
+run_scenario "Scenario 2: telemetry-sized records, one ADU" \
+    200 500 2
 
-# ----- Test 2: small records, medium aggregation --------------------------
-# Profile 2: 1 MB aggregation cap.  500-byte records pack ~2000 per ADU;
-# a realistic pattern for telemetry / sensor streams.
-run_test 2 "1000 x 500B records, medium-aggr profile" \
-    1000 500 11 2
+# Profile 1 caps aggregation at 65 KB, which these records reach after six
+# or so, so the ADU is flushed on the size limit rather than the time limit
+# and the scenario travels as several ADUs.
+run_scenario "Scenario 3: records that fill an ADU by size" \
+    50 10000 1
 
-# ----- Test 3: medium records, small aggregation --------------------------
-# Profile 1: 65 KB aggregation cap — roughly 6 records per bundle.  Tests
-# the ADU-flush frequency path (createAdu / sendAdu fire often).
-run_test 3 "100 x 10KB records, small-aggr profile" \
-    100 10000 11 1
+# Each record on its own exceeds profile 1's 65 KB limit, so aggregation
+# never happens: every record is handed straight to BP as its own ADU.
+run_scenario "Scenario 4: records too large to aggregate" \
+    20 100000 1
 
-# ----- Test 4: records larger than aggregation limit ----------------------
-# Each record exceeds profile 1's aggrSizeLimit (65 KB), so every
-# insertRecord() immediately triggers createAdu() — no aggregation.
-run_test 4 "20 x 100KB records, no aggregation" \
-    20 100000 11 1
+# Interrupt the subscriber so it prints its final tally, which is the
+# authoritative count -- the running counts above are five-second snapshots.
+echo ""
+killAndWaitForPidToDie "$RCVPID" 2 10000
 
+FINAL=$(sed -n \
+    's/^Final tally of payloads received: \([0-9][0-9]*\).*/\1/p' \
+    "$RECV_LOG" | tail -1)
+FINAL=${FINAL:-0}
+
+echo ""
+if [ "$RETVAL" -eq 0 ] && [ "$FINAL" -ge "$EXPECTED" ]; then
+    echo "SUCCESS: $FINAL of $EXPECTED published records delivered on" \
+        "topic $TOPIC."
+else
+    echo "FAILURE: final tally is $FINAL of $EXPECTED published records."
+    RETVAL=1
+fi
+
+# Per-node stats, for the demonstration.
+for NODE in 2 3; do
+    cd "$TOPDIR/$NODE.bench.dtpc" || exit 1
+    bpstats
+done
 cd "$TOPDIR" || exit 1
 
-BENCH_END=$(date +%s)
 echo ""
-echo "Bench wall time: $((BENCH_END - BENCH_START)) s"
-
-echo ""
-echo "Shutting down..."
-echo ""
-echo "DTPC bench complete."
+echo "Stopping ION..."
+killm f
+echo "...demonstration terminated."
 exit $RETVAL
