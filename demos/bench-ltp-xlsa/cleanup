@@ -14,8 +14,8 @@ killm f 2>/dev/null
 killall -9 xlso xlsi 2>/dev/null || true
 
 rm -f ion_nodes
-rm -f 2.bench.xlsa/ion.log 2.bench.xlsa/bpdriverAduFile
-rm -f 3.bench.xlsa/ion.log
+rm -f 2.bench.xlsa/ion.log 2.bench.xlsa/benchsend.txt
+rm -f 3.bench.xlsa/ion.log 3.bench.xlsa/ionreceivefile.txt
 rm -f 3.bench.xlsa/ltpblock.*
 
 ## Remove any xlsa POSIX shm segments from a previous (possibly crashed)

@@ -1,23 +1,13 @@
 #!/usr/bin/env bash
 #
-# bench-ltp-xlsa: LTP throughput benchmark over the generic xlsa link
-# service with the shared-memory backend (xport_shm).
+# bench-ltp-xlsa: reliable (RED) LTP over the generic xlsa link service
+# with its shared-memory backend (xlso/xlsi over a POSIX /dev/shm ring).
 #
-# Usage:
-#   ./dotest                  # default: compare (the published xlsa set)
-#   ./dotest compare          # baseline + bundlesize@64K + bundlesize@1M (~25 min)
-#   ./dotest baseline         # one matched-rate run, 10 MB total       (~30 s)
-#   ./dotest bundlesize       # bench-ltp's 9-row bundlesize sweep
-#   ./dotest delay            # XLSA_DELAY_US sweep
-#   ./dotest drop             # XLSA_DROP_PPM sweep
-#   ./dotest rate             # XLSA_RATE_BPS sweep (each scenario matched)
-#   ./dotest matrix           # rate-mismatch matrix (matched/over/under)
-#   ./dotest all              # everything above
-#   ./dotest baseline delay   # any subset
-#
-# Each scenario produces one RESULT line; a SUMMARY table follows at the
-# end.  The harness restarts ION fresh between scenarios so SDR state
-# does not bleed across runs.
+# This is a configuration demonstration and a delivery smoke test: two
+# nodes (engine ids 2 and 3) on one host exchange a moderate, fixed
+# number of bundles over the shm ring, and delivery is confirmed within a
+# bounded wait.  It is NOT a throughput benchmark -- shared-memory
+# loopback goodput is not representative of any real link.
 
 set -u
 
@@ -26,24 +16,18 @@ KB="000"; MB="${KB}000"; GB="${MB}000"
 #----------------------------------------------------------------------
 # Tunables
 #----------------------------------------------------------------------
-BASE_RATE=2${GB}                          # matched-rate baseline, bytes/sec
-NUMBUNDLES=${NUMBUNDLES:-1000}            # override via env
-BUNDLESIZE=${BUNDLESIZE:-10000}           # override via env
-SEG_SIZE=${SEG_SIZE:-64000}               # LTP maxSegmentSize, override via env
-                                          # (the bundlesize scenario applies it)
-TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
-MAXSECONDS=${MAXSECONDS:-300}    # per-scenario; 300 s lets the small-bundle
-                                 # rows (200 K bundles x 1 KB) finish on
-                                 # slower CI runners.  Fast runners hit
-                                 # RESULT well before the cap, so this is
-                                 # a no-op for them.
+BASE_RATE=2${GB}                          # matched contact/link rate, bytes/sec
 SENDER_DIR=2.bench.xlsa
 RECEIVER_DIR=3.bench.xlsa
 
+BUNDLES=10                                # moderate, fixed exchange
+WAIT_SECS=60                              # bounded delivery wait
+
 # Scale ring depth so each per-direction shm segment stays around
 # 64 MB.  Each slot's payload is XLSA_BUFSZ from ltp/xlsa/xlsa.h
-# (currently 1 MB), NOT SEG_SIZE -- a smaller LTP segment doesn't
-# shrink the in-ring buffer.  Track XLSA_BUFSZ here when it changes.
+# (currently 1 MB), NOT the LTP segment size -- a smaller LTP segment
+# doesn't shrink the in-ring buffer.  Track XLSA_BUFSZ here when it
+# changes.
 XLSA_SLOT_BYTES=1048576
 
 XLSA_SLOTS_DEFAULT=$((67108864 / XLSA_SLOT_BYTES))   # 64 by default
@@ -70,19 +54,17 @@ fi
 [ "$XLSA_SLOTS_DEFAULT" -gt 1024 ] && XLSA_SLOTS_DEFAULT=1024
 XLSA_SLOTS_VALUE=${XLSA_SLOTS:-$XLSA_SLOTS_DEFAULT}
 
-RESULTS=()                   # scenario;rate;contact;delay;drop;goodput
 RETVAL=0
 
-fmt_num() { printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"; }
-
 #----------------------------------------------------------------------
-# Regenerate global.ionrc with a specific contact rate -- this is the
-# only way to vary ION's contact-plan rate per scenario, since ionadmin
-# bakes it into the SDR at start.
+# Regenerate global.ionrc with the contact rate -- this is the only way
+# to set ION's contact-plan rate, since ionadmin bakes it into the SDR
+# at start.  The contact rate MUST match XLSA_RATE_BPS (see
+# ltp/xlsa/doc/DESIGN.md §3.5).
 #----------------------------------------------------------------------
 write_global_ionrc() {
     cat > global.ionrc <<EOF
-## Contact plan for the xlsa benchmark.
+## Contact plan for the xlsa demonstration.
 ##
 ## Two nodes (engine ids 2 and 3) on the same host, exchanging bundles
 ## over LTP carried by the generic xlsa link service (xlso/xlsi) with the
@@ -90,11 +72,7 @@ write_global_ionrc() {
 ##
 ## IMPORTANT: the contact rate set here MUST match XLSA_RATE_BPS exported
 ## in dotest.  See ltp/xlsa/doc/DESIGN.md §3.5 for why all three rates
-## (BP Throttle nominalRate, LTP localXmitRate, XLSA_RATE_BPS) must agree
-## for a steady-state baseline.
-##
-## 2 000 000 000 bytes/sec = 2 GB/s (matches bench-ltp's contact rate so
-## results can be compared directly).
+## (BP Throttle nominalRate, LTP localXmitRate, XLSA_RATE_BPS) must agree.
 
 m horizon  +0
 a range    +0 +600        2 3   1
@@ -104,255 +82,29 @@ EOF
 }
 
 #----------------------------------------------------------------------
-# Run one scenario.
-#   args: name rate_bps delay_us jitter_us drop_ppm contact_rate
+# Header
 #----------------------------------------------------------------------
-run_scenario() {
-    local name=$1 rate=$2 delay=$3 jitter=$4 drop=$5 contact_rate=$6
-    local elapsed=0 bytes=0 goodput=0
-
-    export XLSA_RATE_BPS=$rate XLSA_SLOTS=$XLSA_SLOTS_VALUE
-    export XLSA_DELAY_US=$delay XLSA_JITTER_US=$jitter XLSA_DROP_PPM=$drop
-
-    write_global_ionrc $contact_rate
-    ./cleanup
-    sleep 1
-
-    export ION_NODE_LIST_DIR=$PWD
-    rm -f ./ion_nodes
-
-    (cd $RECEIVER_DIR; ./ionstart >/dev/null 2>&1)
-    (cd $SENDER_DIR;   ./ionstart >/dev/null 2>&1)
-    sleep 2
-
-    cat <<EOF
-========================================================================
-RUN ${name}
-  XLSA_RATE_BPS=${rate}   contact_rate=${contact_rate}
-  XLSA_DELAY_US=${delay}  XLSA_JITTER_US=${jitter}  XLSA_DROP_PPM=${drop}
-========================================================================
-EOF
-
-    cd $RECEIVER_DIR
-    bpcounter ipn:3.1 ${TARGETBUNDLES} &
-    local bpc=$!
-    cd ..
-    sleep 1
-
-    if ! ps -p $bpc >/dev/null 2>&1; then
-        echo "bpcounter failed to start; recording FAIL."
-        RESULTS+=("${name};${rate};${contact_rate};${delay};${drop};FAIL")
-        (cd $SENDER_DIR;   ./ionstop >/dev/null 2>&1)
-        (cd $RECEIVER_DIR; ./ionstop >/dev/null 2>&1)
-        RETVAL=1
-        return
-    fi
-
-    local start=$(date +%s)
-    (cd $SENDER_DIR; bpdriver $NUMBUNDLES ipn:2.1 ipn:3.1 -$BUNDLESIZE >/dev/null) &
-    local bpd=$!
-
-    local timer=0
-    while ps -p $bpc >/dev/null 2>&1; do
-        sleep 1
-        timer=$((timer + 1))
-        if [ $timer -gt $MAXSECONDS ]; then
-            kill -9 $bpc $bpd 2>/dev/null
-            echo "TIMEOUT after ${MAXSECONDS}s; recording TIMEOUT."
-            RESULTS+=("${name};${rate};${contact_rate};${delay};${drop};TIMEOUT")
-            # Bound the teardown -- the same 30 s cap used for the
-            # non-timeout path -- so a stuck ionstop after a kill -9'd
-            # ION daemon can't drag the whole sweep down.
-            timeout 30 sh -c "cd $SENDER_DIR && ./ionstop" >/dev/null 2>&1
-            timeout 30 sh -c "cd $RECEIVER_DIR && ./ionstop" >/dev/null 2>&1
-            killall -9 xlso xlsi 2>/dev/null || true
-            # TIMEOUT is informational, not a regression failure --
-            # individual rows can legitimately exceed MAXSECONDS on
-            # slower CI runners or under impairment knobs (mirrors
-            # demos/bench-ltp/dotest, which also treats per-row TIMEOUT
-            # as non-fatal).  bpcounter-start failures and daemon-side
-            # errors are still recorded as FAIL via RETVAL=1.
-            return
-        fi
-    done
-    local end=$(date +%s)
-    wait $bpd 2>/dev/null
-
-    elapsed=$((end - start))
-    [ $elapsed -lt 1 ] && elapsed=1
-    bytes=$((NUMBUNDLES * BUNDLESIZE))
-    goodput=$((bytes / elapsed))
-
-    echo "RESULT: ${bytes} bytes in ${elapsed}s = $(fmt_num ${goodput}) B/s goodput"
-    RESULTS+=("${name};${rate};${contact_rate};${delay};${drop};${goodput}")
-
-    # Bound the teardown as defense-in-depth.  A clean cooperative
-    # shutdown takes ~10s per node (bpadmin/ltpadmin/ionadmin + script
-    # sleeps); 30s is the upper bound that lets a normal shutdown
-    # finish but caps any pathological hang.  killall is a final safety
-    # net in case a daemon survives both ionstop and the timeout.
-    timeout 30 sh -c "cd $SENDER_DIR && ./ionstop" >/dev/null 2>&1
-    timeout 30 sh -c "cd $RECEIVER_DIR && ./ionstop" >/dev/null 2>&1
-    killall -9 xlso xlsi 2>/dev/null || true
-}
-
-#----------------------------------------------------------------------
-# Scenarios
-#----------------------------------------------------------------------
-do_baseline() {
-    run_scenario "baseline" $BASE_RATE 0 0 0 $BASE_RATE
-}
-
-do_delay() {
-    # One-way propagation: from LAN to LEO to lunar to lower mars
-    for d in 0 10000 100000 1000000; do
-        run_scenario "delay-${d}us" $BASE_RATE $d 0 0 $BASE_RATE
-    done
-}
-
-do_drop() {
-    # 100 ppm = 0.01%, 10000 ppm = 1%
-    for p in 0 100 1000 10000; do
-        run_scenario "drop-${p}ppm" $BASE_RATE 0 0 $p $BASE_RATE
-    done
-}
-
-do_rate() {
-    # Each is a matched-rate run at a different absolute link rate.
-    for r in 100${MB} 500${MB} 1${GB} 2${GB}; do
-        run_scenario "rate-${r}" $r 0 0 0 $r
-    done
-}
-
-do_matrix() {
-    # Vary the contact rate against fixed XLSA_RATE_BPS = BASE_RATE.
-    #   matched         -> contact == radio (BASE_RATE)
-    #   under-provis'd  -> contact <  radio  (BP starves)
-    #   over-provis'd   -> contact >  radio  (BP over-produces; ring fills;
-    #                                         backpressure; possible spurious rtx)
-    local under=$((BASE_RATE / 4))
-    local over=$((BASE_RATE * 2))
-    run_scenario "matrix-matched" $BASE_RATE 0 0 0 $BASE_RATE
-    run_scenario "matrix-under"   $BASE_RATE 0 0 0 $under
-    run_scenario "matrix-over"    $BASE_RATE 0 0 0 $over
-}
-
-do_bundlesize() {
-    # Mirror demos/bench-ltp's TESTS array row-for-row so the xlsa shm
-    # backend can be compared head-to-head against udplso/udplsi on the
-    # same workload axis.  Each row regenerates the SENDER's bench.ltprc
-    # with that row's (max_export, max_import, max_seg_size, agg_size,
-    # agg_time).  The receiver ltprc stays at the existing 200/200
-    # config (matches bench-ltp's receiver too).
-    #
-    # Per-call seg_size override: do_bundlesize $seg_bytes.  Falls back
-    # to the SEG_SIZE env var, then to 64000 (bench-ltp parity).  Used
-    # by do_compare to run the same sweep twice (64 KB then 1 MB segs)
-    # without two separate invocations.
-    local effective_SEG_SIZE=${1:-${SEG_SIZE:-64000}}
-
-    # Format: bundle_size max_export max_import max_seg_size agg_size agg_time total_bytes
-    local BENCH_TESTS=(
-        "5000000 8 8 64000 128000 1 1000000000"
-        "1000000 8 8 64000 128000 1 1000000000"
-        "500000  4 4 64000 128000 1 500000000"
-        "200000  4 4 64000 100000 1 200000000"
-        "63000   4 4 64000 100000 1 200000000"
-        "20000   4 4 64000 100000 1 200000000"
-        "10000   4 4 64000 100000 1 200000000"
-        "5000    4 4 64000 100000 1 200000000"
-        "1000    4 4 64000 100000 1 200000000"
-    )
-
-    local saved_numbundles=$NUMBUNDLES
-    local saved_bundlesize=$BUNDLESIZE
-    local saved_targetbundles=$TARGETBUNDLES
-    local saved_sender_ltprc=$(mktemp)
-    local saved_receiver_ltprc=$(mktemp)
-    cp $SENDER_DIR/bench.ltprc   $saved_sender_ltprc
-    cp $RECEIVER_DIR/bench.ltprc $saved_receiver_ltprc
-
-    for t in "${BENCH_TESTS[@]}"; do
-        read -r bsize me mi mseg aggs aggt tbytes <<< "$t"
-        NUMBUNDLES=$((tbytes / bsize))
-        BUNDLESIZE=$bsize
-        TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
-        [ $TARGETBUNDLES -lt 1 ] && TARGETBUNDLES=1
-
-        # effective_SEG_SIZE (set above from arg or env) overrides the
-        # bench-ltp row's max_seg_size.  When > 64000 we also bump the
-        # aggregation buffer so an aggregated block can fill a bigger
-        # segment.
-        local effective_mseg=$mseg
-        local effective_aggs=$aggs
-        if [ "${effective_SEG_SIZE}" != "64000" ]; then
-            effective_mseg=$effective_SEG_SIZE
-            if [ $effective_aggs -lt $((effective_SEG_SIZE + effective_SEG_SIZE / 2)) ]; then
-                effective_aggs=$((effective_SEG_SIZE + effective_SEG_SIZE / 2))
-            fi
-        fi
-
-        cat > $SENDER_DIR/bench.ltprc <<EOF
-1 50
-a span 3 $me $mi $effective_mseg $effective_aggs $aggt 'xlso shm:ring_2to3 3'
-s 'xlsi shm:ring_3to2'
-EOF
-        # The receiver's ltprc also needs the new max_seg_size so it
-        # can receive segments that size.
-        cat > $RECEIVER_DIR/bench.ltprc <<EOF
-1 200
-a span 2 200 200 $effective_mseg 1000000 1 'xlso shm:ring_3to2 2'
-s 'xlsi shm:ring_2to3'
-EOF
-
-        run_scenario "bundle-${bsize}" $BASE_RATE 0 0 0 $BASE_RATE
-    done
-
-    # Restore globals + both ltprcs.
-    NUMBUNDLES=$saved_numbundles
-    BUNDLESIZE=$saved_bundlesize
-    TARGETBUNDLES=$saved_targetbundles
-    cp $saved_sender_ltprc   $SENDER_DIR/bench.ltprc
-    cp $saved_receiver_ltprc $RECEIVER_DIR/bench.ltprc
-    rm -f $saved_sender_ltprc $saved_receiver_ltprc
-}
-
-do_compare() {
-    # The "publishable comparison" set: the three xlsa rows in
-    # doc/RESULTS.md (baseline + bundlesize at 64 KB segs + bundlesize
-    # at 1 MB segs).  Default for plain ./dotest -- one invocation
-    # produces every xlsa number in the writeup.  Takes ~25 min total.
-    do_baseline
-    do_bundlesize 64000
-    do_bundlesize 1000000
-}
-
-#----------------------------------------------------------------------
-# Main
-#----------------------------------------------------------------------
-# ION's runtests harness passes the host OS name as $1 (e.g. "mac",
-# "linux", "windows", "solaris") so dotest scripts can branch on it.
-# Drop it -- our scenarios are OS-independent on POSIX-y systems.
-case "${1:-}" in
-    mac|darwin|linux|windows|solaris|freebsd) shift ;;
-esac
-
-SCENARIOS=("$@")
-[ ${#SCENARIOS[@]} -eq 0 ] && SCENARIOS=("compare")
-
 echo "########################################################################"
-echo "bench-ltp-xlsa: LTP over xlsa (shm backend) throughput benchmark"
+echo "bench-ltp-xlsa: LTP over the xlsa shared-memory adapter"
 echo "########################################################################"
 echo "Date         : $(date)"
 echo "Host         : $(hostname)"
 echo "Uname        : $(uname -a)"
-echo "Scenarios    : ${SCENARIOS[*]}"
+echo
+echo "PURPOSE: demonstrate reliable (RED) LTP running over the generic xlsa
+    link service with its shared-memory backend (xlso/xlsi over a POSIX
+    /dev/shm ring) and confirm end-to-end bundle delivery.  Two nodes
+    (engine ids 2 and 3) on the same host exchange a moderate, fixed
+    number of bundles; node 2 sends and node 3 receives over the shm ring.
+    This is a configuration demonstration and a delivery smoke test -- not
+    a throughput measurement (shared-memory loopback goodput is not
+    representative of any real link)."
 echo
 
 # Auto-PATH: if xlso/xlsi aren't installed, fall back to the libtool-
 # wrapped copies in the source-tree root (../..).  We symlink ONLY those
 # two -- prepending the whole source tree would shadow the installed
-# bpdriver/bpcounter with their libtool-wrapped counterparts that need
+# bpsource/bpsink with their libtool-wrapped counterparts that need
 # a full relink-on-first-run.
 if ! command -v xlso >/dev/null 2>&1; then
     SRC_ROOT="$(cd ../.. 2>/dev/null && pwd)"
@@ -367,37 +119,89 @@ fi
 
 ./pretest-script || exit 1
 
-for s in "${SCENARIOS[@]}"; do
-    case $s in
-        baseline)   do_baseline ;;
-        delay)      do_delay ;;
-        drop)       do_drop ;;
-        rate)       do_rate ;;
-        matrix)     do_matrix ;;
-        bundlesize) do_bundlesize ;;
-        compare)    do_compare ;;
-        all)        do_baseline; do_delay; do_drop; do_rate; do_matrix
-                    do_bundlesize 64000; do_bundlesize 1000000 ;;
-        *) echo "unknown scenario: $s (expected baseline|delay|drop|rate|matrix|bundlesize|compare|all)" >&2 ;;
-    esac
-done
+#----------------------------------------------------------------------
+# Bring the two nodes up over the xlsa shm ring, no impairment.
+#----------------------------------------------------------------------
+export XLSA_RATE_BPS=$BASE_RATE XLSA_SLOTS=$XLSA_SLOTS_VALUE
+export XLSA_DELAY_US=0 XLSA_JITTER_US=0 XLSA_DROP_PPM=0
 
-# Restore baseline global.ionrc so a follow-up manual run sees defaults.
 write_global_ionrc $BASE_RATE
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+(cd $RECEIVER_DIR; ./ionstart >/dev/null 2>&1)
+(cd $SENDER_DIR;   ./ionstart >/dev/null 2>&1)
+sleep 2
+
+ROOT=$PWD
+SENDFILE="$ROOT/$SENDER_DIR/benchsend.txt"
+RECEIVEFILE="$ROOT/$RECEIVER_DIR/ionreceivefile.txt"
+echo "This is a bench-ltp-xlsa demonstration bundle." > "$SENDFILE"
+rm -f "$RECEIVEFILE"
 
 echo
-echo "########################################################################"
-echo "SUMMARY"
-echo "########################################################################"
-printf "%-20s %12s %12s %10s %10s %18s\n" \
-       "scenario" "rate_bps" "contact_bps" "delay_us" "drop_ppm" "goodput_bps"
-printf "%-20s %12s %12s %10s %10s %18s\n" \
-       "--------" "--------" "-----------" "--------" "--------" "------------"
-for r in "${RESULTS[@]}"; do
-    IFS=';' read -r name rate contact delay drop goodput <<< "$r"
-    printf "%-20s %12s %12s %10s %10s %18s\n" \
-           "$name" "$rate" "$contact" "$delay" "$drop" "$goodput"
+echo "Sending $BUNDLES bundles from node 2 to node 3 over the xlsa shm ring."
+
+# Receiver on node 3.
+cd "$ROOT/$RECEIVER_DIR"
+bpsink ipn:3.1 > "$RECEIVEFILE" &
+BPSINKPID=$!
+cd "$ROOT"
+sleep 1
+
+# Send from node 2; RED LTP over the shm ring delivers reliably.
+cd "$ROOT/$SENDER_DIR"
+i=1
+while [ "$i" -le "$BUNDLES" ]
+do
+    bpsource ipn:3.1 < "$SENDFILE" 1>/dev/null 2>/dev/null
+    i=$((i + 1))
 done
-echo
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 3.  RED LTP is reliable, so a
+# shortfall means a real failure -- fail fast here rather than hanging
+# until the harness timeout.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 3..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$RECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
+    then
+        break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
+
+if [ "$got" -ge "$BUNDLES" ]
+then
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 3 over xlsa shm."
+    RETVAL=0
+else
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
+fi
+
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
+sleep 1
+kill -9 "$BPSINKPID" >/dev/null 2>&1
+
+# Bounded teardown -- a clean cooperative shutdown takes ~10s per node;
+# 30s is the upper bound that lets a normal shutdown finish but caps any
+# pathological hang.  killall is a final safety net for an xlso/xlsi that
+# survives both ionstop and the timeout.
+echo "Stopping ION..."
+timeout 30 sh -c "cd $SENDER_DIR && ./ionstop" >/dev/null 2>&1
+timeout 30 sh -c "cd $RECEIVER_DIR && ./ionstop" >/dev/null 2>&1
+killall -9 xlso xlsi 2>/dev/null || true
+echo "...demonstration terminated."
 
 exit $RETVAL
