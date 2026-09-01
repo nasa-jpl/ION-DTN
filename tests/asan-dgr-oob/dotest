@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# AddressSanitizer regression for the DGR receiver out-of-bounds read.
+# Compiles dgr_oob_test.c with -fsanitize=address and runs it; see that file
+# for what the harness checks.  Skips when the toolchain cannot build an
+# AddressSanitizer program.
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+# Honor $CC; otherwise prefer gcc, then clang, then cc.
+if [ -z "$CC" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: asan-dgr-oob"
+echo "PURPOSE: Verify the DGR receiver bounds a segment's service-data length"
+echo "         against the datagram, under AddressSanitizer."
+echo "########################################"
+
+# ION compiler and linker flags come from pkg-config (a build dependency), so
+# the harness is built with the same ABI-defining flags as ION itself.
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+
+# _dgrParseInboundSegment lives in libdgr; make sure it is linked in even if
+# ion.pc does not list -ldgr among its libraries.
+case " $ION_LIBS " in
+*" -ldgr "*) ;;
+*) ION_LIBS="$ION_LIBS -ldgr" ;;
+esac
+
+# Skip when the toolchain cannot produce an AddressSanitizer program (e.g. no
+# ASan runtime on this platform); the over-read is then unobservable.
+ASAN_PROBE=$(mktemp /tmp/asan_probe.XXXXXX)
+echo 'int main(void){return 0;}' > "$ASAN_PROBE.c"
+if ! $CC -fsanitize=address "$ASAN_PROBE.c" -o "$ASAN_PROBE" >/dev/null 2>&1; then
+    echo "SKIP: $CC cannot build an AddressSanitizer program on this platform."
+    rm -f "$ASAN_PROBE" "$ASAN_PROBE.c"
+    exit 2
+fi
+rm -f "$ASAN_PROBE" "$ASAN_PROBE.c"
+
+BIN=$(mktemp /tmp/dgr_oob_test.XXXXXX)
+# _dgrParseInboundSegment is declared in libdgr's private header, which is not
+# installed, so add the in-tree dgr/library directory to the include path.
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -fsanitize=address -g -O1 $ION_CFLAGS -I"$HERE/../../dgr/library" \
+        "$HERE/dgr_oob_test.c" $ION_LIBS -o "$BIN"; then
+    echo "FAIL: could not compile the ASan harness."
+    rm -f "$BIN"
+    exit 1
+fi
+
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+LD_LIBRARY_PATH="$LIBDIR:$LD_LIBRARY_PATH" \
+    ASAN_OPTIONS=detect_leaks=0:abort_on_error=1 "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: DGR service-data length is bounded to the datagram."
+    exit 0
+fi
+
+echo "FAIL: AddressSanitizer reported an out-of-bounds read, or the DGR"
+echo "      segment parse was incorrect (exit $RETVAL)."
+exit 1
