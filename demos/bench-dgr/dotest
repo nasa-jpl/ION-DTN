@@ -23,14 +23,14 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce simple throughput benchmark results, for direct
-    comparison among computing platforms running ION.  All tests are
-    performed using the DGR convergence-layer protocol (an Internet-
-    compatible variant of LTP) between neighboring nodes residing on
-    the same computer.  So the results exercise BP and DGR in a non-
-    loopback configuration, over loopback UDP/IP; the results are
-    therefore unaffected by network traffic, router performance, or
-    network interface card performance."
+echo "PURPOSE: demonstrate bundle transfer over the DGR convergence-layer
+    protocol (an Internet-compatible, retransmitting variant of LTP over
+    UDP/IP) between two neighboring nodes residing on the same computer.
+    Source node 2 sends to destination node 3.  This is a configuration
+    demonstration and a delivery smoke test -- a moderate, fixed number of
+    bundles is sent and delivery is confirmed -- not a throughput
+    measurement (loopback throughput is not representative of any real
+    deployment)."
 
 echo
 echo "CONFIG: 2 node custom:"
@@ -70,259 +70,79 @@ cd ../3.bench.dgr
 echo -e "Sleeping 10 seconds to allow buffer to clear\n"
 sleep 10
 
+# Delivery smoke test: send a moderate, fixed number of bundles from node 2
+# to node 3 over the DGR convergence layer and confirm they arrive.  This is
+# a configuration demonstration, not a throughput measurement, so the volume
+# is small and delivery is bounded in time.
+cd ..
+ROOT=$PWD
+BUNDLES=10
+WAIT_SECS=60
+IONSENDFILE="$ROOT/2.bench.dgr/benchsend.txt"
+IONRECEIVEFILE="$ROOT/3.bench.dgr/ionreceivefile.txt"
+echo "This is a bench-dgr demonstration bundle." > "$IONSENDFILE"
+rm -f "$IONRECEIVEFILE"
+
 echo ""
-echo "Test 1: 10,000 bundles of 1000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
+echo "Sending $BUNDLES bundles from node 2 to node 3 over DGR."
+
+# Receiver on node 3.
+cd "$ROOT/3.bench.dgr"
+bpsink ipn:3.1 > "$IONRECEIVEFILE" &
+BPSINKPID=$!
 sleep 1
 
-# if bpcounter didn't start, then something went wrong and we definitely haven't passsed!
-# some ps don't like -p syntax, most do.
-if [ "$1" == "windows" ]
+# Send from node 2.
+cd "$ROOT/2.bench.dgr"
+i=1
+while [ "$i" -le "$BUNDLES" ]
+do
+    bpsource ipn:3.1 < "$IONSENDFILE" 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 3.  DGR retransmits lost segments, so
+# all bundles should arrive; a shortfall fails fast here rather than hanging
+# until the harness timeout.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 3..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$IONRECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
+    then
+        break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
+
+if [ "$got" -ge "$BUNDLES" ]
 then
-    ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 3 over DGR."
+    RETVAL=0
 else
-    ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-fi
-if [ "$RETURN_VALUE" -eq 0 ]
-then
-    echo "bpcounter couldn't be started."
-    echo "...benchmarking terminated."
-    exit 1
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
 fi
 
-cd ../2.bench.dgr
-bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
+# Per-node stats, for the demonstration.
+for N in 2 3
 do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
+    cd "$ROOT/$N.bench.dgr"
+    bpstats
 done
+cd "$ROOT"
 
-echo -e "Sleeping 10 seconds to allow buffer to clear\n"
-sleep 10
-
-echo ""
-echo "Test 2: 10000 bundles of 10,000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
 sleep 1
-
-cd ../2.bench.dgr
-bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-echo -e "Sleeping 10 seconds to allow buffer to clear\n"
-sleep 10
-
-echo ""
-echo "Test 3: 10000 bundles of 100,000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.dgr
-bpdriver 10000 ipn:2.1 ipn:3.1 -100000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-sleep 3
-echo ""
-echo "Test 4: 1000 bundles of 1,000,000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 1000 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.dgr
-bpdriver 1000 ipn:2.1 ipn:3.1 -1000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-echo -e "Sleeping 10 seconds to allow buffer to clear\n"
-sleep 10
-
-echo ""
-echo "Test 5: 100 bundles of 10,000,000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 100 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.dgr
-bpdriver 100 ipn:2.1 ipn:3.1 -10000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-echo -e "Sleeping 10 seconds to allow buffer to clear\n"
-sleep 10
-
-echo ""
-echo "Test 6: 10 bundles of 100,000,000 bytes each."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 10 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.dgr
-bpdriver 10 ipn:2.1 ipn:3.1 -100000000 &
-
-#Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-echo -e "Sleeping 10 seconds to allow buffer to clear\n"
-sleep 10
-
-echo ""
-echo "Test 7: 1 bundle of 1,000,000,000 bytes."
-cd ../3.bench.dgr
-bpcounter ipn:3.1 1 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.dgr
-bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 t900 &
-
-#Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
+kill -9 "$BPSINKPID" >/dev/null 2>&1
 
 echo "Stopping ION..."
-#cd ../2.bench.dgr
-#./ionstop &
-#cd ../3.bench.dgr
-#./ionstop &
-#sleep 5
-echo "...benchmarking terminated."
+killm f
+echo "...demonstration terminated."
 exit $RETVAL

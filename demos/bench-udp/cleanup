@@ -6,4 +6,4 @@
 echo "Cleaning up old ION..."
 export ION_NODE_LIST_DIR=$PWD
 killm f
-rm -f ion_nodes 2.bench.udp/ion.log 2.bench.udp/bpdriverAduFile 3.bench.udp/ion.log 3.bench.udp/bpacq* bpcounter_test*.txt
+rm -f ion_nodes 2.bench.udp/ion.log 2.bench.udp/bpdriverAduFile 2.bench.udp/benchsend.txt 3.bench.udp/ion.log 3.bench.udp/ionreceivefile.txt 3.bench.udp/bpacq* bpcounter_test*.txt
