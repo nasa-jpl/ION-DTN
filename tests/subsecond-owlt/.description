@@ -1,0 +1,2 @@
+Validates millisecond OWLT parsing, persistence, symmetric range generation,
+briefing export, legacy whole-second compatibility, and CGR route selection.

@@ -15,7 +15,7 @@
 #endif
 
 #ifndef RFXCLOCK_POLL_MSEC
-#define RFXCLOCK_POLL_MSEC	(10)
+#define RFXCLOCK_POLL_MSEC	(1000)
 #endif
 
 static unsigned int	getPollIntervalMs(void)
