@@ -1,29 +1,67 @@
 #!/usr/bin/env bash
-trap 'killm f' EXIT
+trap 'killm f; killall owltsim >/dev/null 2>&1; killall lt-owltsim >/dev/null 2>&1' EXIT
 #
 # Scott Burleigh
 # October 4, 2014
 #
-# Tests some of the revisions to CCSDS file delivery protocol.
-# CFDP is started at both nodes, and a background cfdptest task, which
-# only receives and document service indications, is started at both
-# nodes.  A cfdptest task is started at node 1, sending a file to node 2.
-# Then another cfdptest is started at node 2 which issues a proxy put
-# to "get" file from node 2.  Both operations are performed in unacknowledged
-# mode with closure requested by the file sender in each direction.
-# Communication between the two nodes is subject to 3 seconds of OWLT,
-# so the "get" operation should finish before the put operation (which must
-# wait for a Finished PDU from node 2).
-#
-# This demo is the same as the cfdpv1 test except that it adds sdrwatch
-# and psmwatch processes so that we can automatically test for leaks.
+# CFDP over BP/LTP between two nodes on the same computer, communicating
+# across an owltsim link that imposes 3 seconds of one-way light time
+# with no loss.  CFDP is started at both nodes and a background cfdptest
+# task, which receives and documents service indications, runs at each
+# node.  Node 1 then "puts" a file to node 2 and issues a proxy "get" to
+# fetch a file from node 2.  Both operations run in unacknowledged mode
+# with closure requested by the file sender in each direction.
 
-# set timeouts based on OS type
-if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
-    TIMETOWAIT=35
-else
-    TIMETOWAIT=55
-fi
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./1.ipn.ltp/node.ionrc \
+./1.ipn.ltp/node.ionconfig \
+./1.ipn.ltp/node.ionsecrc \
+./1.ipn.ltp/node.ltprc \
+./1.ipn.ltp/node.owltsim \
+./1.ipn.ltp/node.bprc \
+./1.ipn.ltp/node.ipnrc \
+./1.ipn.ltp/node.cfdprc \
+./2.ipn.ltp/node.ionrc \
+./2.ipn.ltp/node.ionconfig \
+./2.ipn.ltp/node.ionsecrc \
+./2.ipn.ltp/node.ltprc \
+./2.ipn.ltp/node.bprc \
+./2.ipn.ltp/node.ipnrc \
+./2.ipn.ltp/node.cfdprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: demonstrate the CCSDS File Delivery Protocol (CFDP)
+    running over BP/LTP and confirm end-to-end file delivery.  Two
+    nodes reside on the same computer and communicate across an owltsim
+    link with 3 seconds of one-way light time and no loss.  Node 1 puts
+    a file to node 2 and issues a proxy get to retrieve a file from
+    node 2; both transfers run in unacknowledged mode with closure
+    requested.  This is a configuration demonstration and a delivery
+    smoke test -- two files are exchanged and their arrival is confirmed
+    (present and complete) -- not a throughput measurement (loopback
+    throughput is not representative of any real deployment)."
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -37,46 +75,76 @@ cd ../2.ipn.ltp
 ./ionstart
 
 sleep 10
+
 echo "Starting cfdptest on each node..."
 cd ../1.ipn.ltp
 cfdptest < cfdp_cmds >& node1.stdout &
 cd ../2.ipn.ltp
 cfdptest < cfdp_cmds >& node2.stdout &
+cd ..
 
-sleep $TIMETOWAIT
-echo ""
-echo "Checking for file arrivals...."
+ROOT=$PWD
+WAIT_SECS=45
 RETVAL=0
 
-cd ../1.ipn.ltp
+# Delivery confirmation.  Node 1 puts its sourceFile to node 2 (arriving
+# as 2.ipn.ltp/receivedFile) and gets node 2's sourceFile (arriving as
+# 1.ipn.ltp/receivedFile).  A received file is complete only once it
+# exists AND matches the size of the corresponding source file, so poll
+# (bounded) for both conditions rather than sleeping a fixed interval and
+# checking once.  With 3s OWLT each way the transfers finish well within
+# WAIT_SECS; a shortfall fails fast here rather than hanging until the
+# harness timeout.
+NODE1_RECV="$ROOT/1.ipn.ltp/receivedFile"
+NODE2_RECV="$ROOT/2.ipn.ltp/receivedFile"
+# Node 1 gets node 2's sourceFile; node 2 receives node 1's sourceFile.
+EXP_NODE1=$(wc -c < "$ROOT/2.ipn.ltp/sourceFile" | tr -d '[:space:]')
+EXP_NODE2=$(wc -c < "$ROOT/1.ipn.ltp/sourceFile" | tr -d '[:space:]')
 
-COUNT=`ls -al receivedFile | wc -l`
-if [ "$COUNT" -ne 1 ]
-then
-    echo ""
-    echo "Error: node 1 did not receive file from node 2."
-    RETVAL=1
+echo ""
+echo "Waiting up to ${WAIT_SECS}s for both file transfers to complete..."
+elapsed=0
+got1=0
+got2=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got1=0
+    got2=0
+    if [ -f "$NODE1_RECV" ]; then
+        sz1=$(wc -c < "$NODE1_RECV" | tr -d '[:space:]')
+        [ "$sz1" = "$EXP_NODE1" ] && got1=1
+    fi
+    if [ -f "$NODE2_RECV" ]; then
+        sz2=$(wc -c < "$NODE2_RECV" | tr -d '[:space:]')
+        [ "$sz2" = "$EXP_NODE2" ] && got2=1
+    fi
+    if [ "$got1" -eq 1 ] && [ "$got2" -eq 1 ]; then
+        break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
+
+echo ""
+if [ "$got1" -eq 1 ]; then
+    echo "Okay: node 1 received file from node 2 (${EXP_NODE1} bytes)."
 else
-    echo ""
-    echo "Okay: node 1 received file from node 2."
+    echo "Error: node 1 did not receive the expected file from node 2."
+    RETVAL=1
 fi
 
-cd ../2.ipn.ltp
-
-COUNT=`ls -al receivedFile | wc -l`
-if [ "$COUNT" -ne 1 ]
-then
-    echo ""
-    echo "Error: node 2 did not receive file from node 1."
-    RETVAL=1
+if [ "$got2" -eq 1 ]; then
+    echo "Okay: node 2 received file from node 1 (${EXP_NODE2} bytes)."
 else
-    echo ""
-    echo "Okay: node 2 received file from node 1."
+    echo "Error: node 2 did not receive the expected file from node 1."
+    RETVAL=1
 fi
 
 echo ""
 echo "Stopping ION..."
 killm f
+killall owltsim >/dev/null 2>&1
+killall lt-owltsim >/dev/null 2>&1
 echo ""
-echo "CFDPv1 test completed."
+echo "CFDP demonstration completed."
 exit $RETVAL

@@ -6,5 +6,5 @@
 echo "Cleaning up old ION..."
 export ION_NODE_LIST_DIR=$PWD
 killm f
-rm -f ion_nodes 2.bench.ltp/ion.log 2.bench.ltp/bpdriverAduFile 3.bench.ltp/ion.log
-rm -f 3.bench.ltp/ltpblock.*
+rm -f ion_nodes 2.bench.ltp/ion.log 2.bench.ltp/benchsend.txt 3.bench.ltp/ion.log 3.bench.ltp/ionreceivefile.txt
+rm -f 2.bench.ltp/ltpblock.* 3.bench.ltp/ltpblock.*

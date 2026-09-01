@@ -9,106 +9,46 @@ trap 'killm f' EXIT
 # October 11, 2023
 #
 
-#
-# testing configuration
-# (to make the numbers more readable)
-KB="000"
-MB="${KB}000"
-GB="${MB}000"
-# Default total bytes to transfer (can be overridden per-test via 7th field)
-TOTALBYTES=200${MB}
-# MAX number of bundles for any test (too many causes non-ION losses)
-# This really only affects really small size bundles
-MAXBUNDLES=500000
-# how many total seconds to allow each individual test to run before giving up
-# 5 minutes is probably plenty
-MAXSECONDS=120
-# what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
-# (list multiple values to cycle through them each)
-#THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
-THROUGHPUTS="2${GB}"
-# how many iterations of the test to run?
-ITERATIONS="1"
-# LTP estimated max export sessions (init parameter)
-LTP_INIT=50
-# Test definitions: each entry is one test run.
-# Format: "bundle_size max_export max_import max_seg_size agg_size_thresh agg_time_limit [total_bytes]"
-# Number of bundles is computed from total_bytes/bundle_size (capped at MAXBUNDLES).
-# The optional 7th field overrides TOTALBYTES for that test.
-# ION is restarted fresh for each test to ensure clean SDR state.
-# LTP segments are always <= max_seg_size (64KB for UDP), so large bundles
-# are safe — LTP segments them into 64KB datagrams.
-TESTS=(
-    "5000000 8 8 64000 128000 1 1000000000"
-    "1000000 8 8 64000 128000 1 1000000000"
-    "500000  4 4 64000 128000 1 500000000"
-    "200000  4 4 64000 100000 1"
-    "63000   4 4 64000 100000 1"
-    "20000   4 4 64000 100000 1"
-    "10000   4 4 64000 100000 1"
-    "5000    4 4 64000 100000 1"
-    "1000    4 4 64000 100000 1"
-)
-LSO_CMD="udplso localhost:2113"
-LSI_CMD="udplsi localhost:2112"
-# Node directory names
-SENDER_DIR=2.bench.ltp
-RECEIVER_DIR=3.bench.ltp
-
-
-# Format a number with commas for display (e.g., 63800 -> 63,800)
-fmt_num() {
-    printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"
-}
-
-#================================================================
-# You shouldn't need to adjust anything below this point
-#================================================================
-
-# identify the test for later analysis
-echo "Date: `date`"
-echo "Hostname: `hostname`"
-echo "UnameOS: `uname -s`"
-echo "UnameProcessor: `uname -p`"
-echo "UnameMachine: `uname -m`"
-echo "UnameRelease: `uname -r`"
-echo "UnameAll: `uname -a`"
-
 # documentation boilerplate
 CONFIGFILES=" \
 ./global.ionrc \
-./${SENDER_DIR}/bench.ltprc \
-./${SENDER_DIR}/bench.bprc \
-./${SENDER_DIR}/bench.ionconfig \
-./${SENDER_DIR}/bench.ionrc \
-./${SENDER_DIR}/bench.ionsecrc \
-./${SENDER_DIR}/bench.ipnrc \
-./${RECEIVER_DIR}/bench.ltprc \
-./${RECEIVER_DIR}/bench.bprc \
-./${RECEIVER_DIR}/bench.ionconfig \
-./${RECEIVER_DIR}/bench.ionrc \
-./${RECEIVER_DIR}/bench.ionsecrc \
-./${RECEIVER_DIR}/bench.ipnrc \
+./2.bench.ltp/bench.ltprc \
+./2.bench.ltp/bench.bprc \
+./2.bench.ltp/bench.ionconfig \
+./2.bench.ltp/bench.ionrc \
+./2.bench.ltp/bench.ionsecrc \
+./2.bench.ltp/bench.ipnrc \
+./3.bench.ltp/bench.ltprc \
+./3.bench.ltp/bench.bprc \
+./3.bench.ltp/bench.ionconfig \
+./3.bench.ltp/bench.ionrc \
+./3.bench.ltp/bench.ionsecrc \
+./3.bench.ltp/bench.ipnrc \
 "
 
-TOPDIR=`pwd`
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce simple throughput benchmark results, for direct
-    comparison among computing platforms running ION.  All tests are
-    performed using the DTNRG-standard LTP convergence-layer protocol
-    between neighboring nodes residing on the same computer.  So
-    the results exercise BP and LTP in a non-loopback configuration,
-    over loopback UDP/IP; the results are therefore unaffected by network
-    traffic, router performance, or network interface card performance."
+echo "PURPOSE: demonstrate reliable (RED) Licklider Transmission
+    Protocol as a BP convergence layer and confirm end-to-end bundle
+    delivery.  Two neighboring nodes reside on the same computer and
+    communicate over loopback UDP (udplso/udplsi).  A moderate, fixed
+    number of bundles is sent from node 2 to node 3 and delivery is
+    confirmed.  Because LTP RED is reliable, every bundle is expected
+    to arrive.  This is a configuration demonstration and a delivery
+    smoke test, not a throughput measurement (loopback throughput is
+    not representative of any real deployment)."
 echo
-echo "NOTE: adjusting kernel UDP size will have significant impact on
-    throughput due to artificially high silent drops caused by
-    can increase the effective segment loss rate far above typical design."
+echo "CONFIG: 2 node custom:"
 echo
-
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
@@ -116,194 +56,77 @@ echo "########################################"
 ./cleanup
 sleep 1
 
-echo "Checking for additional memory needed for this demo..."
-./check_memory
-if [ $? != 0 ]; then
-    echo "Can't run, need additional system resources"
-    exit 1
-fi
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
 
-# Check kernel UDP buffer size (Linux only).  At high contact rates
-# (2 GB/s), the default rmem_max (212 KB) causes silent UDP drops
-# that collapse LTP throughput.
-MIN_RMEM_MAX=4194304	# 4 MB minimum
-if [ "$(uname -s)" = "Linux" ]; then
-    RMEM_MAX=$(sysctl -n net.core.rmem_max 2>/dev/null || echo 0)
-    if [ "$RMEM_MAX" -lt "$MIN_RMEM_MAX" ]; then
-        echo ""
-        echo "ERROR: Kernel UDP receive buffer too small for this benchmark."
-        echo "  net.core.rmem_max = $RMEM_MAX (need >= $MIN_RMEM_MAX)"
-        echo ""
-        echo "Required settings (applied by ltp_sysctl_tune.sh on):"
-        echo "  net.core.rmem_max = 16777216"
-        echo "  net.core.wmem_max = 16777216"
-        echo "  net.core.rmem_default = 8388608"
-        echo "  net.core.wmem_default = 8388608"
-        echo ""
-        echo "Run:  sudo ltp_sysctl_tune.sh on"
-        echo ""
-        echo "Skipping test."
-        exit 2
-    fi
-fi
-
-ITERNUM=0
-while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
-    let "++ITERNUM"
-    echo "#########################################################################"
-    echo "##   Starting Iteration ${ITERNUM}"
-    echo "#########################################################################"
-    echo
-
-for THROUGHPUT in ${THROUGHPUTS}; do
-    echo "#########################################################################"
-    echo "##   Contact Plan throughput: $(fmt_num ${THROUGHPUT}) bytes/sec"
-    echo "#########################################################################"
-    echo
-
-    RETVAL=0
-
-    # Write the contact plan (used by all tests at this throughput level)
-    cat > ./global.ionrc << EOF
-m horizon  +0
-a range    +0 +600		2 3   1
-a contact  +0 +420		2 3   ${THROUGHPUT}
-a contact  +0 +600		3 2   ${THROUGHPUT}
-EOF
-
-    TESTNUM=0
-    for TEST_CFG in "${TESTS[@]}"; do
-        let "++TESTNUM"
-        read BUNDLESIZE MAX_EXP MAX_IMP MAX_SEG AGG_SIZE AGG_TIME TEST_TOTAL <<< "$TEST_CFG"
-        if [ -z "$TEST_TOTAL" ]; then
-            TEST_TOTAL=$TOTALBYTES
-        fi
-
-        let "NUMBUNDLES = TEST_TOTAL/BUNDLESIZE"
-        if [ $NUMBUNDLES -lt 1 ]; then
-            NUMBUNDLES=1
-            echo "Adjusting to $NUMBUNDLES of size $(fmt_num $BUNDLESIZE)"
-        elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
-            echo "Truncating to $(fmt_num $MAXBUNDLES) of size $(fmt_num $BUNDLESIZE) (instead of $(fmt_num $NUMBUNDLES))"
-            NUMBUNDLES=$MAXBUNDLES
-        fi
-        let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
-        TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
-        if [ $TARGETBUNDLES -lt 1 ]; then
-            TARGETBUNDLES=1
-        fi
-
-        # Fresh ION start for each test — eliminates residual SDR state
-        killm f 2>/dev/null
-        sleep 1
-        export ION_NODE_LIST_DIR=$PWD
-        rm -f ./ion_nodes
-
-        # Write sender's LTP config for this test's parameters
-        cat > ${SENDER_DIR}/bench.ltprc << EOF
-1 ${LTP_INIT}
-a span 3 ${MAX_EXP} ${MAX_IMP} ${MAX_SEG} ${AGG_SIZE} ${AGG_TIME} '${LSO_CMD}'
-s '${LSI_CMD}'
-EOF
-
-        if [ -n "$DEBUG" ]; then
-            echo
-            echo "CONFIG: sender ltprc for this test:"
-            cat ${SENDER_DIR}/bench.ltprc
-            echo
-        fi
-
-        # Start nodes
-        (cd ${SENDER_DIR}; ./ionstart)
-        (cd ${RECEIVER_DIR}; ./ionstart)
-        sleep 2
-
-        cat << ==EOF==
-===============================================================================================================================
-RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}/${#TESTS[@]}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - steady state throughput measured at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
-SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZE agg_time=$AGG_TIME
-===============================================================================================================================
-==EOF==
-
-        cd ${RECEIVER_DIR}
-        bpcounter ipn:3.1 ${TARGETBUNDLES} &
-        BPCOUNTER_PID=$!
-        cd ..
-        sleep 1
-
-        # if bpcounter didn't start, then something went wrong and we definitely haven't passsed!
-        # some ps don't like -p syntax, most do.
-        if [ "$1" == "windows" ]
-        then
-                ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-        else
-                ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-        fi
-        if [ "$RETURN_VALUE" -eq 0 ]
-        then
-            echo "bpcounter couldn't be started."
-            echo "...benchmarking terminated."
-            exit 1
-        fi
-
-        # bpdriver sends the bundles in the background
-        (cd ${SENDER_DIR}; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
-        BPDRIVER_PID=$!
-
-        # Wait for transmission to finish.
-        echo "Waiting for transmission to finish..."
-        RUNNING=1
-        TIMER=0
-        while [ "$RUNNING" -eq 1 ]
-        do
-            TIMER=$((++TIMER))
-            sleep 1
-            echo "...receiving..."
-            # some ps don't like -p syntax, most do.
-            if [ "$1" == "windows" ]
-            then
-                ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-            else
-                ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-            fi
-            if [ "$RETURN_VALUE" -eq 0 ]
-            then
-                echo "...transmission finished."
-                RUNNING=0
-            fi
-            if [ "$TIMER" -gt $MAXSECONDS ]
-            then
-                #infinite loop protection
-                echo "...$MAXSECONDS seconds passed; giving up."
-                RUNNING=0
-                RETVAL=1
-            fi
-        done
-
-        if [ "$RETVAL" -eq 1 ]
-        then
-            echo "Test did not complete."
-            kill -9 $BPCOUNTER_PID $BPDRIVER_PID 2>/dev/null
-            RETVAL=0;   # allow next test to proceed
-        else
-            # Wait for bpdriver to finish sending
-            wait $BPDRIVER_PID 2>/dev/null
-        fi
-
-    # loop to next test
-    done
-
-    # loop to next contact plan throughput
-    done
-
-    # loop to next iteration
-    done
-
-    echo "#########################################################################"
-    echo "  Test has completed"
-    echo "#########################################################################"
-
+# Start nodes.
+(cd 2.bench.ltp; ./ionstart)
+(cd 3.bench.ltp; ./ionstart)
 sleep 3
 
-echo -e "...benchmarking terminated.\n"
-exit "$RETVAL"
+ROOT=$PWD
+BUNDLES=10
+WAIT_SECS=60
+IONSENDFILE="$ROOT/2.bench.ltp/benchsend.txt"
+IONRECEIVEFILE="$ROOT/3.bench.ltp/ionreceivefile.txt"
+echo "This is a bench-ltp demonstration bundle." > "$IONSENDFILE"
+rm -f "$IONRECEIVEFILE"
+
+echo ""
+echo "Sending $BUNDLES bundles from node 2 to node 3 over LTP (RED)."
+
+# Receiver on node 3.
+cd "$ROOT/3.bench.ltp"
+bpsink ipn:3.1 > "$IONRECEIVEFILE" &
+BPSINKPID=$!
+sleep 1
+
+# Send from node 2; each invocation transmits one bundle over LTP.
+cd "$ROOT/2.bench.ltp"
+i=1
+while [ "$i" -le "$BUNDLES" ]
+do
+    bpsource ipn:3.1 < "$IONSENDFILE" 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 3.  LTP RED is reliable, so all
+# bundles are expected; a shortfall fails fast here rather than hanging
+# until the harness timeout.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 3..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$IONRECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
+    then
+        break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
+
+if [ "$got" -ge "$BUNDLES" ]
+then
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 3 over LTP."
+    RETVAL=0
+else
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
+fi
+
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
+sleep 1
+kill -9 "$BPSINKPID" >/dev/null 2>&1
+
+echo ""
+echo "Stopping ION..."
+killm f
+echo "...demonstration terminated."
+exit $RETVAL
