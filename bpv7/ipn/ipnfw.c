@@ -438,7 +438,15 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 
 	/*	And we reserve transmission volume for this bundle
 	 *	on every contact along the end-to-end path for the
-	 *	bundle.							*/
+	 *	bundle.
+	 *
+	 *	Known limitation: this reservation records an enqueue,
+	 *	not a transmission, and is not credited back when the
+	 *	bundle is later re-forwarded onto another route.
+	 *	Residual volume is therefore an underestimate -- the
+	 *	safe direction, since it makes overbooking a contact
+	 *	less likely -- and is restored when the contact is
+	 *	next created.						*/
 
 	priority = bundle->priority;
 	for (elt = sm_list_first(ionwm, route->hops); elt;
