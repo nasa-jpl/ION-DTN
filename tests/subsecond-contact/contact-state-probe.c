@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 	uint16_t	milliseconds;
 	int		samples;
 	int		i;
+	int		sawActive = 0;
 
 	if (argc != 3)
 	{
@@ -33,6 +34,15 @@ int main(int argc, char **argv)
 				(unsigned int) milliseconds,
 				neighbor ? neighbor->xmitRate : 0);
 		fflush(stdout);
+		if (neighbor && neighbor->xmitRate > 0)
+		{
+			sawActive = 1;
+		}
+		else if (sawActive)
+		{
+			break;
+		}
+
 		microsnooze(5000);
 	}
 

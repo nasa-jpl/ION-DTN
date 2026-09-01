@@ -8,24 +8,38 @@ fi
 
 BUILD_DIR=$1
 TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+for tool in ionadmin ionexit
+do
+	if [ ! -x "$BUILD_DIR/$tool" ]; then
+		echo "FAIL: expected executable $BUILD_DIR/$tool" >&2
+		exit 2
+	fi
+done
+
+if [ ! -d "$BUILD_DIR/.libs" ]; then
+	echo "FAIL: expected in-tree library directory $BUILD_DIR/.libs" >&2
+	exit 2
+fi
+
+WORK_DIR=$(mktemp -d /tmp/ion-subsecond-owlt.XXXXXX)
 NODE_LIST_DIR=$(mktemp -d /tmp/ion-subsecond-node-list.XXXXXX)
-OUTPUT_FILE=$(mktemp /tmp/ion-subsecond-output.XXXXXX)
+OUTPUT_FILE="$WORK_DIR/ionadmin.out"
 
 cleanup()
 {
 	(
-		cd "$TEST_DIR"
+		cd "$WORK_DIR"
 		env ION_NODE_LIST_DIR="$NODE_LIST_DIR" \
 			LD_LIBRARY_PATH="$BUILD_DIR/.libs" \
 			"$BUILD_DIR/ionexit" >/dev/null 2>&1 || true
 	)
-	rm -f "$OUTPUT_FILE"
-	rm -rf "$NODE_LIST_DIR"
+	rm -rf "$WORK_DIR" "$NODE_LIST_DIR"
 }
 
 trap cleanup EXIT INT TERM
-cd "$TEST_DIR"
-rm -f ranges.ionrc
+cp "$TEST_DIR/decimal-range.ionrc" "$TEST_DIR/node.ionconfig" "$WORK_DIR"/
+cd "$WORK_DIR"
 env ION_NODE_LIST_DIR="$NODE_LIST_DIR" \
 	LD_LIBRARY_PATH="$BUILD_DIR/.libs" \
 	"$BUILD_DIR/ionadmin" decimal-range.ionrc >"$OUTPUT_FILE" 2>&1

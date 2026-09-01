@@ -10,6 +10,7 @@ BUILD_DIR=${ION_TEST_BUILD_DIR:-$(CDPATH= cd -- "$TEST_DIR/../.." && pwd)}
 "$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
 CLOCK_ERROR_TEXT=0.050 CLOCK_ERROR_MS=50 \
 	"$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
-CONTACT_MODE=legacy "$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
+CONTACT_MODE=legacy \
+	"$TEST_DIR/run-runtime.sh" "$BUILD_DIR"
 
 echo "PASS: subsecond contact-plan regression suite"
