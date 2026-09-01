@@ -1,0 +1,45 @@
+## Node 1 is the only node that runs.  Nodes 2 and 3 are fictitious:
+## node 2 is the neighbor named by the egress plan, node 3 is the
+## destination.  Because node 3 is not a neighbor, ipnfw must consult
+## the contact plan to reach it -- a static plan to the destination
+## would bypass CGR, and with it the copy counter, entirely.
+1 1 config.ionconfig
+s
+m horizon +0
+m clockerr 0
+
+a range +0 +3600 1 2 1
+a range +0 +3600 2 3 1
+
+## The second hop is always available, so a route to node 3 exists for
+## as long as some 1->2 contact does.
+a contact +0 +3600 2 3 100000
+
+## A run of brief 1->2 contacts, each separated from the next by a gap.
+## Nothing can be transmitted (the plan has no outduct), so every one of
+## these closes on the bundles still queued and re-forwards them onto the
+## next contact.  There are more contacts here than MAX_XMIT_COPIES.
+a contact +12 +14 1 2 100000
+a contact +15 +17 1 2 100000
+a contact +18 +20 1 2 100000
+a contact +21 +23 1 2 100000
+a contact +24 +26 1 2 100000
+a contact +27 +29 1 2 100000
+a contact +30 +32 1 2 100000
+a contact +33 +35 1 2 100000
+a contact +36 +38 1 2 100000
+a contact +39 +41 1 2 100000
+a contact +42 +44 1 2 100000
+a contact +45 +47 1 2 100000
+a contact +48 +50 1 2 100000
+a contact +51 +53 1 2 100000
+a contact +54 +56 1 2 100000
+a contact +57 +59 1 2 100000
+a contact +60 +62 1 2 100000
+a contact +63 +65 1 2 100000
+a contact +66 +68 1 2 100000
+a contact +69 +71 1 2 100000
+a contact +72 +74 1 2 100000
+a contact +75 +77 1 2 100000
+a contact +78 +80 1 2 100000
+a contact +81 +83 1 2 100000

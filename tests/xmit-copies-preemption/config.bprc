@@ -1,0 +1,12 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a protocol ltp 1400 100
+## An outduct with no convergence-layer output command.  The egress plan
+## needs a duct to name, but with no CLO daemon nothing ever calls
+## bpDequeue(), so a queued bundle stays queued -- and keeps its
+## xmitOverdue timer -- until a contact boundary re-forwards it.
+a outduct ltp 2 ''
+r 'ipnadmin config.ipnrc'
+s

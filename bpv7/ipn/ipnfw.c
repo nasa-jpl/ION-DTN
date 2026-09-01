@@ -332,16 +332,51 @@ static int enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	/* Parameter intentionally unused. */
 	(void)terminusNode;
 
-	/*	Note that a copy is being sent on the route through
-	 *	this neighbor.						*/
+	/*	The xmitCopies list exists solely to keep a critical
+	 *	bundle -- which is forwarded on every plausible route
+	 *	at once -- from being sent to the same neighbor twice.
+	 *	It is read only by proxNodeRedundant(), which is
+	 *	reached only from sendCriticalBundle().  So note that a
+	 *	copy is being sent on the route through this neighbor,
+	 *	and enforce the list's capacity, for critical bundles
+	 *	only.
+	 *
+	 *	Note what the count measures: copies *enqueued*.  It is
+	 *	incremented here, at bpEnqueue() time, not when the
+	 *	bundle is dequeued to a duct and not when anything is
+	 *	actually transmitted.  So it tallies distinct neighbors
+	 *	scheduled -- an upper bound on copies sent -- and is
+	 *	bounded by the number of neighbors having egress plans,
+	 *	not by elapsed time or by retransmission.
+	 *
+	 *	A non-critical bundle is forwarded on a single route at
+	 *	a time, but over its lifetime it may be re-forwarded
+	 *	any number of times: at the end of every contact in
+	 *	which it was not transmitted, whenever a higher-
+	 *	priority bundle overbooks the contact it was scheduled
+	 *	into, on convergence-layer failure, and on every
+	 *	release from limbo.  Charging those re-forwards against
+	 *	MAX_XMIT_COPIES capped the total number of times such a
+	 *	bundle could ever be enqueued; on reaching the cap it
+	 *	could no longer be forwarded on any route, so it merely
+	 *	cycled between limbo and the forwarder until its TTL
+	 *	expired.  A non-critical bundle's forwarding is bounded
+	 *	by its TTL, not by a count of copies.			*/
 
-	if (bundle->xmitCopiesCount == MAX_XMIT_COPIES)
+	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
-		return 0;	/*	Reached forwarding limit.	*/
+		if (bundle->xmitCopiesCount == MAX_XMIT_COPIES)
+		{
+			putFqn(nbrBuf, route->toFqnn);
+			writeMemoNote("[?] Critical bundle already has copies \
+on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
+			return 0;	/*	Reached copy limit.	*/
+		}
+
+		bundle->xmitCopies[bundle->xmitCopiesCount] = route->toFqnn;
+		bundle->xmitCopiesCount++;
 	}
 
-	bundle->xmitCopies[bundle->xmitCopiesCount] = route->toFqnn;
-	bundle->xmitCopiesCount++;
 	bundle->dlvConfidence = cgr_get_dlv_confidence(bundle, route);
 
 	/*	If the bundle is NOT critical, then:			*/

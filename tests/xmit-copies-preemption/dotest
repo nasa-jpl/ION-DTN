@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+#
+# Regression test for the MAX_XMIT_COPIES forwarding cap.
+#
+# The xmitCopies list in ipnfw exists to stop a critical bundle -- which
+# is forwarded on every plausible route at once -- from being sent to the
+# same neighbor twice.  enqueueToEntryNode() used to record a copy, and
+# enforce the list's capacity, for every bundle rather than only for
+# critical ones.  A non-critical bundle is forwarded on one route at a
+# time but may be re-forwarded many times over its life, so the cap
+# became a ceiling on how many times such a bundle could ever be
+# enqueued.  On reaching it the forwarder silently declined to enqueue
+# the bundle on any route, and because the refusal is reported as success
+# the bundle then cycled between limbo and the forwarder until its TTL
+# expired.
+#
+# In the field this surfaced as expedited traffic repeatedly preempting
+# standard-priority bundles across a long run of contacts.  Preemption is
+# only one of the ways a bundle is re-forwarded, though, and reproducing
+# it needs the offered load balanced against contact volume closely
+# enough to be fragile in a regression test.  This test drives the same
+# code path -- bpReforwardBundle() -> forwardBundle() -> tryCGR() ->
+# enqueueToEntryNode() -- with the deterministic one: a bundle that is
+# still queued when its contact closes is re-forwarded onto the next
+# contact.
+#
+# Only node 1 runs.  Nodes 2 and 3 are fictitious.  Node 3 is the
+# destination and is not a neighbor, so ipnfw must consult the contact
+# plan to reach it; a static plan to the destination would take the
+# enqueueToNeighbor() path and never touch the copy counter.  The egress
+# plan to node 2 has no outduct, so nothing can ever be transmitted and
+# every one of the 24 brief contacts closes on the bundles still queued.
+#
+# Each successful enqueue onto the plan is one 'fwd' tally and one charge
+# against the copy counter, so the tally is a direct measure of what the
+# cap limits.  With the cap applied to non-critical bundles, the tally
+# cannot exceed SCIENCE * MAX_XMIT_COPIES no matter how many contacts
+# come and go.
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+cd "$TESTDIR"
+
+trap 'killm f >/dev/null 2>&1' EXIT
+
+SCIENCE=5           # bundles offered
+CONTACTS=24         # brief 1->2 contacts in the plan
+MAX_XMIT_COPIES=20  # the cap in bpv7/library/bpP.h
+CEILING=$((SCIENCE * MAX_XMIT_COPIES))
+LAST_CONTACT_ENDS=86
+SETTLE=8
+
+CONFIGFILES=" \
+./config.ionrc \
+./config.ionconfig \
+./config.bprc \
+./config.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that a non-critical bundle can still be forwarded
+    after being re-forwarded more than MAX_XMIT_COPIES times.  The copy
+    limit belongs to critical bundles, which are sent on all routes at
+    once; charging a non-critical bundle's re-forwards against it strands
+    the bundle permanently and silently."
+echo
+echo "CONFIG: One node, $CONTACTS brief contacts toward a destination that
+    is not a neighbor, and an egress plan with no outduct so nothing can
+    be transmitted:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: node 1's 'fwd' tally must exceed $CEILING
+    (= $SCIENCE bundles x MAX_XMIT_COPIES), which is the ceiling the cap
+    imposes when it is applied to non-critical bundles."
+echo
+echo "########################################"
+
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$TESTDIR
+
+waitUntil()
+{
+    local target=$((T0 + $1))
+    while [ "$(date +%s)" -lt "$target" ]
+    do
+        sleep 1
+    done
+}
+
+echo "Starting ION..."
+T0=$(date +%s)
+ionadmin config.ionrc
+ionsecadmin config.ionsecrc
+bpadmin config.bprc
+
+../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]
+then
+    echo "ERROR: ION did not start."
+    exit 1
+fi
+
+. ../test_utils.sh
+
+echo "Offering $SCIENCE bundles to ipn:3.1 before the first contact opens..."
+i=1
+while [ $i -le $SCIENCE ]
+do
+    bptrace ipn:1.1 ipn:3.1 dtn:none 900 1.0 "science-$i"
+    i=$((i + 1))
+done
+
+echo "Watching the 'fwd' tally as the contacts come and go..."
+echo "  (the cap, if applied to these bundles, pins it at $CEILING)"
+t=20
+while [ $t -le $LAST_CONTACT_ENDS ]
+do
+    waitUntil $t
+    bpstats
+    sleep 1
+    echo "  [+${t}s] fwd tally: $(lastBpTally fwd)"
+    t=$((t + 15))
+done
+
+waitUntil $((LAST_CONTACT_ENDS + SETTLE))
+bpstats
+sleep 1
+FWD=$(lastBpTally fwd)
+
+echo ""
+echo "Bundles still held by node 1:"
+bplist | tail -12
+echo ""
+echo "Final fwd tally: $FWD   (ceiling imposed by the cap: $CEILING)"
+echo ""
+
+if [ "${FWD:-0}" -gt "$CEILING" ]
+then
+    echo "TEST PASSED: bundles kept being forwarded past $CEILING enqueues."
+    RETVAL=0
+else
+    echo "TEST FAILED: the fwd tally stalled at $FWD, at or below the"
+    echo "             $CEILING-enqueue ceiling that MAX_XMIT_COPIES imposes."
+    echo "             Re-forwarded non-critical bundles are being stranded."
+    RETVAL=1
+fi
+
+echo "Stopping ION..."
+exit $RETVAL

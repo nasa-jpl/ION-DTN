@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion.log ion_nodes

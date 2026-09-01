@@ -1,0 +1,1 @@
+Verifies that a non-critical bundle preempted by higher-priority traffic more times than MAX_XMIT_COPIES can still be forwarded, rather than being stranded by the critical-bundle copy limit.
