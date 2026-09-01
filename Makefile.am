@@ -1027,6 +1027,7 @@ dgrinclude = \
 	dgr/include/dgr.h
 
 dgrnoinst = \
+	dgr/library/dgrP.h \
 	dgr/test/file2dgr.h \
 	dgr/test/file2tcp.h \
 	dgr/test/file2udp.h

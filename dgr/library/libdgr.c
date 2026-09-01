@@ -10,6 +10,7 @@
 
 									*/
 #include "dgr.h"
+#include "dgrP.h"
 #include "ion_atomic.h"
 #include "memmgr.h"
 #include "llcv.h"
@@ -1864,6 +1865,189 @@ static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
 	return 0;
 }
 
+/*	See dgrP.h for the parser's contract.				*/
+
+int _dgrParseInboundSegment(char *buf, int length, uvast *engineId,
+		uvast *sessionNbr, uvast *ckptSerialNbr, uvast *rptSerialNbr,
+		int *headerLength, int *contentOffset, uvast *contentLength)
+{
+	unsigned char *cursor = (unsigned char *) buf;
+	int	       bytesRemaining = length;
+	unsigned int   versionNbr;
+	unsigned int   segmentType;
+	int	       sdnvLength;
+	uvast	       clientSvcId;
+	uvast	       svcDataOffset;
+	uvast	       svcDataLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0; /* Ignore random guck. */
+	}
+
+	versionNbr = ((*cursor) >> 4) & 0x0f;
+	if (versionNbr != 0)
+	{
+		return 0;
+	}
+
+	segmentType = (*cursor) & 0x0f;
+	cursor++;
+	bytesRemaining--;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(engineId, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(sessionNbr, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	if (*cursor != 0)
+	{
+		return 0; /* No extension support. */
+	}
+
+	cursor++;
+	bytesRemaining--;
+
+	if (bytesRemaining < 1) /* No content. */
+	{
+		return 0;
+	}
+
+	*headerLength = length - bytesRemaining;
+	if (segmentType == 8) /* Report. */
+	{
+		sdnvLength = decodeSdnv(rptSerialNbr, cursor);
+		if (sdnvLength < 1)
+		{
+			return 0;
+		}
+
+		return 8;
+	}
+
+	if (segmentType != 3) /* Not red data, EOB. */
+	{
+		return 0; /* Not supported. */
+	}
+
+	sdnvLength = decodeSdnv(&clientSvcId, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(&svcDataOffset, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	if (svcDataOffset != 0)
+	{
+		return 0; /* Not supported. */
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(&svcDataLength, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(ckptSerialNbr, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(rptSerialNbr, cursor);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	cursor += sdnvLength;
+	bytesRemaining -= sdnvLength;
+
+	if (bytesRemaining < 1)
+	{
+		return 0;
+	}
+
+	if (svcDataLength > (uvast) bytesRemaining)
+	{
+		return 0; /* Overstated length. */
+	}
+
+	if (*rptSerialNbr != 0)
+	{
+		return 0; /* Not supported. */
+	}
+
+	*contentOffset = (int) (cursor - (unsigned char *) buf);
+	*contentLength = svcDataLength;
+	return 3;
+}
+
 static void	*receiver(void *parm)
 {
 	DgrSAP			*sap = (DgrSAP *) parm;
@@ -1872,20 +2056,14 @@ static void	*receiver(void *parm)
 	socklen_t		sockaddrlen;
 	unsigned short		portNbr;
 	int			length;
-	unsigned char		*cursor;
-	int			bytesRemaining;
-	unsigned int		versionNbr;
-	unsigned int		segmentType;
-	int			sdnvLength;
+	int			segmentType;
 	uvast			engineId;
 	uvast			sessionNbr;
-	unsigned int		extensionCounts;
-	int			headerLength;
-	uvast			clientSvcId;
-	uvast			svcDataOffset;
-	uvast			svcDataLength;
 	uvast			ckptSerialNbr;
 	uvast			rptSerialNbr;
+	int			headerLength;
+	int			contentOffset;
+	uvast			contentLength;
 	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
@@ -1923,105 +2101,28 @@ recvfrom");
 			break;		/*	Out of main loop.	*/
 		}
 
-		/*	Parse the LTP segment header.			*/
+		/* Parse the received segment. */
 
-		cursor = (unsigned char *) (sap->inputBuffer);
-		bytesRemaining = length;
-
-		/*	Version number.					*/
-
-		if (bytesRemaining < 1)
+		segmentType = _dgrParseInboundSegment(sap->inputBuffer, length,
+				&engineId, &sessionNbr, &ckptSerialNbr,
+				&rptSerialNbr, &headerLength, &contentOffset,
+				&contentLength);
+		if (segmentType == 8) /* Report. */
 		{
-			continue;	/*	Ignore random guck.	*/
-		}
-
-		versionNbr = ((*cursor) >> 4) & 0x0f;
-		if (versionNbr != 0)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		/*	Segment type.					*/
-
-		segmentType = (*cursor) & 0x0f;
-		cursor++;
-		bytesRemaining--;
-
-		/*	Engine ID.					*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		sdnvLength = decodeSdnv(&engineId, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Session Nbr.					*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		sdnvLength = decodeSdnv(&sessionNbr, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Extension counts.				*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		extensionCounts = *cursor;
-		if (extensionCounts != 0)
-		{
-			continue;	/*	No extension support.	*/
-		}
-
-		cursor++;
-		bytesRemaining--;
-
-		/*	Segment content.				*/
-
-		if (bytesRemaining < 1)	/*	No content.		*/
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		/*	Process content as indicated by segment type.	*/
-
-		headerLength = length - bytesRemaining;
-		if (segmentType == 8)	/*	Report.			*/
-		{
-			/*	Get report serial number.		*/
-
-			sdnvLength = decodeSdnv(&rptSerialNbr, cursor);
-			if (sdnvLength < 1)
+			if (sendAck(sap, reportBuffer, headerLength, rptSerialNbr,
+					    sockName, sockaddrlen) < 0)
 			{
-				continue;	/*	Invalid segment.*/
+				break; /* Out of main loop. */
 			}
 
-			cursor += sdnvLength;
-			bytesRemaining -= sdnvLength;
-			if (sendAck(sap, reportBuffer, headerLength,
-				rptSerialNbr, sockName, sockaddrlen) < 0)
-			{
-				break;		/*	Main loop.	*/
-			}
+			/*
+			 * Note: we always return report ACKs (9s), for
+			 * compliance, but we always ignore all received report
+			 * ACKs.  DGR reports are not retransmitted. If the
+			 * report isn't received, the data segment is
+			 * eventually retransmitted and is acknowledged at that
+			 * time.
+			 */
 
 			if (arq(sap, engineId, sessionNbr, DgrHandleRpt))
 			{
@@ -2032,118 +2133,14 @@ recvfrom");
 			continue;
 		}
 
-		/*	Note: we always return report ACKs (9s), for
-		 *	compliance, but we always ignore all received
-		 *	report ACKs.  DGR reports are not retransmitted.
-		 *	If the report isn't received, the data segment
-		 *	is eventually retransmitted and is acknowledged
-		 *	at that time.					*/
-
-		if (segmentType != 3)
+		if (segmentType != 3) /* Not red data, EOB. */
 		{
-			continue;	/*	Not supported.		*/
+			continue;     /* Malformed or unsupported. */
 		}
 
 		/*	Red data, EOB.  Extract sender's port nbr.	*/
 
 		portNbr = ntohs(socketAddress.sin_port);
-
-		/*	Client service ID.				*/
-
-		sdnvLength = decodeSdnv(&clientSvcId, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Service data offset.				*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		sdnvLength = decodeSdnv(&svcDataOffset, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		if (svcDataOffset != 0)
-		{
-			continue;	/*	Not supported.		*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Service data length.				*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		sdnvLength = decodeSdnv(&svcDataLength, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Checkpoint serial number.			*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-		sdnvLength = decodeSdnv(&ckptSerialNbr, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Report serial number.				*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		sdnvLength = decodeSdnv(&rptSerialNbr, cursor);
-		if (sdnvLength < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		cursor += sdnvLength;
-		bytesRemaining -= sdnvLength;
-
-		/*	Client service data.				*/
-
-		if (bytesRemaining < 1)
-		{
-			continue;	/*	Invalid segment.	*/
-		}
-
-		if (svcDataLength > (uvast) bytesRemaining)
-		{
-			continue;	/*	Overstated length.	*/
-		}
-
-		if (rptSerialNbr != 0)
-		{
-			continue;	/*	Not supported.		*/
-		}
-
 		if (_watching())
 		{
 			iwatch('s');
@@ -2152,14 +2149,14 @@ recvfrom");
 		/*	Now send acknowledgment (report).		*/
 
 		if (sendReport(sap, reportBuffer, headerLength, ckptSerialNbr,
-				svcDataLength, sockName, sockaddrlen) < 0)
+				    contentLength, sockName, sockaddrlen) < 0)
 		{
 			break;		/*	Out of main loop.	*/
 		}
 
 		/*	Create content arrival event.			*/
 
-		reclength = sizeof(struct dgr_rec) + (svcDataLength - 1);
+		reclength = sizeof(struct dgr_rec) + (contentLength - 1);
 		rec = (DgrRecord) MTAKE(reclength);
 		if (rec == NULL)
 		{
@@ -2171,10 +2168,11 @@ recvfrom");
 		rec->type = DgrMsgIn;
 		rec->portNbr = portNbr;
 		rec->ipAddress = ntohl(socketAddress.sin_addr.s_addr);
-		rec->contentLength = svcDataLength;
+		rec->contentLength = contentLength;
 		rec->segment.id.engineId = engineId;
 		rec->segment.id.sessionNbr = sessionNbr;
-		memcpy(rec->segment.content, cursor, svcDataLength);
+		memcpy(rec->segment.content, sap->inputBuffer + contentOffset,
+				contentLength);
 		if (insertEvent(sap, rec))
 		{
 			writeMemo("[?] DGR receiver thread dropped packet due to OOM.");
