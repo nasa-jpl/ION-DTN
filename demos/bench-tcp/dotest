@@ -10,30 +10,6 @@ trap 'killm f' EXIT
 # October 11, 2023
 #
 
-#
-# testing configuration
-# (to make the numbers more readable)
-KB="000"
-MB="${KB}000"
-GB="${MB}000"
-# how many total bytes to transfer for each test
-#TOTALBYTES=1${MB}
-TOTALBYTES=10${MB}
-# MAX number of bundles for any test (too many causes non-ION losses)
-# This really only affects really small size bundles
-MAXBUNDLES=10000
-# what bundle sizes do you want to test
-# (list multiple values to cycle through them each)
-# (NUMBUNDLES is calculated from TOTALBYTES and BUNDLESIZE, and will be at least 1 for each iteration)
-BUNDLESIZES="1${KB} 10${KB} 100${KB} 1${MB} 10${MB} 100${MB}"
-# how many iterations of the test to run?
-ITERATIONS="1"
-
-
-#================================================================
-# You shouldn't need to adjust anything below this point
-#================================================================
-
 # identify the test for later analysis
 echo "Date: `date`"
 echo "Benchmark: `pwd`"
@@ -61,13 +37,13 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce simple throughput benchmark results, for direct
-    comparison among computing platforms running ION.  All tests are
-    performed using the DTNRG-standard TCP convergence-layer protocol
-    between neighboring nodes residing on the same computer.  So
-    the results exercise BP in a non-loopback configuration, over
-    loopback TCP/IP; the results are therefore unaffected by network
-    traffic, router performance, or network interface card performance."
+echo "PURPOSE: demonstrate bundle exchange over the DTNRG-standard TCP
+    convergence-layer protocol between two neighboring nodes residing on
+    the same computer, connected over loopback TCP/IP.  This is a
+    configuration demonstration and a delivery smoke test -- a moderate,
+    fixed number of bundles is sent from node 2 to node 3 and delivery is
+    confirmed -- not a throughput measurement (loopback throughput is not
+    representative of any real deployment)."
 
 if [ -n "$DEBUG" ]; then
     echo
@@ -93,97 +69,100 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
-ITERNUM=0
-while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
-    let "++ITERNUM"
-    echo "#########################################################################"
-    echo "##   Starting Iteration ${ITERNUM}"
-    echo "#########################################################################"
-    echo
+echo "#########################################################################"
+echo "##  Starting ION Nodes"
+echo "#########################################################################"
+echo
 
+# Start nodes.
+(cd 2.bench.tcp; ./ionstart)
+(cd 2.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
+if [ $? -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
 
-    echo "#########################################################################"
-    echo "##  Starting ION Nodes"
-    echo "#########################################################################"
-    echo
+(cd 3.bench.tcp; ./ionstart)
+(cd 3.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
+if [ $? -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
 
+sleep 3
 
-    # Start nodes.
-    (cd 2.bench.tcp; ./ionstart)
-    (cd 2.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
-    if [ $? -ne 2 ]; then
-        echo "Node 2 not started: Aborting Test"
-        exit 1
+# Delivery smoke test: send a moderate, fixed number of bundles from node 2
+# to node 3 over the loopback TCP convergence layer and confirm they arrive.
+# This is a configuration demonstration, not a throughput measurement, so the
+# volume is small and delivery is bounded in time.
+ROOT=$PWD
+BUNDLES=10
+WAIT_SECS=60
+IONSENDFILE="$ROOT/2.bench.tcp/benchsend.txt"
+IONRECEIVEFILE="$ROOT/3.bench.tcp/ionreceivefile.txt"
+echo "This is a bench-tcp demonstration bundle." > "$IONSENDFILE"
+rm -f "$IONRECEIVEFILE"
+
+echo ""
+echo "Sending $BUNDLES bundles from node 2 to node 3 over TCP."
+
+# Receiver on node 3.
+cd "$ROOT/3.bench.tcp"
+bpsink ipn:3.1 > "$IONRECEIVEFILE" &
+BPSINKPID=$!
+sleep 1
+
+# Send from node 2 over the loopback TCP convergence layer.
+cd "$ROOT/2.bench.tcp"
+i=1
+while [ "$i" -le "$BUNDLES" ]
+do
+    bpsource ipn:3.1 < "$IONSENDFILE" 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 3.  Reliable TCP loopback delivers
+# quickly; a shortfall fails fast here rather than hanging until the harness
+# timeout.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 3..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$IONRECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
+    then
+        break
     fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
 
-    (cd 3.bench.tcp; ./ionstart)
-    (cd 3.bench.tcp; ../../../system_up -i "p 30" -b "p 30")
-    if [ $? -ne 2 ]; then
-        echo "Node 3 not started: Aborting Test"
-        exit 1
-    fi
+if [ "$got" -ge "$BUNDLES" ]
+then
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 3 over TCP."
+    RETVAL=0
+else
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
+fi
 
-    TESTNUM=0
-    for BUNDLESIZE in ${BUNDLESIZES}; do
-        let "++TESTNUM"
-        let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
-        if [ $NUMBUNDLES -lt 1 ]; then
-            NUMBUNDLES=1
-            echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
-        elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
-            echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
-            NUMBUNDLES=$MAXBUNDLES
-        fi
-        let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
+# Per-node stats, for the demonstration.
+for N in 2 3
+do
+    cd "$ROOT/$N.bench.tcp"
+    bpstats
+done
+cd "$ROOT"
 
-        sleep 1
-
-        cat << ==EOF==
-===============================================================================================================================
-RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes each - ${ACTUALBYTES} total bytes
-===============================================================================================================================
-==EOF==
-
-
-    cd 3.bench.tcp
-    bpcounter ipn:3.1 ${NUMBUNDLES} &
-    BPCOUNTER_PID=$!
-    cd ..
-    sleep 1
-
-    (cd 2.bench.tcp; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
-    BPDRIVER_PID=$!
-
-    # Wait for transmission to finish.
-    echo "Waiting for transmission to finish..."
-    RUNNING=1
-    while [ "$RUNNING" -eq 1 ]
-    do
-        sleep 1
-        echo "...receiving..."
-        # some ps don't like -p syntax, most do.
-        if [ "$1" == "windows" ]
-        then
-            ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-        else
-            ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-        fi
-        if [ "$RETURN_VALUE" -eq 0 ]
-        then
-            echo "...transmission finished."
-            RUNNING=0
-        fi
-    done
-
-    # loop to next bundle size
-    done
-
-    # loop to next iteration
-    done
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
+sleep 1
+kill -9 "$BPSINKPID" >/dev/null 2>&1
 
 echo "Stopping ION..."
-#(cd 2.bench.tcp; ./ionstop) &
-#(cd 3.bench.tcp; ./ionstop) &
-sleep 3
-echo -e "...benchmarking terminated.\n"
-exit "$RETVAL"
+killm f
+echo "...demonstration terminated."
+exit $RETVAL
