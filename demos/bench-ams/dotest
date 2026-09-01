@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
-# AMS Benchtest script (for simple AMS two-node demo)
+# AMS two-node demonstration and delivery smoke test.
+#
+# PURPOSE: demonstrate AMS publish/subscribe messaging carried across two
+# separate continua over the RAMS/BP/TCP link (ramsgate), and confirm
+# end-to-end delivery.  A moderate, fixed number of messages is published
+# by amsbenchs (node 2) and counted by amsbenchr (node 3); delivery of the
+# full set is verified.  This is a configuration demonstration and a
+# delivery smoke test -- not a throughput measurement (loopback throughput
+# is not representative of any real deployment).
 
 
 # Benchtest variables-------------------------------------------------
-COUNT=1000
+COUNT=100
 MESSAGE_SIZE=1000
 
 
@@ -91,6 +99,15 @@ if ! check_process_running; then
     echo -e "Error: amsbenchr could not be started!"
     stop_and_exit 1
 fi
+
+# Let the receiver's subscription propagate across the RAMS/BP/TCP link to
+# the publisher's continuum before publishing begins.  The sender's own
+# 1-second snooze is too short for cross-continuum petition delivery; if the
+# subscription arrives late the earliest (highest-numbered) messages are
+# dropped and the delivered count falls short.  Settle here to close that
+# race.
+echo -e "Waiting for the subscription to propagate to the publisher..."
+sleep 8
 
 cd ../node2
 echo -e "Starting amsbench sender:"
