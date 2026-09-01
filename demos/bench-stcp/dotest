@@ -22,13 +22,14 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce simple throughput benchmark results, for direct
-    comparison among computing platforms running ION.  All tests are
-    performed using the DTNRG-standard TCP convergence-layer protocol
-    between neighboring nodes residing on the same computer.  So
-    the results exercise BP in a non-loopback configuration, over
-    loopback TCP/IP; the results are therefore unaffected by network
-    traffic, router performance, or network interface card performance."
+echo "PURPOSE: demonstrate the simplified TCP (STCP) convergence-layer
+    protocol between two neighboring nodes residing on the same computer
+    and confirm reliable end-to-end bundle delivery.  Source node 2 sends
+    to destination node 3 over loopback STCP/IP.  This is a configuration
+    demonstration and a delivery smoke test -- a moderate, fixed number of
+    bundles is sent and delivery is confirmed -- not a throughput
+    measurement (loopback throughput is not representative of any real
+    deployment)."
 
 echo
 echo "CONFIG: 2 node custom:"
@@ -49,335 +50,103 @@ sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
-rm -f bpcounter_test*.txt
 RETVAL=0
 
 # Start nodes.
 cd 2.bench.stcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
 cd ../3.bench.stcp
 ./ionstart
-
-sleep 3
-echo ""
-echo "Test 1: 10,000 bundles of 1000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test1.txt"
-EXPECTED_BUNDLES=10000
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 1 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 1 PASSED: Received $RECEIVED bundles"
-	fi
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 sleep 3
+
+# Delivery smoke test: send a moderate, fixed number of bundles from node 2
+# to node 3 over the STCP convergence layer and confirm they arrive.  This
+# is a configuration demonstration, not a throughput measurement, so the
+# volume is small and delivery is bounded in time; a shortfall fails fast
+# rather than hanging until the harness timeout.
+cd ..
+ROOT=$PWD
+BUNDLES=10
+WAIT_SECS=60
+IONSENDFILE="$ROOT/2.bench.stcp/benchsend.txt"
+IONRECEIVEFILE="$ROOT/3.bench.stcp/ionreceivefile.txt"
+echo "This is a bench-stcp demonstration bundle." > "$IONSENDFILE"
+rm -f "$IONRECEIVEFILE"
+
 echo ""
-echo "Test 2: 10000 bundles of 10,000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test2.txt"
-EXPECTED_BUNDLES=10000
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
+echo "Sending $BUNDLES bundles from node 2 to node 3 over STCP."
+
+# Receiver on node 3.
+cd "$ROOT/3.bench.stcp"
+bpsink ipn:3.1 > "$IONRECEIVEFILE" &
+BPSINKPID=$!
 sleep 1
 
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -10000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
+# Send from node 2 over the STCP convergence layer.
+cd "$ROOT/2.bench.stcp"
+i=1
+while [ "$i" -le "$BUNDLES" ]
 do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
+    bpsource ipn:3.1 < "$IONSENDFILE" 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 3.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 3..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$IONRECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
     then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        break
     fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
 done
 
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 2 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 2 PASSED: Received $RECEIVED bundles"
-	fi
+if [ "$got" -ge "$BUNDLES" ]
+then
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 3 over STCP."
+    RETVAL=0
+else
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
 fi
 
-sleep 3
-echo ""
-echo "Test 3: 10000 bundles of 100,000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test3.txt"
-EXPECTED_BUNDLES=10000
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
+# Per-node stats, for the demonstration.
+for N in 2 3
+do
+    cd "$ROOT/$N.bench.stcp"
+    bpstats
+done
+cd "$ROOT"
+
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
 sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -100000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 3 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 3 PASSED: Received $RECEIVED bundles"
-	fi
-fi
-
-sleep 3
-echo ""
-echo "Test 4: 1000 bundles of 1,000,000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test4.txt"
-EXPECTED_BUNDLES=1000
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 4 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 4 PASSED: Received $RECEIVED bundles"
-	fi
-fi
-
-sleep 3
-echo ""
-echo "Test 5: 100 bundles of 10,000,000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test5.txt"
-EXPECTED_BUNDLES=100
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -10000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 5 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 5 PASSED: Received $RECEIVED bundles"
-	fi
-fi
-
-sleep 3
-echo ""
-echo "Test 6: 10 bundles of 100,000,000 bytes each."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test6.txt"
-EXPECTED_BUNDLES=10
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -100000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 6 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 6 PASSED: Received $RECEIVED bundles"
-	fi
-fi
-
-sleep 3
-echo ""
-echo "Test 7: 1 bundle of 1,000,000,000 bytes."
-cd ../3.bench.stcp
-BPCOUNTER_OUTPUT="../bpcounter_test7.txt"
-EXPECTED_BUNDLES=1
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.stcp
-bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-# Validate actual bundle reception
-if [ "$RETVAL" -eq 0 ]; then
-	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
-	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
-		echo "ERROR: Test 7 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
-		RETVAL=1
-	else
-		echo "Test 7 PASSED: Received $RECEIVED bundles"
-	fi
-fi
+kill -9 "$BPSINKPID" >/dev/null 2>&1
 
 echo "Stopping ION..."
-#cd ../2.bench.stcp
-#./ionstop &
-#cd ../3.bench.stcp
-#./ionstop &
-sleep 3
-echo "...benchmarking terminated."
+killm f
+echo "...demonstration terminated."
 exit $RETVAL

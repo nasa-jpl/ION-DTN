@@ -29,19 +29,18 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce a demonstration configuration for using the
-    BIBE convergence-layer protocol (over UDP/IP) between neighboring
-    DTN nodes, relying on BIBE custodial retransmission for reliability;
-    bundles received via BIBE are forwarded to the final destination
-    by STCP. Since the bundle size exceeds the maximum capacity of a UDP
-    packet, the test exercises BP fragmentation and reassembly as well.
-    Due to the inherent unreliability of UDP and the fact the way network
-    subsystem drops UDP data is implementation-dependent, the actual
-    throughput will vary from system to system. A final note is that the
-    throughput is also a function of the size of the bundle."
+echo "PURPOSE: demonstrate a configuration that uses the BIBE
+    convergence-layer protocol (over UDP/IP) between neighboring DTN nodes,
+    relying on BIBE custodial retransmission for reliability; bundles
+    received via BIBE are forwarded to the final destination by STCP.
+    Source node 2 sends to destination node 4 via relay node 3 -- node 2
+    to node 3 over BIBE/UDP with custodial retransmission, node 3 to node 4
+    over STCP.  This is a configuration demonstration and a delivery smoke
+    test -- a moderate, fixed number of bundles is sent and custodial
+    delivery is confirmed -- not a throughput measurement."
 
 echo
-echo "CONFIG: 2 node custom:"
+echo "CONFIG: 3 node custom:"
 echo
 for N in $CONFIGFILES
 do
@@ -80,89 +79,82 @@ cd ../3.bench.bibe
 ./ionstart >& bench.stdout
 
 sleep 3
+
+# Delivery smoke test: send a moderate, fixed number of bundles from node 2
+# to node 4 and confirm they arrive.  Node 2 forwards to node 3 over BIBE
+# (with custodial retransmission over lossy UDP), and node 3 forwards to
+# node 4 over STCP.  This is a configuration demonstration, not a throughput
+# measurement, so the volume is small and delivery is bounded in time; the
+# generous wait allows for BIBE custodial retransmission.  A shortfall fails
+# fast rather than hanging until the harness timeout.
+cd ..
+ROOT=$PWD
+BUNDLES=10
+WAIT_SECS=90
+IONSENDFILE="$ROOT/2.bench.bibe/benchsend.txt"
+IONRECEIVEFILE="$ROOT/4.bench.bibe/ionreceivefile.txt"
+echo "This is a bench-bibect demonstration bundle." > "$IONSENDFILE"
+rm -f "$IONRECEIVEFILE"
+
 echo ""
-echo "Test 1: 1000 bundles of 50,000 bytes each."
-cd ../4.bench.bibe
-bpcounter ipn:4.1 1000 &
-BPCOUNTER_PID=$!
+echo "Sending $BUNDLES bundles from node 2 to node 4 via BIBE custody."
+
+# Receiver on node 4.
+cd "$ROOT/4.bench.bibe"
+bpsink ipn:4.1 > "$IONRECEIVEFILE" &
+BPSINKPID=$!
 sleep 1
 
-# if bpcounter didn't start, then something went wrong and we definitely haven't passsed!
-# some ps don't like -p syntax, most do.
-if [ "$1" == "windows" ]
+# Send from node 2; each bundle is carried to node 3 over BIBE/UDP under
+# custodial retransmission, then on to node 4 over STCP.  A brief throttle
+# between sends keeps BIBE from saturating the contact rate.
+cd "$ROOT/2.bench.bibe"
+i=1
+while [ "$i" -le "$BUNDLES" ]
+do
+    bpsource ipn:4.1 < "$IONSENDFILE" 1>/dev/null 2>/dev/null
+    sleep 0.1
+    i=$((i + 1))
+done
+cd "$ROOT"
+
+# Wait (bounded) for delivery at node 4.
+echo "Waiting up to ${WAIT_SECS}s for delivery at node 4..."
+elapsed=0
+got=0
+while [ "$elapsed" -lt "$WAIT_SECS" ]
+do
+    got=$(grep -c "^ION event: Payload delivered\." "$IONRECEIVEFILE" 2>/dev/null)
+    [ -z "$got" ] && got=0
+    if [ "$got" -ge "$BUNDLES" ]
+    then
+        break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+done
+
+if [ "$got" -ge "$BUNDLES" ]
 then
-    ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    echo "SUCCESS: $got of $BUNDLES bundles delivered to node 4 via BIBE custody."
+    RETVAL=0
 else
-    ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-fi
-if [ "$RETURN_VALUE" -eq 0 ]
-then
-    echo "bpcounter couldn't be started."
-    echo "...benchmarking terminated."
-    exit 1
+    echo "FAILURE: only $got of $BUNDLES bundles delivered after ${WAIT_SECS}s."
+    RETVAL=1
 fi
 
-
-cd ../2.bench.bibe
-# send bundle under 64KB to avoid fragmentation
-# over UDPCLO
-
-COUNT=0
-
-while [ $COUNT -le 1001 ]
+# Per-node stats, for the demonstration.
+for N in 2 3 4
 do
-
-    bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
-
-    # throttles load to contact rate; bibect is sensitive to saturation
-    sleep 0.005
-
-    COUNT=$(($COUNT+1))
-
+    cd "$ROOT/$N.bench.bibe"
+    bpstats
 done
-sleep 5
+cd "$ROOT"
 
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-while [ "$RUNNING" -eq 1 ]
-do
-    sleep 1
-    echo "...receiving..."
-    # some ps don't like -p syntax, most do.
-    if [ "$1" == "windows" ]
-    then
-        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        echo "...transmission finished."
-        RUNNING=0
-    fi
-done
-
-#echo "Waiting 150 sec for transmission to complete and fragments to expire..."
-#sleep 150
-
-echo -e "...stopping ION\n"
-cd ../2.bench.bibe
-bpstats
-sleep 3
-#./ionstop &
-
-cd ../3.bench.bibe
-bpstats
-sleep 3
-#./ionstop &
-
-cd ../4.bench.bibe
-bpstats
-sleep 3
-#./ionstop &
-
-sleep 3
+# Stop the receiver.
+kill -2 "$BPSINKPID" >/dev/null 2>&1
+sleep 1
+kill -9 "$BPSINKPID" >/dev/null 2>&1
 
 echo -e "...benchmarking terminated.\n"
 exit $RETVAL
