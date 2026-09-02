@@ -141,5 +141,11 @@ pymdownx.superfences = {
     ],
     preserve_tabs = true,
 }
+pymdownx.tabbed = {
+    alternate_style = true,
+    combine_header_slug = true,
+    slugify.object = "pymdownx.slugs.slugify",
+    slugify.kwds.case = "lower",
+}
 smarty = { smart_quotes = false }
 toc = { permalink = true }
