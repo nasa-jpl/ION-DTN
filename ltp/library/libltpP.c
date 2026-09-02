@@ -8102,11 +8102,46 @@ putErrmsg("Discarding report.", NULL);
 		&& sdr_list_length(sdr, sessionBuf.checkpoints)
 			>= (size_t)sessionBuf.maxCheckpoints))
 	{
-		/*	Limit reached, can't retransmit any more.
-		 *	Just destroy the claims list and cancel. 	*/
+		/*	Limit reached: no further checkpoint can be
+		 *	issued for this session, so the gaps this
+		 *	report describes cannot be repaired in
+		 *	response to it.
+		 *
+		 *	Don't cancel the session here.  Reception
+		 *	claims accumulate across reports, so this
+		 *	report may already have been superseded by one
+		 *	that is queued behind it and that completes the
+		 *	red part.  Cancelling on this one discards a
+		 *	transfer that in fact succeeded: the receiver
+		 *	has the whole block and has delivered it, and
+		 *	the cancellation makes BP re-forward it, so the
+		 *	receiver is handed every bundle in the block a
+		 *	second time.
+		 *
+		 *	The checkpoint is deliberately left active (as
+		 *	noted above), so its timer is still running and
+		 *	remains the authority on when to give up; on its
+		 *	final expiration it cancels the session for this
+		 *	same reason.  Deferring to it costs a later
+		 *	cancellation for a session that really has
+		 *	failed, and saves retransmitting an entire block
+		 *	that has not.
+		 *
+		 *	Retain the consolidated claims: the claims they
+		 *	were merged from have already been deleted from
+		 *	the database, so discarding them here would lose
+		 *	all record of what the receiver has.		*/
 
 		while (1)
 		{
+			if (insertClaim(&sessionBuf, claim) < 0)
+			{
+				putErrmsg("Can't retain reception claim.",
+						NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
 			MRELEASE(claim);
 			elt2 = lyst_next(elt2);
 			if (elt2 == NULL)
@@ -8118,17 +8153,6 @@ putErrmsg("Discarding report.", NULL);
 		}
 
 		lyst_destroy(claims);
-#if LTPDEBUG
-putErrmsg("Cancel by sender.", itoa(sessionNbr));
-#endif
-		if (cancelSessionBySender(&sessionBuf, sessionObj,
-				LtpRetransmitLimitExceeded))
-		{
-			putErrmsg("Can't cancel export session.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't handle report segment.", NULL);
