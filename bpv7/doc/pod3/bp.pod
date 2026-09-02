@@ -39,15 +39,19 @@ Terminates all access to BP functionality on the local computer.
 
 =item int bp_open(char *eid, BpSAP *ionsapPtr)
 
-Opens the application's access to the BP endpoint identified by I<eid>,
-so that the application can take delivery of bundles destined for the
-indicated endpoint.  This SAP can also be used for sending bundles whose
-source is the indicated endpoint; all bundles sent via this SAP will be
-subject to immediate destruction upon transmission, i.e., no bundle
-addresses will be returned by bp_send() for use in tracking,
-suspending/resuming, or cancelling transmission of these bundles.  On
-success, places a value in I<*ionsapPtr> that can be supplied to future
-bp function invocations and returns 0.  Returns -1 on any error.
+Opens the application's access to the BP endpoint identified by I<eid>, so that
+the application can take delivery of bundles destined for the indicated
+endpoint.  This Service Access Point (SAP) can also be used for sending bundles
+whose source is the indicated endpoint; all bundles sent via this SAP will be
+subject to immediate destruction upon transmission, i.e., no bundle addresses
+will be returned by bp_send() for use in tracking, suspending/resuming, or
+cancelling transmission of these bundles.
+
+A reception SAP is owned exclusively by the process instance that opened it.
+It is an error to invoke bp_open() on an endpoint that is already opened.
+
+On success, places a value in I<*ionsapPtr> that can be supplied to future bp
+function invocations and returns 0.  Returns -1 on any error.
 
 =item int bp_open_source(char *eid, BpSAP *ionsapPtr, int detain)
 
@@ -61,9 +65,13 @@ such a bundle will continue to occupy storage resources until it is
 explicitly released by an invocation of bp_release() or until its time to
 live expires, so bundle detention increases the risk of resource exhaustion.
 (If the value of I<detain> is zero, all bundles sent via this SAP will be
-subject to immediate destruction upon transmission.)  On success, places a
-value in I<*ionsapPtr> that can be supplied to future bp function invocations
-and returns 0.  Returns -1 on any error.
+subject to immediate destruction upon transmission.)
+
+Multiple threads or processes may open source SAPs on the same endpoint
+concurrently without conflict.
+
+On success, places a value in I<*ionsapPtr> that can be supplied to future bp
+function invocations and returns 0.  Returns -1 on any error.
 
 =item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags,
