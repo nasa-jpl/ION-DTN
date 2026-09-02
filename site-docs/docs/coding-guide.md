@@ -104,14 +104,11 @@ The `iputs` function provided in `platform.c`
 should be used in place of `fputs`,
 and the `igets` function should be used in place of `fgets`.
 Rather than `fscanf`, use `igets` and `sscanf`;
-rather than `fprintf`, use `isprintf` and `iputs`.
+rather than `fprintf`, use `snprintf` and `iputs`.
 
 All varargs-based string composition
-should be performed using `isprintf` rather than `sprintf`,
+should be performed using `snprintf` rather than `sprintf`,
 to minimize the chance of overrunning string composition buffers.
-(`isprintf` is similar to `snprintf`.
-Since VxWorks 5.4 does not support `snprintf`,
-`isnprintf` is included in `platform.c`.)
 
 Similarly, all string copying
 should be performed using `istrcpy`

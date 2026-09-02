@@ -191,6 +191,10 @@ it always NULL-terminates the string in I<buffer>, even if the length of the
 composed string would equal or exceed I<bufSize>.  Buffer overruns are
 reported by log message; unlike snprintf(), isprintf() returns void.
 
+This macro is deprecated and will be removed in a future version.  All of ION's
+targeted platforms support snprintf(), so the motivation behind this function
+is not relevant anymore.  Use snprintf(3) instead.
+
 =item size_t istrlen(const char *sourceString, size_t maxlen)
 
 istrlen() is a safe implementation of strlen(); see the strlen(3) man
@@ -1131,4 +1135,4 @@ source file that includes any platform function calls.
 
 =head1 SEE ALSO
 
-gettimeofday(3C)
+snprintf(3), gettimeofday(3C)

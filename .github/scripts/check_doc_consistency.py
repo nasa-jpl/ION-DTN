@@ -172,6 +172,7 @@ EXTERNAL_MANPAGES = {
     "time(2)",
     "getcwd(3)",
     "getrandom(2)",
+    "snprintf(3)",
     "strcat(3)",
     "strcmp(3)",
     "strcpy(3)",

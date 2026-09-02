@@ -107,6 +107,9 @@ Returns the current local time (ctime, i.e., Unix epoch time) in a timeval struc
 
 isprintf() is a safe, portable implementation of snprintf(); see the snprintf(P) man page for details. isprintf() differs from snprintf() in that it always NULL-terminates the string in buffer, even if the length of the composed string would equal or exceed bufSize. Buffer overruns are reported by log message; unlike snprintf(), isprintf() returns void.
 
+This macro is deprecated.
+Use `snprintf()` instead.
+
 ### istrlen
 
     ```c
