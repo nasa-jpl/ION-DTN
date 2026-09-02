@@ -1,101 +1,206 @@
-# ION Coding Guide
+[SPDX-License-Identifier: BSD-3-Clause
+SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+]::
 
-## Preface
+# Development guide
+
+This article explains how to set up a development environment
+and the coding guidelines of the Interplanetary Overlay Network (ION).
 
 The following coding guidelines apply to all software
-delivered as part of the Interplanetary Overlay Network (ION) distribution,
+delivered as part of the ION distribution,
 except:
 
-- Where the delivered software is legacy code
-  rather than code developed specifically for ION.
-- Where conformance to some other standard is clearly appropriate.
-  For example, when using a framework library like Motif
-  it may be appropriate to modify these guidelines
-  so as to be consistent with the practices of the framework.
-- Where, in the judgment of the programmer,
-  deviating from the guidelines in a particular case results
-  in manifestly clearer code.
-  This is not a license to ignore the guidelines;
-  it is intended to cover special circumstances.
+-   Where the delivered software is legacy code
+    rather than code developed specifically for ION.
+-   Where conformance to some other standard is clearly appropriate.
+    For example, when using a external library
+    it may be appropriate to modify these guidelines
+    to be consistent with the practices of the library.
+-   Where, in the judgment of the programmer,
+    deviating from the guidelines in a particular case results
+    in manifestly clearer code.
+    This is not a license to ignore the guidelines;
+    it is intended to cover special circumstances.
 
 Adherence to these guidelines is the responsibility of the individual programmer
 but will be considered during peer reviews of new ION code.
 
-## C Language Standard
+## Development environment
 
-ION targets **C18 (ISO 9899:2018)** as its primary standard,
-with an automatic fallback to **C99 (ISO 9899:1999)** for older toolchains.
-C17/C18 is a bugfix revision of C11 with no new language features,
-so in practice ION is a **C11/C18 codebase**.
+### Dependencies
 
-The build system in `configure.ac` establishes a preference hierarchy:
+The default build of ION requires:
 
-1. **C18** (`-std=iso9899:2018`) —
-   validated by checking if `<stdatomic.h>` compiles.
-2. **C99** (`-std=c99`) — validated by checking if `<stdint.h>` compiles.
-3. The build fails if neither is supported.
+* GNU Autotools (Autoconf, Automake, Libtool)
+* pkg-config
+* GNU Make or BSD Make
+* GCC or Clang with C17 support
+* C standard library with functionality from POSIX.1-2008
 
-The `-pedantic` flag is enabled to enforce strict standards compliance.
+Testing the default build requires Bash.
+Additional tests require Python 3.
 
-### C11/C18 Features in Use
+Some configuration options require additional dependencies.
 
-- **Atomic operations** — used for lock-free reference counting
-  (semaphore management),
-  lock-free statistics counters (BP and LTP tally deltas),
-  daemon shutdown flags,
-  and inter-process semaphore table state in shared memory.
-  See the **Atomic Operations** section below for the portable abstraction,
-  the dual-zone architecture, and the three-tier fallback chain.
+[TODO: make an article that explains each option and their dependencies.
+Then reference it here.
+]::
 
-### C99 Features Used Throughout
+### EditorConfig
 
-- `<stdint.h>`, `<stdbool.h>`
-- Designated initializers
-- `inline` functions
-- Mixed declarations and code
-- `//` single-line comments
+The codebase has several `.editorconfig` files to help the project
+maintain a consistent style.
+Editors will be automatically configured to follow ION's conventions
+if they have [EditorConfig](https://editorconfig.org/) enabled.
 
-### Per-Component Overrides
+### Language server
 
-Some subdirectories pin to a specific standard in their own Makefiles:
+[Bear](https://github.com/rizsotto/Bear)
+generates a [compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html)
+in the build directory with `bear -- make`.
+The generated `compile_commands.json` is used by language servers
+(e.g., clangd and ccls) to interpret source code.
 
-- **QCBOR, Unity, libbloom** — pinned to `-std=c99`
-- **contrib/bptap** — uses `-std=gnu99` (GCC extension of C99)
+!!! note
 
-### Guidelines for Contributors
+    When storing generated files in the same directory as the Git repository,
+    set up an [exclude file](https://git-scm.com/docs/gitignore/2.55.0),
+    e.g., at `.git/info/exclude`, to ignore them.
 
-- Avoid GNU extensions and non-standard constructs in core ION code.
-- Use standards-compliant macro helper names.
-- When adding new code that needs atomics,
-  use the ION-specific opaque types `ion_atomic_t` (process-local)
-  or `ion_ipc_atomic_t` (shared memory)
-  together with the `ion_atomic_*` / `ion_ipc_atomic_*` accessor macros.
-  Do not include `<stdatomic.h>` directly; include `ion_atomic.h` instead.
-  See the **Atomic Operations** section below for selection rules.
-- Prefer C99-compatible constructs for all other code;
-  this maximizes portability to the C99 fallback path.
-- A basic [`AGENTS.md`](AGENTS.md) is provided for use with LLMs.
-  Copy it into the main folder to use.
-  PRs and issues will not be accepted for this.
-  To use it with Claude Code, create a symlink to it named `CLAUDE.md`.
+### AGENTS.md
 
-## Application Behavior
+A basic [`AGENTS.md`](AGENTS.md) is provided for use with LLMs.
+Copy it into the main folder to use.
+PRs and issues will not be accepted for this.
+To use it with Claude Code, create a symlink to it named `CLAUDE.md`.
+
+## C guidelines
+
+Abide by all _shall_ rules of the _JPL Institutional Coding Standard
+for the C Programming Language_ up to LOC-4.
+_Should_ rules up to LOC-4 are encouraged,
+but several of these _should_ rules are difficult to apply to ION
+since core components were created prior to the coding standard.
+The following _should_ rules are not followed:
+
+* 6: Use IPC messages for task communication.
+* 8: Explicitly transfer write-permission (ownership) for shared data objects.
+* 25: Use short functions with a limited number of parameters.
+
+The following list summarizes rules from the coding standard that are followed.
+_Should_ rules indicated with a "*" are less strictly enforced.
+For additional guidance, see the coding standard.
+
+???+ abstract "JPL Coding Standard rule summary"
+
+    *   LOC-1 Language Compliance
+        *   1: Do not stray outside the language definition.
+        *   2: Compile with all warnings enabled;
+            use static source code analyzers.
+    *   LOC-2 Predictable Execution
+        *   3: Use verifiable loop bounds for all loops
+            meant to be terminating.
+        *   4: Do not use direct or indirect recursion.
+        *   5: Do not use dynamic memory allocation after task initialization.
+        *   7: Do not use task delays for task synchronization.
+        *   9: Place restrictions on the use of semaphores and locks.
+        *   10: Use memory protection, safety margins, barrier patterns.
+        *   11: Do not use `goto`, `setjmp`, or `longjmp`.
+        *   12: Do not use selective value assignments
+            to elements of an enum list.
+    *   LOC-3 Defensive Coding
+        *   13: Declare data objects at smallest possible level of scope.
+        *   14: Check the return value of non-void functions,
+            or explicitly cast to `(void)`.
+        *   15: Check the validity of values passed to functions.
+        *   16: Use static and dynamic assertions as sanity checks.
+        *   *17: Use typedefs that indicate size and signedness
+            instead of predefined C data types such as `int`, `short`, etc.
+        *   18: Make the order of evaluation in compound expressions explicit.
+        *   19: Do not use Boolean expressions with side effects.
+    *   LOC-4 Code Clarity
+        *   20: Make only very limited use of the C preprocessor.
+        *   21: Do not define macros within a function or a block.
+        *   22: Do not undefine or redefine macros.
+        *   23: Place `#else`, `#elif`, and `#endif` in the same file
+            as the matching `#if` or `#ifdef`.
+        *   *24: Place no more than one statement or declaration
+            per line of text.
+        *   *26: Use no more than two levels of indirection per declaration.
+        *   *27: Use no more than two levels of dereferencing
+            per object reference.
+        *   *28: Do not hide dereference operations
+            inside macros or typedefs.
+        *   *29: Do not use non-constant function pointers.
+        *   30: Do not cast function pointers into other types.
+        *   31: Do not place code or declarations
+            before an `#include` directive.
+
+### Language standard
+
+ION primarily targets C17,
+but maintains support for C99.
+
+When using C17 features, ensure that it is still possible to build with C99
+during configuration time.
+Maintain compatibility with conditional compilation or fallback implementations.
+
+!!! warning
+
+    Do not use C11 atomics directly,
+    use the abstraction in `ion_atomic.h`.
+    See [Atomic Operations](./atomic-operations.md) for more information.
+
+It is acceptable for a default configuration build
+to rely on C17 features --- for example,
+a build with the following configuration may fail:
+
+```console
+$ CFLAGS="-std=c99" ./configure
+```
+
+However, it must be possible to pass an appropriate set of flags
+to enable a successful C99 build:
+
+```console
+$ CFLAGS="-std=c99" ./configure --some-flags
+```
+
+The necessary configuration to build with C99 and C99 compatible options
+must be thoroughly documented in the [quick start guide](./quick-start-guide.md).
+
+[TODO: As of a8fc35d6f (Bump runner dependency version, 2026-08-31),
+we only talk about building in quick start guide and design operations guide,
+both of which in an incomplete manner.
+Once we make a separate page talking about building and go in-depth about
+each option, update the line above with a hyperlink to it.
+]::
+
+Do not stray outside the language definition;
+do not rely on compiler or platform specific behavior,
+and do not rely on undefined or unspecified behavior.
+Non-standard extensions are tentatively allowed
+if their use is opt-in at configuration time.
+
+### Application behavior
 
 Every process should return an exit code on termination.
 
-- On normal termination, the exit code should be 0.
-- On abnormal or error termination,
-  the exit code should be a non-zero number in the range 1-255.
-  - In this case the code should be 1
-    unless specific codes are used
-    to distinguish between different kinds of errors.
+-   On normal termination, the exit code should be 0.
+-   On abnormal or error termination,
+    the exit code should be a non-zero number in the range 1--255.
+    -   In this case the code should be 1
+        unless specific codes are used
+        to distinguish between different kinds of errors.
 
-## Function Design Guidelines
+### Function design
 
 All file I/O should be performed
-using POSIX functions
+using unbuffered functions taking file descriptors
+(`open`, `read`, `lseek`, etc.)
 rather than the buffered I/O functions
-`fopen`, `fread`, `fseek`, etc.
+(`fopen`, `fread`, `fseek`, etc.).
 This is because buffered I/O entails
 the dynamic allocation of system memory,
 which some missions may prohibit in flight software.
@@ -128,10 +233,9 @@ Data objects larger than 1024 bytes
 should not be declared in stack space.
 This is to
 
-- Minimize complaints by Coverity, and
-- Minimize the chance of overrunning
-  allocated stack space
-  when running on a VxWorks platform.
+-   Minimize complaints by Coverity, and
+-   Minimize the chance of overrunning
+    allocated stack space when running on a VxWorks platform.
 
 **Static variables that must be made globally accessible
 should be declared within external functions,
@@ -143,14 +247,14 @@ to a global static variable in `gdb`:
 you just set a breakpoint at the start
 of the function in which the variable is declared.
 
-## Error Checking
+### Error checking
 
 In the implementation of any ION library function
-or any ION task’s top-level driver function,
+or any ION task's top-level driver function,
 any condition that prevents the function
 from continuing execution
 toward producing the effect it is designed to produce
-is considered an “error”.
+is considered an "error".
 
 Detection of an error should result
 in the printing of an error message and, normally,
@@ -162,11 +266,22 @@ By convention this value is usually -1,
 but both zero and NULL are appropriate failure indications
 under some circumstances such as object creation.
 
-The `CHKERR`, `CHKZERO`, `CHKNULL`, and `CHKVOID` macros
-are used to implement this behavior
-in a standard and lexically terse manner.
+!!! danger
 
-## Error and Status Reporting
+    The `CHK*` macros were historically used
+    to implement this behavior.
+    Ensure that a `CHK*` macro **never** appears in the execution path
+    of any public function.
+    Use explicit error checking and logging instead.
+
+    The `CHK*` macros [affect control flow differently](./chk-macro-behavior.md)
+    depending on how the build is configured,
+    so any library function that uses the macros
+    (and applications that use the library function)
+    will behave in surprising ways across systems
+    with different build configurations.
+
+### Error and status reporting
 
 To write a simple status message, use `writeMemo`.
 To write a status message
@@ -175,15 +290,15 @@ use `writeMemoNote`.
 (The `itoa` and `utoa` functions may be used
 to express signed and unsigned integer values,
 respectively, as strings for this purpose.)
-Note that adhering to ION’s conventions for tagging status messages
+Note that adhering to ION's conventions for tagging status messages
 will simplify any automated status message processing
 that the messages might be delivered to, i.e.,
 the first four characters of the status message should be as follows:
 
-- [i] – informational
-- [?] – warning
-- [s] – reserved for bundle status reports
-- [x] – reserved for communication statistics
+- <code>[i]&nbsp;</code> -- informational
+- <code>[?]&nbsp;</code> -- warning
+- <code>[s]&nbsp;</code> -- reserved for bundle status reports
+- <code>[x]&nbsp;</code> -- reserved for communication statistics
 
 To write a simple diagnostic message, use `putErrmsg`;
 the source file name and line number
@@ -201,11 +316,176 @@ In this case, the diagnostic message
 should normally begin with a capital letter
 and not end with a period.
 
-## ‘C’ Coding Style
+### Include what you use
 
-This page contains guidelines for programming in the C language.
+Every `.c` file and `.h` file must include the exact headers
+for every symbol (type, function, variable, macro)
+that the file uses.
+Do not rely on transitive includes.
 
-### Naming Conventions
+The [`include-what-you-use`](https://include-what-you-use.org/)
+utility can help with this,
+but the utility's use is not enforced.
+
+!!! note
+
+    When using `include-what-you-use`,
+    omit the "why" comments,
+    either with `--comment_style=none`
+    or `--no_comments`.
+
+### Conditional compilation
+
+Rather than using preprocessor conditionals directly in `.c` files
+for conditional compilation,
+prefer using conditionals in a header file defining functions
+with conditionally different definitions,
+and then call those functions unconditionally from `.c` files.
+
+Prefer to make an entire function conditional
+rather than parts of a function.
+If parts of a function need to behave differently,
+factor out that logic into a separate helper function,
+and define the helper function conditionally.
+
+Never guess the presence of features
+based on system-specific or common predefined macros.
+System-specific predefined macros
+such as `__unix__` and `linux`
+should never be used.
+Always check specifically for the features you need
+(usually with Autoconf) ---
+test for features, not for platforms or compilers.
+
+Avoid conditional compilation in publicly installed header files,
+as doing so would require leaking ION's build configuration
+to downstream users.
+
+### Public interfaces
+
+Be very mindful about what is exposed in an installed header.
+Once a function is public,
+moving the function, changing its name, parameters or return type
+will break the API.
+If a function is intended to only be used internally by ION,
+do not expose it in a public header.
+
+A function's contract must be consistent across build configurations.
+Avoid altering function parameters or return types
+based on configuration flags.
+
+Similarly, design structure definitions to prevent ABI breakages.
+Keep the size and layout consistent across build configurations.
+
+Ensure the [names](#naming) of public identifiers are properly scoped.
+Do not use generic names that could conflict with other libraries
+or with user code.
+
+Be mindful of the user experience of a CLI.
+Once an interface is public,
+users will have expectations
+and [changes](#changes-to-public-interfaces) may be non-trivial.
+
+### Man pages
+
+Document all public interfaces in man pages.
+Man pages are the primary means of documenting API contracts.
+Do not rely on comments in header files.
+
+The man pages are first-class citizens.
+Code should not be admitted to the public interface
+if the interface is not documented.
+The man pages must be accurate and kept up to date.
+
+Ensure man pages are complete.
+In particular,
+for section 3 man pages,
+ensure the documentation explains how to safely use the API.
+For example,
+does a function need to be used within an SDR transaction?
+Does the caller need to hold a lock?
+If locks need to be held, what is the intended locking order?
+What are the side-effects from the function?
+What happens if an error happens so the function has to return early?
+Are the effects rolled back?
+When we pass something, is the function going to modify its state?
+Is a function re-entrant?
+Is it thread-safe?
+What arguments are valid?
+What happens to pointer arguments on error?
+
+!!! note
+
+    When an external man page is cross-referenced,
+    you may need to add it to the `EXTERNAL_MANPAGES` set
+    in `.github/scripts/check_doc_consistency.py`
+    to prevent CI failures.
+
+### Changes to public interfaces
+
+Once something is a part of our public interface
+(CLIs and libraries),
+it cannot be significantly changed without warning
+since users may depend on parts of it.
+(This is why you don't expose stuff unless you need to.)
+
+Unless something is an outright bug or vulnerability,
+a transition period must be provided
+where an interface retains its existing behavior
+while an improved / intended behavior is also available.
+This could start with a configuration flag to opt-in to a new behavior,
+later an opt-out period to stick to the old behavior,
+and then eventually removing the old behavior altogether.
+
+Be complete in documenting significant changes.
+Provide notices in man pages and in header files (if applicable).
+Update documentation under `site-docs/`
+to show examples users _should_ be following.
+
+!!! warning
+
+    Be mindful of API and ABI stability.
+    Rather than modifying an existing interface,
+    it may be better to create a new one.
+
+### Miscellaneous rules
+
+*   Use --- and write --- thread-safe library functions where possible.
+    E.g., normally prefer `strtok_r()` to `strtok()`.
+
+*   Avoid writing non-portable code,
+    e.g., prefer POSIX library calls to OS-specific library calls.
+
+*   If a function returns `void *`,
+    do not explicitly cast its return value to any pointer types.
+
+### C code style
+
+Most styling rules are handled by the `.clang-format` file
+in the root of the source tree.
+If [clang-format]'s styling is particularly poor,
+use `// clang-format off` and `// clang-format on`
+to disable formatting pieces of code.
+If the side-effects are minor,
+consider updating the `.clang-format` file itself.
+
+The remainder of this section documents styling rules
+that aren't handled by clang-format.
+
+[clang-format]: https://clang.llvm.org/docs/ClangFormat.html
+
+#### Naming
+
+!!! warning
+
+    Do not use identifiers reserved by the C standard or by POSIX.
+    See the [Reserved Names] section of the glibc manual,
+    and [Section 2.2.2 The Name Space][posix-namespace]
+    of the System Interfaces volume from POSIX.1
+    for more information.
+
+[Reserved Names]: https://sourceware.org/glibc/manual/2.44/html_node/Reserved-Names.html
+[posix-namespace]: https://pubs.opengroup.org/onlinepubs/9799919799/functions/V2_chap02.html#tag_16_02_02
 
 Names of global variables, local variables, structure fields,
 and function arguments are in mixed upper and lower case,
@@ -227,11 +507,11 @@ void computeSomething(int firstArg, int secondArg);
 Public function names are in lower case with tokens separated by underscores.
 The first token of each public function name
 is the name of the package
-whose “include” directory contains the .h file
+whose "include" directory contains the `.h` file
 in which the function prototype is defined.
 
 ```c
- extern int ltp_open(unsigned long clientId);
+extern int ltp_open(unsigned long clientId);
 ```
 
 Macro names are written in upper case with tokens separated by underscores.
@@ -251,202 +531,180 @@ for the structures and enums that they name.
 ```c
 typedef struct gloplist_str
 {
-int thing1;
-int thing2;
+	int thing1;
+	int thing2;
 } GlopList;
 ```
 
-### Indentation, Bracketing, Whitespace
+!!! warning
 
-No line of source text is ever more than 80 characters long.
-When the length of a line of code exceeds 80 characters,
-the line of code is wrapped across two or more lines of text.
+    Be cautious when creating new typedefs.
+    A typedef should generally only be used to intentionally hide something.
+    Do not use typedefs merely to avoid writing `struct`.
+
+#### Line length
+
+The preferred line width is 80 characters,
+though output from `clang-format` may exceed this for clarity.
+Anything frequently grepped for,
+such as error or log messages,
+should never be broken up over multiple lines.
+Similarly, references like URLs in comments
+should remain on a single line even if they exceed 80 characters.
+
 Whenever the point at which the text must be wrapped is within a literal,
-a newline character (\) is inserted at the wrap point
+a backslash (`\`) is inserted at the wrap point
 and the continuation of the literal begins in the first column
 of the next text line.
-Otherwise, each continuation line is normally indented two tab stops
-from the first text line of the long line of code;
-when indenting just one tab stop (rather than two)
-seems to make the code more readable,
-indenting one tab stop is okay.
-When a single meaningful clause of a source code line
-must be wrapped across multiple lines of text,
-each text line after the first line in that clause
-is normally indented one additional tab stop.
 
-In the declaration of a function or variable,
-the type name and function/variable name are normally separated
-by a single tab.
-They may be separated by multiple tabs
-when this is necessary in order to have the variable names
-in multiple consecutive variable declarations line up,
-which is always preferred.
-
-Functions are written with the return type, function name, and arguments
-as a single line of code,
-subject to the code line wrapping guidelines given above.
-The opening brace of the function definition
-appears in the first column of the next line.
-
-The opening brace of a structure definition
-likewise appears in the first column of the next line
-after the structure name.
-
-A control statement (starting with `if`, `else`, `while`, or `switch`)
-begins a new line of code.
-The opening brace for the control statement always appears on the next line,
-at the same indentation as the control statement keyword.
-
-The first line of code appearing after an opening brace
-(whether for a structure definition, for a function definition,
-or in the scope of a control statement)
-always appears on the next line, indented one tab stop.
-From that point on, every subsequent line of code
-is indented the same number of tabs as the preceding line of code,
-subject to the code line wrapping guidelines given above.
-
-Every closing brace always appears in the same column
-as the corresponding opening brace.
-
-Every closing brace is always followed by a single blank line,
-except when it is immediately followed
-either by another closing brace
-(which will be indented one less tab stop)
-or by an else
-(which will be indented by the same number of tab stops
-as the closing brace and, therefore, the corresponding if).
+For example, a long string literal can be broken as follows:
 
 ```c
-static void  computeSomething(int numItems, Item *items)
-{
- unsigned int x;
- int  i;
-
- while (x > 0)
- {
-  x--;
- }
-
- for (i = 0; i < numItems; i++)
- {
-  x += items[i].field1;
- }
-
- if (numItems == 0)
- {
-  doThis();
- }
- else
- {
-  doThat();
- }
-}
+char x[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do \
+eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 ```
 
-The case labels in switch statements line up with the braces.
-Every case (or default) label in the switch, after the first case,
-is preceded by a blank line.
-Cases which do not include a break or return statement
-either contain no code at all
-or else end with a comment along the lines of:
+Alternatively, make use of adjacent string literals being concatenated:
 
 ```c
-/* Intentional fall-through to next case. */
-For example:
-switch (ch)
-{
-case 'A':
-.
-.
-.
-break;
-
-case 'B':
-case 'C':
-.
-.
-.
-break;
-
-case 'D':
-.
-.
-.
-/* Intentionally falls through. */
-
-case 'E':
-.
-.
-.
-break;
-
-default:
-.
-.
-.
-break;
-}
+char x[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
+	   "eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 ```
 
-### Comment Formatting
+#### Comments
 
-Comments are so rare and valuable
-that we hesitate to risk discouraging them by overly constraining their format.
-In general, comments should be inserted
-in such a way as to be as easy as possible to read
-in relevant context.
-The multi-line comment formatting performed automatically by vim
-is particularly acceptable.
+Block comments (`/* ... */`) and line comments (`//`) are both acceptable.
+Within a file, consistently use either block or line comments
+for single-line notes.
+Multiline comments should also be consistent,
+but may differ from single-line comment choices.
+Copyright statements should be treated separately from this guideline;
+follow the guidance in the [copyright statements](#copyright-statements) section,
+regardless of what comment style a file uses.
 
-```c
-/* Here is the beginning of an extremely long comment, so long
- *  that it has to wrap over two lines of source code text. */
-```
-
-### Miscellaneous Rules
-
-Use – and write – thread-safe library functions where possible.
-E.g., normally prefer `strtok_r()` to `strtok()`.
-
-Avoid writing non-portable code,
-e.g., prefer POSIX library calls to OS-specific library calls.
-
-Template for ".c" files
+<!--
+SPDX-SnippetBegin
+SPDX-License-Identifier: BSD-2-Clause
+SPDX-SnippetCopyrightText: Copyright (c) 1995-2025 The FreeBSD Project
+SPDX-SnippetName: style(9) comment style
+Modified from
+https://cgit.freebsd.org/src/tree/share/man/man9/style.9?id=1876f629b97608679f1bd71b9aa88a57b55c4574
+with a multiline comment using `//`
+-->
 
 ```c
- 1 2 3 4 5 6 7
-123456789012345678901234567890123456789012345678901234567890123456789012
 /*
- platform_sm.c: platform-dependent implementation of common
-   functions, to simplify porting.
+ * VERY important single-line comments look like this.
+ */
 
- Author:  Alan Schlutsmeyer, JPL
+/* Most single-line comments look like this. */
 
- Copyright 1997, California Institute of Technology.
- ALL RIGHTS RESERVED.  U.S. Government sponsorship
- acknowledged.
-                                         */
+// Although they may look like this.
+
+/*
+ * Multiline comment using block style. Make these real sentences. Fill them so
+ * they look like real paragraphs.
+ */
+
+// Multiline comment starting with //. Make these real sentences. Fill them so
+// they look like real paragraphs.
 ```
 
-Each file should have a header comment like the one shown above.
+<!-- SPDX-SnippetEnd -->
+
+Take care to not over-comment:
+
+*   Explaining why a change was made belongs in commit messages, not comments.
+
+    *   Do not reference issue or PR numbers in comments.
+        Referencing a public issue or PR with a piece of code
+        belongs in the commit message.
+
+*   Do not over-reference other parts of the codebase
+    such that changes to the referenced parts
+    would require updating comments to make them correct.
+
+*   Avoid obvious comments like:
+    ```c
+    /* Local variables */
+    int one;
+    size_t two;
+
+    /* Check if foo() works */
+    if (!foo())	  /* If foo() fails */
+    {
+    	return 1; /* Return 1 on error */
+    }
+    ```
+
+Avoid stylistic constructs (borders, tables, boxes, dividers, etc.)
+to lessen maintenance burden.
+
+When code is conditionally compiled with `#if` or `#ifdef`,
+add a comment to the matching `#else`, `#elif`, or `#endif`
+if it will help readers discern where conditional regions end.
+Whether or not a comment makes code less confusing
+is based on your subjective judgment.
+Generally, comments are only used for large conditional regions;
+avoid commenting for single-line conditional blocks.
+
+The comment for `#endif` should match the expression used in `#if` or `#ifdef`.
+The comment for `#else` should match the inversion expression(s)
+used in preceding `#if` and/or `#elif` statements.
+In comments, abbreviate `defined(FOO)` as `FOO`.
+
+```c
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef FOO
+/* Large region here, or other conditional code. */
+#else /* !FOO */
+/* Or here. */
+#endif /* FOO */
+
+#ifndef BAR
+/* Another large region here, or other conditional code. */
+#elif BAZ /* BAR */
+/* And here. */
+#else /* BAR && !BAZ */
+/* Or here. */
+#endif /* !BAR */
+```
+
+#### `.c` file layout
+
+A `.c` file should start with a [copyright statement](#copyright-statements):
+
+```c
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+```
+
+Leave a blank line before the `#include` directives.
+
+System-provided headers should be specified with angle brackets;
+ION-provided headers should be specified with double-quotes.
+The grouping and ordering of `#include`s is handled by clang-format.
 
 ```c
 #include <stdio.h>
 #include <locallib.h>
+
 #include "appheader.h"
-  .
-  .
-  .
 ```
 
-.h files are included just after the header.
-System-provided headers should be specified with angle brackets;
-ION-provided headers should be specified with double-quotes.
+!!! note
 
-```c
-#define SYMBOLIC_CONSTANT 5
-```
+    ION's headers historically did not follow the IWYU principle
+    and also defined feature test macros inside headers
+    instead of the build system.
+    If clang-format's sorting of `#include`s results in build errors,
+    disable formatting around the `#include`s with `// clang-format off`,
+    and sort them manually.
 
 Next, symbolic constants and macros (if any) are defined.
 They normally go first,
@@ -456,64 +714,62 @@ However, symbolic constants and macros may be inserted later in the source text
 if that will improve the readability of the file.
 
 ```c
-typedef struct fb_str
-{
- int field1;
- in field2;
-} Foobar;
+#define SYMBOLIC_CONSTANT 5
 ```
 
-Data types are defined next because they might be used by static variables.
+Data types are defined next because they might be used or implied
+by static variables.
 
 ```c
-static int numFoobars = 0;  /* Number of foobars in the program. */
-  .
-  .
-  .
+struct foobar_str
+{
+	int field1;
+	int field2;
+};
+
+static int numFoobars = 0; /* Number of foobars in the program. */
 ```
 
 Global functions used only within the program should be declared static.
 Public function prototypes should be in a header file;
 the definitions of those functions, with their headers,
-are included in the corresponding .c file.
+are included in the corresponding `.c` file.
 Low-level functions, such as commonly-used utility functions,
-appear first in the .c file.
+appear first in the `.c` file.
 They are followed by the functions that call those functions directly,
 followed by higher-level-functions that call those functions, and so on.
 
-Template for ".h" Files
+#### `.h` file layout
+
+Each header file begins with a [copyright statement](#copyright-statements):
 
 ```c
- 1 2 3 4 5 6 7
-123456789012345678901234567890123456789012345678901234567890123456789012
-/*
- platform_sm.h: portable definitions of types and functions.
-
- Author:  Alan Schlutsmeyer, JPL
-
- Copyright 1997, California Institute of Technology.
- ALL RIGHTS RESERVED.  U.S. Government sponsorship
- acknowledged.
-                                         */
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
 ```
 
-Each header file begins with a standard header comment like the one shown above.
+Each header file must have an `#include` guard.
 
 ```c
-#ifndef _PLATFORM_SM_H_
-#define _PLATFORM_SM_H_
+#ifndef MY_HEADER_H
+#define MY_HEADER_H
 ```
 
-Each header file must have an "include" guard.
+Bear in mind the [naming](#naming) guidelines;
+avoid a name like `_MY_HEADER_H`.
+
+Next comes any `#include`s required by the declarations in the header.
+This follows the same styling used in `.c` files.
 
 ```c
 #include "platform.h"
-  .
-  .
-  .
 ```
 
-Next come any includes required by the declarations in the header.
+Next comes the beginning of the C++ guard.
+This allows the header to be included in a C++ program
+without error.
 
 ```c
 #ifdef __cplusplus
@@ -521,141 +777,155 @@ extern "C" {
 #endif
 ```
 
-Next comes the beginning of the C++ guard.
-This allows the header to be included in a C++ program
-without error.
-
-Next come declarations of various sorts,
-followed by the ends of the C++ and “include” guards.
+Next come declarations of various sorts
+(constants, types, function prototypes),
+followed by the ends of the C++ and `#include` guards.
 
 ```c
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PLATFORM_SM_H */
+#endif /* MY_HEADER_H */
 ```
 
-Nothing should go after the "#endif" of the include guard.
+Nothing should go after the `#endif` of the include guard.
 
-## BP Service Access Point (SAP) Ownership
+## Shell guidelines
 
-A Bundle Protocol Service Access Point (`BpSAP`)
-opened for reception via `bp_open()`
-is **owned exclusively by the single thread that opened it**.
-This is a hard invariant of the ION BP API, not a recommendation,
-and it has two consequences that callers must respect.
+*   Maximum line length is 80 characters.
 
-**Only the owning thread may receive on the SAP.**
-The volatile endpoint object (`VEndpoint`)
-tracks ownership with a `<appPid, appCookie>` tuple,
-set on `bp_open()` and cleared on `bp_close()`.
-`appPid` is `sm_TaskIdSelf()`
-(the OS PID;
-on Linux this is the thread-group ID via `getpid()`,
-so every thread in a process reports the same value).
-`appCookie` is `sm_ProcessCookie()`,
-a per-process-instance value
-that lets ION distinguish two distinct processes
-that happen to share a recycled PID.
-Ownership checks in `bp_receive()` and `bp_close()`
-are at *process* granularity, not thread granularity:
-ION cannot detect a second thread in the owning process
-calling `bp_receive()` on a SAP it did not open.
-Such cross-thread reception is undefined behaviour
-at the API level
-and will race against the owner
-inside the delivery semaphore and SDR transactions.
-Applications that need delivery from multiple threads
-must funnel reception through the single owning thread.
+*   Prefer `#!/bin/sh` as the shebang line.
 
-**A second `bp_open()` on the same endpoint always fails.**
-ION does not permit a process or thread to "reopen" an endpoint
-it already holds.
-If `vpoint->appPid` is set to a live task,
-every subsequent `bp_open()` returns `-1`
-with `putErrmsg("Endpoint is already open.", "<pid>")`,
-regardless of whether the second caller is:
+    *   Scripts should work on the default `/bin/sh` on ION's targets
+        (Bash, DASH, Solaris' `ksh`, and FreeBSD's `ash`).
 
-* the same thread that already opened it,
-* a different thread in the same process, or
-* a thread in a different process.
+*   If Bash must be used, use `#!/usr/bin/env bash` as the shebang line.
 
-The collapse of these three cases into one error path is deliberate:
-ION has no per-thread ownership token,
-so it cannot meaningfully distinguish them,
-and any attempt to be "lenient" for the same-PID case
-produced an `rc == 0` return with `*bpsapPtr == NULL`
-that propagated as a delayed null-pointer dereference in `bp_receive()`.
-Callers should test `bp_open()`'s return with `if (rc != 0)`
-(or `if (rc < 0 || sap == NULL)` to also handle the `dtn:none` null-EID case)
-and bail out rather than dereferencing the SAP.
-If a previous owner died without calling `bp_close()`,
-`createBpSAP()` self-heals by clearing `appPid`
-and allowing the new open to proceed; the caller does not need to retry.
-The same self-heal fires for PID recycling:
-when a brand-new process
-happens to receive the same PID as the dead original owner,
-its `appCookie` mismatches,
-so `createBpSAP()` treats the stored ownership as stale
-and reclaims the endpoint
-instead of misidentifying the new process as the original owner.
+*   Address warnings from [ShellCheck](https://www.shellcheck.net/).
+    Disable specific warnings if they are not applicable.
 
-**Source-only SAPs are exempt.**
-`bp_open_source()` (used for send-only SAPs) does not set `appPid`
-and imposes no exclusivity.
-Multiple threads or processes may open source SAPs
-on the same endpoint concurrently without conflict.
+*   Do not use features exclusive to GNU coreutils,
+    or at least guard their use.
+    Scripts should work with Solaris' and FreeBSD's core utilities.
 
-**Lifetime invariant — close from the owning thread, on every exit path.**
-A reception SAP must be closed by its owning thread
-before that thread exits,
-*including* abnormal exit paths
-(cancellation, longjmp out of the receive loop,
-an error return out of the worker function).
-If the owning thread terminates without calling `bp_close()`,
-the endpoint remains locked for the lifetime of the **process**:
-ION's self-heal logic in `createBpSAP()` only fires
-when `sm_TaskExists(appPid)` reports the whole process is gone,
-not the individual thread.
-Subsequent `bp_open()` calls on that endpoint —
-from any thread in the same process —
-will keep returning `-1` with `"Endpoint is already open."`
-until the process exits.
+*   If unsure about formatting, use [`shfmt`](https://github.com/mvdan/sh),
+    but this is not enforced in CI.
 
-The recommended idiom is to bracket the receive loop
-with a thread-cancellation cleanup handler
-so `bp_close()` runs regardless of how the thread leaves the loop:
+*   Follow the guidelines
+    about over-commenting and avoiding stylistic constructs
+    from the [C comments section](#comments).
 
-```c
-static void closeSap(void *arg)
-{
-    bp_close((BpSAP) arg);
-}
+## Python guidelines
 
-void *worker(void *arg)
-{
-    BpSAP sap;
+*   Maximum line length is 88 characters.
 
-    if (bp_open(eid, &sap) != 0)
-    {
-        return NULL;       /* bp_open already logged via putErrmsg */
-    }
-    pthread_cleanup_push(closeSap, sap);
-    while (running)
-    {
-        if (bp_receive(sap, &dlv, BP_BLOCKING) < 0) break;
-        /* ... process delivery ... */
-    }
-    pthread_cleanup_pop(1);     /* runs closeSap on every exit path */
-    return NULL;
-}
+*   Use [Ruff](https://docs.astral.sh/ruff/)
+    to format code and organize imports.
+
+*   Follow [PEP 8](https://peps.python.org/pep-0008/)
+    for style guidelines not covered by Ruff.
+
+*   Follow the guidelines
+    about over-commenting and avoiding stylistic constructs
+    from the [C comments section](#comments).
+
+## Copyright statements
+
+For new files, a `SPDX-License-Identifier` tag followed by copyright text
+should be placed at the first possible lines in a file which can contain
+a comment.
+
+=== "C"
+
+    For new files, prefer a format like:
+
+    ```c
+    // SPDX-License-Identifier: BSD-3-Clause
+    // SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+    ```
+
+    A style found in older files is also acceptable:
+
+    ```c
+    /*
+     * some_file.c: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+     *              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+     *
+     * Copyright (c) 1997-2026, California Institute of Technology.
+     * ALL RIGHTS RESERVED.  U.S. Government sponsorship acknowledged.
+     *
+     * Author: Scott Burleigh, Jet Propulsion Laboratory
+     */
+    ```
+
+    If a file already has a copyright statement in an older style,
+    do not bother changing it.
+    But a `SPDX-License-Identifier` comment may be added to a file
+    with the older style
+    (either in the form of `//` comment preceding the `/* */` comment,
+    or in the `/* */` comment itself before or after the "Copyright" lines.)
+
+=== "Shell"
+
+    ```sh
+    #!/bin/sh
+    # SPDX-License-Identifier: BSD-3-Clause
+    # SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+    ```
+
+=== "Python"
+
+    ```py
+    #!/usr/bin/env python3
+    # SPDX-License-Identifier: BSD-3-Clause
+    # SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+    ```
+
+=== "Markdown"
+
+    ```md
+    [SPDX-License-Identifier: BSD-3-Clause
+    SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+    ]::
+    ```
+
+Most files are licensed under BSD-3-Clause.
+Use a different [SPDX License Expression](https://spdx.github.io/spdx-spec/v3.0.1/annexes/spdx-license-expressions/)
+if appropriate.
+
+The copyright year should start with the year of file creation.
+When copyrightable changes are made to a file,
+the year range should be incremented.
+For example, a file created in 2011 and with copyrightable changes in 2026
+would have
+
+```
+SPDX-FileCopyrightText: 2011-2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
 ```
 
-`pthread_cleanup_pop(3)` invokes the handler
-on normal return, on `pthread_exit()`, and on `pthread_cancel()`.
-It does **not** run if the thread is killed by an asynchronous signal
-or if the whole process crashes —
-for those, only process-exit cleanup applies,
-and `createBpSAP()`'s self-heal will release the endpoint
-on the next ION-aware start.
+Handle snippets of copyrightable code
+with `SPDX-SnippetBegin` and `SPDX-SnippetEnd` tags.
+The snippet should have at least `SPDX-License-Identifier`
+and `SPDX-SnippetCopyrightText` tags.
+Use additional tags at your discretion.
+See [Annex H.3 Snippet tags format](https://spdx.github.io/spdx-spec/v2.3/file-tags/#h3-snippet-tags-format)
+of version 2.3 of the SPDX Specification for more information.
+
+Keep the value of SPDX file tags and snippet tags in a single line,
+regardless of line length limits.
+
+### License compatibility
+
+ION's codebase (including third-party snippets)
+must be licensed under a permissive license compatible with BSD-3-Clause.
+
+Do not submit code licensed under more restrictive licenses
+that impose additional restrictions on ION.
+
+## See also
+
+The following resources inspired parts of this document:
+
+*   [Linux kernel coding style](https://www.kernel.org/doc/html/latest/process/coding-style.html)
+*   [FreeBSD `style(9)`](https://man.freebsd.org/cgi/man.cgi?query=style%289%29&manpath=FreeBSD+15.1-RELEASE)
