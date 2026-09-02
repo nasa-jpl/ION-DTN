@@ -31,11 +31,11 @@ whether assertion failures cause immediate process termination:
 ```c
 /* Disable fail-fast mode at runtime */
 int off = 0;
-oK(_coreFileNeeded(&off));
+(void) _coreFileNeeded(&off);
 
 /* Re-enable fail-fast mode */
 int on = 1;
-oK(_coreFileNeeded(&on));
+(void) _coreFileNeeded(&on);
 ```
 
 **Stack Trace Support**
@@ -80,7 +80,7 @@ you should disable fail-fast mode at the start of your test:
 
 ```c
 int off = 0;
-oK(_coreFileNeeded(&off));
+(void) _coreFileNeeded(&off);
 /* ... test code that may trigger assertions ... */
 ```
 
@@ -129,6 +129,4 @@ returned by a function
 is subsumed by a future check of the error code
 returned by `sdr_end_xn`).
 To do so without incurring the wrath of a static analysis tool,
-pass the entire function call as the sole argument to the `oK` macro;
-the macro operates on the return code,
-casting it to `(void)` and thus placating static analysis.
+cast the return value of the function call to `(void)`.

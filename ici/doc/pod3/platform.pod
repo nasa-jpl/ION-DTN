@@ -145,6 +145,9 @@ removing the diagnostic checks globally.
 The oK macro simply casts the value of I<expression> to void, a way of
 handling function return codes that are not meaningful in this context.
 
+This macro is deprecated and will be removed in a future version.  Explicitly
+cast to (void) instead.
+
 =item CHKERR(condition)
 
 The CHKERR macro is an "assert" mechanism.  It causes the calling function

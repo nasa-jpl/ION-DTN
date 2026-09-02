@@ -40,6 +40,9 @@ The **ION_PATH_DELIMITER** macro returns the ASCII character -- either '/' or '\
 
 The oK macro simply casts the value of expression to void, a way of handling function return codes that are not meaningful in this context.
 
+This macro is deprecated.
+Explicitly cast to `(void)` instead.
+
 ### CHKERR
 
     ```c

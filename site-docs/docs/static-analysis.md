@@ -228,23 +228,6 @@ regardless of what the caller already checked.
 This is deliberate defensive programming
 for security-critical code (key management, policy rules).
 
-## Empty if Statement
-
-ION uses the `oK()` macro pattern:
-
-```c
-if (condition)
-{
-    /* intentionally empty — side effect is in the condition */
-}
-```
-
-Or more commonly, `oK(someFunction())`
-where the function is called for its side effects
-and the return value is explicitly discarded via the `oK` macro.
-CodeSonar sometimes flags the expanded form as an "empty if"
-when the macro expands to a conditional.
-
 ## Dangerous Function Cast
 
 Signal handler registration (`isignal()`, `signal()`)

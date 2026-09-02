@@ -963,7 +963,10 @@ extern void			printStackTrace(void);
 #endif
 extern void			debugPrint(const char *format, ...) ION_FORMAT_PRINTF(1, 2);
 
-/*	The following macro deals with irrelevant return codes.		*/
+/*
+ * oK is deprecated. Explicitly cast to (void) instead.
+ * The following macro deals with irrelevant return codes.
+ */
 #define oK(x)			(void)(x)
 
 /*	Standard SDNV operations.					*/
