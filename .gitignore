@@ -554,6 +554,8 @@ tests/cgr-test/cgr_to_mro.json
 tests/cgr-test/cgr_to_tgo.json
 tests/cgr-test/route.gv
 tests/cgr-test/route.svg.base64
+tests/ltp-superseded-report/mitm-data.jsonl
+tests/ltp-superseded-report/mitm-report.jsonl
 demos/bss-multicast/1.ipn.bss/node1.stdout
 demos/bss-multicast/2.ipn.bss/node2.stdout
 demos/bss-multicast/3.ipn.bss/bssDB.dat

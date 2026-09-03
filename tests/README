@@ -122,3 +122,13 @@ graphs) through them:
 Before the first test runs, runtests reports the resolved environment to
 both stderr and the progress file, so a completed run records which ION
 it exercised.
+
+
+Test tooling
+~~~~~~~~~~~~
+
+dtnmitm.py is a UDP man-in-the-middle relay, for tests that need a lossy,
+reordering or tampering link rather than a faithful one.  It is described
+in dtnmitm.md, and every public name carries a docstring:
+
+    python3 -m pydoc dtnmitm

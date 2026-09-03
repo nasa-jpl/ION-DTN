@@ -178,7 +178,10 @@ class View:
 
 
 Matcher = Callable[[View], bool]
+"""Decides whether a rule applies to a datagram."""
+
 Rule = Callable[[View], Verdict | None]
+"""Decides a datagram's fate, or returns None to leave it to later rules."""
 
 
 def seg_type(*types: LTPSegmentType) -> Matcher:
@@ -276,7 +279,21 @@ def rule(
 
 
 class Mitm:
-    """Relays one direction of a link, applying rules to each datagram."""
+    """Relays one direction of a link, applying rules to each datagram.
+
+    Rules are tried in order and the first to return a verdict settles
+    the datagram; one that no rule claims is forwarded unchanged.  Both
+    are recorded, so a trace is a complete account of the direction
+    rather than only of what was interfered with.
+
+    A relay carries traffic one way.  Reaching both directions of a link
+    takes two, which is what a test that must see reports as well as
+    data segments needs.
+
+    Attributes:
+        counts: Running tally keyed by act name, plus ``inject``.
+
+    """
 
     def __init__(
         self,
@@ -288,7 +305,22 @@ class Mitm:
         host: str = "127.0.0.1",
         label: str = "mitm",
     ) -> None:
-        """Prepare the relay; call ``start`` to run it."""
+        """Prepare the relay; call ``start`` to run it.
+
+        Args:
+            listen_port: UDP port to receive on, which the upstream link
+                service must be configured to send to.
+            forward_port: UDP port to forward to, where the downstream
+                link service is listening.
+            rules: Rules tried in order against each datagram.
+            trace_path: File to append one JSON record per datagram to.
+                Nothing is written when this is omitted.
+            host: Address to bind and forward to.  Keep it IPv4 and
+                explicit; see the note on addresses above.
+            label: Name recorded with each entry, to tell the two
+                directions apart in a trace.
+
+        """
         self.listen_port = listen_port
         self.forward_port = forward_port
         self.host = host
