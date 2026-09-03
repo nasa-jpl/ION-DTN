@@ -1,0 +1,1 @@
+AddressSanitizer regression: LTP inbound segment handling must not read the extension-counts byte past the end of the segment.

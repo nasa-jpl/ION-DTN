@@ -9363,6 +9363,16 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	/*	Get counts of header and trailer extensions.		*/
 
+	/*	The SDNV accessors above stop at the end of the segment,
+	 *	so bytesRemaining may now be zero; reading the extension
+	 *	counts byte without checking would read past the segment
+	 *	and drive bytesRemaining negative.			*/
+
+	if (bytesRemaining < 1)
+	{
+		return 0;		/*	Ignore the segment.	*/
+	}
+
 	extensionCounts = *cursor;
 	pdu->headerExtensionsCount = (extensionCounts >> 4) & 0x0f;
 	pdu->trailerExtensionsCount = extensionCounts & 0x0f;

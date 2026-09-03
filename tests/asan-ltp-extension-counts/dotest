@@ -1,0 +1,83 @@
+#!/bin/sh
+#
+# AddressSanitizer regression for the LTP extension-counts over-read.  Compiles
+# a small harness that feeds ltpHandleInboundSegment() a segment truncated right
+# after the session ID, in an exact-size heap buffer, and runs it under ASan.
+#
+#   PASS: the segment is ignored without reading past the buffer (fixed code).
+#   FAIL: ASan reports a heap-buffer-overflow read (vulnerable code).
+#
+# Meaningful only when ION was built with --enable-asan; otherwise the read
+# inside libltp is not instrumented and the test cannot observe the bug, so
+# it skips (exit 2).
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+# Honor $CC; otherwise prefer gcc, then clang, then cc.  Both gcc and clang
+# provide AddressSanitizer, and ION builds on systems without gcc.
+if [ -z "$CC" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: asan-ltp-extension-counts"
+echo "PURPOSE: Verify LTP inbound segment handling does not read the"
+echo "         extension-counts byte past the end of the segment, under"
+echo "         AddressSanitizer."
+echo "########################################"
+
+# ION compiler and linker flags come from pkg-config (a build dependency), so
+# the harness is built with the same ABI-defining flags as ION itself (needed
+# on e.g. FreeBSD).
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+
+# Locate the instrumented libltp to check whether this is an ASan build.  The
+# over-read is in libltp, so that is the library that must be instrumented.
+LIBLTP=$(find "$LIBDIR"/* -prune -name "libltp.so*" 2>/dev/null | head -n1)
+if [ -z "$LIBLTP" ]; then
+    echo "SKIP: libltp not found in ${LIBDIR:-<unset>}."
+    exit 2
+fi
+
+# Only meaningful on an AddressSanitizer build of ION.
+if ! nm -D "$LIBLTP" 2>/dev/null | grep -q "__asan"; then
+    echo "SKIP: ION not built with --enable-asan (libltp is not"
+    echo "      AddressSanitizer-instrumented, so the over-read is not"
+    echo "      observable)."
+    exit 2
+fi
+
+BIN=$(mktemp /tmp/ltp_extcount_oob_test.XXXXXX)
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -fsanitize=address -g -O1 $ION_CFLAGS \
+        "$HERE/ltp_extcount_oob_test.c" $ION_LIBS -lltp -o "$BIN"; then
+    echo "FAIL: could not compile the ASan harness."
+    rm -f "$BIN"
+    exit 1
+fi
+
+LD_LIBRARY_PATH="$LIBDIR:$LD_LIBRARY_PATH" \
+    ASAN_OPTIONS=detect_leaks=0:abort_on_error=0 "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: truncated LTP segment ignored within the input buffer."
+    exit 0
+fi
+
+echo "FAIL: AddressSanitizer reported an out-of-bounds read, or the truncated"
+echo "      segment was not ignored (exit $RETVAL)."
+exit 1
