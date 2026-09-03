@@ -4065,10 +4065,19 @@ static int	serializeHeader(LtpXmitSeg *segment, char *segmentBuffer,
 			{
 				return -1;
 			}
-			else
-			{
-				serializeLtpExtensionField(headerExt, &cursor);
-			}
+		}
+		else
+		{
+			/*	No serialization callback for this
+			 *	extension, so write the field itself --
+			 *	as serializeTrailer() does.  Extensions
+			 *	whose definition supplies no callback
+			 *	were previously skipped entirely, even
+			 *	though headerLength had already counted
+			 *	them, leaving uninitialized bytes on the
+			 *	wire where the field should be.		*/
+
+			serializeLtpExtensionField(headerExt, &cursor);
 		}
 	}
 
