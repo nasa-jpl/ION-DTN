@@ -14,11 +14,13 @@ trap 'kill $RELAY_PID 2>/dev/null; killm f' EXIT
 # convergence-layer failure, BP re-forwards -- handing the receiver every
 # bundle in the block a second time.
 #
-# runtest.py relays both directions of the link and stages the sequence:
-# it discards one red data segment on the way out, which costs the sender
-# its second and last checkpoint to repair, and on the way back it sends
-# a crafted, superseded copy of the completing report just ahead of the
-# real one.  See that file for the reasoning.
+# runtest.py relays both directions and stages the sequence.  The block is
+# delivered untouched, so the receiver takes delivery and reports complete
+# reception; that report is held.  Reports of gaps are then injected until
+# the sender stops issuing new checkpoint serial numbers, which is how its
+# checkpoint budget being spent is observed rather than assumed -- the size
+# of that budget is derived inside ION and is not something a test should
+# hard-code.  The completing report is delivered last.  See that file.
 #
 # bprecvfile names successive received files testfile1, testfile2 and so
 # on, so a duplicate delivery is plainly visible.
@@ -44,6 +46,15 @@ fi
 
 if ! "$PYTHON_CMD" -c 'import bespokebpv7' 2>/dev/null; then
 	echo "SKIP: bespokebpv7 module not found. Please install bespokebpv7."
+	exit 2
+fi
+
+# Reading and crafting LTP reports needs ReportSegment, which older
+# releases of bespokebpv7 do not have; importing it would fail outright
+# rather than skip.
+if ! "$PYTHON_CMD" -c 'from bespokebpv7.segments import ReportSegment' 2>/dev/null
+then
+	echo "SKIP: this bespokebpv7 has no ReportSegment; please update it."
 	exit 2
 fi
 
@@ -104,10 +115,26 @@ echo "Sending the file from node 2, reliably..."
 cd ../2.ipn.ltp
 bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.0.0
 
-echo "Waiting for the exchange to play out..."
-sleep 30
-
+# The relay driver reports when it has watched the sender run out of
+# checkpoints.  Wait for that rather than for a fixed interval.
+echo "Waiting for the sender's checkpoint budget to be spent..."
 cd ..
+spent=0
+i=0
+while [ $i -lt 80 ]; do
+	if grep -q "CHECKPOINT BUDGET OBSERVED EXHAUSTED" relay.stdout 2>/dev/null; then
+		spent=1
+		break
+	fi
+	sleep 1
+	i=$((i + 1))
+done
+
+grep -E "receiver holds the block|injection |CHECKPOINT BUDGET|completing report delivered" relay.stdout 2>/dev/null
+
+# Let the sender act on the completing report and BP deliver.
+sleep 10
+
 echo ""
 echo "What the relays did:"
 $PYTHON_CMD - <<'PY'
@@ -141,7 +168,13 @@ echo "Files received by node 3:"
 ls -l testfile[0-9]* 2>/dev/null || echo "  (none)"
 echo ""
 
-if [ ! -f testfile1 ]; then
+if [ $spent -eq 0 ]; then
+	echo "TEST INCONCLUSIVE: the sender was never seen to run out of"
+	echo "                   checkpoints, so the condition this test"
+	echo "                   exercises did not arise.  Neither result"
+	echo "                   would mean anything; see relay.stdout."
+	RETVAL=1
+elif [ ! -f testfile1 ]; then
 	echo "TEST INCONCLUSIVE: nothing arrived, so the staged sequence did"
 	echo "                   not play out.  Try LTP_SUPERSEDED_CONTROL=1."
 	RETVAL=1
