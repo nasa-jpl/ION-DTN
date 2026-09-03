@@ -903,12 +903,22 @@ static int tryCGR(Bundle *bundle, SdrObject bundleObj, IonNode *terminusNode,
 	}
 
 	/*	Non-critical bundle; send to the most preferred
-	 *	neighbor.						*/
+	 *	neighbor.  Under fair-routing, pick via SWRR over
+	 *	the eligible set; otherwise pick the (single) best.	*/
 
-	elt = lyst_first(bestRoutes);
-	if (elt)
+	if (ionGetRoutingStrategy() == IonRoutingFair
+			&& lyst_length(bestRoutes) > 1)
 	{
-		route = (CgrRoute *) lyst_data_set(elt, NULL);
+		route = cgr_pick_fair_route(terminusNode, bestRoutes);
+	}
+	else
+	{
+		elt = lyst_first(bestRoutes);
+		route = elt ? (CgrRoute *) lyst_data(elt) : NULL;
+	}
+
+	if (route)
+	{
 		TRACE(CgrUseRoute, route->toFqnn);
 		if (!preview && forwardOkay(route, bundle))
 		{
