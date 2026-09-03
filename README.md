@@ -61,7 +61,7 @@ ION uses a versioning scheme of the form `X.Y.Z[-suffix].N`, where:
 
 > [!NOTE]
 > ION does not follow semantic versioning.
-> Breaking changes can occur for any updates.
+> Breaking changes can occur with any update.
 
 - Each stable release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z`.
 - Each alpha and beta release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z-suffix.1`. A release package is created for the first build of each alpha and beta release (i.e., build number `1`).
