@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# The BCB AES-GCM acceptor must verify the authentication tag on decryption.
+#
+# ION decrypts a BCB-protected payload block through csi_crypt_start/update/
+# finish.  The finish step used mbedtls_gcm_finish(), whose tag argument is an
+# output, so the received tag was overwritten by the computed one and never
+# compared -- any tampered ciphertext decrypted "successfully".  This test
+# drives the same csi calls: it encrypts a known plaintext, then confirms that
+# flipping a ciphertext byte (or a tag byte) makes decryption fail while an
+# untampered ciphertext still round-trips.
+#
+# The harness calls csi_crypt_update(), which allocates from ION working
+# memory, so a minimal node is started for it to attach to.
+#
+# Meaningful only with real crypto: a default (NULL_SUITES) build makes the
+# cipher suite a no-op, so there is no tag to verify and the test skips.
+set -u
+cd "$(dirname "$0")"
+
+if [ -z "${CC:-}" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: bpsec-bcb-authtag"
+echo "PURPOSE: Verify BCB AES-GCM decryption checks the authentication tag"
+echo "         (tampered ciphertext must be rejected)."
+echo "########################################"
+
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+
+LIBICI=$(find "$LIBDIR"/* -prune -name "libici.so*" 2>/dev/null | head -n1)
+if [ -z "$LIBICI" ]; then
+    echo "SKIP: libici not found in ${LIBDIR:-<unset>}."
+    exit 2
+fi
+
+# Real crypto only: a NULL_SUITES build does not link libmbedcrypto and its
+# cipher suite is a no-op, so there is no authentication tag to verify.
+if ! ldd "$LIBICI" 2>/dev/null | grep -q "libmbedcrypto"; then
+    echo "SKIP: ION not built with a real cipher suite (--enable-crypto-mbedtls);"
+    echo "      NULL_SUITES crypto has no authentication tag to verify."
+    exit 2
+fi
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes ion.log
+killm f >/dev/null 2>&1
+
+# Minimal node: csi_crypt_update() allocates from ION working memory, which
+# ionadmin creates.
+if ! ionadmin node.ionrc >start.log 2>&1; then
+    echo "FAIL: could not start the ION node."
+    cat start.log
+    killm f >/dev/null 2>&1
+    exit 1
+fi
+
+BIN=$(mktemp /tmp/authtag_test.XXXXXX)
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -g -O1 $ION_CFLAGS authtag_test.c $ION_LIBS -o "$BIN" 2>compile.log; then
+    echo "FAIL: could not compile the harness."
+    cat compile.log
+    rm -f "$BIN"
+    killm f >/dev/null 2>&1
+    exit 1
+fi
+
+LD_LIBRARY_PATH="$LIBDIR:${LD_LIBRARY_PATH:-}" "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+killm f >/dev/null 2>&1
+rm -f ion_nodes ion.log
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: tampered BCB ciphertext is rejected."
+    exit 0
+fi
+
+if [ "$RETVAL" -eq 2 ]; then
+    echo "SKIP: harness could not attach to ION."
+    exit 2
+fi
+
+echo "FAIL: BCB AES-GCM decryption accepted tampered ciphertext, or the"
+echo "      round-trip failed (exit $RETVAL)."
+exit 1

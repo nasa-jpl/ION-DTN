@@ -298,6 +298,26 @@ uint8_t gcm_ctx_free(csi_csid_t suite, void *context)
  *  02/21/16  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
+/*	Compare two GCM tags in constant time: run time depends only on
+ *	the length, never on where the tags first differ, so a rejected
+ *	tag does not become a forgery oracle.  Returns 0 iff equal.  This
+ *	is kept self-contained rather than calling mbedtls_ct_memcmp() so
+ *	the check does not depend on an mbedtls version that exports it.	*/
+
+static int gcm_tag_diff(const unsigned char *a, const unsigned char *b,
+		size_t len)
+{
+	unsigned char	diff = 0;
+	size_t		i;
+
+	for(i = 0; i < len; i++)
+	{
+		diff |= (unsigned char) (a[i] ^ b[i]);
+	}
+
+	return diff;
+}
+
 int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms)
 {
 	csi_gcm_context_t *csi_gcm_ctx = (csi_gcm_context_t *) context;
@@ -305,7 +325,6 @@ int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 
 	/* Parameter intentionally unused. */
 	(void)suite;
-	(void)svc;
 
 	if(context == NULL)
 	{
@@ -313,18 +332,67 @@ int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 		return ERROR;
 	}
 
+	if(svc == CSI_SVC_DECRYPT)
+	{
+		/*	On decryption the authentication tag is an INPUT to
+		 *	be verified, not an output to be produced.  parms->icv
+		 *	holds the tag carried on the wire.  Compute the tag
+		 *	over the data just processed into a local buffer and
+		 *	compare it against the received tag; a mismatch means
+		 *	the ciphertext (or the tag) was altered and the block
+		 *	must be rejected.
+		 *
+		 *	The received tag must NOT be handed to
+		 *	mbedtls_gcm_finish() as the output buffer: that emits
+		 *	the computed tag, overwriting the value we have to
+		 *	check against, which would make every ciphertext
+		 *	verify.  That was the defect this guards against.	*/
+
+		unsigned char	computedTag[16];
+
+		if((parms->icv.contents == NULL) || (parms->icv.len != 16))
+		{
+			CSI_DEBUG_ERR("x gcm_crypt_finish: no 16-byte tag to "
+					"verify (len %d).", parms->icv.len);
+			return ERROR;
+		}
+
+		retval = mbedtls_gcm_finish(&(csi_gcm_ctx->gcm_ctx),
+				computedTag, sizeof(computedTag));
+		if(retval != 0)
+		{
+			CSI_DEBUG_ERR("x gcm_crypt_finish: Failed finishing "
+					"context. Error %d.", retval);
+			return ERROR;
+		}
+
+		if(gcm_tag_diff(computedTag, parms->icv.contents,
+				sizeof(computedTag)) != 0)
+		{
+			CSI_DEBUG_ERR("%s", "x gcm_crypt_finish: authentication "
+					"tag mismatch; rejecting block.");
+			return ERROR;
+		}
+
+		return 1;
+	}
+
+	/*	On encryption the tag is an OUTPUT.  Allocate a buffer for
+	 *	it if the caller did not supply one, then emit the computed
+	 *	tag into parms->icv for the caller to serialize.		*/
+
 	if(parms->icv.contents == NULL)
 	{
 		parms->icv.len = 16;
 		if((parms->icv.contents = MTAKE(parms->icv.len)) == NULL)
 		{
-			CSI_DEBUG_ERR("x gcm_crypt_start: Can't allocate ICV of length %d", parms->icv.len);
+			CSI_DEBUG_ERR("x gcm_crypt_finish: Can't allocate ICV of length %d", parms->icv.len);
 			return ERROR;
 		}
 	}
 	else if(parms->icv.len != 16)
 	{
-		CSI_DEBUG_ERR("x gcm_crypt_start: ICV length must be 16 not %d", parms->icv.len);
+		CSI_DEBUG_ERR("x gcm_crypt_finish: ICV length must be 16 not %d", parms->icv.len);
 		return ERROR;
 	}
 

@@ -1,0 +1,1 @@
+BCB AES-GCM decryption must verify the authentication tag: tampered payload ciphertext must be rejected, not silently accepted.
