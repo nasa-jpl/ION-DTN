@@ -1,0 +1,1 @@
+A BIB over a zero-length BPv7 payload must not abort the signing or verifying node (canonicalizePayloadBlock zero-length guard).

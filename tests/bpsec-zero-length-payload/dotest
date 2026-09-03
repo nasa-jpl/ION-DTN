@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# A BIB over a zero-length BPv7 payload must not abort the node.
+#
+#   node 2 (BIB security source, tgt 1)  --udp-->  node 3 (BIB acceptor, tgt 1)
+#
+# Canonicalizing a payload block for a BIB passed the payload length straight to
+# zco_clone(), whose CHKZERO(length > 0) precondition terminates the process.  A
+# zero-length payload is legal in BPv7 (block-type-specific data is the empty
+# CBOR byte string h''), so a node holding a BIB policy rule over the payload
+# block died when it signed or verified such a bundle -- the signer at dequeue,
+# the acceptor at acquisition, neither requiring a key or a valid HMAC from the
+# sender.
+#
+# Note the policy rules here target block number 1 (the payload).  A rule over
+# block 0 (the primary block) takes a different canonicalization helper that
+# never called zco_clone(), which is why the existing bpsec tests did not cover
+# this.
+#
+# ION's own tools cannot originate a zero-length payload (bpsource rejects an
+# empty ADU), so both bundles are injected as raw hex into node 2's UDP induct
+# and relayed to node 3.  They are committed fixtures; see gen_bundles.py.
+#
+#   control  non-empty payload, otherwise identical -- must be delivered.  It
+#            proves the nodes, the key and the payload-target BIB rules all
+#            work, so a zero-case failure is the defect and not a broken setup.
+#   zero     empty payload -- must also be delivered.
+#
+# On the unfixed code node 2 aborts while signing the zero-length bundle, so it
+# never reaches node 3 and delivery stalls at 1.
+set -u
+cd "$(dirname "$0")"
+. ../test_utils.sh
+
+SYSUP=../../../system_up
+NODE2_PORT=2115
+
+echo "########################################"
+echo "NAME: bpsec-zero-length-payload"
+echo "PURPOSE: Verify a BIB over a zero-length payload block does not abort the"
+echo "         signing or verifying node."
+echo "########################################"
+
+trap 'killm f' EXIT
+
+# Raw bundle injection needs python3: no ION tool can originate an empty ADU.
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP: python3 is required to inject the fixture bundles."
+    exit 2
+fi
+
+killm f
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+CONTROL=$(grep -v '^#' bundles.txt | sed -n '1p')
+ZERO=$(grep -v '^#' bundles.txt | sed -n '2p')
+if [ -z "$CONTROL" ] || [ -z "$ZERO" ]; then
+    echo "FAIL: could not read both fixture bundles from bundles.txt"
+    exit 1
+fi
+
+snapshot() {
+    for n in 2 3; do (cd "$n.ipn.udp" && bpstats) >/dev/null 2>&1; done
+    sleep 2
+}
+plus() {  # $1 = node number, $2 = tally type (rcv/fwd/dlv)
+    lastBpTally "$2" "$1.ipn.udp/ion.log"
+}
+dump_diagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    for n in 2 3; do
+        echo "----- node $n start.log -----"
+        cat "$n.ipn.udp/start.log" 2>/dev/null
+        echo "----- node $n ion.log (tail 60) -----"
+        tail -60 "$n.ipn.udp/ion.log" 2>/dev/null
+    done
+    echo "----- node 3 sink.txt -----"
+    cat 3.ipn.udp/sink.txt 2>/dev/null
+}
+
+echo "Starting nodes ..."
+for n in 3 2; do
+    echo "  starting node $n ..."
+    (cd "$n.ipn.udp" && ./ionstart) >"$n.ipn.udp/start.log" 2>&1
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 45" -b "p 45" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        dump_diagnostics
+        exit 1
+    fi
+    echo "  node $n up."
+done
+echo "All nodes up."
+
+# Receiver on the destination node.
+(cd 3.ipn.udp && bpsink ipn:3.1 > sink.txt 2>&1) &
+SINKPID=$!
+sleep 3
+
+echo "Injecting control bundle (non-empty payload) into node 2 ..."
+./send_bundle.py "$CONTROL" "$NODE2_PORT"
+
+# Wait for the control to land before injecting the zero case, so that a
+# delivery count of 1 is unambiguous about which bundle got through.
+D3dlv=0
+for i in $(seq 1 20); do
+    snapshot
+    D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+    [ "$D3dlv" -ge 1 ] && break
+done
+
+if [ "$D3dlv" -lt 1 ]; then
+    echo "FAIL: the control bundle was not delivered, so this test cannot"
+    echo "      distinguish the zero-length defect from a broken configuration."
+    dump_diagnostics
+    kill "$SINKPID" 2>/dev/null
+    exit 1
+fi
+echo "  control delivered (node 3 dlv=$D3dlv)."
+
+echo "Injecting zero-length-payload bundle into node 2 ..."
+./send_bundle.py "$ZERO" "$NODE2_PORT"
+
+for i in $(seq 1 20); do
+    snapshot
+    D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+    [ "$D3dlv" -ge 2 ] && break
+done
+
+kill "$SINKPID" 2>/dev/null
+
+D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
+D3rcv=$(plus 3 rcv); D3rcv=${D3rcv:-0}
+G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+
+echo
+echo "=== evidence ==="
+echo "node 2 fwd=$G2fwd   (must relay both bundles, signing each payload)"
+echo "node 3 rcv=$D3rcv dlv=$D3dlv   (both bundles must be delivered)"
+echo "sink output: $(tr '\n' ' ' < 3.ipn.udp/sink.txt 2>/dev/null)"
+
+ok=1
+[ "$D3dlv" -ge 2 ] || {
+    echo "FAIL: the zero-length-payload bundle was not delivered; a node holding"
+    echo "      a BIB rule over the payload block aborted while canonicalizing it."
+    ok=0
+}
+[ "$G2fwd" -ge 2 ] || {
+    echo "FAIL: node 2 did not relay both bundles (it died while signing)."
+    ok=0
+}
+
+[ "$ok" -ne 1 ] && dump_diagnostics
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: a BIB over a zero-length payload was signed, verified and delivered"
+    exit 0
+fi
+
+echo "FAIL"
+exit 1

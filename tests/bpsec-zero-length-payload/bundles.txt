@@ -1,0 +1,9 @@
+# Fixture bundles for the zero-length-payload BIB canonicalization regression.
+# Both travel ipn:2.1 -> ipn:3.1 with a CRC-16 primary block and a CRC-16
+# payload block, and differ only in payload length.  Regenerate with
+# gen_bundles.py (needs bespokebpv7); see that script for details.
+#
+# control: non-empty payload ("control"), otherwise identical to the zero case
+9f89070001820282030182028202018202820201821b000000c2b02a0800001b000002dec1f42c00423049860101000147636f6e74726f6c42417cff
+# zero: empty CBOR byte string h'' payload -- the case under test
+9f89070001820282030182028202018202820201821b000000c2b02a0800011b000002dec1f42c004235e4860101000140426178ff

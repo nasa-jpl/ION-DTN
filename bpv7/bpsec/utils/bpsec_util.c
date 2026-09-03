@@ -582,8 +582,27 @@ static int canonicalizePayloadBlock(Bundle *bundle, SdrObject *zcoOut)
 	*zcoOut = 0;
 	payload.length = bundle->payload.length;
 	payload.crcType = bundle->payload.crcType;
-	payload.content = zco_clone(sdr, bundle->payload.content, 0,
-			payload.length);
+	if (payload.length == 0)
+	{
+		/*	A zero-length payload is legal in BPv7 (the
+		 *	payload block's data is the empty CBOR byte
+		 *	string h'').  zco_clone() rejects a zero-length
+		 *	clone with an assertion, so canonicalizing such
+		 *	a payload would abort the process; use an empty
+		 *	ZCO to represent the content instead of cloning.
+		 *	The account is taken from the payload so that
+		 *	the empty ZCO is charged the same way the clone
+		 *	would have been.				*/
+
+		payload.content = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
+				zco_acct(sdr, bundle->payload.content));
+	}
+	else
+	{
+		payload.content = zco_clone(sdr, bundle->payload.content, 0,
+				payload.length);
+	}
+
 	switch (payload.content)
 	{
 	case ((SdrObject) ERROR):

@@ -1,0 +1,34 @@
+1
+
+a {
+    "event_set": {
+        "name": "d_integrity",
+        "desc": "default integrity event set"
+    }
+}
+
+a {
+    "policyrule": {
+        "desc": "BIB source over payload",
+        "filter": {
+            "rule_id": 1,
+            "role": "s",
+            "src": "ipn:2.*",
+            "dest": "ipn:3.*",
+            "tgt": 1
+        },
+        "spec": {
+            "svc": "bib-integrity",
+            "sc_id": 1,
+            "sc_parms": [
+                {
+                    "key_name": "hmac_sha256"
+                },
+                {
+                    "scope_flags": "4"
+                }
+            ]
+        },
+        "es_ref": "d_integrity"
+    }
+}

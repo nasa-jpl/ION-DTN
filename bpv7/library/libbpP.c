@@ -11408,6 +11408,7 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		payloadBlockHeaderLength;
+	vast		sourceLength;
 	SdrObject	workZco;
 	unsigned char	crcBuffer[8];
 	unsigned char	*cursor2;
@@ -11469,9 +11470,30 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 		 *	0).  For this purpose we make a temporary
 		 *	copy of the payload ZCO.			*/
 
-		workZco = zco_clone(sdr, payload->content, 0,
-				zco_source_data_length(sdr, payload->content));
-		if (workZco == 0)
+		sourceLength = zco_source_data_length(sdr, payload->content);
+		if (sourceLength == 0)
+		{
+			/*	A zero-length payload is legal in BPv7 (the
+			 *	block-type-specific data is the empty CBOR
+			 *	byte string h'').  Prepending the block
+			 *	header does not add to the source data
+			 *	length, so there is nothing to clone, and
+			 *	zco_clone() rejects a zero-length clone with
+			 *	an assertion.  Start from an empty ZCO
+			 *	instead; the header and the CRC placeholder
+			 *	appended below are the whole of the block
+			 *	that the CRC is computed over.		*/
+
+			workZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
+					zco_acct(sdr, payload->content));
+		}
+		else
+		{
+			workZco = zco_clone(sdr, payload->content, 0,
+					sourceLength);
+		}
+
+		if (workZco == 0 || workZco == (SdrObject) ERROR)
 		{
 			putErrmsg("Can't clone payload source data.", NULL);
 			return -1;
@@ -12460,6 +12482,7 @@ int bpDequeue(VOutduct *vduct, SdrObject *bundleZco,
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	DequeueContext	context;
+	vast		sourceLength;
 
 	CHKERR(vduct && bundleZco && ancillaryData);
 	*bundleZco = 0;			/*	Default behavior.	*/
@@ -12744,8 +12767,25 @@ bundle.", NULL);
 	 *	thus re-catenation.					*/
 
 	*bundleZco = bundle.payload.content;
-	bundle.payload.content = zco_clone(sdr, *bundleZco, 0,
-			zco_source_data_length(sdr, *bundleZco));
+	sourceLength = zco_source_data_length(sdr, *bundleZco);
+	if (sourceLength == 0)
+	{
+		/*	A zero-length payload is legal in BPv7, and the
+		 *	headers added by catenation do not count toward
+		 *	the source data length, so there is nothing to
+		 *	clone; zco_clone() rejects a zero-length clone
+		 *	with an assertion.  An empty ZCO is the correct
+		 *	payload source data in that case.		*/
+
+		bundle.payload.content = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
+				zco_acct(sdr, *bundleZco));
+	}
+	else
+	{
+		bundle.payload.content = zco_clone(sdr, *bundleZco, 0,
+				sourceLength);
+	}
+
 	if (bundle.payload.content <= 0)
 	{
 		putErrmsg("Can't clone bundle.", NULL);
