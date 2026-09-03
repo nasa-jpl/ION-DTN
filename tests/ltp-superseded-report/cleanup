@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+export ION_NODE_LIST_DIR=$PWD
+pkill -f "runtest.py" 2>/dev/null
+killm f
+rm -f ion_nodes relay.stdout mitm-data.jsonl mitm-report.jsonl
+rm -f 2.ipn.ltp/node2.stdout 3.ipn.ltp/node3.stdout
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log
+rm -f 3.ipn.ltp/testfile[0-9]* 2.ipn.ltp/testfile[0-9]*

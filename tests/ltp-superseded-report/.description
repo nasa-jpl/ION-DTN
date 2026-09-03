@@ -1,0 +1,1 @@
+Verifies that an LTP sender does not cancel an export session on the strength of a reception report that a later report has already superseded, which would make BP re-forward a block the receiver already holds.
