@@ -197,6 +197,15 @@ SDR heap and working memory.  Each pool is reported as either "OK" or
 "BREACHED" depending on whether free space is above or below the configured
 threshold.
 
+=item B<i clock>
+
+This command prints the node's current clock parameters as a single line:
+B<utcdelta> (as set by B<m utcdelta>), B<clockerr> (as set by
+B<m clockerr>), B<clocksync> (the boolean set by B<m clocksync>), and
+B<ctime>, ION's current corrected time (system time less B<utcdelta>),
+and B<systime>, the uncorrected system time.  Both are Unix epoch values
+with microsecond precision (I<seconds>.I<microseconds>).
+
 =item B<l contact>
 
 This command lists all contacts in the contact plan for the selected region.
