@@ -1,8 +1,20 @@
 CI/CD:
-  - any:
+  - all:
       - changed-files:
-          - any-glob-to-all-files:
+          - any-glob-to-any-file:
               - ".github/**"
+      - changed-files:
+          - all-globs-to-all-files:
+              # Exclude source code / build changes (forces full test suite)
+              - "!**/*.c"
+              - "!**/*.h"
+              - "!configure.ac"
+              - "!Makefile.am"
+              - "!build-bsl-for-ion.sh"
+              - "!killm"
+              # Exclude genuine test suite subdirectories & demos
+              - "!demos/**"
+              - "!tests/*/**"
 
 test-mods:
   - any:

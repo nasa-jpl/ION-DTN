@@ -100,7 +100,7 @@ jobs:
         run: |
           TESTS=""
           PR_NUMBER="${{ github.event.pull_request.number }}"
-          PADDED_LABELS=" $LIVE_LABELS "
+          PADDED_LABELS=" ${LIVE_LABELS//,/ } "
 
           [[ "$PADDED_LABELS" == *" retest "* ]] && ENABLE_RETEST_VALUE="ENABLE_RETEST=1" || ENABLE_RETEST_VALUE="ENABLE_RETEST=0"
           echo "Constructed ENABLE_RETEST: $ENABLE_RETEST_VALUE"
