@@ -1464,9 +1464,37 @@ char* bpsec_scv_smListPrint(PsmPartition wm, sc_Def *sc_def, Lyst vals)
 	{
 		cur_val = (sc_value *)lyst_data(elt);
 		cur_idx = bpsec_scvm_byIdIdxFind(scvm, cur_val->scValId, cur_val->scValType);
-		tmp_array[i] =scvm[cur_idx].scValToStr(wm, cur_val);
-		size += strlen(tmp_array[i]);
+
+		/*	byIdIdxFind returns -1 for a value id/type that is
+		 *	not in the security context's map; using that as an
+		 *	array index would read scvm[-1] out of bounds and
+		 *	call its function pointer.  Skip an unrecognized
+		 *	value.					*/
+
+		if(cur_idx >= 0)
+		{
+			tmp_array[i] = scvm[cur_idx].scValToStr(wm, cur_val);
+		}
+		else
+		{
+			tmp_array[i] = NULL;
+		}
+
+		if(tmp_array[i] != NULL)
+		{
+			size += strlen(tmp_array[i]);
+		}
+
 		i++;
+	}
+
+	if(size == 0)
+	{
+		/*	No recognized values to print; strFromStrsCreate
+		 *	requires a non-zero size.			*/
+
+		MRELEASE(tmp_array);
+		return NULL;
 	}
 
 	return bpsec_scutl_strFromStrsCreate(tmp_array, size, num_items);

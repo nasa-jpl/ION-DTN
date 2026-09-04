@@ -1,0 +1,1 @@
+AddressSanitizer regression: the BPSec SC-value display path must not use a failed map lookup (-1) as an array index (GHSA-74r8-6qvf-vj4f residual).
