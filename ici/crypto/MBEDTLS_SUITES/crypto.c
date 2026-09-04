@@ -13,6 +13,8 @@
 #include "ion.h"
 #include "crypto.h"
 
+#include "mbedtls/md.h"
+
 #define	RSA_PKCS_V15	0
 #define	RSA_PUBLIC	0
 #define	RSA_PRIVATE	1
@@ -51,14 +53,27 @@ static void	sha1_hmac(const unsigned char *key, size_t keylen,
 			const unsigned char *input, size_t ilen,
 			unsigned char output[20])
 {
-	/* Parameters intentionally unused. */
-	(void)key;
-	(void)keylen;
-	(void)input;
-	(void)ilen;
-	(void)output;
+	const mbedtls_md_info_t	*md_info;
 
-	return;
+	/*	Callers cannot report failure, so zero the output first:
+	 *	a MAC of all zeroes fails verification rather than
+	 *	leaving the caller's buffer holding whatever it held
+	 *	before (which the LTP auth extension would then compare
+	 *	against, accepting or rejecting at random).		*/
+
+	memset(output, 0, 20);
+	md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA1);
+	if (md_info == NULL)
+	{
+		writeMemo("[!] SHA-1 unavailable in this Mbed TLS build.");
+		return;
+	}
+
+	if (mbedtls_md_hmac(md_info, key, keylen, input, ilen, output) != 0)
+	{
+		writeMemo("[!] HMAC-SHA1 computation failed.");
+		memset(output, 0, 20);
+	}
 }
 
 static int	x509parse_key(rsa_context *rsa, const unsigned char *key,
@@ -125,13 +140,23 @@ static int	rsa_rsassa_pkcs1_v15_verify(rsa_context *ctx, int mode,
 void	sha2(const unsigned char *input, size_t ilen,
 		unsigned char output[32], int is224)
 {
-	/* Parameters intentionally unused. */
-	(void)input;
-	(void)ilen;
-	(void)output;
-	(void)is224;
+	const mbedtls_md_info_t	*md_info;
+	mbedtls_md_type_t	md_type;
 
-	return;
+	md_type = is224 ? MBEDTLS_MD_SHA224 : MBEDTLS_MD_SHA256;
+	memset(output, 0, is224 ? 28 : 32);
+	md_info = mbedtls_md_info_from_type(md_type);
+	if (md_info == NULL)
+	{
+		writeMemo("[!] SHA-2 unavailable in this Mbed TLS build.");
+		return;
+	}
+
+	if (mbedtls_md(md_info, input, ilen, output) != 0)
+	{
+		writeMemo("[!] SHA-2 computation failed.");
+		memset(output, 0, is224 ? 28 : 32);
+	}
 }
 
 /*

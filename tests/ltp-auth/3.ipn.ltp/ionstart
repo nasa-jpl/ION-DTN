@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# shell script to get node running
+ionadmin	amroc.ionrc
+
+ionadmin	global.ionrc
+
+ionsecadmin	amroc.ionsecrc
+
+ltpadmin	amroc.ltprc
+
+ltpsecadmin	auth-null.ltpsecrc
+
+bpadmin		amroc.bprc

@@ -4301,10 +4301,19 @@ static int	serializeHeader(LtpXmitSeg *segment, char *segmentBuffer,
 			{
 				return -1;
 			}
-			else
-			{
-				serializeLtpExtensionField(headerExt, &cursor);
-			}
+		}
+		else
+		{
+			/*	No serialization callback for this
+			 *	extension, so write the field itself --
+			 *	as serializeTrailer() does.  Extensions
+			 *	whose definition supplies no callback
+			 *	were previously skipped entirely, even
+			 *	though headerLength had already counted
+			 *	them, leaving uninitialized bytes on the
+			 *	wire where the field should be.		*/
+
+			serializeLtpExtensionField(headerExt, &cursor);
 		}
 	}
 
@@ -4707,6 +4716,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	SdrObject			sessionObj;
 	LtpXmitSeg			segment;
 	int				segmentLength;
+	int				discardSegment = 0;
 	SdrObject			sessionElt;
 	OBJ_POINTER(LtpReceptionClaim, claim);
 	LtpExportSession		xsessionBuf;
@@ -4879,7 +4889,15 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	/*	Remove segment from database if possible, i.e.,
 	 *	if it needn't ever be retransmitted.  Otherwise
-	 *	rewrite it to record change of queueListElt to 0.	*/
+	 *	rewrite it to record change of queueListElt to 0.
+	 *
+	 *	The discard is deferred until after serialization
+	 *	below: the segment's extension fields are held in
+	 *	heap lists that serializeHeader() and
+	 *	serializeTrailer() still have to read from, so
+	 *	destroying them here would emit a segment whose
+	 *	extension bytes were never written -- the lengths are
+	 *	already counted in headerLength and trailerLength.	*/
 
 	switch (segment.pdu.segTypeCode)
 	{
@@ -4892,19 +4910,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		break;
 
 	default:	/*	No need to retain this segment.		*/
-		if (segment.pdu.headerExtensions)
-		{
-			sdr_list_destroy(sdr, segment.pdu.headerExtensions,
-					ltpei_destroy_extension, NULL);
-		}
-
-		if (segment.pdu.trailerExtensions)
-		{
-			sdr_list_destroy(sdr, segment.pdu.trailerExtensions,
-					ltpei_destroy_extension, NULL);
-		}
-
-		sdr_free(sdr, segRef.segAddr);
+		discardSegment = 1;
 	}
 
 	/*	Post timeout event as necessary.			*/
@@ -5195,6 +5201,27 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		putErrmsg("Can't serialize segment trailer.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	/*	Serialization is done, so a segment that needn't be
+	 *	retained can now be discarded along with its
+	 *	extension fields.					*/
+
+	if (discardSegment)
+	{
+		if (segment.pdu.headerExtensions)
+		{
+			sdr_list_destroy(sdr, segment.pdu.headerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
+		if (segment.pdu.trailerExtensions)
+		{
+			sdr_list_destroy(sdr, segment.pdu.trailerExtensions,
+					ltpei_destroy_extension, NULL);
+		}
+
+		sdr_free(sdr, segRef.segAddr);
 	}
 
 	if (sdr_end_xn(sdr))
