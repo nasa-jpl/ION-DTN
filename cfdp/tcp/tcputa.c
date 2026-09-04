@@ -184,6 +184,19 @@ static void	*receivePdus(void *parm)
 					+ entityNbrLength
 					+ dataLength;
 
+			/*	The 4-byte header is already in the buffer;
+			 *	the remainder must fit in what is left of it,
+			 *	or the PDU is malformed and would overrun the
+			 *	buffer.  Drop the connection rather than read
+			 *	past the buffer.			*/
+
+			if (remainingPduLength > CFDP_MAX_PDU_SIZE - 4)
+			{
+				putErrmsg("tcputa discarding oversized CFDP \
+PDU.", itoa(remainingPduLength));
+				break;	/*	Out of PDU loop.	*/
+			}
+
 			/*	Get remainder of PDU.			*/
 
 			result = itcp_recv(&(parms->recvSocket),

@@ -1,0 +1,1 @@
+The CFDP tcputa receive adapter must not read an oversized inbound PDU past its fixed receive buffer.

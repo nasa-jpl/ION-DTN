@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# The CFDP-over-TCP receive adapter (tcputa) must not read an oversized inbound
+# PDU past its fixed receive buffer.
+#
+# tcputa allocates a CFDP_MAX_PDU_SIZE (65535) byte buffer, reads a 4-byte PDU
+# header, then computes the remaining read length entirely from attacker-
+# supplied header fields and read that many bytes into the buffer with no check
+# against the buffer size.  The computed length can reach 65559, so the header
+# plus remainder (65563) is written past the 65535-byte buffer.  The overrun is
+# reachable pre-authentication by any peer that can connect to the CFDP TCP
+# port, and it corrupts the PSM allocator and crashes tcputa.
+#
+# This starts one node running tcputa and connects to its port with a crafted
+# PDU header declaring an oversized length.  On the fixed code tcputa discards
+# the PDU and keeps running; on the vulnerable code the read overruns the buffer
+# and tcputa dies (an SDR/PSM assertion).
+set -u
+cd "$(dirname "$0")"
+
+trap 'killm f' EXIT
+
+SYSUP=../../../system_up
+TCPUTA_PORT=6401
+
+echo "########################################"
+echo "NAME: cfdp-tcputa-oversized-pdu"
+echo "PURPOSE: Verify the CFDP tcputa adapter does not overflow its receive"
+echo "         buffer on an oversized inbound PDU."
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP: python3 is required to send the crafted PDU."
+    exit 2
+fi
+
+killm f >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+echo "Starting node 3 (tcputa on 127.0.0.1:$TCPUTA_PORT) ..."
+(cd 3.ipn.tcp && ./ionstart) >3.ipn.tcp/start.log 2>&1
+
+# Gate on BP being up, then give cfdpadmin/tcputa a moment to bind.
+( cd 3.ipn.tcp && "$SYSUP" -i "p 30" -b "p 30" ) >/dev/null 2>&1
+if [ $? -ne 2 ]; then
+    echo "FAIL: node did not come up"
+    cat 3.ipn.tcp/start.log
+    exit 1
+fi
+for i in $(seq 1 15); do
+    grep -q "tcputa input has started" 3.ipn.tcp/ion.log 2>/dev/null && break
+    sleep 1
+done
+sleep 1
+
+echo "Sending an oversized CFDP PDU to tcputa ..."
+python3 send_pdu.py "$TCPUTA_PORT" >/dev/null 2>&1
+
+DISCARDED=0
+for i in $(seq 1 15); do
+    DISCARDED=$(grep -c "discarding oversized CFDP" 3.ipn.tcp/ion.log 2>/dev/null)
+    [ "${DISCARDED:-0}" -ge 1 ] && break
+    pgrep -x tcputa >/dev/null 2>&1 || break   # tcputa gone -> crashed
+    sleep 1
+done
+
+ASSERTS=$(grep -c "Assertion failed" 3.ipn.tcp/ion.log 2>/dev/null)
+ALIVE=$(pgrep -c -x tcputa 2>/dev/null)
+
+echo
+echo "=== evidence ==="
+echo "oversized-PDU discards logged: ${DISCARDED:-0} (>=1 expected)"
+echo "SDR/PSM assertion failures:    ${ASSERTS:-0} (0 expected)"
+echo "tcputa still running:          ${ALIVE:-0} (>=1 expected)"
+
+ok=1
+[ "${DISCARDED:-0}" -ge 1 ] || { echo "FAIL: tcputa did not discard the oversized PDU."; ok=0; }
+[ "${ASSERTS:-0}" -eq 0 ]   || { echo "FAIL: an SDR/PSM assertion fired (buffer overrun)."; ok=0; }
+[ "${ALIVE:-0}" -ge 1 ]     || { echo "FAIL: tcputa is no longer running (it crashed)."; ok=0; }
+
+if [ "$ok" -ne 1 ]; then
+    echo "----- node 3 ion.log (tail) -----"
+    tail -20 3.ipn.tcp/ion.log 2>/dev/null
+fi
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: oversized PDU discarded; tcputa survived."
+    exit 0
+fi
+exit 1

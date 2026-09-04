@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+ionadmin ipn.ionrc
+sleep 1
+ionadmin ../global.ionrc
+sleep 1
+bpadmin ipn.bprc
+sleep 2
+cfdpadmin node.cfdprc

@@ -29,6 +29,8 @@ static void	*receivePdus(void *parm)
 	Sdr		sdr;
 	BpDelivery	dlv;
 	int		contentLength;
+	vast		aduLength;
+	char		msgBuf[80];
 	ZcoReader	reader;
 	unsigned char	*buffer;
 
@@ -68,7 +70,23 @@ static void	*receivePdus(void *parm)
 			break;
 
 		case BpPayloadPresent:
-			contentLength = zco_source_data_length(sdr, dlv.adu);
+			aduLength = zco_source_data_length(sdr, dlv.adu);
+			if (aduLength > CFDP_MAX_PDU_SIZE)
+			{
+				/*	A CFDP PDU cannot exceed
+				 *	CFDP_MAX_PDU_SIZE, so an ADU larger
+				 *	than the receive buffer is malformed:
+				 *	discard it rather than overrun the
+				 *	buffer, and keep receiving.	*/
+
+				isprintf(msgBuf, sizeof msgBuf, "[?] bputa "
+					"discarding oversized CFDP ADU ("
+					VAST_FIELDSPEC " bytes).", aduLength);
+				writeMemo(msgBuf);
+				break;
+			}
+
+			contentLength = (int) aduLength;
 			CHKNULL(sdr_begin_xn(sdr));
 			zco_start_receiving(dlv.adu, &reader);
 			if (zco_receive_source(sdr, &reader, contentLength,

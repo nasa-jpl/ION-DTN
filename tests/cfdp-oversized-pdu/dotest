@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# The CFDP-over-BP receive adapter (bputa) must not copy an oversized inbound
+# ADU past its fixed receive buffer.
+#
+# bputa allocates a CFDP_MAX_PDU_SIZE (65535) byte buffer and copied an inbound
+# bundle's ADU into it using the ADU's own length, with no check against the
+# buffer size.  A bundle delivered to the CFDP receive endpoint (ipn:<node>.65)
+# with a payload larger than 65535 bytes overran the buffer -- pre-auth, from
+# the DTN network -- corrupting the PSM allocator and crashing bputa.
+#
+#   node 2  --tcpcl-->  node 3 (runs bputa on ipn:3.65)
+#
+# Node 2 sends a 70000-byte file to ipn:3.65.  On the fixed code bputa discards
+# the oversized ADU and keeps running; on the vulnerable code the copy overruns
+# the buffer and bputa dies (an SDR/PSM assertion).  TCPCL is used because the
+# bundle is larger than a UDP datagram.
+set -u
+cd "$(dirname "$0")"
+
+trap 'killm f' EXIT
+
+SYSUP=../../../system_up
+OVERSIZE=70000
+
+echo "########################################"
+echo "NAME: cfdp-oversized-pdu"
+echo "PURPOSE: Verify the CFDP bputa adapter does not overflow its receive"
+echo "         buffer on an oversized inbound ADU."
+echo "########################################"
+
+killm f >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+head -c "$OVERSIZE" /dev/zero | tr '\0' 'A' > bigfile.bin
+
+echo "Starting node 3 (bputa receiver) and node 2 (sender) ..."
+(cd 3.ipn.tcp && ./ionstart) >3.ipn.tcp/start.log 2>&1
+(cd 2.ipn.tcp && ./ionstart) >2.ipn.tcp/start.log 2>&1
+
+# Gate on both nodes' BP being up before transmitting.
+for n in 3 2; do
+    ( cd "$n.ipn.tcp" && "$SYSUP" -i "p 30" -b "p 30" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        cat "$n.ipn.tcp/start.log"
+        exit 1
+    fi
+done
+sleep 2
+
+echo "Sending a $OVERSIZE-byte ADU to ipn:3.65 (> CFDP_MAX_PDU_SIZE) ..."
+(cd 2.ipn.tcp && bpsendfile ipn:2.1 ipn:3.65 ../bigfile.bin) >2.ipn.tcp/send.log 2>&1
+
+# Poll for bputa to either discard the ADU (fixed) or crash (vulnerable).
+DISCARDED=0
+for i in $(seq 1 20); do
+    DISCARDED=$(grep -c "discarding oversized CFDP ADU" 3.ipn.tcp/ion.log 2>/dev/null)
+    [ "${DISCARDED:-0}" -ge 1 ] && break
+    pgrep -x bputa >/dev/null 2>&1 || break   # bputa gone -> crashed
+    sleep 1
+done
+
+ASSERTS=$(grep -c "Assertion failed" 3.ipn.tcp/ion.log 2>/dev/null)
+ALIVE=$(pgrep -c -x bputa 2>/dev/null)
+
+echo
+echo "=== evidence ==="
+echo "oversized-ADU discards logged: ${DISCARDED:-0} (>=1 expected)"
+echo "SDR/PSM assertion failures:    ${ASSERTS:-0} (0 expected)"
+echo "bputa still running:           ${ALIVE:-0} (>=1 expected)"
+
+ok=1
+[ "${DISCARDED:-0}" -ge 1 ] || { echo "FAIL: bputa did not discard the oversized ADU."; ok=0; }
+[ "${ASSERTS:-0}" -eq 0 ]   || { echo "FAIL: an SDR/PSM assertion fired (buffer overrun)."; ok=0; }
+[ "${ALIVE:-0}" -ge 1 ]     || { echo "FAIL: bputa is no longer running (it crashed)."; ok=0; }
+
+if [ "$ok" -ne 1 ]; then
+    echo "----- node 3 ion.log (tail) -----"
+    tail -25 3.ipn.tcp/ion.log 2>/dev/null
+fi
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: oversized ADU discarded; bputa survived."
+    exit 0
+fi
+exit 1
