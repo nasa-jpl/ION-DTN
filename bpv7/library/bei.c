@@ -1019,12 +1019,19 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 	ExtensionDef	*def;
 	unsigned int	oldLength;
 	unsigned char   blkNum;
-	/* ION supports 11 extensions blocks plus an unknown extension and with
-	the possibility of mulitple BIBs & BCBs, 32 should be sufficent */
-	unsigned char existingBlknum[32];
-	int count = 0;
+	/*	Track which block numbers have already been seen so a
+	 *	repeated one can be rejected.  Acquisition rejects any
+	 *	block whose number exceeds 255 (see acquireBlock), so a
+	 *	256-bit map -- one bit per possible block number -- covers
+	 *	every value a block can carry.  Indexing by the block
+	 *	number, rather than by a running count of blocks seen,
+	 *	means the number of extension blocks a bundle carries is
+	 *	not bounded (RFC 9171 sets no limit) and cannot drive a
+	 *	write past the end of the map.			*/
+	unsigned char	seenBlknum[256 / 8];
 
 	CHKERR(work);
+	memset(seenBlknum, 0, sizeof seenBlknum);
 	for (elt = lyst_first(work->extBlocks); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
@@ -1072,22 +1079,18 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 		}
 
 		blkNum = blk->number;
-		for (int j = 0; j < count; j++)
+		if (seenBlknum[blkNum >> 3] & (1 << (blkNum & 0x07)))
 		{
-			if (existingBlknum[j] == blkNum)
-			{
-				char	buf[128];
-				isprintf(buf, sizeof(buf),
-					"[?] Duplicate block number %u (block type %u, count %d)",
-					blkNum, blk->type, count);
-				writeMemo(buf);
-				printStackTrace();
-				return 1;
-			}
+			char	buf[128];
+			isprintf(buf, sizeof(buf),
+				"[?] Duplicate block number %u (block type %u)",
+				blkNum, blk->type);
+			writeMemo(buf);
+			printStackTrace();
+			return 1;
 		}
 
-		existingBlknum[count] = blkNum;
-		count++;
+		seenBlknum[blkNum >> 3] |= (1 << (blkNum & 0x07));
 	}
 
 	return 0;

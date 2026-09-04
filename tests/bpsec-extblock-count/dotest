@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# A bundle carrying more than 32 extension blocks must not overflow the fixed
+# block-number array in parseExtensionBlocks().
+#
+# Acquisition recorded each parsed extension block's number in a 32-entry stack
+# array indexed by a running count that was never bounded.  A bundle with more
+# than 32 recognized extension blocks with distinct numbers wrote attacker-
+# supplied block numbers past the array, up to the saved return address -- a
+# remote, unauthenticated, pre-existing stack-buffer-overflow reachable on any
+# node through any convergence layer.
+#
+# The overflow writes only small block-number values, so it does not reliably
+# crash a normal build; AddressSanitizer's stack redzones catch it on the first
+# out-of-bounds write.  This test therefore runs only on an --enable-asan build
+# and skips otherwise.
+#
+# It injects a bundle carrying 40 Bundle Age extension blocks into the node's
+# UDP induct, then an ordinary bundle.  On the fixed code no ASan report is
+# produced and both bundles are delivered; on the vulnerable code ASan reports
+# the overflow (and the acquiring daemon aborts, so the second bundle is lost).
+set -u
+cd "$(dirname "$0")"
+. ../test_utils.sh 2>/dev/null || true
+
+trap 'killm f' EXIT
+
+echo "########################################"
+echo "NAME: bpsec-extblock-count"
+echo "PURPOSE: Verify a bundle with >32 extension blocks does not overflow the"
+echo "         block-number array in parseExtensionBlocks (AddressSanitizer)."
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP: python3 is required to inject the fixture bundles."
+    exit 2
+fi
+
+# The overflow is observable only under AddressSanitizer.  Locate the installed
+# libbp and confirm it is instrumented; skip otherwise.
+LIBBP=""
+# Search the installed library dir and, for a build-tree run, the .libs beside
+# the ION binaries on PATH.
+BPADMIN=$(command -v bpadmin 2>/dev/null)
+for d in /usr/local/lib "$(pkg-config --variable=libdir ion 2>/dev/null)" \
+        "$([ -n "$BPADMIN" ] && echo "$(dirname "$BPADMIN")/.libs")"; do
+    [ -z "$d" ] && continue
+    LIBBP=$(find "$d"/* -prune -name "libbp.so*" 2>/dev/null | head -n1)
+    [ -n "$LIBBP" ] && break
+done
+if [ -z "$LIBBP" ] || ! nm -D "$LIBBP" 2>/dev/null | grep -q "__asan"; then
+    echo "SKIP: ION not built with --enable-asan (the extension-block array"
+    echo "      overflow is only reliably observable under AddressSanitizer)."
+    exit 2
+fi
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes asanrep.*
+killm f >/dev/null 2>&1
+
+CONTROL=$(grep -v '^#' bundles.txt | sed -n 1p)
+FLOOD=$(grep -v '^#' bundles.txt | sed -n 2p)
+if [ -z "$CONTROL" ] || [ -z "$FLOOD" ]; then
+    echo "FAIL: could not read both fixture bundles from bundles.txt"
+    exit 1
+fi
+
+# Direct every ASan-instrumented process to write any report to asanrep.<pid>.
+export ASAN_OPTIONS="log_path=$PWD/asanrep:halt_on_error=1:abort_on_error=1:detect_leaks=0"
+
+(cd 3.ipn.udp && ./ionstart) >3.ipn.udp/start.log 2>&1
+sleep 4
+
+(cd 3.ipn.udp && bpsink ipn:3.1 >sink.txt 2>&1) &
+SINK=$!
+sleep 2
+
+echo "Injecting the 40-extension-block bundle, then an ordinary bundle ..."
+python3 send_bundle.py "$FLOOD" 3117
+sleep 3
+python3 send_bundle.py "$CONTROL" 3117
+sleep 3
+
+kill "$SINK" 2>/dev/null
+DELIVERED=$(grep -c "Payload delivered" 3.ipn.udp/sink.txt 2>/dev/null)
+REPORTS=$(ls asanrep.* 2>/dev/null | wc -l)
+
+echo
+echo "=== evidence ==="
+echo "AddressSanitizer reports: $REPORTS (must be 0)"
+echo "payloads delivered:       $DELIVERED (flood + control = 2 expected)"
+echo "sink: $(tr '\n' ' ' <3.ipn.udp/sink.txt 2>/dev/null)"
+
+ok=1
+if [ "$REPORTS" -ne 0 ]; then
+    echo "FAIL: AddressSanitizer reported a memory error:"
+    grep -hE "ERROR: AddressSanitizer|SUMMARY|parseExtensionBlocks|bei.c" asanrep.* 2>/dev/null | head
+    ok=0
+fi
+if [ "${DELIVERED:-0}" -lt 2 ]; then
+    echo "FAIL: expected both bundles delivered; the acquiring daemon may have"
+    echo "      aborted on the extension-block flood."
+    ok=0
+fi
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: >32 extension blocks handled without overflow; both delivered."
+    exit 0
+fi
+exit 1

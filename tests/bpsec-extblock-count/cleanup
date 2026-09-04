@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes asanrep.* 3.ipn.udp/ion.log 3.ipn.udp/sink.txt 3.ipn.udp/start.log ion-system.log

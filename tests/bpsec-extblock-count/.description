@@ -1,0 +1,1 @@
+A bundle carrying more than 32 extension blocks must not overflow the fixed block-number array in parseExtensionBlocks (AddressSanitizer).
