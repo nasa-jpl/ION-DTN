@@ -7,18 +7,22 @@ trap 'killm f' EXIT
 # Tests delay-tolerant payload conditioning.  Four nodes are arranged in a
 # 'Y' topology 1->2->{3,4}.  A DTPC sending application at node 1 sends
 # a series of application data items to DTPC receiving applications at
-# nodes 3 and 4; the items are aggregated into DTPC application data units,
+# nodes 1.3 and 4; the items are aggregated into DTPC application data units,
 # which are presented to BP for transmission in bundles via node 2.
 #
 # The application data items are sent using two different transmission
 # profiles to the two different destination nodes, and they are for three
-# different topics, one of which has an elision function.  Transmission
-# is by the UDP convergence-layer adapter, and simulated 20% packet (bundle)
-# loss is implemented by forwarding from node 1 to node 2 via owltsim.
+# different topics, one of which has an elision function.
+#
+# The link is reliable.  What is under test here is what DTPC does with
+# items on the way in and on the way out -- aggregation, elision and
+# in-order delivery -- and none of that needs a bundle to be lost to be
+# demonstrated.  End-to-end retransmission is a separate property with a
+# separate setup, and is covered by the dtpc-retransmission test.
 #
 # A total of 27 application data items are transmitted in this order:
 #
-#	To node 3 (using profile 21):
+#	To node 1.3 (using profile 21):
 #		10 items on topic 11, sizes from 601 to 610 bytes
 #		1 item on topic 12, 600 bytes
 #
@@ -26,37 +30,67 @@ trap 'killm f' EXIT
 #		1 item on topic 11, 601 bytes
 #		1 item on topic 12, 602 bytes
 #
-#	To node 3 (using profile 22):
+#	To node 1.3 (using profile 22):
 #		3 items on topic 12, sizes from 601 to 603 bytes
 #
-#	To node 3 (using profile 21):
+#	To node 1.3 (using profile 21):
 #		10 items on topic 13 (7 of them duplicates), sizes 600 to 602
 #
 # The aggregation size limit for each profile is 1000 bytes; each aggregation
-# time limit is 10 seconds.  So the following 11 bundles should be sent, of
-# which at least 2 will be dropped by owltsim and require retransmission:
+# time limit is 10 seconds.  So 11 bundles should be sent, some concluded by
+# the size limit and the rest by expiration of the time limit.
 #
-#	5 bundles on topic 11 to node 3, of which 1 will be lost and
-#	require end-to-end retransmission
-#
-#	1 bundle on topics 11 and 12 to node 4
-#
-#	1 bundle on topic 12 to node 3 (initiated by time limit expiration)
-#
-#	2 bundles on topic 12 to node 3 (the 2nd per time limit expiration)
-#
-#	2 bundles on topic 13 to node 3 (the 2nd per time limit expiration)
-#
-# The receiving application at node 3 should acquire 10 items on topic 11
+# The receiving application at node 1.3 should acquire 10 items on topic 11
 # (in order), 4 items on topic 12 (in order), and 3 items on topic 13 (in
 # order).
 #
 # The receiving application at node 4 should acquire 1 item on topic 11 and
 # 1 item on topic 12.
 #
-# The test thereby exercises data item elision, data item aggregation, and
-# in-order reliable transmission without gaps or duplicates.
+# dtpcreceive samples its running count onto stdout every five seconds, so
+# the check below waits for each expected count to appear and then waits a
+# further sampling period to confirm it has not grown.  Reaching a count
+# says nothing about stopping there, and stopping there is what elision and
+# duplicate suppression are about.
 
+. ../test_utils.sh
+
+# Readiness check, invoked from a node directory.
+SYSUP=../../../system_up
+
+# Where each receiver's count is expected to end up, as file:count.
+CHECKS="3.ipn.ltp/node3.11.stdout:10 \
+3.ipn.ltp/node3.12.stdout:4 \
+3.ipn.ltp/node3.13.stdout:3 \
+4.ipn.ltp/node4.11.stdout:1 \
+4.ipn.ltp/node4.12.stdout:1"
+
+# Bound on how long to wait for the last items to be delivered.  Delivery
+# over a reliable loopback link is prompt; this is headroom, not an
+# expectation.  A shortfall fails here rather than hanging until the
+# harness kills the run.
+DELIVERY_WAIT=60
+
+# One dtpcreceive sampling period, plus margin, used to confirm that a
+# count that reached its expected value stays there.
+SETTLE=8
+
+# The last count dtpcreceive sampled onto its stdout, or empty if it has
+# not reported yet.
+lastCount() {
+	sed -n 's/.*Payloads received: *\([0-9][0-9]*\).*/\1/p' "$1" \
+		2>/dev/null | tail -1
+}
+
+# True when every receiver's latest count matches what is expected of it.
+countsMatch() {
+	for _spec in $CHECKS; do
+		if [ "$(lastCount "${_spec%:*}")" != "${_spec##*:}" ]; then
+			return 1
+		fi
+	done
+	return 0
+}
 
 # initial cleanup
 ./cleanup
@@ -64,36 +98,58 @@ trap 'killm f' EXIT
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
+TESTROOT=$PWD
 
 # Start nodes.
 cd 1.ipn.ltp
 ./ionstart >& node1.stdout
 
-sleep 1
 cd ../2.ipn.ltp
 ./ionstart >& node2.stdout
 
-sleep 1
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout
 
-sleep 1
 cd ../4.ipn.ltp
 ./ionstart >& node4.stdout
 
+# Ask each node whether its subsystems are up, rather than inferring it
+# from the passage of time.  system_up polls and reports the number of
+# checks that succeeded, so three is the answer for the three requested
+# here; anything less means a subsystem never started.
+cd "$TESTROOT"
+for NODE in 1 2 3 4; do
+	( cd "$TESTROOT/$NODE.ipn.ltp" &&
+		"$SYSUP" -i "p 60" -b "p 60" -D "p 60" ) >/dev/null 2>&1
+	if [ $? -ne 3 ]; then
+		echo "Node $NODE did not start: aborting test."
+		exit 1
+	fi
+done
 
-sleep 30
-echo "Starting dtpcreceive on nodes 3 and 4..."
-cd ../3.ipn.ltp
+echo "Starting dtpcreceive on nodes 1.3 and 4..."
+cd "$TESTROOT/3.ipn.ltp"
 dtpcreceive 11  >& node3.11.stdout &
 dtpcreceive 12  >& node3.12.stdout &
 dtpcreceive 13  >& node3.13.stdout &
-cd ../4.ipn.ltp
+cd "$TESTROOT/4.ipn.ltp"
 dtpcreceive 11  >& node4.11.stdout &
 dtpcreceive 12  >& node4.12.stdout &
 
-sleep 2
-cd ../1.ipn.ltp
+# Each receiver samples its count every five seconds whether or not
+# anything has arrived, so its first report is proof that it attached to
+# DTPC and opened its topic.  Without this, a receiver that failed to
+# start is indistinguishable at the end from one that received nothing.
+cd "$TESTROOT"
+for SPEC in $CHECKS; do
+	if ! waitForFileContent "Payloads received" "${SPEC%:*}" 30000; then
+		echo "A dtpcreceive never reported: aborting test."
+		echo "  (${SPEC%:*} stayed empty; see the node's ion.log)"
+		exit 1
+	fi
+done
+
+cd "$TESTROOT/1.ipn.ltp"
 echo ""
 echo "Sending 10 different items on topic 11 to node 1.3, profile 21...."
 echo ""
@@ -123,6 +179,9 @@ echo "Sending 1 item on topic 12 to node 4, profile 22...."
 echo ""
 dtpcsend 1 100000 602 12 22 ipn:4.129
 
+# This wait is part of the test, not slack: it is what makes the profile's
+# aggregation time limit expire and conclude an ADU that the size limit
+# never would.
 echo ""
 echo "Waiting for aggregation time limits to expire...."
 echo ""
@@ -145,60 +204,45 @@ dtpcsend 1 100000 602 13 21 ipn:1.3.129
 echo ""
 echo "Waiting for aggregation time limits to expire...."
 sleep 10
+
 echo ""
-echo "Waiting for transmission of final bundles to complete...."
-sleep 20
-echo ""
-#echo ""
-#cd ../1.ipn.ltp
-#./ionstop &
-#cd ../2.ipn.ltp
-#./ionstop &
-#cd ../3.ipn.ltp
-#./ionstop &
-#cd ../4.ipn.ltp
-#./ionstop &
-#sleep 20
-#sky moves ion shutdown to end or routine
+echo "Waiting for the final items to be delivered...."
+cd "$TESTROOT"
+WAITED=0
+while [ $WAITED -lt $DELIVERY_WAIT ]; do
+	if countsMatch; then
+		break
+	fi
+	sleep 1
+	WAITED=$((WAITED + 1))
+done
+
+# Whether or not the counts arrived, give the receivers one more sampling
+# period: if an item is going to be delivered twice, this is when it shows
+# up, and a test that stopped at the expected count would never see it.
+echo "Confirming the counts have settled...."
+sleep $SETTLE
 
 echo ""
 echo "Checking for correct counts of received application data items...."
 RETVAL=0
 
-cd ../3.ipn.ltp
-
-COUNT=$(grep -c 'Payloads received: 10' node3.11.stdout)
-if [ "$COUNT" -eq 0 ]; then
-    echo "Error: node 1.3 did not receive 10 items on topic 11."
-    RETVAL=1
-fi
-
-COUNT=$(grep -c 'Payloads received: 4' node3.12.stdout)
-if [ "$COUNT" -eq 0 ]; then
-    echo "Error: node 1.3 did not receive 4 items on topic 12."
-    RETVAL=1
-fi
-
-COUNT=$(grep -c 'Payloads received: 3' node3.13.stdout)
-if [ "$COUNT" -eq 0 ]; then
-    echo "Error: node 1.3 did not receive 3 items on topic 13."
-    RETVAL=1
-fi
-
-cd ../4.ipn.ltp
-
-COUNT=$(grep -c 'Payloads received: 1' node4.11.stdout)
-if [ "$COUNT" -eq 0 ]; then
-    echo "Error: node 4 did not receive 1 item on topic 11."
-    RETVAL=1
-fi
-
-COUNT=$(grep -c 'Payloads received: 1' node4.12.stdout)
-if [ "$COUNT" -eq 0 ]; then
-    echo "Error: node 4 did not receive 1 item on topic 12."
-    RETVAL=1
-fi
-
+for SPEC in $CHECKS; do
+	FILE=${SPEC%:*}
+	WANT=${SPEC##*:}
+	GOT=$(lastCount "$FILE")
+	if [ -z "$GOT" ]; then
+		echo "Error: $FILE reported no count at all."
+		RETVAL=1
+	elif [ "$GOT" -lt "$WANT" ]; then
+		echo "Error: $FILE received $GOT items, expected $WANT."
+		RETVAL=1
+	elif [ "$GOT" -gt "$WANT" ]; then
+		echo "Error: $FILE received $GOT items, expected $WANT;"
+		echo "       items were delivered more than once."
+		RETVAL=1
+	fi
+done
 
 echo -e "\nStopping ION, including all test programs...\n"
 

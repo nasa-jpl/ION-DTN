@@ -6,6 +6,4 @@ bpadmin		.
 sleep 1
 ltpadmin	.
 sleep 1
-killall		owltsim
-killall		lt-owltsim
 ionadmin	.
