@@ -411,6 +411,13 @@ such allowance is made, and a value configured on only one of a pair of
 peers may have little effect on the observed rate of session
 cancellation.
 
+If a sending session is cancelled anyway because the receiving engine's
+reception report budget was exhausted before this engine's checkpoint
+budget -- typically a peer configured inconsistently, or one that
+enforces no repair round limit at all -- the engine writes a rate-limited
+notice to the log naming the peer engine, since the cause lies at the far
+end and is not otherwise visible locally.
+
 =item B<m span> I<peer_engine_nbr> B<maxretries> I<max_retransmission_attempts>
 
 The B<manage span max retries> command.  This command sets the maximum number

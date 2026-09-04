@@ -8966,27 +8966,11 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
-/*	Peer-asymmetry diagnostic.
- *
- *	A session's effective repair budget is the smaller of the two
- *	the peers compute, and LTP negotiates nothing, so a session can
- *	die at the receiving engine's limit while the local checkpoint
- *	budget still has room.  Nothing else says so: the operator sees
- *	a cancellation and no indication that the cause is at the other
- *	end.  A receiving engine allows itself extra rounds precisely so
- *	that this does not happen, so when it happens anyway the usual
- *	cause is a peer that predates the repair round limit, or one
- *	configured inconsistently.
- *
- *	Rate-limited: a systematically mismatched pair cancels sessions
- *	continuously, and one memo per cancellation would bury ion.log
- *	at exactly the moment somebody is reading it.
- *
- *	The limiter state is a file static rather than a member of
- *	LtpVspan.  That structure is on the ABI watch list, and adding a
- *	member to it would move engineId and every member after it; a
- *	per-process approximation is more than adequate for deciding
- *	how often to write a log line.				*/
+/*	Peer-asymmetry diagnostic: a rate-limited log notice, emitted
+ *	when a sending session is cancelled because the receiver's
+ *	repair budget was exhausted first; see maxrepairrounds in
+ *	ltprc(5).  The limiter state is a file static, not an LtpVspan
+ *	member, to leave that ABI-sensitive structure unchanged.	*/
 
 #ifndef LTP_PEER_MEMO_INTERVAL
 #define LTP_PEER_MEMO_INTERVAL	60	/*	Seconds.		*/
@@ -9056,10 +9040,10 @@ static void	noteReceiverBudgetExhausted(LtpVspan *vspan,
 	putFqn(nbrBuf, vspan->engineId);
 	isprintf(memoBuf, sizeof memoBuf, "[?] Export session %u to engine %s \
 cancelled by the receiver, retransmit limit exceeded: the peer's reception \
-report budget was exhausted before this engine's checkpoint budget.  Check \
-that the peer runs a build implementing 'm maxrepairrounds', and that its \
-maxrepairrounds and maxseglossrate are consistent with this engine's.  \
-Further notices for this span are suppressed for %d seconds.", sessionNbr,
+report budget was exhausted before this engine's checkpoint budget.  The \
+peer's repair-round or segment-loss-rate configuration may be inconsistent \
+with this engine's, or the peer may enforce no repair-round limit.  Further \
+notices for this span are suppressed for %d seconds.", sessionNbr,
 			nbrBuf, LTP_PEER_MEMO_INTERVAL);
 	writeMemo(memoBuf);
 }

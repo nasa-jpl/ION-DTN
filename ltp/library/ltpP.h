@@ -105,32 +105,9 @@ extern "C" {
 #define MAX_CLAIMS_PER_RS	20
 #endif
 
-/*	Extra reception reports a receiving engine allows itself beyond
- *	what its own configured session failure target calls for, so
- *	that in normal operation the transmitting engine's budget is the
- *	one that governs and each engine need only be configured for the
- *	traffic it sends.  Each additional round absorbs a factor of
- *	1/segmentLossRate of configuration mismatch between the peers.	*/
-
-/*	A session's repair budget is expressed directly, as the maximum
- *	number of repair rounds it may consume.  Each round costs one
- *	acknowledgement deadline of wall-clock time and holds an export
- *	session slot for that long, so this is a statement about session
- *	lifetime, which is what an operator can reason about.  An export
- *	session has no inactivity timer -- unlike an import session -- so
- *	for a sending session this is the only bound on its lifetime.
- *
- *	The default is chosen against a design ceiling of 5% segment loss:
- *	a space link losing more than that is too degraded to carry useful
- *	traffic, and the right response to it is to abandon the block and
- *	let BP re-forward rather than to keep repairing.  Eight rounds at
- *	that ceiling leaves an expected residual below 3e-6 segments even
- *	for a 100 MiB block, and below 3e-8 for 1 MiB.
- *
- *	The number of report segments a round needs is computed rather
- *	than configured: it follows from how many gaps must be enumerated
- *	and how many reception claims fit in a segment, which is
- *	arithmetic rather than a reliability model.			*/
+/*	Maximum repair rounds a session may consume before its block is
+ *	abandoned to BP.  Default, bounds, and rationale (a 5% segment-
+ *	loss ceiling) are documented under maxrepairrounds in ltprc(5).	*/
 
 #ifndef LTP_DEFAULT_REPAIR_ROUNDS
 #define LTP_DEFAULT_REPAIR_ROUNDS	8
@@ -142,6 +119,10 @@ extern "C" {
 #ifndef LTP_MAX_REPAIR_ROUNDS
 #define LTP_MAX_REPAIR_ROUNDS		256
 #endif
+
+/*	Extra rounds a receiving engine grants itself beyond the
+ *	configured limit, so the sender's limit is the one that governs;
+ *	see the peer-interaction note under maxrepairrounds in ltprc(5).	*/
 
 #ifndef LTP_RECV_BUDGET_HEADROOM
 #ifdef LTP_LEGACY_BUDGET
