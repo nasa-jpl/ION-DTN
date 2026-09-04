@@ -1,0 +1,1 @@
+Verifies that DTPC retransmits an application data unit end to end when the bundle carrying it is lost, delivering every item exactly once over an unreliable convergence layer.

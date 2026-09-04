@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test: DTPC must recover an application data unit whose bundle
+# was lost, delivering every item exactly once.
+#
+# Two nodes, 1 -> 2, over the UDP convergence-layer adapter.  UDP is
+# unreliable and custody transfer is off, so a bundle dropped on the way
+# out is gone: nothing beneath DTPC will fetch it back.  That is the point
+# of the topology.  The companion test issue-364-dtpc runs over LTP, where
+# a lost segment is repaired hop by hop and DTPC never sees a gap; here the
+# loss reaches DTPC and its own end-to-end retransmission has to recover it.
+#
+# owltsim sits between the two nodes and drops every fifth datagram.  The
+# modulus in node.owltsim is negative, which selects deterministic dropping
+# rather than the random dropping a positive modulus gives, so the same
+# datagrams are lost on every run and on every platform.
+#
+# The test sends the same ten items twice, under two profiles:
+#
+#	topic 11, profile 22 -- retransmission limit 0, which disables DTPC
+#		transport service altogether.  Items dropped by owltsim stay
+#		dropped, so FEWER than ten must arrive.
+#
+#	topic 12, profile 21 -- retransmission limit 5 and a lifetime of 30
+#		seconds.  All ten must arrive, exactly once each.
+#
+# The first is not decoration.  Without it a passing second half could just
+# mean nothing was ever dropped, and the test would be asserting that a
+# working link works.  Together the two halves say that this link does lose
+# application data units and that retransmission is what recovers them.
+#
+# DTPC derives its retransmission interval as lifespan / (maxRtx + 1), so
+# profile 21 resends about five seconds after a transmission goes
+# unacknowledged, and five attempts fit inside the ADU's lifetime.  Neither
+# number is arbitrary: the 600-second lifetime the LTP test uses would put
+# the first retransmission ten minutes out, and no test would wait for it.
+#
+# Note for anyone debugging this: owltsim's -v output is block buffered and
+# it is killed rather than stopped, so its log is normally lost and the
+# test does not read it.  What is dropped has to be inferred from what
+# arrives, which is what the two halves above are for.
+
+. ../test_utils.sh
+
+# Readiness check, invoked from a node directory.
+SYSUP=../../../system_up
+
+NO_RTX_LOG=2.ipn.udp/node2.11.stdout	# topic 11, profile 22
+RTX_LOG=2.ipn.udp/node2.12.stdout	# topic 12, profile 21
+SENT=10
+
+# Bound on how long to wait for delivery: five seconds of aggregation plus
+# a five-second retransmission interval, with headroom.  A shortfall fails
+# here rather than hanging until the harness kills the run.
+DELIVERY_WAIT=60
+
+# One dtpcreceive sampling period, plus margin.
+SETTLE=8
+
+# The last count dtpcreceive sampled onto its stdout, or empty if it has
+# not reported yet.
+lastCount() {
+	sed -n 's/.*Payloads received: *\([0-9][0-9]*\).*/\1/p' "$1" \
+		2>/dev/null | tail -1
+}
+
+# Send ten items of distinct sizes on a topic, under a profile.
+sendItems() {
+	_topic=$1
+	_profile=$2
+	_size=601
+	while [ $_size -le 610 ]; do
+		dtpcsend 1 100000 $_size "$_topic" "$_profile" ipn:2.129
+		_size=$((_size + 1))
+	done
+}
+
+./cleanup
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+TESTROOT=$PWD
+
+cd 1.ipn.udp
+./ionstart >& node1.stdout
+
+cd ../2.ipn.udp
+./ionstart >& node2.stdout
+
+cd "$TESTROOT"
+for NODE in 1 2; do
+	( cd "$TESTROOT/$NODE.ipn.udp" &&
+		"$SYSUP" -i "p 60" -b "p 60" -D "p 60" ) >/dev/null 2>&1
+	if [ $? -ne 3 ]; then
+		echo "Node $NODE did not start: aborting test."
+		exit 1
+	fi
+done
+
+echo "Starting dtpcreceive on node 2..."
+cd "$TESTROOT/2.ipn.udp"
+dtpcreceive 11 >& node2.11.stdout &
+dtpcreceive 12 >& node2.12.stdout &
+
+# Each receiver samples its count every five seconds whether or not
+# anything has arrived, so its first report proves it attached to DTPC and
+# opened its topic.  Without this, a receiver that failed to start looks at
+# the end exactly like one that received nothing.
+cd "$TESTROOT"
+for LOG in "$NO_RTX_LOG" "$RTX_LOG"; do
+	if ! waitForFileContent "Payloads received" "$LOG" 30000; then
+		echo "A dtpcreceive never reported: aborting test."
+		echo "  ($LOG stayed empty; see 2.ipn.udp/ion.log)"
+		exit 1
+	fi
+done
+
+cd "$TESTROOT/1.ipn.udp"
+echo ""
+echo "Sending $SENT items on topic 11, profile 22 (no retransmission)...."
+sendItems 11 22
+echo "Sending $SENT items on topic 12, profile 21 (retransmission on)...."
+sendItems 12 21
+
+cd "$TESTROOT"
+echo ""
+echo "Waiting for delivery, including any retransmission...."
+WAITED=0
+while [ $WAITED -lt $DELIVERY_WAIT ]; do
+	if [ "$(lastCount "$RTX_LOG")" = "$SENT" ]; then
+		break
+	fi
+	sleep 1
+	WAITED=$((WAITED + 1))
+done
+
+# Give the receivers one more sampling period.  This is when a late or
+# duplicated delivery shows up, and a test that stopped as soon as the
+# retransmitting topic reached ten would never see one.
+echo "Confirming the counts have settled...."
+sleep $SETTLE
+
+NO_RTX=$(lastCount "$NO_RTX_LOG")
+WITH_RTX=$(lastCount "$RTX_LOG")
+
+echo ""
+echo "Without retransmission: ${NO_RTX:-no} of $SENT items arrived."
+echo "With retransmission:    ${WITH_RTX:-no} of $SENT items arrived."
+echo ""
+RETVAL=0
+
+if [ -z "$NO_RTX" ] || [ -z "$WITH_RTX" ]; then
+	echo "Error: a dtpcreceive reported no count at all."
+	RETVAL=1
+elif [ "$NO_RTX" -ge "$SENT" ]; then
+	echo "TEST INCONCLUSIVE: all $SENT items arrived even with DTPC"
+	echo "                   transport service disabled, so nothing was"
+	echo "                   lost and the retransmitting case proves"
+	echo "                   nothing.  Check that owltsim is running and"
+	echo "                   that node.owltsim still has a negative"
+	echo "                   modulus."
+	RETVAL=1
+elif [ "$WITH_RTX" -lt "$SENT" ]; then
+	echo "TEST FAILED: only $WITH_RTX of $SENT items arrived with"
+	echo "             retransmission enabled.  DTPC did not recover an"
+	echo "             application data unit whose bundle was lost."
+	RETVAL=1
+elif [ "$WITH_RTX" -gt "$SENT" ]; then
+	echo "TEST FAILED: $WITH_RTX items arrived but $SENT were sent; a"
+	echo "             retransmitted application data unit was delivered"
+	echo "             more than once."
+	RETVAL=1
+else
+	echo "TEST PASSED: $((SENT - NO_RTX)) item(s) were lost without"
+	echo "             retransmission, and all $SENT arrived exactly once"
+	echo "             with it."
+fi
+
+echo ""
+echo "Stopping ION, including all test programs..."
+exit $RETVAL

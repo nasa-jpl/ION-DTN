@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes
+rm -f 2.ipn.udp/ion.log 2.ipn.udp/node2*stdout 2.ipn.udp/outAdu_*
