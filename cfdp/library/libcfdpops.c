@@ -50,6 +50,17 @@ void	parseProxyPutRequest(char *text, int bytesRemaining,
 		return;
 	}
 
+	/*	The destination entity ID is a CfdpNumber, whose value
+	 *	buffer is 8 bytes.  A declared length greater than that
+	 *	makes pad = 8 - length negative, which becomes a huge
+	 *	size_t in the memset and memcpy below -- an out-of-bounds
+	 *	write triggered by one received message.  Reject it.	*/
+
+	if ((size_t) length > sizeof opsData->proxyDestinationEntityNbr.buffer)
+	{
+		return;
+	}
+
 	pad = 8 - length;
 	opsData->proxyDestinationEntityNbr.length = length;
 	memset(opsData->proxyDestinationEntityNbr.buffer, 0, pad);

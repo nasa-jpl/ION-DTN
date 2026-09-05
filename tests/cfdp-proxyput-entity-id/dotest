@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Regression for the CFDP Proxy Put Request entity-ID out-of-bounds write
+# (GHSA-fh7m-mf49-m786).
+#
+# parseProxyPutRequest() bounds the destination entity-ID length only against
+# the remaining message bytes, not against the 8-byte CfdpNumber buffer.  A
+# length greater than 8 makes pad = 8 - length negative; as a size_t that is
+# enormous, so memset(buffer, 0, pad) writes far past the buffer -- a remote
+# out-of-bounds write from one received Proxy Put Request.  The fix rejects a
+# length greater than the buffer size.
+#
+# The harness calls parseProxyPutRequest() with an entity-ID length of 9.  On
+# the vulnerable code the memset crashes; on the fixed code the message is
+# rejected and the call returns.  The function is a pure parser, so no node is
+# needed; it uses the private CFDP headers, so it compiles against the ION
+# source tree ($IONDIR).  The defect crashes on an ordinary build, so this test
+# is not gated on AddressSanitizer.
+set -u
+cd "$(dirname "$0")"
+
+trap 'killm f' EXIT
+
+if [ -z "${CC:-}" ]; then
+    command -v gcc >/dev/null 2>&1 && CC=gcc || CC=cc
+fi
+
+echo "########################################"
+echo "NAME: cfdp-proxyput-entity-id"
+echo "PURPOSE: Verify the CFDP Proxy Put Request parser rejects a destination"
+echo "         entity-ID length larger than the CfdpNumber buffer instead of"
+echo "         writing out of bounds."
+echo "########################################"
+
+SRC="${IONDIR:-}"
+[ -z "$SRC" ] && SRC=$(cd ../.. && pwd)
+if [ ! -f "$SRC/cfdp/library/cfdpP.h" ]; then
+    echo "SKIP: ION source tree not found (need private CFDP headers)."
+    exit 2
+fi
+
+export PKG_CONFIG_PATH="$SRC:${PKG_CONFIG_PATH:-}"
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+LIBCFDP=""
+for d in "$LIBDIR" /usr/local/lib "$SRC/.libs"; do
+    [ -z "$d" ] && continue
+    LIBCFDP=$(find "$d"/* -prune -name "libcfdp.so*" 2>/dev/null | head -n1)
+    [ -n "$LIBCFDP" ] && { FOUNDLIBDIR="$d"; break; }
+done
+if [ -z "$LIBCFDP" ]; then
+    echo "SKIP: libcfdp not found; nothing to test against."
+    exit 2
+fi
+
+# Match the harness to the library's instrumentation so it links either way.
+SAN=""
+if nm -D "$LIBCFDP" 2>/dev/null | grep -q "__asan"; then
+    SAN="-fsanitize=address"
+fi
+
+ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null)
+ION_LIBS="-L$FOUNDLIBDIR -lcfdp -lbp -lici -pthread"
+
+INC="-I$SRC/ici/include -I$SRC/bpv7/include -I$SRC/cfdp/include -I$SRC/cfdp/library"
+
+BIN=$(mktemp /tmp/proxyput_test.XXXXXX)
+# shellcheck disable=SC2086
+if ! $CC $SAN -g -O1 $INC $ION_CFLAGS proxyput_entity_id_test.c \
+        $ION_LIBS -o "$BIN" 2>compile.log; then
+    echo "FAIL: could not compile the harness."
+    cat compile.log
+    rm -f "$BIN"
+    exit 1
+fi
+
+LD_LIBRARY_PATH="$FOUNDLIBDIR:/usr/local/lib:${LD_LIBRARY_PATH:-}" "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+if [ "$RETVAL" -ne 0 ]; then
+    echo "FAIL: the Proxy Put parser crashed on an oversized entity-ID length"
+    echo "(exit $RETVAL) -- GHSA-fh7m-mf49-m786 regression."
+    exit 1
+fi
+
+echo "SUCCESS: oversized Proxy Put entity-ID length rejected without a crash."
+exit 0
