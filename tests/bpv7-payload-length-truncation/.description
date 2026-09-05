@@ -1,0 +1,1 @@
+Ensure BPv7 acquisition rejects an oversized payload-block length instead of crashing the induct (GHSA-4438-9mff-3ppf / GHSA-5cjm-2fvg-46xm)

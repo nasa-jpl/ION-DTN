@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for GHSA-4438-9mff-3ppf / GHSA-5cjm-2fvg-46xm.
+#
+# A BPv7 payload block whose declared byte-string length falls between 2^31
+# and 2^32 was decoded as a 64-bit value and then narrowed to a 32-bit int in
+# the acquisition parser, where it became negative.  The negative value passed
+# the "<= bytesBuffered" test in acqFromWork() and reached advanceWorkBuffer(),
+# whose memmove() then ran with a source pointer moved back ~2 GiB and a
+# negative size -- an unauthenticated remote crash of the receiving induct from
+# one small UDP datagram, without sending the declared payload at all.
+#
+# This test sends a single crafted bundle (declared payload length 0x80000000,
+# one payload byte present) from an ordinary ephemeral source port to a udpcli
+# induct, then asserts the induct is still alive by delivering a normal bundle
+# through it.  Before the fix, udpcli crashes on the datagram and the
+# post-attack delivery fails.
+
+. ../test_utils.sh
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ensure the BPv7 acquisition parser rejects a payload block whose
+    declared length is negative or larger than the acquisition ZCO, rather than
+    narrowing it to a negative skip count and crashing the induct in memmove
+    (GHSA-4438-9mff-3ppf / GHSA-5cjm-2fvg-46xm)."
+echo
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping." >&2
+    exit 2
+fi
+
+UDP_HOST=127.0.0.1
+UDP_PORT=4556
+
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+echo "Cleaning up old ION ..."
+./cleanup >/dev/null 2>&1
+
+echo "Starting ION..."
+ionstart -I ./loopback-udp.rc
+
+# Wait for the UDP induct to come up.
+waitForLog "udpcli is running" ion.log 30000 || {
+    echo "udpcli induct did not start; aborting." >&2
+    exit 1
+}
+echo "udpcli induct is up."
+
+# --- Baseline: confirm delivery works before the attack. --------------
+echo "Baseline delivery check..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || {
+    echo "bpsink failed to start" >&2
+    exit 1
+}
+
+printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000 || {
+    echo "Baseline delivery failed; environment problem, aborting." >&2
+    kill -9 $BPSOURCEPID $BPSINKPID >/dev/null 2>&1
+    exit 1
+}
+echo "Baseline delivery OK."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+: > $IONRECEIVEFILE
+
+# --- Attack: a bundle whose payload block over-declares its length. ---
+echo "Sending a bundle with an oversized declared payload length..."
+python3 ./send_bundle.py $UDP_HOST $UDP_PORT 80000000 || {
+    echo "failed to send crafted bundle" >&2
+    exit 1
+}
+sleep 2
+
+# --- Liveness: the induct must still deliver a bundle. ----------------
+echo "Post-attack delivery check..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || {
+    echo "bpsink failed to start after attack" >&2
+    exit 1
+}
+
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000
+then
+    echo "Induct survived the oversized-length bundle; bundle delivered."
+    RETVAL=0
+else
+    echo
+    echo "FAIL: induct did not deliver a bundle after receiving a bundle"
+    echo "with an oversized declared payload length -- udpcli crashed"
+    echo "(GHSA-4438-9mff-3ppf / GHSA-5cjm-2fvg-46xm regression)."
+    RETVAL=1
+fi
+
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+
+echo "Stopping ION..."
+ionstop
+
+exit $RETVAL

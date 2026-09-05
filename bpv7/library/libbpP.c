@@ -9209,6 +9209,22 @@ undefined block.");
 #ifdef DEBUG_CRC
 	printf("\n...acquireBlock: payload crcType = %d\n", (int) crcType);
 #endif
+		/*	The block-type-specific data length is decoded as
+		 *	an unsigned CBOR integer but held in a signed
+		 *	value, and the payload acquisition machinery carries
+		 *	lengths in a 32-bit int.  A declared payload length
+		 *	that is negative (i.e. overflowed the signed value)
+		 *	or larger than the whole acquisition ZCO cannot be a
+		 *	real payload; accepting it would narrow to a negative
+		 *	skip count and drive a wild memmove.			*/
+
+		if (dataLength < 0 || dataLength > work->zcoLength)
+		{
+			writeMemoNote("[?] Payload block length invalid",
+					vasttoa(dataLength));
+			return 0;
+		}
+
 		bundle->payloadBlockProcFlags = blkProcFlags;
 		bundle->payload.length = dataLength;
 		bundle->payload.crcType = crcType;
