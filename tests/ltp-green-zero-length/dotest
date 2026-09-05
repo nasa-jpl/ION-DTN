@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for GHSA-hpw7-8j6m-px2p.
+#
+# handleGreenDataSegment() passed the wire-supplied green data-segment length to
+# sdr_insert().  A length of zero reaches the SDR allocator's zero-size
+# assertion (ici/sdr/sdrmgt.c: XNCHKZERO(!(nbytes == 0 ...))), which cancels the
+# transaction and terminates the LTP link-service input task.  One unauthenticated
+# zero-length green segment therefore stops reception over LTP.
+#
+# This test brings up a loopback LTP node (BP over LTP, so the LTP client is
+# registered), confirms delivery works, then sends one crafted zero-length green
+# segment to the udplsi port and asserts that udplsi is still running and still
+# delivers a bundle.  Before the fix udplsi aborts on the segment and the
+# post-attack delivery fails; after the fix the segment is discarded and delivery
+# continues.
+
+. ../test_utils.sh
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ensure the LTP green data-segment handler discards a zero-length"
+echo "    segment instead of aborting the LTP input task on the SDR zero-size"
+echo "    assertion (GHSA-hpw7-8j6m-px2p)."
+echo
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping." >&2
+    exit 2
+fi
+
+UDP_HOST=127.0.0.1
+UDP_PORT=1113
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+echo "Cleaning up old ION ..."
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+echo "Starting loopback LTP node..."
+ionadmin loopback.ionrc
+ltpadmin loopback.ltprc
+bpadmin loopback.bprc
+ipnadmin loopback.ipnrc
+
+waitForLog "udplsi is running" ion.log 30000 || {
+    echo "udplsi did not start; aborting." >&2; exit 1; }
+
+# --- Baseline delivery: also guarantees the LTP client is registered. -----
+echo "Baseline delivery check..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
+printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000 || {
+    echo "Baseline delivery failed; environment problem, aborting." >&2
+    kill -9 $BPSOURCEPID $BPSINKPID >/dev/null 2>&1; exit 1; }
+echo "Baseline delivery OK (LTP client registered)."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5000
+: > $IONRECEIVEFILE
+
+# --- Attack: one zero-length green LTP segment. ---------------------------
+echo "Sending a zero-length green LTP segment to udplsi..."
+python3 ./send_green_segment.py $UDP_HOST $UDP_PORT || {
+    echo "failed to send crafted segment" >&2; exit 1; }
+sleep 2
+
+# --- Check: the zero-length segment must not reach the SDR allocator. -----
+#
+# The deterministic signal is the SDR zero-size assertion in the log: on the
+# vulnerable code sdr_insert(...,0) trips XNCHKZERO(nbytes == 0 ...) in
+# ici/sdr/sdrmgt.c, which logs "SDR transaction canceled" and aborts the LTP
+# input transaction.  On the fixed code the segment is discarded before the
+# allocator, so no such assertion appears.
+RETVAL=0
+if grep -q "nbytes == 0" ion.log 2>/dev/null; then
+    echo
+    echo "FAIL: the zero-length green segment reached the SDR allocator and"
+    echo "tripped its zero-size assertion (GHSA-hpw7-8j6m-px2p regression):"
+    grep -E "sdrmgt.c|SDR transaction canceled" ion.log 2>/dev/null | head -2
+    RETVAL=1
+fi
+
+# --- Liveness: udplsi must still be running and still deliver. ------------
+echo "Post-attack delivery check..."
+if ! pgrep -x udplsi >/dev/null 2>&1; then
+    echo "FAIL: udplsi is no longer running after the zero-length green segment."
+    RETVAL=1
+elif [ "$RETVAL" -eq 0 ]; then
+    bpsink ipn:1.1 > $IONRECEIVEFILE &
+    BPSINKPID=$!
+    waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to restart" >&2; exit 1; }
+    bpsource ipn:1.1 < $IONSENDFILE &
+    BPSOURCEPID=$!
+    if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000
+    then
+        echo "SUCCESS: zero-length green segment discarded; LTP still delivers."
+    else
+        echo "FAIL: no delivery after the zero-length green segment."
+        RETVAL=1
+    fi
+    kill -9 $BPSOURCEPID >/dev/null 2>&1
+    killAndWaitForPidToDie $BPSINKPID 2 5000
+fi
+
+echo "Stopping ION..."
+ionstop
+
+exit $RETVAL

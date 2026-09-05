@@ -1,0 +1,1 @@
+Ensure the LTP green data-segment handler discards a zero-length segment instead of aborting the LTP input task (GHSA-hpw7-8j6m-px2p)
