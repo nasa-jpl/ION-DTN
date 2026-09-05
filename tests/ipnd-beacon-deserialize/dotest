@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Regression for out-of-bounds defects in the IPND beacon deserializer
+# (GHSA-3p5m-qm4p-9jq8, GHSA-4fvj-rmh8-wpx9, GHSA-8x7p-j239-4wrr,
+# GHSA-f93p-7w63-4p5p) -- all in deserializeBeacon() (bpv7/ipnd/beacon.c),
+# reachable from an unauthenticated UDP beacon on a node running ipnd.
+#
+# The most directly observable of the set is the source-EID length truncation
+# (GHSA-f93p): a 10-byte SDNV encoding 2^64-1 is narrowed to a negative int,
+# bypasses the MAX_EID_LEN check, and reaches memcpy() with a SIZE_MAX size.
+# This test sends that beacon (from a loopback alias distinct from the
+# listener's address, so ipnd does not treat it as its own) and asserts that
+# ipnd is still running afterward.
+#
+# On the vulnerable code AddressSanitizer reports a negative-size-param in
+# deserializeBeacon and ipnd aborts; on the fixed code the beacon is rejected as
+# truncated and ipnd keeps running.  On a build without AddressSanitizer the
+# oversized memcpy does not fault reliably (the length wraps), so the defect is
+# only observable under ASan; this test therefore skips unless ipnd is
+# instrumented.
+set -u
+cd "$(dirname "$0")"
+
+trap 'killm f' EXIT
+
+echo "########################################"
+echo "NAME: ipnd-beacon-deserialize"
+echo "PURPOSE: Verify the IPND beacon deserializer rejects a malformed beacon"
+echo "         instead of reading or writing out of bounds (GHSA-f93p and the"
+echo "         sibling deserializeBeacon defects)."
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping." >&2
+    exit 2
+fi
+
+# This defect is only observable under AddressSanitizer, so require an
+# instrumented libbp (ipnd links it).
+if ! command -v ipnd >/dev/null 2>&1; then
+    echo "SKIP: ipnd not on PATH."
+    exit 2
+fi
+LIBBP=""
+for d in $(printf '%s' "${LD_LIBRARY_PATH:-}" | tr ':' ' ') /usr/local/lib \
+        "${IONDIR:-}/.libs"; do
+    [ -z "$d" ] && continue
+    f=$(ls "$d"/libbp.so* 2>/dev/null | head -n1)
+    [ -n "$f" ] && { LIBBP="$f"; break; }
+done
+if [ -z "$LIBBP" ] || ! nm -D "$LIBBP" 2>/dev/null | grep -q "__asan"; then
+    echo "SKIP: ipnd is not built with AddressSanitizer; this defect is only"
+    echo "      reliably observable under ASan."
+    exit 2
+fi
+
+LISTEN_ADDR=127.0.0.9
+LISTEN_PORT=4550
+
+echo "Cleaning up old ION ..."
+./cleanup >/dev/null 2>&1
+
+cd 1.node
+export ION_NODE_LIST_DIR=$PWD
+export ASAN_OPTIONS="detect_leaks=0:abort_on_error=1:halt_on_error=1:log_path=$PWD/asanrep"
+rm -f ion_nodes asanrep.*
+
+echo "Starting node..."
+ionadmin node.ionrc
+ionsecadmin node.ionsecrc
+bpadmin node.bprc
+sleep 1
+
+echo "Starting ipnd listener on $LISTEN_ADDR:$LISTEN_PORT ..."
+ipnd listen.ipndrc >listen.log 2>&1 &
+IPNDPID=$!
+sleep 3
+
+if ! kill -0 "$IPNDPID" 2>/dev/null; then
+    echo "FAIL: ipnd did not start."; cat listen.log; exit 1
+fi
+echo "ipnd is up (pid $IPNDPID)."
+
+echo "Sending crafted beacons..."
+python3 ../send_beacon.py "$LISTEN_ADDR" "$LISTEN_PORT" eid
+sleep 1
+python3 ../send_beacon.py "$LISTEN_ADDR" "$LISTEN_PORT" svc
+sleep 2
+
+if kill -0 "$IPNDPID" 2>/dev/null && [ "$(ls asanrep.* 2>/dev/null | wc -l)" -eq 0 ]
+then
+    echo "SUCCESS: ipnd survived the crafted beacons without an out-of-bounds"
+    echo "access."
+    RETVAL=0
+else
+    echo
+    echo "FAIL: ipnd aborted or AddressSanitizer reported an error on a crafted"
+    echo "beacon (deserializeBeacon out-of-bounds regression)."
+    grep -hE "ERROR: AddressSanitizer|SUMMARY|beacon.c" asanrep.* 2>/dev/null | head
+    RETVAL=1
+fi
+
+killm f >/dev/null 2>&1
+exit $RETVAL

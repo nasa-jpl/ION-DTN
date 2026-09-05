@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+export ION_NODE_LIST_DIR=$PWD/1.node
+( cd 1.node && rm -f ion.log listen.log ion_nodes asanrep.* ion.sdr ion.sdrlog *.pid 2>/dev/null )
+killm f

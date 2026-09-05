@@ -1,0 +1,1 @@
+Ensure the IPND beacon deserializer rejects malformed beacons instead of reading/writing out of bounds (GHSA-f93p / 3p5m / 4fvj / 8x7p; ASan-gated)

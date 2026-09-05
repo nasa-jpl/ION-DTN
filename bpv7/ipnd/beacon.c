@@ -797,23 +797,38 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 	if (advanceCursor(&cursor, 1, cursorEnd) < 0)
 		BEACON_TRUNCATED_MANDATORY
 
-	sdnvLength = decodeSdnv(&sdnvTmp, cursor);
+	sdnvLength = (int) decodeSdnvBounded(&sdnvTmp, cursor,
+			(size_t) (cursorEnd - cursor));
+	if (sdnvLength == 0)
+		BEACON_TRUNCATED_MANDATORY
 	deserializedBeacon->flags = sdnvTmp;
 	if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
 		BEACON_TRUNCATED_MANDATORY
 
+	if (cursorEnd - cursor < 2)
+		BEACON_TRUNCATED_MANDATORY
 	memcpy(&deserializedBeacon->sequenceNumber, cursor, 2);
 	deserializedBeacon->sequenceNumber =
 			ntohs(deserializedBeacon->sequenceNumber);
-	if (advanceCursor(&cursor, 2, cursorEnd) < 0)
-		BEACON_TRUNCATED_MANDATORY
+	cursor += 2;
 
 	if (deserializedBeacon->flags & (1 << BEAC_SOURCE_EID_PRESENT))
 	{
-		sdnvLength = decodeSdnv(&sdnvTmp, cursor);
-		eidLength = sdnvTmp;
+		sdnvLength = (int) decodeSdnvBounded(&sdnvTmp, cursor,
+				(size_t) (cursorEnd - cursor));
+		if (sdnvLength == 0)
+			BEACON_TRUNCATED_MANDATORY
 		if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
 			BEACON_TRUNCATED_MANDATORY
+
+		/*	The EID length is attacker-controlled.  Compare it
+		 *	unsigned -- a value that would become a negative int
+		 *	must not slip past the size check -- and require the
+		 *	declared bytes to be present before copying.	*/
+
+		if (sdnvTmp > (uvast) (cursorEnd - cursor))
+			BEACON_TRUNCATED_MANDATORY
+		eidLength = (int) sdnvTmp;
 
 		if (eidLength >= MAX_EID_LEN)
 		{
@@ -826,14 +841,16 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 					eidLength);
 		}
 
-		if (advanceCursor(&cursor, eidLength, cursorEnd) < 0)
-			BEACON_TRUNCATED_MANDATORY
+		cursor += eidLength;
 	}
 
 	if (deserializedBeacon->flags & (1 << BEAC_SERVICE_BLOCK_PRESENT))
 	{
-		sdnvLength = decodeSdnv(&sdnvTmp, cursor);
-		if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
+		sdnvLength = (int) decodeSdnvBounded(&sdnvTmp, cursor,
+				(size_t) (cursorEnd - cursor));
+		if (sdnvLength == 0)
+			BEACON_TRUNCATED_OPTIONAL
+		else if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
 			BEACON_TRUNCATED_OPTIONAL
 
 		numberOfServices = sdnvTmp;
@@ -856,14 +873,35 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 				break;
 			}
 
-			sdnvLength = decodeSdnv(&sdnvTmp, cursor);
+			sdnvLength = (int) decodeSdnvBounded(&sdnvTmp, cursor,
+					(size_t) (cursorEnd - cursor));
+			if (sdnvLength == 0)
+			{
+				BEACON_TRUNCATED_OPTIONAL;
+				MRELEASE(serviceDefinition);
+				break;
+			}
 			if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
 			{
 				BEACON_TRUNCATED_OPTIONAL;
+				MRELEASE(serviceDefinition);
 				break;
 			}
 
-			serviceDefinition->dataLength = 1 + sdnvLength
+			/*	The service data length is attacker-controlled;
+			 *	bound it to the bytes remaining in the beacon so
+			 *	1 + sdnvLength + sdnvTmp neither overflows the
+			 *	unsigned length nor under-allocates the buffer
+			 *	that the copy loops below fill.			*/
+
+			if (sdnvTmp > (uvast) (cursorEnd - cursor))
+			{
+				BEACON_TRUNCATED_OPTIONAL;
+				MRELEASE(serviceDefinition);
+				break;
+			}
+
+			serviceDefinition->dataLength = 1 + (uvast) sdnvLength
 					+ sdnvTmp;
 			/*	include also number and length	*/
 
@@ -942,16 +980,42 @@ information (%s) is malformed.", ctx->tags[*serviceDefinition->data].name);
 		{
 			/*	beacon contains NBF	*/
 
-			bloom_init(&deserializedBeacon->bloom,
-				NBF_DEFAULT_CAPACITY, NBF_DEFAULT_ERROR);
-			sdnvLength = decodeSdnv(&sdnvTmp, defNbfBits->data + 1);
-			tmp = 1 + sdnvLength + 1;
-			sdnvLength = decodeSdnv(&sdnvTmp, defNbfBits->data
-					+ tmp);
-			/*	copy bits to NBF	*/
+			if (bloom_init(&deserializedBeacon->bloom,
+				NBF_DEFAULT_CAPACITY, NBF_DEFAULT_ERROR) != 0)
+			{
+				BEACON_TRUNCATED_OPTIONAL;
+			}
+			else if (defNbfBits->dataLength > 1)
+			{
+				sdnvLength = (int) decodeSdnvBounded(&sdnvTmp,
+					defNbfBits->data + 1,
+					defNbfBits->dataLength - 1);
+				tmp = 1 + (uvast) sdnvLength + 1;
+				if (sdnvLength != 0 && tmp < defNbfBits->dataLength)
+				{
+					sdnvLength = (int) decodeSdnvBounded(
+						&sdnvTmp,
+						defNbfBits->data + tmp,
+						defNbfBits->dataLength - tmp);
 
-			memcpy(deserializedBeacon->bloom.bf,
-				defNbfBits->data + tmp + sdnvLength, sdnvTmp);
+					/*	Copy the NBF bits, but never
+					 *	more than the Bloom filter holds
+					 *	and never past the end of the
+					 *	received service data.		*/
+
+					if (sdnvLength != 0
+					&& sdnvTmp <= (uvast)
+						deserializedBeacon->bloom.bytes
+					&& tmp + (uvast) sdnvLength + sdnvTmp
+						<= defNbfBits->dataLength)
+					{
+						memcpy(deserializedBeacon->bloom.bf,
+							defNbfBits->data + tmp
+								+ sdnvLength,
+							sdnvTmp);
+					}
+				}
+			}
 		}
 	}
 
