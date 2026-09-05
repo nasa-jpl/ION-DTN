@@ -68,6 +68,7 @@ nav = [
         { "Bounding LTP Session Repair" = "topics/ltp-repair-rounds.md" },
         { "CFDP SW Architecture" = "cfdp-sw-architecture.md" },
         { "Contact Graph Events and LTP" = "contact-graph-events-and-ltp.md" },
+        { "Optional Subsecond Contact Planning" = "subsecond-contact-planning.md" },
         { "Contact Discovery with ipnd (Opportunistic Ducts)" = "contact-discovery-with-ipnd.md" },
         { "Bundle Forwarding Disposition (Prospect/Limbo/Abandon)" = "topics/bundle-forwarding-disposition.md" },
         { "Knowledge Base, Issues & Patches" = "known-issues.md" },
@@ -136,4 +137,3 @@ pymdownx.superfences = {
         },
     ],
 }
-

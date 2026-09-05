@@ -93,6 +93,9 @@ yyyy/mm/dd-hh:mm:ss
 
 =back
 
+APIs that preserve milliseconds use the optional suffix C<.sss>.  The
+same buffer size is sufficient for both forms.
+
 =item int ionAttach(void)
 
 Attaches the invoking task to ION infrastructure as previously established
@@ -264,12 +267,25 @@ the IPN node number initialized by I<ionadmin> with or without the allocator.
 Sets the value of the UTC "delta" adjustment that ION will apply to
 the system clock time order to obtain the correct UTC time.
 
+=item int setDeltaFromUTCMs(int newDelta, int16_t newDeltaMillis)
+
+Sets the seconds and signed millisecond components of the UTC "delta"
+adjustment.  I<newDeltaMillis> must be in the range -999 through 999.
+Returns zero on success and -1 on error.  setDeltaFromUTC() remains the
+whole-second wrapper and sets the millisecond component to zero.
+
 =item time_t getCtime(void)
 
 Returns the current calendar (i.e., Unix epoch) time, as computed from local
 clock time and the computer's current offset from UTC (due to clock drift,
 B<not> due to time zone difference; the B<utcdelta>) as managed from
 I<ionadmin>.
+
+=item void getCtimeMs(time_t *seconds, uint16_t *milliseconds)
+
+Returns the current UTC-adjusted calendar time without discarding its
+millisecond component.  I<*milliseconds> is normalized to the range 0
+through 999.  getCtime() remains the whole-second wrapper.
 
 =item int ionClockIsSynchronized(void)
 
@@ -297,6 +313,13 @@ ION-standard format, as noted above, in I<timestampBuffer>.
 Expresses the time value in I<timestamp> as a UTC timestamp string in
 ION-standard format, as noted above, in I<timestampBuffer>.
 
+=item void writeTimestampUTCMs(time_t timestamp, uint16_t milliseconds, char *timestampBuffer)
+
+Expresses the supplied UTC seconds and millisecond component in
+I<timestampBuffer>.  A non-zero component is emitted as C<.sss>; the suffix
+is omitted when I<milliseconds> is zero.  I<milliseconds> must be in the
+range 0 through 999.
+
 =item time_t readTimestampLocal(char *timestampBuffer, time_t referenceTime)
 
 Parses the local timestamp string in I<timestampBuffer> and returns the
@@ -314,6 +337,26 @@ I<referenceTime> is returned.
 Same as readTimestampLocal() except that if I<timestampBuffer> is not a
 relative time expression then it is interpreted as an absolute expression
 of UTC time in ION-standard format as noted above.
+
+=item int readTimestampUTCMs(char *timestampBuffer, time_t referenceTime, time_t *seconds, uint16_t *milliseconds)
+
+Parses an absolute or relative UTC timestamp with an optional one-to-three
+digit fractional suffix.  The fraction is scaled to milliseconds, so C<.5>,
+C<.50>, and C<.500> all denote 500 milliseconds.  On success, stores the
+whole seconds and a millisecond value in the range 0 through 999 and returns
+zero.  Returns -1 if the timestamp is invalid.
+
+=item int ionCompareTimestamp(time_t firstSeconds, uint16_t firstMilliseconds, time_t secondSeconds, uint16_t secondMilliseconds)
+
+Compares two second-and-millisecond timestamps.  Returns a value less than
+zero, zero, or greater than zero when the first timestamp is respectively
+earlier than, equal to, or later than the second.
+
+=item void ionShiftTimestamp(time_t baseSeconds, uint16_t baseMilliseconds, long deltaSeconds, int deltaMilliseconds, time_t *resultSeconds, uint16_t *resultMilliseconds)
+
+Adds the signed second and millisecond delta to the base timestamp and
+normalizes the result so that I<*resultMilliseconds> is in the range 0
+through 999.  I<baseMilliseconds> must be in that same range.
 
 =back
 

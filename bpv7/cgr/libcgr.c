@@ -26,12 +26,40 @@
 
 #define CGRVDB_NAME	"cgrvdb"
 
+static double	cgrContactStartTime(const IonCXref *contact)
+{
+	return (double) contact->fromTime
+			+ (((double) contact->fromTimeMs) / 1000.0);
+}
+
+static void	cgrLoadContactVolume(Scalar *volume, double duration,
+			size_t xmitRate)
+{
+	uvast	totalBytes;
+
+	if (duration <= 0.0 || xmitRate == 0)
+	{
+		loadScalar(volume, 0);
+		return;
+	}
+
+	totalBytes = (uvast) (duration * ((double) xmitRate));
+	volume->gigs = (signed int) (totalBytes / ONE_GIG);
+	volume->units = (signed int) (totalBytes % ONE_GIG);
+}
+
+static double	cgrContactEndTime(const IonCXref *contact)
+{
+	return (double) contact->toTime
+			+ (((double) contact->toTimeMs) / 1000.0);
+}
+
 typedef struct
 {
 	/*	Working values, reset for each Dijkstra run.		*/
 
 	IonCXref	*predecessor;	/*	On path to destination.	*/
-	time_t		arrivalTime;	/*	As from time(2).	*/
+	double		arrivalTime;	/* Unix time with subsecond OWLT. */
 	unsigned int	hopCount;
 	int		visited;	/*	Boolean.		*/
 	int		suppressed;	/*	Boolean.		*/
@@ -609,7 +637,7 @@ CgrVdb	*cgr_get_vdb(void)
 
 #if !UNIBO_CGR
 
-static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
+static int	getApplicableRange(IonCXref *contact, double *owlt)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -639,12 +667,12 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 			break;
 		}
 
-		if (range->toTime < contact->fromTime)
+		if (range->toTime < cgrContactStartTime(contact))
 		{
 			continue;	/*	Range is in the past.	*/
 		}
 
-		if (range->fromTime > contact->fromTime)
+		if (range->fromTime > cgrContactStartTime(contact))
 		{
 			/*	Range unknown at contact start time.	*/
 			break;
@@ -652,7 +680,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 
 		/*	Found applicable range.				*/
 
-		*owlt = range->owlt;
+		*owlt = range->owlt + (((double) range->owltMillis) / 1000.0);
 		return 0;
 	}
 
@@ -737,7 +765,7 @@ static int	edgeIsExcluded(PsmPartition ionwm, PsmAddress excludedEdges,
 
 static int	computeDistanceToTerminus(IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *terminusNode,
-			time_t currentTime, PsmAddress excludedEdges,
+			double currentTime, PsmAddress excludedEdges,
 			CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -750,16 +778,16 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
-	unsigned int	owlt;
-	unsigned int	owltMargin;
-	time_t		transmitTime;
-	time_t		arrivalTime;
+	double		owlt;
+	double		owltMargin;
+	double		transmitTime;
+	double		arrivalTime;
 	IonCXref	*finalContact = NULL;
-	time_t		earliestFinalArrivalTime = MAX_TIME;
+	double		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextCurrentContact;
-	time_t		earliestArrivalTime;
+	double		earliestArrivalTime;
 	unsigned int	fewestHops;
-	time_t		earliestEndTime;
+	double		earliestEndTime;
 	PsmAddress	addr;
 	PsmAddress	citation;
 	IonCXref	*firstContact;
@@ -810,7 +838,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				continue;	/*	No bearing.	*/
 			}
 
-			if (contact->toTime <= currentTime)
+			if (cgrContactEndTime(contact) <= currentTime)
 			{
 				/*	Contact is ended, is about to
 				 *	be purged.			*/
@@ -855,7 +883,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				}
 			}
 
-			if (contact->toTime <= currentWork->arrivalTime)
+			if (cgrContactEndTime(contact) <= currentWork->arrivalTime)
 			{
 				TRACE(CgrIgnoreContact, CgrContactEndsEarly);
 
@@ -896,13 +924,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			 *	node in the course of the current
 			 *	contact.				*/
 
-			if (contact->fromTime < currentWork->arrivalTime)
+			if (cgrContactStartTime(contact) < currentWork->arrivalTime)
 			{
 				transmitTime = currentWork->arrivalTime;
 			}
 			else
 			{
-				transmitTime = contact->fromTime;
+				transmitTime = cgrContactStartTime(contact);
 			}
 
 			arrivalTime = transmitTime + owlt;
@@ -917,7 +945,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			 *	transmit time and therefore a later
 			 *	arrival time.				*/
 
-			TRACE(CgrCost, (unsigned int)(transmitTime), owlt,
+			TRACE(CgrCost, (unsigned int)(transmitTime),
+					(unsigned int)(owlt),
 					(unsigned int)(arrivalTime));
 
 			if (arrivalTime < work->arrivalTime)
@@ -964,7 +993,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
 					elt));
 			CHKERR(contact);
-			if (contact->toTime <= currentTime)
+			if (cgrContactEndTime(contact) <= currentTime)
 			{
 				/*	Contact is ended, is about to
 				 *	be purged.			*/
@@ -1062,9 +1091,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		{
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
-			if (contact->toTime < earliestEndTime)
+			if (cgrContactEndTime(contact) < earliestEndTime)
 			{
-				earliestEndTime = contact->toTime;
+				earliestEndTime = cgrContactEndTime(contact);
 			}
 
 			route->arrivalConfidence *= contact->confidence;
@@ -1120,7 +1149,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	characterize the route.				*/
 
 		route->toFqnn = firstContact->toFqnn;
-		route->fromTime = firstContact->fromTime;
+		route->fromTime = cgrContactStartTime(firstContact);
 		route->toTime = earliestEndTime;
 	}
 
@@ -1128,7 +1157,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 }
 
 static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
-			IonNode *terminusNode, time_t currentTime,
+			IonNode *terminusNode, double currentTime,
 			PsmAddress excludedEdges, PsmAddress *routeAddr,
 			CgrTrace *trace)
 {
@@ -1251,7 +1280,7 @@ UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
 	return 0;
 }
 
-static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
+static int	insertFirstRoute(IonNode *terminusNode, double currentTime,
 			CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -1297,7 +1326,7 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 }
 
 static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
-			CgrRoute *lastSelectedRoute, time_t currentTime,
+			CgrRoute *lastSelectedRoute, double currentTime,
 			PsmAddress rootOfSpur, CgrRtgObject *routingObj,
 			CgrTrace *trace)
 {
@@ -1309,7 +1338,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
-	unsigned int	owlt;
+	double		owlt;
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
@@ -1382,7 +1411,7 @@ is corrupt (abandoning spur computation).");
 				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
 			}
 
-			work->arrivalTime = contact->fromTime + owlt;
+			work->arrivalTime = cgrContactStartTime(contact) + owlt;
 			work->suppressed = 1;
 //putFqn(nbrBuf, contact->toFqnn); debugPrint("*** Suppressing contact to node %s on root path. ***\n", nbrBuf);
 			contactElt = sm_list_prev(ionwm, contactElt);
@@ -1575,7 +1604,7 @@ hop.", NULL);
 	if (contact)
 	{
 		newRoute->toFqnn = contact->toFqnn;
-		newRoute->fromTime = contact->fromTime;
+		newRoute->fromTime = cgrContactStartTime(contact);
 	}
 
 	/*	Append new route to list of known routes.		*/
@@ -1595,7 +1624,7 @@ hop.", NULL);
 }
 
 static int	computeAnotherRoute(IonNode *terminusNode,
-			CgrRoute *lastSelectedRoute, time_t currentTime,
+			CgrRoute *lastSelectedRoute, double currentTime,
 			PsmAddress *elt, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -1783,8 +1812,8 @@ static int	isExcluded(uvast fqnn, Lyst excludedNodes)
 	return 0;
 }
 
-static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
-			time_t currentTime, BpPlan *plan)
+static double	computePBAT(CgrRoute *route, Bundle *bundle,
+			double currentTime, BpPlan *plan)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1798,22 +1827,22 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	IonCXref	*contact;
 	Scalar		volume;
 	Scalar		allotment;
-	time_t		startTime;
-	time_t		endTime;
-	int		secRemaining;
-	time_t		firstByteTransmitTime;
-	time_t		lastByteTransmitTime;
+	double		startTime;
+	double		endTime;
+	double		secRemaining;
+	double		firstByteTransmitTime;
+	double		lastByteTransmitTime;
 	int		doNotFragment;
 	Scalar		radiationLatency;
-	unsigned int	owlt;
-	unsigned int	owltMargin;
-	time_t		acqTime;
+	double		owlt;
+	double		owltMargin;
+	double		acqTime;
 	SdrObject	contactObj;
 	IonContact	contactBuf;
 	int		priority;
-	time_t		effectiveStartTime;
-	time_t		effectiveStopTime;
-	time_t		effectiveDuration;
+	double		effectiveStartTime;
+	double		effectiveStopTime;
+	double		effectiveDuration;
 	double		effectiveVolumeLimit;
 	PsmAddress	elt2;
 
@@ -1839,7 +1868,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
 		if (contact->fromFqnn > ownNodeNbr
 		|| contact->toFqnn > route->toFqnn
-		|| contact->fromTime > route->fromTime)
+		|| cgrContactStartTime(contact) > route->fromTime)
 		{
 			/*	The first contact on this route no
 			 *	longer exists.  I.e., the initial
@@ -1855,7 +1884,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 			return 0;
 		}
 
-		if (contact->toTime <= currentTime)
+		if (cgrContactEndTime(contact) <= currentTime)
 		{
 			/*	This contact has already terminated.	*/
 
@@ -1864,19 +1893,18 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 
 		/*	Compute available volume of contact.		*/
 
-		if (currentTime > contact->fromTime)
+		if (currentTime > cgrContactStartTime(contact))
 		{
 			startTime = currentTime;
 		}
 		else
 		{
-			startTime = contact->fromTime;
+			startTime = cgrContactStartTime(contact);
 		}
 
-		endTime = contact->toTime;
+		endTime = cgrContactEndTime(contact);
 		secRemaining = endTime - startTime;
-		loadScalar(&volume, secRemaining);
-		multiplyScalar(&volume, contact->xmitRate);
+		cgrLoadContactVolume(&volume, secRemaining, contact->xmitRate);
 
 		/*	Determine how much spare volume the
 		 *	contact has.					*/
@@ -1916,7 +1944,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 
 		/*	Loop limit check.				*/
 
-		if (contact->fromTime >= route->fromTime)
+		if (cgrContactStartTime(contact) >= route->fromTime)
 		{
 			/*	This is the initial contact on the
 			 *	route we are considering.  All prior
@@ -1980,13 +2008,13 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	 *	all remaining prior claims, at the transmission
 	 *	rate of the initial contact.				*/
 
-	if (currentTime > contact->fromTime)
+	if (currentTime > cgrContactStartTime(contact))
 	{
 		firstByteTransmitTime = currentTime;
 	}
 	else
 	{
-		firstByteTransmitTime = contact->fromTime;
+		firstByteTransmitTime = cgrContactStartTime(contact);
 	}
 
 	lastByteTransmitTime = firstByteTransmitTime;
@@ -2021,7 +2049,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 
 	while (1)
 	{
-		if (contact->toTime <= firstByteTransmitTime)
+		if (cgrContactEndTime(contact) <= firstByteTransmitTime)
 		{
 			/*	Due to the volume of transmission
 			 *	that must precede it, this bundle
@@ -2068,15 +2096,15 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 		/*	(Effective stop time is the earliest stop
 		 *	time among this contact and all successors.)	*/
 
-		effectiveStopTime = contact->toTime;
+		effectiveStopTime = cgrContactEndTime(contact);
 		elt2 = sm_list_next(ionwm, elt);
 		while (elt2)
 		{
 			contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
 					elt2));
-			if (contact->toTime < effectiveStopTime)
+			if (cgrContactEndTime(contact) < effectiveStopTime)
 			{
-				effectiveStopTime = contact->toTime;
+				effectiveStopTime = cgrContactEndTime(contact);
 			}
 
 			elt2 = sm_list_next(ionwm, elt2);
@@ -2123,13 +2151,13 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 		 *	bundle must be forwarded from this node.	*/
 
 		contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (acqTime > contact->fromTime)
+		if (acqTime > cgrContactStartTime(contact))
 		{
 			firstByteTransmitTime = acqTime;
 		}
 		else
 		{
-			firstByteTransmitTime = contact->fromTime;
+			firstByteTransmitTime = cgrContactStartTime(contact);
 		}
 
 		/*	Consider additional latency imposed by the
@@ -2176,7 +2204,7 @@ float	cgr_get_dlv_confidence(Bundle *bundle, CgrRoute *route)
 
 #if !UNIBO_CGR
 
-static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
+static int	tryRoute(CgrRoute *route, double currentTime, Bundle *bundle,
 			CgrTrace *trace, Lyst bestRoutes)
 {
 	Sdr		sdr = getIonsdr();
@@ -2187,7 +2215,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	PsmAddress	vplanElt;
 	SdrObject	planObj;
 	BpPlan		plan;
-	time_t		pbat;
+	double		pbat;
 	LystElt		candidateElt;
 	CgrRoute	*candidateRoute;
 
@@ -2324,7 +2352,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 
 static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 			PsmAddress *elt, Bundle *bundle, Lyst excludedNodes,
-			CgrTrace *trace, Lyst bestRoutes, time_t currentTime,
+			CgrTrace *trace, Lyst bestRoutes, double currentTime,
 			time_t deadline)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -2622,7 +2650,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
-			Lyst bestRoutes, time_t currentTime, time_t deadline,
+			Lyst bestRoutes, double currentTime, time_t deadline,
 			CgrRtgObject *routingObj)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -2710,7 +2738,7 @@ usable route found -> limbo.", (uvast) terminusNode->fqnn, routesComputed);
 
 static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
-			Lyst bestRoutes, time_t currentTime, time_t deadline,
+			Lyst bestRoutes, double currentTime, time_t deadline,
 			CgrRtgObject *routingObj)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -2752,7 +2780,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 				continue;
 			}
 
-			if (contact->toTime <= currentTime)
+			if (cgrContactEndTime(contact) <= currentTime)
 			{
 				/*	Contact is ended, is about to
 				 *	be purged.			*/
@@ -2897,6 +2925,15 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	time_t		deadline;
 	CgrRtgObject	*routingObj;
 	int		potential;
+	time_t		wallTime;
+	uint16_t	wallTimeMs;
+	double		evaluationTime = (double) currentTime;
+
+	getCtimeMs(&wallTime, &wallTimeMs);
+	if (currentTime == wallTime)
+	{
+		evaluationTime += ((double) wallTimeMs) / 1000.0;
+	}
 
 	/* Parameter intentionally unused. */
 	(void)sap;
@@ -2945,7 +2982,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	{
 		if (loadCriticalBestRoutesList(terminusNode, bundle,
 				excludedNodes, trace, bestRoutes,
-				currentTime, deadline, routingObj) < 0)
+				evaluationTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find all best routes to destination.",
 					utoa(terminusNode->fqnn));
@@ -2971,7 +3008,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 
 		if (loadBestRoutesList(terminusNode, 0, bundle,
 				excludedNodes, trace, bestRoutes,
-				currentTime, deadline, routingObj) < 0)
+				evaluationTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find best route to destination.",
 					utoa(terminusNode->fqnn));

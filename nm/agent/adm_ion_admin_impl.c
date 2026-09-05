@@ -790,6 +790,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_error_set(eid_t *def_mgr, tnvc_t *parms,
 		CHKNULL(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		iondb.maxClockError = newMaxClockError;
+		iondb.maxClockErrorMillis = 0;
 		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 		sdr_end_xn(sdr);
 		*status = CTRL_SUCCESS;

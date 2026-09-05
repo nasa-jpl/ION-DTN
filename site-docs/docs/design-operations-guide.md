@@ -1286,10 +1286,12 @@ cause routing tables to be recomputed for the destination nodes of all
 subsequently forwarded bundles, as described in the discussion of
 Contact Graph Routing below.
 
-Once per second, the **rfxclock** task (which appears in multiple
-locations on the diagram to simplify the geometry) applies all topology
-timeline events (Contact and Range start, stop, purge) with effective
-time in the past. Applying a Contact event that cites a neighboring node
+By default, the **rfxclock** task (which appears in multiple locations on
+the diagram to simplify the geometry) checks once per second and applies all
+topology timeline events (Contact and Range start, stop, purge) with effective
+time in the past. Builds that support fractional boundaries can opt into a
+1--1000 ms timeline poll with `ION_RFXCLOCK_POLL_MSEC`; legacy housekeeping
+remains once per second. Applying a Contact event that cites a neighboring node
 revises the transmission or reception data rate between the local node
 and that Neighbor. Applying a Range event that cites a neighboring node
 revises the OWLT between the local node and that neighbor. Setting data

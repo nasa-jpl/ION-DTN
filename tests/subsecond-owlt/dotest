@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+BUILD_DIR=${ION_TEST_BUILD_DIR:-$(CDPATH= cd -- "$TEST_DIR/../.." && pwd)}
+
+"$TEST_DIR/run-smoke.sh" "$BUILD_DIR"
+"$TEST_DIR/run-cgr-route.sh" "$BUILD_DIR"
+
+echo "PASS: subsecond OWLT regression suite"
