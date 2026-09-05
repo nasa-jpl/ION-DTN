@@ -6611,6 +6611,17 @@ static int handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 
 	ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
 
+	/*	A zero-length green segment carries no client service
+	 *	data; passing length 0 to sdr_insert below would fail the
+	 *	SDR allocator's zero-size assertion and abort the LTP
+	 *	input task.  Discard it.				*/
+
+	if (pdu->length == 0)
+	{
+		*clientSvcData = 0;
+		return 0;
+	}
+
 	/*	Check for out-of-order segments.			*/
 
 	if (sessionNbr == vspan->redSessionNbr
