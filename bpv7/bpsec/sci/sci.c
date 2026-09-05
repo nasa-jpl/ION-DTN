@@ -417,13 +417,34 @@ char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_par
 
 		if((idx = bpsec_scvm_byIdIdxFind(map, val->scValId, val->scValType)) >= 0)
 		{
-			tmp_array[i++] = map[idx].scValToStr(wm, val);
-			size += strlen(tmp_array[i++]);
+			tmp_array[i] = map[idx].scValToStr(wm, val);
 		}
 		else
 		{
 			BPSEC_DEBUG_ERR("Cannot convert value of type %d to string.", val->scValId);
+			tmp_array[i] = NULL;
 		}
+
+		/*	Read the slot just written; the earlier code
+		 *	incremented the index twice per item, so it
+		 *	measured the next, unwritten slot and advanced
+		 *	past the end of the array.			*/
+
+		if(tmp_array[i] != NULL)
+		{
+			size += strlen(tmp_array[i]);
+		}
+
+		i++;
+	}
+
+	if(size == 0)
+	{
+		/*	No recognized values to print; strFromStrsCreate
+		 *	requires a non-zero size.			*/
+
+		MRELEASE(tmp_array);
+		return NULL;
 	}
 
 	return bpsec_scutl_strFromStrsCreate(tmp_array, size, num_items);

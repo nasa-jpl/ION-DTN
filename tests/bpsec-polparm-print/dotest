@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Regression for the BPSec policy-parameter display path.
+#
+# bpsec_sci_polParmPrint() rendered each parameter in a list to a string and
+# joined them, but advanced its array index twice per item -- once to store the
+# rendered string and again to measure it.  The measurement read the next,
+# never-written slot (a garbage or null pointer to strlen), and a second
+# recognized parameter was written past the end of the array; a rendered value
+# was also dropped from the output.  The fix reads the slot it just wrote and
+# advances the index once.
+#
+# The harness builds a list of two recognized integer parameters, calls
+# bpsec_sci_polParmPrint(), and checks that both rendered values appear in the
+# joined output.  On the defective code the call crashes on the garbage pointer;
+# on the fixed code it returns "7 42".
+#
+# The function reads the private bpsec structures, so the harness compiles
+# against the ION source tree ($IONDIR), and it allocates from ION working
+# memory, so a minimal node is started for it to attach to.  The defect crashes
+# on an ordinary build, so this test is not gated on AddressSanitizer.
+set -u
+cd "$(dirname "$0")"
+
+trap 'killm f' EXIT
+
+if [ -z "${CC:-}" ]; then
+    command -v gcc >/dev/null 2>&1 && CC=gcc || CC=cc
+fi
+
+echo "########################################"
+echo "NAME: bpsec-polparm-print"
+echo "PURPOSE: Verify the BPSec policy-parameter display path renders every"
+echo "         parameter without walking off the end of its working array."
+echo "########################################"
+
+# Need the ION source tree for the private bpsec headers.
+SRC="${IONDIR:-}"
+[ -z "$SRC" ] && SRC=$(cd ../.. && pwd)
+if [ ! -f "$SRC/bpv7/bpsec/sci/sci.h" ]; then
+    echo "SKIP: ION source tree not found (need private bpsec headers)."
+    exit 2
+fi
+
+# Locate libbp (installed or build tree).
+export PKG_CONFIG_PATH="$SRC:${PKG_CONFIG_PATH:-}"
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+LIBBP=""
+for d in "$LIBDIR" /usr/local/lib "$SRC/.libs"; do
+    [ -z "$d" ] && continue
+    LIBBP=$(find "$d"/* -prune -name "libbp.so*" 2>/dev/null | head -n1)
+    [ -n "$LIBBP" ] && { FOUNDLIBDIR="$d"; break; }
+done
+if [ -z "$LIBBP" ]; then
+    echo "SKIP: libbp not found; nothing to test against."
+    exit 2
+fi
+
+# The security-context functions are native BPSec; a BSL build compiles them
+# out.  Skip when the symbol is absent rather than failing to link.
+if ! nm -D "$LIBBP" 2>/dev/null | grep -q "bpsec_sci_polParmPrint"; then
+    echo "SKIP: native BPSec not present in libbp (bpsec_sci_polParmPrint absent)."
+    exit 2
+fi
+
+# Match the harness to the library's instrumentation so it links either way.
+SAN=""
+if nm -D "$LIBBP" 2>/dev/null | grep -q "__asan"; then
+    SAN="-fsanitize=address"
+fi
+
+ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null)
+ION_LIBS="-L$FOUNDLIBDIR -lbp -lici -pthread"
+
+INC="-I$SRC/ici/include -I$SRC/bpv7/include -I$SRC/bpv7/library"
+INC="$INC -I$SRC/bpv7/bpsec/sci -I$SRC/bpv7/bpsec/utils"
+INC="$INC -I$SRC/bpv7/bpsec/policy -I$SRC/bpv7/bpsec/instr"
+
+BIN=$(mktemp /tmp/polparm_print_test.XXXXXX)
+# shellcheck disable=SC2086
+if ! $CC $SAN -g -O1 $INC $ION_CFLAGS polparm_print_test.c \
+        $ION_LIBS -o "$BIN" 2>compile.log; then
+    echo "FAIL: could not compile the harness."
+    cat compile.log
+    rm -f "$BIN"
+    exit 1
+fi
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+killm f >/dev/null 2>&1
+if ! ionadmin node.ionrc >start.log 2>&1; then
+    echo "FAIL: could not start the ION node."; cat start.log; rm -f "$BIN"; exit 1
+fi
+
+LD_LIBRARY_PATH="$FOUNDLIBDIR:/usr/local/lib:${LD_LIBRARY_PATH:-}" "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+killm f >/dev/null 2>&1
+
+if [ "$RETVAL" -eq 2 ]; then
+    echo "SKIP: harness could not attach to ION."
+    exit 2
+fi
+if [ "$RETVAL" -ne 0 ]; then
+    echo "FAIL: the display path crashed or dropped a parameter (exit $RETVAL)."
+    exit 1
+fi
+
+echo "SUCCESS: every policy parameter was rendered without an out-of-bounds access."
+exit 0

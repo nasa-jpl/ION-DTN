@@ -1,0 +1,1 @@
+Regression: the BPSec policy-parameter display path must render every parameter without walking off the end of its working array (bpsec_sci_polParmPrint double-increment).
