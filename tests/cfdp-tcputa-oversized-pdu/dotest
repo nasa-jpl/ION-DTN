@@ -65,7 +65,8 @@ for i in $(seq 1 15); do
 done
 
 ASSERTS=$(grep -c "Assertion failed" 3.ipn.tcp/ion.log 2>/dev/null)
-ALIVE=$(pgrep -c -x tcputa 2>/dev/null)
+# pgrep -c is not portable (Solaris pgrep has no -c); count PIDs instead.
+ALIVE=$(pgrep -x tcputa 2>/dev/null | wc -l | tr -d ' ')
 
 echo
 echo "=== evidence ==="

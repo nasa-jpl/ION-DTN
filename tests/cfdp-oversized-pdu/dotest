@@ -53,8 +53,11 @@ echo "Sending a $OVERSIZE-byte ADU to ipn:3.65 (> CFDP_MAX_PDU_SIZE) ..."
 (cd 2.ipn.tcp && bpsendfile ipn:2.1 ipn:3.65 ../bigfile.bin) >2.ipn.tcp/send.log 2>&1
 
 # Poll for bputa to either discard the ADU (fixed) or crash (vulnerable).
+# The oversized bundle has to traverse the loopback TCP CL and be reassembled
+# before bputa sees the ADU; on a slow host (e.g. the Solaris zones) that can
+# take a while, so wait generously.
 DISCARDED=0
-for i in $(seq 1 20); do
+for i in $(seq 1 60); do
     DISCARDED=$(grep -c "discarding oversized CFDP ADU" 3.ipn.tcp/ion.log 2>/dev/null)
     [ "${DISCARDED:-0}" -ge 1 ] && break
     pgrep -x bputa >/dev/null 2>&1 || break   # bputa gone -> crashed
@@ -62,7 +65,8 @@ for i in $(seq 1 20); do
 done
 
 ASSERTS=$(grep -c "Assertion failed" 3.ipn.tcp/ion.log 2>/dev/null)
-ALIVE=$(pgrep -c -x bputa 2>/dev/null)
+# pgrep -c is not portable (Solaris pgrep has no -c); count PIDs instead.
+ALIVE=$(pgrep -x bputa 2>/dev/null | wc -l | tr -d ' ')
 
 echo
 echo "=== evidence ==="
