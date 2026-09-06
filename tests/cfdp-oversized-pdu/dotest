@@ -32,7 +32,9 @@ killm f >/dev/null 2>&1
 export ION_NODE_LIST_DIR=$PWD
 rm -f ion_nodes
 
-head -c "$OVERSIZE" /dev/zero | tr '\0' 'A' > bigfile.bin
+# Build an oversized file portably: Solaris head has no -c, which silently
+# produced a tiny file (so the ADU was not actually oversized).  dd is portable.
+dd if=/dev/zero of=bigfile.bin bs="$OVERSIZE" count=1 2>/dev/null
 
 echo "Starting node 3 (bputa receiver) and node 2 (sender) ..."
 (cd 3.ipn.tcp && ./ionstart) >3.ipn.tcp/start.log 2>&1
