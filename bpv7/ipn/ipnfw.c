@@ -407,7 +407,13 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 		event.type = xmitOverdue;
 		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
 		contact = (IonCXref *) psp(ionwm, addr);
-		event.time = contact->toTime;
+
+		/*	The BP timeline remains second-granular.  Round a
+		 *	fractional contact end upward so that xmitOverdue is
+		 *	never raised before the contact actually closes.  CGR
+		 *	continues to enforce the exact millisecond boundary.  */
+
+		event.time = contact->toTime + (contact->toTimeMs > 0);
 		event.ref = bundleObj;
 		bundle->overdueElt = insertBpTimelineEvent(&event);
 		if (bundle->overdueElt == 0)

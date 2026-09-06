@@ -14,7 +14,15 @@ It is spawned automatically by B<ionadmin> in response to the 's' command
 that starts operation of the ION node infrastructure, and it is terminated
 by B<ionadmin> in response to an 'x' (STOP) command.
 
-Once per second, B<rfxclock> takes the following action:
+B<rfxclock> polls the topology timeline at the interval selected by
+B<ION_RFXCLOCK_POLL_MSEC>.  The default is 1000 milliseconds, preserving
+the legacy once-per-second behavior.  Operators who load fractional contact
+or range boundaries may select an interval from 1 through 1000 milliseconds.
+The interval bounds dispatch resolution; it is not a scheduling-latency
+guarantee.
+
+The following housekeeping actions remain limited to once per second even
+when the topology timeline is polled more frequently:
 
 =over 4
 
@@ -57,7 +65,16 @@ No configuration files are needed.
 
 =head1 ENVIRONMENT
 
-No environment variables apply.
+=over 4
+
+=item B<ION_RFXCLOCK_POLL_MSEC>
+
+Topology-timeline polling interval in milliseconds.  Valid values are 1
+through 1000; the default is 1000.  Invalid values are ignored and cause the
+default to be used.  Smaller values improve fractional-boundary dispatch
+resolution at the cost of more frequent process wakeups.
+
+=back
 
 =head1 DIAGNOSTICS
 
@@ -75,7 +92,7 @@ An RFX timeline event (contact or range start/stop) could not be applied
 because an unrecoverable database error was encountered.  B<rfxclock>
 terminates.
 
-=item Can't do ION 1Hz updates.
+=item Can't do ION timeline updates.
 
 An unrecoverable database error was encountered.  B<rfxclock> terminates.
 

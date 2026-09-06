@@ -212,6 +212,16 @@ extern int ion_add_range(time_t from_time, time_t to_time,
                          unsigned int owlt);
 
 /**
+ * Add a range with millisecond OWLT precision.
+ *
+ * @param owlt         Whole-second component of OWLT.
+ * @param owlt_millis  Fractional component in the range 0-999 ms.
+ */
+extern int ion_add_range_ms(time_t from_time, time_t to_time,
+                            uvast from_node, uvast to_node,
+                            unsigned int owlt, uint16_t owlt_millis);
+
+/**
  * Delete a range from the ION range database.
  *
  * @param from_time     Start time of the range to delete.

@@ -1,0 +1,7 @@
+wmKey 867540
+sdrName ionSubsecondContactTest
+sdrWmKey 867541
+wmSize 5000000
+configFlags 1
+heapWords 250000
+pathName /tmp

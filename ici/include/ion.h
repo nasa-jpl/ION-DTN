@@ -221,7 +221,9 @@ typedef enum
 typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
+	uint16_t	fromTimeMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		toTime;		/*	As from time(2).	*/
+	uint16_t	toTimeMs;	/*	Fractional part, 0-999 ms.*/
 	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
 	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
@@ -237,6 +239,7 @@ typedef struct
 	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
 	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	unsigned int	owlt;		/*	In seconds.		*/
+	uint16_t	owltMillis;	/*	Fractional part, 0-999 ms.*/
 } IonRange;
 
 typedef struct
@@ -294,8 +297,10 @@ typedef struct
 	double		maxForecastOccupancy;
 	SdrObject	alarmScript;	/* Congestion alarm. */
 	time_t		horizon;	/*	On congestion forecast.	*/
-	int		deltaFromUTC;	/*	In seconds.		*/
+	int		deltaFromUTC;	/*	Whole seconds.		*/
+	int16_t		deltaFromUTCMillis;	/* Signed remainder, -999 to 999 ms. */
 	int		maxClockError;	/*	In seconds.		*/
+	uint16_t	maxClockErrorMillis;	/* Fractional part, 0-999 ms. */
 	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
 	IonParms        parmcopy;       /*	Copy of the ion config
@@ -389,6 +394,8 @@ typedef struct
 	PsmAddress	node;		/*	Points to IonNode.	*/
 	size_t		owltOutbound;	/*	In seconds.		*/
 	size_t		owltInbound;	/*	In seconds.		*/
+	uint16_t	owltOutboundMillis;	/* Fractional part, 0-999 ms. */
+	uint16_t	owltInboundMillis;	/* Fractional part, 0-999 ms. */
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } IonNeighbor;
 
@@ -399,6 +406,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	owlt;		/*	Current, in seconds.	*/
+	uint16_t	owltMillis;	/*	Fractional part, 0-999 ms.*/
 	SdrObject	rangeElt;	/* In iondb->ranges. */
 } IonRXref;
 
@@ -408,17 +416,26 @@ typedef struct
 	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
 	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
+	uint16_t	fromTimeMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		toTime;		/*	As from time(2).	*/
+	uint16_t	toTimeMs;	/*	Fractional part, 0-999 ms.*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	ContactType	type;		/*	For disambiguation.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
+	uint16_t	startXmitMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
+	uint16_t	stopXmitMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		startFire;	/*	Computed when inserted.	*/
+	uint16_t	startFireMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		stopFire;	/*	Computed when inserted.	*/
+	uint16_t	stopFireMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		startRecv;	/*	Computed when inserted.	*/
+	uint16_t	startRecvMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		stopRecv;	/*	Computed when inserted.	*/
+	uint16_t	stopRecvMs;	/*	Fractional part, 0-999 ms.*/
 	time_t		purgeTime;	/*	Computed when inserted.	*/
+	uint16_t	purgeTimeMs;	/*	Fractional part, 0-999 ms.*/
 	SdrObject	contactElt;	/* In iondb->contacts. */
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 	PsmAddress	citations;	/*	SM list of SmList elts.	*/
@@ -443,6 +460,7 @@ typedef enum
 typedef struct
 {
 	time_t		time;		/*	As from time(2).	*/
+	uint16_t	timeMillis;	/*	Fractional part, 0-999 ms.*/
 	IonEventType	type;
 	PsmAddress	ref;		/*	A CXref or RXref addr.	*/
 } IonEvent;
@@ -474,7 +492,8 @@ typedef struct
 typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
-	int		deltaFromUTC;	/*	In seconds.		*/
+	int		deltaFromUTC;	/*	Whole seconds.		*/
+	int16_t		deltaFromUTCMillis;	/* Signed remainder, -999 to 999 ms. */
 	time_t		refTime;	/*	As set by ionadmin.	*/
 	struct timeval	lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
@@ -609,20 +628,38 @@ extern void		stopIonMemTrace(int verbose);
 	time, the number of seconds elapsed since 00:00 1 January
 	1970 UTC.							*/
 
-#define	TIMESTAMPBUFSZ	20
+#define	TIMESTAMPBUFSZ	24
 
 extern int		setDeltaFromUTC(int newDelta);
+extern int		setDeltaFromUTCMs(int newDelta,
+					int16_t newDeltaMillis);
 extern time_t		getCtime(void);	/*	Unix 1970 epoch time.	*/
+extern void		getCtimeMs(time_t *seconds, uint16_t *milliseconds);
 extern int		ionClockIsSynchronized(void);
 
 extern time_t		readTimestampLocal(char *timestampBuffer,
 					time_t referenceTime);
 extern time_t		readTimestampUTC(char *timestampBuffer,
 					time_t referenceTime);
+extern int		readTimestampUTCMs(char *timestampBuffer,
+					time_t referenceTime, time_t *seconds,
+					uint16_t *milliseconds);
 extern void		writeTimestampLocal(time_t timestamp,
 					char *timestampBuffer);
 extern void		writeTimestampUTC(time_t timestamp,
 					char *timestampBuffer);
+extern void		writeTimestampUTCMs(time_t timestamp,
+					uint16_t milliseconds,
+					char *timestampBuffer);
+extern int		ionCompareTimestamp(time_t firstSeconds,
+					uint16_t firstMilliseconds,
+					time_t secondSeconds,
+					uint16_t secondMilliseconds);
+extern void		ionShiftTimestamp(time_t baseSeconds,
+					uint16_t baseMilliseconds,
+					long deltaSeconds, int deltaMilliseconds,
+					time_t *resultSeconds,
+					uint16_t *resultMilliseconds);
 extern time_t		ionReferenceTime(time_t *newValue);
 
 #define extractSdnv(into, from, remnant) \

@@ -78,7 +78,8 @@ static void	toggleScheduledContacts(uvast fromFqnn, uvast toFqnn,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	time_t		currentTime = getCtime();
+	time_t		currentTime;
+	uint16_t	currentTimeMs;
 	uvast		neighborFqnn = 0;
 	IonNeighbor	*neighbor = NULL;
 	IonCXref	arg;
@@ -86,6 +87,7 @@ static void	toggleScheduledContacts(uvast fromFqnn, uvast toFqnn,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 
+	getCtimeMs(&currentTime, &currentTimeMs);
 	if (toType == CtScheduled)
 	{
 		/*	We are restoring suppressed contacts.		*/
@@ -130,8 +132,12 @@ static void	toggleScheduledContacts(uvast fromFqnn, uvast toFqnn,
 				continue;
 			}
 
-			if (contact->fromTime <= currentTime
-			&& contact->toTime > currentTime)
+			if (ionCompareTimestamp(contact->fromTime,
+					contact->fromTimeMs, currentTime,
+					currentTimeMs) <= 0
+			&& ionCompareTimestamp(contact->toTime,
+					contact->toTimeMs, currentTime,
+					currentTimeMs) > 0)
 			{
 				if (toFqnn == neighborFqnn)
 				{
@@ -212,6 +218,7 @@ static int	noteContactAcquired(uvast discoveryFqnn,
 		sdr_stage(sdr, (char *) &contact, contactObj,
 				sizeof(IonContact));
 		contact.fromTime = fromTime;
+		contact.fromTimeMs = 0;
 		contact.xmitRate = xmitRate;
 		contact.confidence = 1.0;
 		contact.type = CtDiscovered;
@@ -221,6 +228,7 @@ static int	noteContactAcquired(uvast discoveryFqnn,
 		sdr_write(sdr, contactObj, (char *) &contact,
 				sizeof(IonContact));
 		cxref->fromTime = fromTime;
+		cxref->fromTimeMs = 0;
 		cxref->xmitRate = xmitRate;
 		cxref->confidence = 1.0;
 		cxref->type = CtDiscovered;
@@ -265,6 +273,7 @@ static int	noteContactAcquired(uvast discoveryFqnn,
 		sdr_stage(sdr, (char *) &contact, contactObj,
 				sizeof(IonContact));
 		contact.fromTime = fromTime;
+		contact.fromTimeMs = 0;
 		contact.xmitRate = recvRate;
 		contact.confidence = 1.0;
 		contact.type = CtDiscovered;
@@ -274,6 +283,7 @@ static int	noteContactAcquired(uvast discoveryFqnn,
 		sdr_write(sdr, contactObj, (char *) &contact,
 				sizeof(IonContact));
 		cxref->fromTime = fromTime;
+		cxref->fromTimeMs = 0;
 		cxref->xmitRate = recvRate;
 		cxref->confidence = 1.0;
 		cxref->type = CtDiscovered;
@@ -568,6 +578,7 @@ static int	noteContactLost(uvast discoveryFqnn, time_t startTime)
 			sdr_stage(sdr, (char *) &contact, contactObj,
 					sizeof(IonContact));
 			contact.fromTime = 0;
+			contact.fromTimeMs = 0;
 			contact.xmitRate = 0;
 			contact.confidence = 0.0;
 			contact.type = CtHypothetical;
@@ -577,6 +588,7 @@ static int	noteContactLost(uvast discoveryFqnn, time_t startTime)
 			sdr_write(sdr, contactObj, (char *) &contact,
 					sizeof(IonContact));
 			cxref->fromTime = 0;
+			cxref->fromTimeMs = 0;
 			cxref->xmitRate = 0;
 			cxref->confidence = 0.0;
 			cxref->type = CtHypothetical;
@@ -623,6 +635,7 @@ static int	noteContactLost(uvast discoveryFqnn, time_t startTime)
 			sdr_stage(sdr, (char *) &contact, contactObj,
 					sizeof(IonContact));
 			contact.fromTime = 0;
+			contact.fromTimeMs = 0;
 			contact.xmitRate = 0;
 			contact.confidence = 0.0;
 			contact.type = CtHypothetical;
@@ -632,6 +645,7 @@ static int	noteContactLost(uvast discoveryFqnn, time_t startTime)
 			sdr_write(sdr, contactObj, (char *) &contact,
 					sizeof(IonContact));
 			cxref->fromTime = 0;
+			cxref->fromTimeMs = 0;
 			cxref->xmitRate = 0;
 			cxref->confidence = 0.0;
 			cxref->type = CtHypothetical;
