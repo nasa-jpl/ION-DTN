@@ -70,6 +70,11 @@ jobs:
           IS_DRAFT: ${{ github.event.pull_request.draft }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          # Pass the labeler output as an environment value, never expanded
+          # into the script text: a label name may contain spaces (or shell
+          # metacharacters), and interpolating it inline would let bash parse
+          # it as a command.
+          PR_LABELS: ${{ steps.pr-labels.outputs.all-labels }}
         run: |
           NEEDS_TESTS="${{ steps.filter.outputs.relevant_changes }}"
 
@@ -81,10 +86,10 @@ jobs:
 
           # Fetch live labels and evaluate for 'no-test'
           if [ -n "$PR_NUMBER" ]; then
-            LIVE_LABELS=${{ steps.pr-labels.outputs.all-labels }}
+            LIVE_LABELS="$PR_LABELS"
             echo "LIVE_LABELS=$LIVE_LABELS" >> $GITHUB_ENV
 
-            if [[ " $LIVE_LABELS " == *" no-test "* ]]; then
+            if [[ " ${LIVE_LABELS//,/ } " == *" no-test "* ]]; then
               echo "'no-test' label detected. Forcing tests to skip."
               NEEDS_TESTS="false"
             fi
