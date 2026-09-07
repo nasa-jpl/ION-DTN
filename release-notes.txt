@@ -1,6 +1,50 @@
 = Release Notes for ION =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= ION 4.2.1-a.1 - Security Hardening (Alpha) =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+First alpha build toward ION 4.2.1.  This build is a focused security
+release: it collects a coordinated set of remotely triggerable parsing,
+memory-corruption, and denial-of-service fixes made since 4.2.0.  Specific
+advisory identifiers are omitted until the corresponding advisories are
+published.
+
+Security:
+
+Wire-supplied lengths, counts, and identifiers are now bounded before they
+size an allocation, a copy, or an index, closing several out-of-bounds
+writes reachable from unauthenticated input:
+
+- a stack out-of-bounds write in the BPv7 extension-block parser when a
+  bundle declares more extension blocks than the parser's fixed table
+  holds;
+- a stack out-of-bounds write in the CFDP Proxy Put request parser from an
+  over-long destination entity identifier;
+- a heap out-of-bounds write in the IPND beacon deserializer from
+  attacker-declared element lengths;
+- a receive-buffer overflow in the CFDP bputa and tcputa adapters on an
+  oversized inbound PDU or ADU;
+- a signed truncation of a BPv7 payload length that drove a negative-size
+  memory move during bundle acquisition.
+
+Two out-of-bounds reads were also closed:
+
+- an out-of-bounds read in the BPSec security-context value and policy-
+  parameter display paths on a failed table lookup;
+- an out-of-bounds read of the LTP extension-count field.
+
+A BPSec integrity defect was fixed: the authentication tag on a payload
+block protected by a Block Confidentiality Block is now verified when the
+block is decrypted, so tampered ciphertext is rejected instead of
+accepted.
+
+An unauthenticated denial of service was fixed in the LTP green data-
+segment handler: a zero-length segment no longer reaches the SDR zero-size
+assertion that would otherwise abort the LTP input task and stop
+reception.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = ION 4.2.0 - Status Report Generation Disabled By Default =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
