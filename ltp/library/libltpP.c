@@ -3923,6 +3923,12 @@ static void destroyRsXmitSeg(SdrObject rsElt, SdrObject rsObj, LtpXmitSeg *rs)
 	sdr_list_delete(sdr, rsElt, NULL, NULL);
 }
 
+/*	Recycles the volatile state of an import session, returning its
+ *	redSegmentsIdx reassembly RBT (and the lock semaphore that RBT
+ *	owns) to the span.  Idempotent: if the volatile session is already
+ *	gone the sm_rbt_delete simply finds nothing and does nothing, so
+ *	it is safe to call on a session that was already stopped.	*/
+
 static void	stopVImportSession(LtpImportSession *session)
 {
 	Sdr			sdr = getIonsdr();
@@ -4059,6 +4065,16 @@ void removeImportSession(SdrObject sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
+
+	/*	A late segment can resurrect a stopped import session
+	 *	(getImportSession rebuilds its volatile state, and with it
+	 *	a redSegmentsIdx RBT holding a lock semaphore) at any point
+	 *	while the session remains reachable in importSessionsHash.
+	 *	This hash removal is the sole exit from that table and thus
+	 *	the last point at which such a resurrected volatile session
+	 *	can still be found, so recycle it here.			*/
+
+	stopVImportSession(session);
 	if (sdr_hash_remove(sdr, span->importSessionsHash,
 			    (char *) &(session->sessionNbr),
 			    (SdrAddress *) &elt) > 0)
