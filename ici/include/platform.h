@@ -20,6 +20,15 @@
 extern "C" {
 #endif
 
+
+
+
+#define FORCE_SVR4_SEMAPHORES
+
+
+
+
+
 #if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
 #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
 #endif
@@ -756,6 +765,9 @@ int pthread_setname_np(const char *name);
 #if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
 
 #include <sys/ipc.h>
+#ifndef __USE_GNU
+#define __USE_GNU 1
+#endif
 #include <sys/sem.h>
 
 /*	Override these macros with -D option on gcc command line

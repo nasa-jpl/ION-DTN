@@ -25,13 +25,13 @@ extern void	bibeAdd(char *peerEid, unsigned int threshold,
 			char *reportToEid, unsigned char bsrFlags,
 			int lifespan, unsigned char priority,
 			unsigned char ordinal, unsigned char qosFlags, 
-			unsigned int dataLabel);
+			unsigned int dataLabel, char *sourceNodeId);
 
 extern void	bibeChange(char *peerEid, unsigned int threshold,
 			char *reportToEid, unsigned char bsrFlags,
 			int lifespan, unsigned char priority,
 			unsigned char ordinal, unsigned char qosFlags, 
-			unsigned int dataLabel);
+			unsigned int dataLabel, char *sourceNodeId);
 
 extern void	bibeDelete(char *peerEid);
 

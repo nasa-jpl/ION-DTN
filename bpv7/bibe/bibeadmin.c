@@ -80,11 +80,11 @@ static void	printUsage(void)
 	PUTS("\tm\tManage");
 	PUTS("\t   {m} limit <reassembly time limit (seconds)>");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <rptTo> <bsrFlags> <lifespan> \
-<priority> <ordinal> <qosFlags> <seg threshold> [<data label>]");
+	PUTS("\t   a bcla <peer EID> <seg threshold> <rptTo> <bsrFlags> \
+<lifespan> <priority> <ordinal> <qosFlags> <data label> [source node EID]");
 	PUTS("\tc\tChange");
-	PUTS("\t   c bcla <peer EID> <fwd> <rtn> <rptTo> <bsrFlags> <lifespan> \
-<priority> <ordinal> <qosFlags> <seg threshold> [<data label>]");
+	PUTS("\t   c bcla <peer EID> <seg threshold> <rptTo> <bsrFlags> \
+<lifespan> <priority> <ordinal> <qosFlags> <data label> [source node EID]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} bcla <peer EID>");
@@ -147,6 +147,8 @@ static void	executeManage(int tokenCount, char **tokens)
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
+	char		sourceNodeIdBuffer[MAX_EID_LEN];
+	char		*sourceNodeId;
 	unsigned int	threshold;
 	unsigned char	bsrFlags;
 	int		lifespan;
@@ -168,21 +170,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 	{
 		switch (tokenCount)
 		{
-		case 11:
-			if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0
-			|| parsed_uvast > UINT_MAX)
-			{
-				isprintf(errMsg, sizeof(errMsg), "[?] Invalid \
-data label: %s", tokens[10]);
-				PUTS(errMsg); writeMemo(errMsg);
-				return;
-			}
-
-			label = (unsigned int) parsed_uvast;
+		case 12:
+			istrcpy(sourceNodeIdBuffer, tokens[11], MAX_EID_LEN);
+			sourceNodeId = sourceNodeIdBuffer;
 			break;
-
-		case 10:
-			label = 0;
+		case 11:
+			sourceNodeId = NULL;
 			break;
 
 		default:
@@ -249,8 +242,19 @@ qosFlags: %s", tokens[9]);
 		}
 
 		qosFlags = (unsigned char) parsed_uvast;
+		if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0
+		|| parsed_uvast > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data \
+label: %s", tokens[10]);
+			PUTS(errMsg); writeMemo(errMsg);
+			return;
+		}
+
+		label = (unsigned int) parsed_uvast;
 		bibeAdd(tokens[2], threshold, tokens[4], bsrFlags, lifespan,
-				priority, ordinal, qosFlags, label);
+				priority, ordinal, qosFlags, label,
+				sourceNodeId);
 		return;
 	}
 
@@ -259,6 +263,8 @@ qosFlags: %s", tokens[9]);
 
 static void	executeChange(int tokenCount, char **tokens)
 {
+	char		sourceNodeIdBuffer[MAX_EID_LEN];
+	char		*sourceNodeId;
 	unsigned int	threshold;
 	unsigned char	bsrFlags;
 	int		lifespan;
@@ -280,21 +286,13 @@ static void	executeChange(int tokenCount, char **tokens)
 	{
 		switch (tokenCount)
 		{
-		case 11:
-			if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0
-			|| parsed_uvast > UINT_MAX)
-			{
-				isprintf(errMsg, sizeof(errMsg), "[?] Invalid \
-label: %s", tokens[10]);
-				PUTS(errMsg); writeMemo(errMsg);
-				return;
-			}
-
-			label = (unsigned int) parsed_uvast;
+		case 12:
+			istrcpy(sourceNodeIdBuffer, tokens[11], MAX_EID_LEN);
+			sourceNodeId = sourceNodeIdBuffer;
 			break;
 
-		case 10:
-			label = 0;
+		case 11:
+			sourceNodeId = NULL;
 			break;
 
 		default:
@@ -361,8 +359,19 @@ qosFlags: %s", tokens[9]);
 		}
 
 		qosFlags = (unsigned char) parsed_uvast;
+		if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0
+		|| parsed_uvast > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid \
+label: %s", tokens[10]);
+			PUTS(errMsg); writeMemo(errMsg);
+			return;
+		}
+
+		label = (unsigned int) parsed_uvast;
 		bibeChange(tokens[2], threshold, tokens[4], bsrFlags, lifespan,
-				priority, ordinal, qosFlags, label);
+				priority, ordinal, qosFlags, label,
+				sourceNodeId);
 		return;
 	}
 

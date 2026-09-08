@@ -31,7 +31,7 @@ static void	getSchemeName(char *eid, char *schemeNameBuf)
 void	bibeAdd(char *peerEid, unsigned int threshold, char *reportToEid,
 		unsigned char bsrFlags, int lifespan, unsigned char priority,
 		unsigned char ordinal, unsigned char qosFlags,
-		unsigned int label)
+		unsigned int label, char *sourceNodeId)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -67,7 +67,15 @@ void	bibeAdd(char *peerEid, unsigned int threshold, char *reportToEid,
 			sizeof(Scheme));
 	CHKVOID(sdr_begin_xn(sdr));
 	memset((char *) &bcla, 0, sizeof(Bcla));
-	bcla.source = sdr_string_create(sdr, vscheme->adminEid);
+	if (sourceNodeId)	/*	Configured source node ID.	*/
+	{
+		bcla.source = sdr_string_create(sdr, sourceNodeId);
+	}
+	else	/*	Default is the admin EID for peer EID's scheme.	*/
+	{
+		bcla.source = sdr_string_create(sdr, vscheme->adminEid);
+	}
+
 	bcla.dest = sdr_string_create(sdr, peerEid);
 	bcla.threshold = threshold;
 	if (reportToEid == NULL || strlen(reportToEid) == 0)
@@ -101,7 +109,7 @@ void	bibeAdd(char *peerEid, unsigned int threshold, char *reportToEid,
 void	bibeChange(char *peerEid, unsigned int threshold, char *reportToEid,
 		unsigned char bsrFlags, int lifespan, unsigned char priority,
 		unsigned char ordinal, unsigned char qosFlags,
-		unsigned int label)
+		unsigned int label, char *sourceNodeId)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -117,6 +125,16 @@ void	bibeChange(char *peerEid, unsigned int threshold, char *reportToEid,
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
+	if (sourceNodeId && strlen(sourceNodeId) > 0)
+	{
+		if (bcla.source)
+		{
+			sdr_free(sdr, bcla.source);;
+		}
+
+		bcla.source = sdr_string_create(sdr, sourceNodeId);
+	}
+
 	bcla.threshold = threshold;
 	if (bcla.reportTo)
 	{
@@ -158,6 +176,7 @@ void	bibeDelete(char *peerEid)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
+	sdr_free(sdr, bcla.source);
 	sdr_free(sdr, bcla.dest);
 	if (bcla.reportTo)
 	{

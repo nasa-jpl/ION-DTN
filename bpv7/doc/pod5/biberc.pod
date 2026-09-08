@@ -12,8 +12,8 @@ BIBE configuration commands establish the parameters governing transmission
 of BIBE PDUs to specified B<peer> nodes: segmentation threshold,
 report-to endpoint, bundle status report request flags, TTL for BIBE PDUs,
 priority, ordinal priority in the event that priority is Expedited,
-quality-of service flags, and (optionally) data label.  As such, they
-configure BIBE convergence-layer adapter (B<bcla>) structures.
+quality-of service flags, data label, and (optionally) source node ID.  As
+such, they configure BIBE convergence-layer adapter (B<bcla>) structures.
 
 The formats and effects of the BIBE configuration commands are described below.
 
@@ -81,9 +81,6 @@ unlimited resource consumption due to bundle reassemblies that don't
 complete due to loss of segment BPDUs.  The default value is 600, i.e.,
 ten minutes.
 
-The B<help> command.  This will display a listing of the commands and their
-formats.  It is the same as the B<h> command.
-
 =item B<i> limit
 
 This command will simply print the BIBE reassembly time limit that is
@@ -114,12 +111,14 @@ formats.  It is the same as the B<?> command.
 
 =over 4
 
-=item B<a> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
+=item B<a> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> I<data label> [I<source_node_EID>]
 
 The B<add bcla> command.  This command adds the neighboring node identified
-by I<peer_EID> as a BIBE destination of the local node.
+by I<peer_EID> as a BIBE destination of the local node.  If omitted,
+I<source_Node_EID> defaults to the local node's administrative EID for
+the scheme name cited in I<peer_EID>.
 
-=item B<c> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> [I<data label>]
+=item B<c> bcla I<peer_EID> I<segmentation_threshold> I<rptTo> I<bundle_status_report_request_flags> I<time_to_live> I<priority> I<ordinal> I<qosFlags> I<data label> [I<source_node_EID>]
 
 The B<change bcla> command.  This command changes the transmission parameters
 governing BIBE PDU transmission to the indicated peer node.
@@ -145,13 +144,14 @@ formed in the URI scheme identified by I<scheme_name>, e.g., B<ipn>.
 
 =over 4
 
-=item a bcla ipn:3.2 8192 dtn:none 0 60 1 0 0 16
+=item a bcla ipn:3.2 8192 dtn:none 0 60 1 0 0 16 ipn:913.228
 
 Declares that ipn:3.2 is a BIBE peer for which the segmentation threshold is
 8192 and that BIBE PDUs destined for this node are to be sent with TTL 60
 seconds, priority 1 (standard), and data label 16; no bundle status reporting
-is required for these bundles.  Any bundle larger than 8192 octets will be
-sent in multiple segments of at most 8192 octets each.
+is required for these bundles, and the source node ID for each BIBE PDU will
+be ipn:913.228.  Any bundle larger than 8192 octets will be sent in multiple
+segments of at most 8192 octets each.
 
 =back
 

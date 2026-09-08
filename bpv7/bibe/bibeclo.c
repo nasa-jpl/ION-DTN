@@ -86,7 +86,7 @@ int	main(int argc, char *argv[])
 	Object		bclaElt;
 	Bcla		bcla;
 	Sdr		sdr;
-	char		sourceEid[SDRSTRING_BUFSZ];
+	char		sourceNodeId[SDRSTRING_BUFSZ];
 	uvast		threshold;
 	char		reportToBuffer[SDRSTRING_BUFSZ];
 	char		*reportToEid;
@@ -143,7 +143,7 @@ int	main(int argc, char *argv[])
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
-	sdr_string_read(sdr, sourceEid, bcla.source);
+	sdr_string_read(sdr, sourceNodeId, bcla.source);
 
 	/*	The properties of the encapsulating bundle are taken
 	 *	from the bcla as configured by bibeadmin.		*/
@@ -177,9 +177,9 @@ int	main(int argc, char *argv[])
 
 	/*	Open BP service access point for sending bundles.	*/
 
-	if (bp_open_source(sourceEid, &sap, 0) < 0)
+	if (bp_open_source(sourceNodeId, &sap, 0) < 0)
 	{
-		putErrmsg("Can't open source SAP.", sourceEid);
+		putErrmsg("Can't open source SAP.", sourceNodeId);
 		shutDownClo();
 		return -1;
 	}
