@@ -175,13 +175,14 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 			}
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
-		zco_destroy_file_ref(sdr, fileRef);
-		if (sdr_end_xn(sdr) < 0) {
-			putErrmsg("bpsendtest can't destroy file reference.", NULL);
-		}
-
 	}
+	/*	Release the sender's reference after all repetitions are queued.	*/
+	CHKZERO(sdr_begin_xn(sdr));
+	zco_destroy_file_ref(sdr, fileRef);
+	if (sdr_end_xn(sdr) < 0) {
+		putErrmsg("bpsendtest can't destroy file reference.", NULL);
+	}
+
 	isprintf(progressText, sizeof progressText,
 		"[i] bpsendtest sent '%s', size %d, %d times.",
 		fileName, aduLength, repetitions);
