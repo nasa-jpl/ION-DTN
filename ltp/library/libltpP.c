@@ -3741,7 +3741,7 @@ void getImportSession(LtpVspan *vspan, unsigned int sessionNbr,
 				sm_rbt_data(ltpwm, rbtNode));
 		*sessionObj = sdr_list_data(sdr, vsession->sessionElt);
 	}
-	else	/*	Must resurrect VImportSession.			*/
+	else	/*	No volatile session; may need to resurrect it.	*/
 	{
 		GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr,
 				vspan->spanElt));
@@ -3753,9 +3753,33 @@ void getImportSession(LtpVspan *vspan, unsigned int sessionNbr,
 		}
 
 		*sessionObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &session, *sessionObj,
+				sizeof(LtpImportSession));
 
-		/*	Need to add this VImportSession and load it
-		 *	with all previously acquired red segments.	*/
+		/*	Only rebuild volatile state while red-part
+		 *	reception is still under way.  clearImportSession
+		 *	zeroes redSegments as soon as the session is
+		 *	canceled or its block is delivered; past that point
+		 *	no further red segment can be inserted, so
+		 *	resurrecting the session would allocate a
+		 *	redSegmentsIdx reassembly tree -- and the ICI lock
+		 *	semaphore it owns -- only to discard it.  Leave the
+		 *	volatile session absent instead: the caller then
+		 *	drops the late segment exactly as it already does
+		 *	for a delivered or canceled session, and the
+		 *	volatile session table stays bounded by live
+		 *	reception concurrency rather than by cancel churn.
+		 *	*sessionObj is left set so the caller discards the
+		 *	segment against the existing session rather than
+		 *	starting a duplicate one.			*/
+
+		if (session.redSegments == 0)
+		{
+			return;		/*	Terminal; do not resurrect.	*/
+		}
+
+		/*	Add this VImportSession and load it with all
+		 *	previously acquired red segments.		*/
 
 		addVImportSession(vspan, sessionNbr, elt, &vsession);
 		if (vsession == NULL)
@@ -3763,40 +3787,32 @@ void getImportSession(LtpVspan *vspan, unsigned int sessionNbr,
 			return;
 		}
 
-		sdr_read(sdr, (char *) &session, *sessionObj,
-				sizeof(LtpImportSession));
-		if (session.redSegments)
+		for (elt2 = sdr_list_first(sdr, session.redSegments);
+				elt2; elt2 = sdr_list_next(sdr, elt2))
 		{
-			for (elt2 = sdr_list_first(sdr, session.redSegments);
-					elt2; elt2 = sdr_list_next(sdr, elt2))
+			segObj = sdr_list_data(sdr, elt2);
+			GET_OBJ_POINTER(sdr, LtpRecvSeg, segment, segObj);
+			refbuf.offset = segment->pdu.offset;
+			refbuf.length = segment->pdu.length;
+			refbuf.sessionListElt = segment->sessionListElt;
+			addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
+			if (addr == 0)
 			{
-				segObj = sdr_list_data(sdr, elt2);
-				GET_OBJ_POINTER(sdr, LtpRecvSeg, segment,
-						segObj);
-				refbuf.offset = segment->pdu.offset;
-				refbuf.length = segment->pdu.length;
-				refbuf.sessionListElt = segment->sessionListElt;
-				addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
-				if (addr == 0)
-				{
-					putErrmsg("Failed resurrecting \
+				putErrmsg("Failed resurrecting \
 LtpVImportSession.", NULL);
-					*sessionObj = 0;
-					return;
-				}
+				*sessionObj = 0;
+				return;
+			}
 
-				memcpy((char *) psp(ltpwm, addr), (char *)
-						&refbuf, sizeof(LtpSegmentRef));
-				if (sm_rbt_insert(ltpwm,
-						vsession->redSegmentsIdx,
-						addr, orderRedSegments, &refbuf)
-						== 0)
-				{
-					putErrmsg("Failed resurrecting \
+			memcpy((char *) psp(ltpwm, addr), (char *)
+					&refbuf, sizeof(LtpSegmentRef));
+			if (sm_rbt_insert(ltpwm, vsession->redSegmentsIdx,
+					addr, orderRedSegments, &refbuf) == 0)
+			{
+				putErrmsg("Failed resurrecting \
 LtpVImportSession.", NULL);
-					*sessionObj = 0;
-					return;
-				}
+				*sessionObj = 0;
+				return;
 			}
 		}
 	}
