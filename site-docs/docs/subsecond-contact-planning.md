@@ -76,3 +76,23 @@ They cover parsing, persistence, export, exact revise/delete, live contact
 start/stop, fractional clock error, signed UTC delta, CGR contact-boundary and
 OWLT route selection, and legacy whole-second behavior. Every test creates a
 fresh temporary node database and removes it on exit.
+
+## Validation note
+
+A fresh build of the patched tree completed all 204 entries discovered by the
+upstream `make test-all` runner: 173 passed, 20 skipped, and two were reported
+as failures. The `linking` entry had stopped before performing link analysis
+because the validation image did not contain `libtool-bin`. Replaying that
+single test against the same build in a fresh, network-isolated container with
+`libtool-bin` 2.4.7 installed passed 1/1; its generated library and executable
+graphs contained no missing or unused dependency edges.
+
+The remaining `req-0033-prob-CGR` failure was also executed against unmodified
+upstream commit `afa54d6822bc3ff45342c5567af443a592b9cd48` in the same class of
+isolated container environment. Both stock and patched runs failed after 73
+seconds with the same observable signature: bundles remained buffered at node
+3 and files `x` and `y` were not delivered to nodes 6 and 7. The test therefore
+remains a failure, but the differential result classifies it as
+baseline-equivalent rather than a newly introduced subsecond regression. This
+comparison does not identify its underlying cause or imply that the test may
+be ignored in other environments.

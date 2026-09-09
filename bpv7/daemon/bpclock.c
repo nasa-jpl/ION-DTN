@@ -218,7 +218,33 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 	oK(sdr_end_xn(sdr));
 }
 
-static void	applyRateControl(Sdr sdr)
+#ifndef BPCLOCK_POLL_MSEC
+#define BPCLOCK_POLL_MSEC	(1000)
+#endif
+
+static unsigned int	getPollIntervalMs(void)
+{
+	char	*configured = getenv("ION_BPCLOCK_POLL_MSEC");
+	char	*end;
+	long	parsed;
+
+	if (configured == NULL || *configured == '\0')
+	{
+		return BPCLOCK_POLL_MSEC;
+	}
+
+	parsed = strtol(configured, &end, 10);
+	if (*end != '\0' || parsed < 1 || parsed > 1000)
+	{
+		writeMemoNote("[?] Invalid ION_BPCLOCK_POLL_MSEC; using default",
+				configured);
+		return BPCLOCK_POLL_MSEC;
+	}
+
+	return (unsigned int) parsed;
+}
+
+static void	applyRateControl(Sdr sdr, unsigned int intervalMs)
 {
 	PsmPartition	ionwm = getIonwm();
 	BpVdb		*bpvdb = getBpVdb();
@@ -260,7 +286,13 @@ static void	applyRateControl(Sdr sdr)
 		{
 			double	previousCapacity = throttle->capacity;
 
-			throttle->capacity += throttle->nominalRate;
+			/*	Added capacity is the transmission earned
+			 *	over the interval that just elapsed, so a
+			 *	shorter poll grants proportionally less and
+			 *	the effective rate is unchanged.	*/
+
+			throttle->capacity += ((double) throttle->nominalRate)
+					* intervalMs / 1000.0;
 			if (throttle->capacity > throttle->nominalRate)
 			{
 				throttle->capacity = throttle->nominalRate;
@@ -642,11 +674,14 @@ int	bpclock(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(void)
 {
 #endif
-	Sdr	sdr;
-	BpDB	*bpConstants;
-	uaddr	state = 1;
-	time_t	currentTime;
-	time_t	previousFlush = 0;
+	Sdr		sdr;
+	BpDB		*bpConstants;
+	uaddr		state = 1;
+	time_t		currentTime;
+	time_t		previousFlush = 0;
+	unsigned int	pollIntervalMs;
+	time_t		lastMaintenanceTime = 0;
+	int		doOneHzMaintenance;
 
 	if (bpAttach() < 0)
 	{
@@ -662,13 +697,18 @@ int	main(void)
 	 *	execute applicable events.				*/
 
 	oK(_running(&state));
+	pollIntervalMs = getPollIntervalMs();
 	writeMemo("[i] bpclock is running.");
 	while (_running(NULL))
 	{
-		/*	Sleep for 1 second, then dispatch all events
-		 *	whose executions times have now been reached.	*/
+		/*	Poll the throttles, then dispatch all events
+		 *	whose execution times have now been reached.
+		 *	Rate control runs every poll so that a contact
+		 *	shorter than a second still earns transmission
+		 *	capacity while it is current; the remaining
+		 *	housekeeping stays at 1 Hz.			*/
 
-		snooze(1);
+		microsnooze(pollIntervalMs * 1000);
 
 		/*	A restart -- e.g. ionrestart recovering from an
 		 *	unrecoverable SDR error -- halts the heap and tears
@@ -683,6 +723,24 @@ int	main(void)
 		}
 
 		currentTime = getCtime();
+		doOneHzMaintenance = (currentTime != lastMaintenanceTime);
+		lastMaintenanceTime = currentTime;
+
+		/*	Pick up rate changes imposed by the contact plan,
+		 *	then grant the capacity they earn.  The order
+		 *	matters: granting first would spend a tick reading
+		 *	the rate a contact had before it became current.
+		 *	Both run on every poll, because a contact shorter
+		 *	than a second has to earn its capacity while it is
+		 *	still open.					*/
+
+		detectCurrentTopologyChanges(sdr);
+		applyRateControl(sdr, pollIntervalMs);
+		if (!doOneHzMaintenance)
+		{
+			continue;
+		}
+
 		if (dispatchEvents(sdr, bpConstants->timeline, currentTime) < 0)
 		{
 			putErrmsg("Can't dispatch events.", NULL);
@@ -710,15 +768,6 @@ int	main(void)
 			oK(_running(&state));
 			continue;
 		}
-
-		/*	Also detect current topology changes resulting
-		 *	from rate changes imposed per the contact plan.	*/
-
-		detectCurrentTopologyChanges(sdr);
-
-		/*	Then apply rate control.			*/
-
-		applyRateControl(sdr);
 
 		/*	Flush all Outducts that appear to be stuck.	*/
 

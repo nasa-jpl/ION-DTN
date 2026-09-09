@@ -487,6 +487,7 @@ int	main(int argc, char *argv[])
 	Bundle		secondBundle;
 	SdrObject	secondBundleObj;
 	SdrObject	queue;
+	SdrObject	fragmentedPlanXmitElt;
 
 	if (!nodeName)
 	{
@@ -580,6 +581,7 @@ int	main(int argc, char *argv[])
 #endif
 	while (running)
 	{
+		fragmentedPlanXmitElt = 0;
 		if (sdr_begin_xn(sdr) == 0)
 		{
 			putErrmsg("bpclm can't begin transaction.", nodeName);
@@ -732,6 +734,7 @@ int	main(int argc, char *argv[])
 
 			/*	Okay to fragment.			*/
 
+			fragmentedPlanXmitElt = bundle.planXmitElt;
 			queue = sdr_list_list(sdr, bundle.planXmitElt);
 			if (bpFragment(&bundle, bundleObj,
 					&(bundle.planXmitElt), maxPayloadLength,
@@ -768,6 +771,19 @@ int	main(int argc, char *argv[])
 		 *	queue.						*/
 
 		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		if (fragmentedPlanXmitElt
+		&& bundle.priority == BP_EXPEDITED_PRIORITY)
+		{
+			OrdinalState	*ordinal;
+
+			ordinal = &(plan.ordinals[bundle.ordinal]);
+			if (ordinal->lastForOrdinal == fragmentedPlanXmitElt)
+			{
+				ordinal->lastForOrdinal =
+						secondBundle.planXmitElt;
+			}
+		}
+
 		removeBundleFromQueue(&bundle, &plan);
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 
