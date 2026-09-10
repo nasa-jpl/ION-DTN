@@ -3986,8 +3986,9 @@ static int	recycleImportBuffer(Sdr sdr, LtpSpan *span,
 
 void	clearImportSession(LtpImportSession *session)
 {
-	/*	Note: this function is invoked only when an import
-	 *	sesssion is canceled, by either sender or receiver.	*/
+	/*	Terminates red-part reception for an import session:
+	 *	invoked when the block has been delivered and when the
+	 *	session is canceled by either sender or receiver.	*/
 
 	Sdr	sdr = getIonsdr();
 	SdrObject elt;
@@ -4024,6 +4025,17 @@ void	clearImportSession(LtpImportSession *session)
 		sdr_list_destroy(sdr, session->redSegments, NULL, NULL);
 		session->redSegments = 0;
 	}
+
+	/*	Red-part reception is over, so no further red segment can
+	 *	be inserted into the volatile reassembly tree.  Drop the
+	 *	volatile session now so its redSegmentsIdx tree -- and the
+	 *	ICI lock semaphore that tree owns -- returns to the span's
+	 *	reuse pool at delivery, rather than lingering on the session
+	 *	record until the closing report-ack handshake completes.
+	 *	Idempotent: a session already stopped by another path has
+	 *	no volatile session left to drop.			*/
+
+	stopVImportSession(session);
 
 	sdr_read(sdr, (char *) &span, session->span, sizeof(LtpSpan));
 	oK(recycleImportBuffer(sdr, &span, session));
