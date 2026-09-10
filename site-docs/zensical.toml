@@ -127,6 +127,7 @@ accent = "lime"
 admonition = {}
 attr_list = {}
 footnotes = {}
+md_in_html = {}
 pymdownx.arithmatex = { generic = true }
 pymdownx.details = {}
 pymdownx.highlight = { anchor_linenums = true }
