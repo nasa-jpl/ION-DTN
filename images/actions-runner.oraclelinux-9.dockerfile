@@ -178,7 +178,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt \
     && if [ ! -z "${PIP_INDEX}" ]; then \
-    /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}"; \
+    /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.5.0 -i "${PIP_INDEX}"; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi
