@@ -96,6 +96,7 @@ ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 - **rtems**: Ubuntu 24 pod creates RTEMS pods as a sidecar - Enables only runnerScaleSetRtems
   - Deploys 2 pods: 1 controller + 1 listener
   - Does not require kind-config.yaml
+  - Deploys renovate along side
 
 ## How It Works
 

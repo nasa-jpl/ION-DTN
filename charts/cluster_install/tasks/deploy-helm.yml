@@ -13,7 +13,7 @@
   ansible.builtin.include_vars:
     file: "{{ charts_path }}/arc/secrets.local.yaml"
     name: arc_secrets
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Check Kubernetes cluster accessibility
   kubernetes.core.k8s_info:
@@ -49,7 +49,7 @@
       repo_url: "https://prometheus-community.github.io/helm-charts"
     - name: mogenius
       repo_url: "https://helm.mogenius.com/public"
-      install_repo: "{{ config == 'rhel8' }}"
+      install_repo: "{{ config == 'rtems' }}"
   when: item.install_repo | default(true) | bool
 
 - name: Deploy Headlamp Helm chart
@@ -205,7 +205,7 @@
       kind: Namespace
       metadata:
         name: renovate-operator
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Deploy Renovate ConfigMap natively via Ansible
   kubernetes.core.k8s:
@@ -218,7 +218,7 @@
         namespace: renovate-operator
       data:
         config.json: "{{ lookup('file', 'renovate-config.json') }}"
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Deploy Renovate Operator Helm chart
   kubernetes.core.helm:
@@ -268,7 +268,7 @@
             selector:
               app: renovate-operator-renovate-operator
   no_log: true
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Deploy RenovateJob Custom Resource
   kubernetes.core.k8s:
@@ -299,12 +299,12 @@
         extraEnv:
           - name: RENOVATE_CONFIG_FILE
             value: /usr/src/app/config.json
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Display Renovate Operator deployment result
   ansible.builtin.debug:
     msg: "✓ Renovate Operator and RenovateJob deployed successfully to the renovate-operator namespace."
-  when: config == 'rhel8'
+  when: config == 'rtems'
 
 - name: Deploy ARC Helm chart
   kubernetes.core.helm:
