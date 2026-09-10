@@ -824,6 +824,15 @@ ltpmandir = $(top_builddir)/ltp/doc
 
 ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
+# LTPAUTH gates the RFC 5327 authentication extension into the dispatch
+# table in ltp/library/ext/ltpextensions.c.  Only defined when a crypto
+# suite with a working MAC is being built against.
+if CRYPTO_MBEDTLS
+ltpauthflags = -DLTPAUTH -I$(srcdir)/ltp/library/ext/auth
+else
+ltpauthflags =
+endif # end CRYPTO_MBEDTLS
+
 ltpbin = \
 	ltpadmin \
 	ltpcancel \
@@ -909,8 +918,17 @@ libltp_la_SOURCES = \
 	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c
 libltp_la_CPPFLAGS = -I$(srcdir)/ici/library
-libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-libltp_la_LIBADD = libici.la -lm
+libltp_la_CFLAGS = $(ltpcflags) $(ltpauthflags) $(AM_CFLAGS)
+libltp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
+
+# The RFC 5327 authentication extension needs a real MAC, which only the
+# Mbed TLS suite provides; the NULL suite's hmac_sha1_sign() is a stub
+# that leaves its output buffer untouched.  Build the extension only when
+# it can actually authenticate anything -- see ltpsec.c, which refuses
+# auth rules outright in a build without it.
+if CRYPTO_MBEDTLS
+libltp_la_SOURCES += ltp/library/ext/auth/auth.c
+endif # end CRYPTO_MBEDTLS
 
 libudplsa_la_SOURCES = ltp/udp/libudplsa.c
 libudplsa_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)

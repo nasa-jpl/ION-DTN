@@ -1,0 +1,3 @@
+# Phase B: HMAC-SHA1-80 (0), matching key at both ends.
+c ltpxmitauthrule 3 0 myKey
+c ltprecvauthrule 3 0 myKey

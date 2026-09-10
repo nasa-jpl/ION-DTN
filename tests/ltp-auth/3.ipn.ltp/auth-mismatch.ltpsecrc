@@ -1,0 +1,2 @@
+# Phase C: receive key no longer matches the sender's transmit key.
+c ltprecvauthrule 2 0 myKey2
