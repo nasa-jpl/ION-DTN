@@ -740,9 +740,72 @@ static int	reportFreeListCorruption(Sdr sdrv, SdrAddress leader)
 		"Corrupt large-pool free-list link at " UVAST_FIELDSPEC ".",
 		(uvast) leader);
 	putErrmsg(buf, NULL);
+	printStackTrace();	/*	Names the daemon/path that reached it.	*/
 	crashXn(sdrv);
 	return -1;
 }
+
+#ifdef SDR_FREELIST_SWEEP
+/*	Debug instrumentation, enabled with --enable-sdr-freelist-sweep
+ *	(-DSDR_FREELIST_SWEEP).  sweepLargePoolFreeList validates the entire
+ *	large-pool free list at every modifying transaction commit (see the
+ *	call in sdr_end_xn), so a corrupt link is caught in the SAME
+ *	transaction that wrote it -- reportFreeListCorruption then logs the
+ *	bad block, prints the stack (whose frames above sdr_end_xn name the
+ *	writing daemon and code path) and crashes the transaction.  It reuses
+ *	the same validateFreeBlock invariant the splice path relies on, so the
+ *	check here matches the one there.  A corrupt link detected at commit
+ *	is thus attributed to its writer, instead of to a random later
+ *	allocation that happens to walk the poisoned block.
+ *
+ *	Cost is one free-list walk per modifying commit: negligible on a
+ *	DRAM/PMEM SDR (each fetch is a memcpy), but a syscall per fetch on a
+ *	file-backed SDR -- hence off by default.			*/
+
+int	sweepLargePoolFreeList(Sdr sdrv)
+{
+	SdrMap		*map = _mapImage(sdrv);
+	int		bucket;
+	SdrAddress	leader;
+	BigOhd1		leading;
+	SdrAddress	trailer;
+	BigOhd2		trailing;
+	unsigned long	steps;
+	unsigned long	maxSteps;
+
+	/*	Total free-block count bounds the walk so a cyclic
+	 *	corruption cannot spin forever.				*/
+
+	maxSteps = 1024;
+	for (bucket = 0; bucket < LARGE_ORDERS; bucket++)
+	{
+		maxSteps += map->largePoolFree[bucket].freeBlocks;
+	}
+
+	steps = 0;
+	for (bucket = 0; bucket < LARGE_ORDERS; bucket++)
+	{
+		leader = map->largePoolFree[bucket].firstFreeBlock;
+		while (leader != 0)
+		{
+			if (!validateFreeBlock(sdrv, leader, &leading,
+					&trailer, &trailing))
+			{
+				return reportFreeListCorruption(sdrv, leader);
+			}
+
+			if (++steps > maxSteps)	/*	Cyclic corruption.	*/
+			{
+				return reportFreeListCorruption(sdrv, leader);
+			}
+
+			leader = leading.next;
+		}
+	}
+
+	return 0;
+}
+#endif	/*	SDR_FREELIST_SWEEP	*/
 
 static int insertFreeBlock(Sdr sdrv, SdrAddress leader, SdrAddress trailer)
 {

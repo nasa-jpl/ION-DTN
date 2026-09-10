@@ -263,6 +263,10 @@ extern void		joinTrace(Sdr, const char *, int);
 
 extern SdrMap		*_mapImage(Sdr sdrv);
 
+#ifdef SDR_FREELIST_SWEEP
+extern int		sweepLargePoolFreeList(Sdr sdrv);
+#endif
+
 #ifndef SDR_TRACE
 extern char		*_noTraceMsg(void);
 #endif

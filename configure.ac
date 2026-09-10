@@ -388,6 +388,22 @@ AS_IF([test "x$enable_ams_industrial" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"])
 
 #
+# allow the user running configure to enable the debug SDR free-list sweep:
+# validate the large-pool free list at every transaction commit so that a
+# corrupt link is caught in -- and attributed to -- the writing transaction.
+# Off by default; adds one free-list walk per modifying commit (cheap on a
+# DRAM/PMEM SDR, a syscall per fetch on a file-backed SDR).
+#
+AC_ARG_ENABLE([sdr-freelist-sweep],
+  [AS_HELP_STRING([--enable-sdr-freelist-sweep], [debug: validate the SDR large-pool free list at every transaction commit])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-sdr-freelist-sweep])])],
+  [enable_sdr_freelist_sweep=no])
+AS_IF([test "x$enable_sdr_freelist_sweep" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -DSDR_FREELIST_SWEEP"])
+
+#
 # allow the user running configure to enable the enhanced watch character option
 #
 AC_ARG_ENABLE([ewchar],

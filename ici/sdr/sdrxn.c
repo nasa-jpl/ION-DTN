@@ -2370,6 +2370,20 @@ int	sdr_end_xn(Sdr sdrv)
 #ifdef SDR_PERF_INSTRUMENTATION
 			SDR_PERF_XN_END(&sdr->perfCounters, &sdrv->perfStats);
 #endif
+#ifdef SDR_FREELIST_SWEEP
+			/*	Writer hunt: the transaction lock is still
+			 *	held, so validate the whole large-pool free
+			 *	list now.  If this modifying transaction
+			 *	corrupted a link, sweepLargePoolFreeList (via
+			 *	reportFreeListCorruption) logs it, prints the
+			 *	stack naming the writer, and crashes the
+			 *	transaction -- so skip the commit here.		*/
+			if (sdr->modified && !sdr->xnCanceled
+			&& sweepLargePoolFreeList(sdrv) < 0)
+			{
+				return 0;
+			}
+#endif
 			terminateXn(sdrv);
 		}
 
@@ -2641,6 +2655,7 @@ void _sdrput(const char *file, int line, Sdr sdrv, SdrAddress into, char *from,
 	if (length > sdr->dsSize || into > sdr->dsSize - length)
 	{
 		_putErrmsg(file, line, _violationMsg(), "write");
+		printStackTrace();	/*	Names the writer.	*/
 		crashXn(sdrv);
 		return;
 	}
@@ -2650,6 +2665,7 @@ void _sdrput(const char *file, int line, Sdr sdrv, SdrAddress into, char *from,
 		if (sdrBoundaryViolated(sdrv, into, length))
 		{
 			_putErrmsg(file, line, _violationMsg(), "write");
+			printStackTrace();	/*	Names the writer.	*/
 			crashXn(sdrv);
 			return;
 		}
@@ -2803,6 +2819,7 @@ void _sdrfetch(Sdr sdrv, char *into, SdrAddress from, size_t length)
 	{
 		memset(into, 0, length);	/*	Default value.	*/
 		putErrmsg(_violationMsg(), "read");
+		printStackTrace();	/*	Names the reader.	*/
 		crashXn(sdrv);			/*	Releases SDR.	*/
 		return;
 	}
