@@ -2792,6 +2792,13 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 		return;
 
 	case cell_status:
+		/* Prevent NULL dereference on zero-length supplement */
+		if (msg->supplementLength < 1)
+		{
+			putErrmsg("cell_status lacks supplement data.", NULL);
+			return;
+		}
+
 		unitNbr = (((unsigned int) msg->memo) >> 8) & 0x0000ffff;
 		if (unitNbr > MAX_UNIT_NBR)
 		{
@@ -2804,6 +2811,15 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 		/*	First, flag for implied unregistrations.	*/
 
 		moduleCount = (unsigned char) (msg->supplement[0]);
+
+		/* Prevent heap out-of-bounds read */
+		if (moduleCount > (msg->supplementLength - 1))
+		{
+			putErrmsg("cell_status module count exceeds "
+			          "available supplement buffer.", NULL);
+			return;
+		}
+
 		for (i = 1; i <= moduleCount; i++)
 		{
 			moduleNbr = (unsigned char) (msg->supplement[i]);
