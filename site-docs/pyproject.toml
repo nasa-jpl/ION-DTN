@@ -3,5 +3,5 @@ name = "ion-docs"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "zensical>=0.0.55",
+    "zensical>=0.0.68",
 ]
