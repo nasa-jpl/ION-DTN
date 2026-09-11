@@ -2679,7 +2679,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 
 int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 {
-	int	textLength;
+	int		textLength;
 	char	*silence = "";
 	AmsEvt	*evt;
 
@@ -2693,20 +2693,29 @@ int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 		textLength = strlen(text);
 	}
 
-	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
+	/* Prevent integer overflow during allocation sizing */
+	if (textLength > (INT_MAX - (int)sizeof(AmsEvt) - 1))
+	{
+		putErrmsg("Crash text too long to allocate.", NULL);
+		return ERROR;
+	}
+
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt) + textLength + 1);
 	if (evt == NULL)
 	{
 		putErrmsg("Can't allocate memory for MAMS crash event.", NULL);
-		return -1;
+		return ERROR;
 	}
+
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
 	evt->value[textLength] = '\0';
+
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue MAMS crash.", NULL);
 		MRELEASE(evt);
-		return -1;
+		return ERROR;
 	}
 
 	return 0;

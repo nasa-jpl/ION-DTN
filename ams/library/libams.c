@@ -230,16 +230,25 @@ static int	enqueueAmsCrash(AmsSAP *sap, char *text)
 		textLength = strlen(text);
 	}
 
-	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
+	/* Prevent integer overflow during allocation sizing */
+	if (textLength > (INT_MAX - (int)sizeof(AmsEvt) - 1))
+	{
+		putErrmsg("Crash text too long to allocate.", NULL);
+		return ERROR;
+	}
+
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt) + textLength + 1);
 	CHKERR(evt);
+
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
 	evt->value[textLength] = '\0';
+
 	if (enqueueAmsEvent(sap, evt, NULL, 0, 0, AmsMsgNone) < 0)
 	{
 		putErrmsg("Can't enqueue AMS crash event.", NULL);
 		MRELEASE(evt);
-		return -1;
+		return ERROR;
 	}
 
 	return 0;
