@@ -52,7 +52,7 @@ For LTS or BETR levels of support, the following operating system/architectures 
 
 If you plan to contribute code to the ION project, please
 
-- Submit code that adheres to the [ION Coding Guide](../coding-guide.md) as much as possible,
+- Submit code that adheres to the [development guide](../development-guide.md) as much as possible,
 - Document software design in a markdown file with as much detail possible to facilitate a easier review process,
 - Provide a canned unit test (with ION configuration files and launch and test scripts) that can be executed on a single host to verify the proper functioning of the feature or bugfix.
 - Due to resource constraints, we cannot make any commitment as to response time and whether to accept the submission or not. We will do our best to review them and let you know.

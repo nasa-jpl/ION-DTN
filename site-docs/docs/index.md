@@ -228,7 +228,7 @@ available (currently being updated for BPv7).
 
 - [Writing Applications for ION](./writing-applications-for-ion.md) · [ION Application Service Interface](./application-services-api.md) · [BP Service API](./bp-service-api.md).
 - [Public Administration API Guide](./public-admin-api-guide.md) — configure ION, LTP, and BP from C.
-- [ICI API](./ici-api.md) · [Extension Block Interface](./extension-block-interface.md) · [ION Coding Guide](./coding-guide.md).
+- [ICI API](./ici-api.md) · [Extension Block Interface](./extension-block-interface.md) · [Development guide](./development-guide.md).
 
 **Operate**
 
@@ -258,5 +258,5 @@ available (currently being updated for BPv7).
   DTN and ION references.
 - **License:** ION is released under the MIT License; see the
   [LICENSE](./license.md).
-- **Contributing:** see the [ION Coding Guide](./coding-guide.md) for
+- **Contributing:** see the [development guide](./development-guide.md) for
   conventions when submitting changes.

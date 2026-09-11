@@ -62,6 +62,9 @@ nav = [
         { "ION Node Restart Utility" = "man/restart/ionrestart.md" },
         { "Delay Tolerant Key Administration" = "man/tc/index.md" },
     ] },
+    { "Contribute" = [
+        { "Development guide" = "development-guide.md" },
+    ] },
     { "Topics" = [
         { "SDR Reversibility" = "topics/deep-dive-sdr-reversibility.md" },
         { "LTP UDP Multisend & Tuning" = "topics/ltp-udp-multisend-tuning.md" },
@@ -80,7 +83,6 @@ nav = [
         { "Static analysis notes" = "static-analysis.md" },
         { "ION Utility Programs" = "utilities.md" },
         { "ION Monitoring Guide" = "monitoring-guide.md" },
-        { "ION Coding Guide" = "coding-guide.md" },
         { "SPP, EPP, and File CLA Description" = "spp-epp-file-cla-description.md" },
         { "IPN Naming Scheme Transition" = "ipn-naming-scheme-transition.md" },
         { "Archived Software" = "archive.md" },

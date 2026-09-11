@@ -220,7 +220,7 @@ To add a test: create `tests/my-test/dotest` executable.
 
 ### Code Style
 
-- Follow [coding-guide](coding-guide.md) for coding guidance
+- Follow [development guide](development-guide.md) for coding guidance
 - Function naming: camelCase for public APIs, snake_case less common
 - Error handling: Return -1/NULL on error, putErrmsg() for error messages
 - Logging: writeErrMemo() for critical errors, writeMemo() for info
