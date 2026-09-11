@@ -63,6 +63,7 @@ nav = [
         { "Delay Tolerant Key Administration" = "man/tc/index.md" },
     ] },
     { "Contribute" = [
+        { "Contributing guide" = "contributing-guide.md" },
         { "Development guide" = "development-guide.md" },
         { "Documentation guide" = "documentation-guide.md" },
     ] },
