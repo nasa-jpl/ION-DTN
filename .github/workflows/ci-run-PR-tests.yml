@@ -44,6 +44,7 @@ jobs:
       is-duplicate: ${{ steps.final-needs-tests.outputs.is_duplicate }}
       tests-subset: ${{ steps.determine-tests.outputs.tests_to_run }}
       pr-number: ${{ github.event.pull_request.number }}
+      pr-sha: ${{ github.event.pull_request.head.sha }}
       enable_retest_value: ${{ steps.determine-tests.outputs.enable_retest_value }}
     steps:
       - uses: actions/checkout@v6
@@ -197,6 +198,8 @@ jobs:
                 (needs.detect-changes.result == 'cancelled' ||
                  (needs.detect-changes.result != 'success' && needs.detect-changes.result != 'skipped' && needs.detect-changes.outputs.needs-tests == '')) }}
         uses: actions/github-script@v7
+        env:
+          PR_SHA: ${{ needs.detect-changes.outputs.pr-sha }}
         with:
           script: |
             const requiredContexts = [
@@ -209,25 +212,19 @@ jobs:
               'ci/arc-runner-set-rhel9'
             ];
 
-            const prNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
+            const sha = process.env.PR_SHA;
 
-            if (!prNumber) {
+            if (!sha) {
                console.log("No PR detected. Skipping status updates.");
                return;
             }
-
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
 
             for (const statusContext of requiredContexts) {
               console.log(`Setting ${statusContext} to failure (workflow cancelled during detect-changes)`);
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                sha: pr.head.sha,
+                sha: sha,
                 state: 'failure',
                 context: statusContext,
                 description: 'Tests cancelled (Workflow was cancelled)'
@@ -238,7 +235,7 @@ jobs:
         if: ${{ needs.run-solaris-tests.outputs.status != '' }}
         uses: ./.github/actions/set-pr-status
         with:
-          pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+          sha: ${{ needs.detect-changes.outputs.pr-sha }}
           context: "ci/solaris"
           state: ${{ needs.run-solaris-tests.outputs.status }}
 
@@ -246,7 +243,7 @@ jobs:
         if: ${{ needs.run-arc-tests.outputs.status_payload != '' }}
         uses: ./.github/actions/set-pr-status
         with:
-          pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+          sha: ${{ needs.detect-changes.outputs.pr-sha }}
           status_payload: ${{ needs.run-arc-tests.outputs.status_payload }}
 
   skip-tests:
@@ -256,6 +253,8 @@ jobs:
     steps:
       - name: Send Bypassed Statuses to GitHub API
         uses: actions/github-script@v7
+        env:
+          PR_SHA: ${{ needs.detect-changes.outputs.pr-sha }}
         with:
           script: |
             const requiredContexts = [
@@ -268,26 +267,20 @@ jobs:
               'ci/arc-runner-set-rhel9'
             ];
 
-            const prNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
+            const sha = process.env.PR_SHA;
 
             // If triggered manually without a PR, we don't need to post statuses
-            if (!prNumber) {
+            if (!sha) {
                console.log("No PR detected. Skipping status updates.");
                return;
             }
-
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
 
             for (const statusContext of requiredContexts) {
               console.log(`Bypassing tests: Setting ${statusContext} to success`);
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                sha: pr.head.sha,
+                sha: sha,
                 state: 'success',
                 context: statusContext,
                 description: 'Tests bypassed (Draft PR or no relevant files changed)'

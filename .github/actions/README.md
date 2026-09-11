@@ -92,6 +92,12 @@ to distribute tests based on git history.
   Use this OR context/state, not both.
 - `pr_number` (optional): PR number.
   If omitted, auto-detects from branch.
+- `sha` (optional): exact commit SHA to attach the status to.
+  Takes priority over `pr_number` and skips the PR-head lookup entirely.
+  Prefer this over `pr_number` whenever the caller already knows the
+  SHA it tested (e.g., captured early in a PR-triggered run) -- looking
+  up the PR's live head instead lets a late-finishing or superseded run
+  attach its status to a commit it never tested.
 
 **Status Payload Format:**
 
@@ -125,8 +131,10 @@ to distribute tests based on git history.
 
 **Behavior:**
 
-- Auto-detects PR if `pr_number` not provided
-- Skips gracefully if no PR found (not an error)
+- Uses `sha` directly if provided; otherwise resolves the PR's current
+  head via `pr_number` (auto-detecting `pr_number` from branch if that
+  is also omitted)
+- Skips gracefully if neither resolves to anything (not an error)
 - Sets commit status via GitHub API for each context
 
 **Used by:**

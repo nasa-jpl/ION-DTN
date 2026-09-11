@@ -18,13 +18,21 @@ inputs:
     description: "The Pull Request number (Optional, will auto-detect if omitted)"
     required: false
     default: ""
+  sha:
+    description: >-
+      Exact commit SHA to attach the status to. When set, skips the live
+      PR-head lookup, so a late-finishing or superseded run can't attach its
+      status to whatever the PR's head has since moved to. Takes priority
+      over pr_number.
+    required: false
+    default: ""
 
 runs:
   using: "composite"
   steps:
     - name: Auto-detect PR Number
       id: detect-pr
-      if: ${{ inputs.pr_number == '' }}
+      if: ${{ inputs.pr_number == '' && inputs.sha == '' }}
       uses: actions/github-script@v9
       env:
         REF_NAME: ${{ github.ref_name }}
@@ -58,18 +66,12 @@ runs:
       env:
         # Prioritize the provided input; if empty, fall back to the detected output
         PR_NUMBER: ${{ inputs.pr_number || steps.detect-pr.outputs.pr_number }}
+        SHA: ${{ inputs.sha }}
         STATUS_CONTEXT: ${{ inputs.context }}
         STATUS_STATE: ${{ inputs.state }}
         STATUS_PAYLOAD: ${{ inputs.status_payload }}
       with:
         script: |
-          if (!process.env.PR_NUMBER) {
-            console.log('No PR number provided or detected. Skipping status update.');
-            return;
-          }
-
-          const prNumber = parseInt(process.env.PR_NUMBER, 10);
-
           // Determine which input method is being used
           let statuses = {};
           if (process.env.STATUS_CONTEXT && process.env.STATUS_STATE) {
@@ -93,17 +95,29 @@ runs:
             return;
           }
 
-          let pr;
-          try {
-            const { data } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
-            pr = data;
-          } catch (error) {
-            console.log(`PR #${prNumber} not found: ${error.message}`);
-            return;
+          // Resolve the target commit. A caller-provided sha is pinned to
+          // whatever was true when its run started; re-fetching the PR's
+          // live head here would let a late-finishing or superseded run
+          // attach its status to a commit it never tested.
+          let sha = process.env.SHA;
+          if (!sha) {
+            if (!process.env.PR_NUMBER) {
+              console.log('No PR number or SHA provided or detected. Skipping status update.');
+              return;
+            }
+
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            try {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              sha = data.head.sha;
+            } catch (error) {
+              console.log(`PR #${prNumber} not found: ${error.message}`);
+              return;
+            }
           }
 
           // Loop through the statuses and create commit statuses
@@ -112,7 +126,7 @@ runs:
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: pr.head.sha,
+              sha: sha,
               state: state,
               context: statusContext,
               description: `Tests ${state === "success" ? "passed" : "failed"}`,
