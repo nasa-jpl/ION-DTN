@@ -901,7 +901,7 @@ int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
  */
 tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 {
-	uint8_t idx;
+	int idx;
 	tnvc_t *result = NULL;
 
 

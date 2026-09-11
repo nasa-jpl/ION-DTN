@@ -1409,7 +1409,7 @@ vast  tnv_to_vast(tnv_t val, int *success)
 
 int tnvc_append(tnvc_t *dst, tnvc_t *src)
 {
-	uint8_t i;
+	vec_idx_t i;
 	vec_idx_t max;
 	int success = AMP_OK;
 
@@ -1505,7 +1505,7 @@ void tnvc_clear(tnvc_t* tnvc)
 
 int tnvc_compare(tnvc_t *t1, tnvc_t *t2)
 {
-	uint8_t i = 0;
+	vec_idx_t i = 0;
 	int diff = 0;
 	vecit_t it1, it2;
 
@@ -2246,7 +2246,7 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	int err;
 	blob_t types;
 	int success;
-	uint8_t i;
+	int i;
 	int num;
 
 

@@ -265,7 +265,7 @@ void vec_lock(vector_t *vec)
 int vec_make_room(vector_t *vec, vec_idx_t extra)
 {
 	size_t needed = 0;
-	vec_idx_t new_size = 0;
+	size_t new_size = 0;
 	vector_entry_t *tmp = NULL;
 
 	CHKERR(vec);
