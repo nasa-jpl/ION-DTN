@@ -6401,6 +6401,7 @@ int bpClone(Bundle *oldBundle, Bundle *newBundle, SdrObject *newBundleObj,
 	newBundle->incompleteElt = 0;
 	newBundle->ductXmitElt = 0;
 	newBundle->planXmitElt = 0;
+	newBundle->transitElt = 0;
 
 	/*	Retain relevant routing information.			*/
 
