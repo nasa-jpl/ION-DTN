@@ -312,7 +312,7 @@ static int proactivelyFragment(Bundle *bundle, SdrObject *bundleObj,
 }
 
 static int enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
-		SdrObject bundleObj, IonNode *terminusNode)
+		SdrObject *bundleObj, IonNode *terminusNode)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -391,7 +391,7 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 		&& bundle->payload.length > 1
 		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
-			if (proactivelyFragment(bundle, &bundleObj, route) < 0)
+			if (proactivelyFragment(bundle, bundleObj, route) < 0)
 			{
 				putErrmsg("Anticipatory fragmentation failed.",
 						NULL);
@@ -408,7 +408,7 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
 		contact = (IonCXref *) psp(ionwm, addr);
 		event.time = contact->toTime;
-		event.ref = bundleObj;
+		event.ref = *bundleObj;
 		bundle->overdueElt = insertBpTimelineEvent(&event);
 		if (bundle->overdueElt == 0)
 		{
@@ -416,7 +416,7 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 			return -1;
 		}
 
-		sdr_write(getIonsdr(), bundleObj, (char *) bundle,
+		sdr_write(getIonsdr(), *bundleObj, (char *) bundle,
 				sizeof(Bundle));
 	}
 
@@ -430,7 +430,7 @@ on MAX_XMIT_COPIES routes; not forwarding to another neighbor", nbrBuf);
 	isprintf(neighborEid, sizeof neighborEid, "ipn:%s.0", nbrBuf);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
-	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+	if (bpEnqueue(vplan, bundle, *bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;
@@ -533,7 +533,7 @@ static SdrObject nextBundle(QueueControl *queueControls, int *queueIdx)
 }
 
 static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
-			CgrTrace *trace)
+			SdrObject newBundleObj, CgrTrace *trace)
 {
 	Sdr		sdr = getIonsdr();
 	char		nbrBuf[FQN_MAX_LENGTH];
@@ -619,6 +619,14 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 		}
 
 		bundleObj = sdr_list_data(sdr, elt);
+		if (bundleObj == newBundleObj)
+		{
+			/*	Don't reforward the bundle being
+			 *	accommodated; bump other bundles.	*/
+
+			continue;
+		}
+
 		sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 		eccc = computeECCC(guessBundleSize(&bundle));
 
@@ -714,7 +722,7 @@ static int sendCriticalBundle(Bundle *bundle, SdrObject bundleObj,
 			bundleObj = newBundleObj;
 		}
 
-		if (enqueueToEntryNode(route, bundle, bundleObj, terminusNode))
+		if (enqueueToEntryNode(route, bundle, &bundleObj, terminusNode))
 		{
 			putErrmsg("Can't queue for neighbor.", NULL);
 			lyst_destroy(bestRoutes);
@@ -827,7 +835,7 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 	return 1;
 }
 
-static int tryCGR(Bundle *bundle, SdrObject bundleObj, IonNode *terminusNode,
+static int tryCGR(Bundle *bundle, SdrObject *bundleObjPtr, IonNode *terminusNode,
 		time_t atTime, CgrTrace *trace, int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
@@ -840,6 +848,7 @@ static int tryCGR(Bundle *bundle, SdrObject bundleObj, IonNode *terminusNode,
 	CgrRoute	*route;
 	Bundle		newBundle;
 	SdrObject	newBundleObj;
+	SdrObject	bundleObj = *bundleObjPtr;
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -955,18 +964,25 @@ static int tryCGR(Bundle *bundle, SdrObject bundleObj, IonNode *terminusNode,
 		TRACE(CgrUseRoute, route->toFqnn);
 		if (!preview && forwardOkay(route, bundle))
 		{
-			if (enqueueToEntryNode(route, bundle, bundleObj,
+			if (enqueueToEntryNode(route, bundle, &bundleObj,
 					terminusNode))
 			{
 				putErrmsg("Can't queue for neighbor.", NULL);
 				return -1;
 			}
 
+			/*	enqueueToEntryNode may replace the bundle
+			 *	with a proactively-fragmented first
+			 *	fragment; propagate the current object so
+			 *	the caller acts on it, not the original.*/
+
+			*bundleObjPtr = bundleObj;
+
 #if (MANAGE_OVERBOOKING == 1)
 			/*	Handle any contact overbooking caused
 			 *	by enqueuing this bundle.		*/
 
-			if (manageOverbooking(route, bundle, trace))
+			if (manageOverbooking(route, bundle, bundleObj, trace))
 			{
 				putErrmsg("Can't manage overbooking", NULL);
 				return -1;
@@ -1197,7 +1213,7 @@ static int enqueueBundle(Bundle *bundle, SdrObject bundleObj, CgrSAP sap)
 
 	if (ionRegionOf(fqnn, 0, &regionNbr) >= 0)
 	{
-		if (tryCGR(bundle, bundleObj, node, getCtime(), trace, 0))
+		if (tryCGR(bundle, &bundleObj, node, getCtime(), trace, 0))
 		{
 			putErrmsg("CGR failed.", NULL);
 			return -1;
