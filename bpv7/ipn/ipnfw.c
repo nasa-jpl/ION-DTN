@@ -648,6 +648,13 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 		removeBundleFromQueue(&bundle, &plan);
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+
+		/*	Count this as a reforward, like the convergence-
+		 *	layer-failure and overdue-timeout reforward paths
+		 *	do, so overbooking activity is visible in the
+		 *	reforward (rfw) statistics.			*/
+
+		bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);
 		if (bpReforwardBundle(bundleObj) < 0)
 		{
 			putErrmsg("Overbooking management failed.", NULL);
