@@ -17,6 +17,12 @@
 
 #include "ion_atomic.h"
 
+#define UDPCLA_RECEIVE_BUFFER_SIZE (4 * 1024 * 1024)
+
+#if defined(__linux__) && !defined(SO_RCVBUFFORCE)
+#define SO_RCVBUFFORCE 33
+#endif
+
 /*	*	*	Sender functions	*	*	*	*/
 
 static int openUdpSocket(int *sock)
@@ -189,6 +195,7 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	IonNetworkAddress bind_addr;
 	socklen_t         addr_len;
 	int               sockFlags;
+	int               receiveBufferResult = -1;
 
 	if (!endpoint || !claSock)
 	{
@@ -220,6 +227,23 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	{
 		putErrmsg("Can't initialize UDP CLA socket", endpoint);
 		return -1;
+	}
+
+	/* Keep a burst of MTU-safe BP fragments from overrunning the CLI. */
+#ifdef SO_RCVBUFFORCE
+	receiveBufferResult = setsockopt(claSock->main_socket, SOL_SOCKET,
+			SO_RCVBUFFORCE, &(int){UDPCLA_RECEIVE_BUFFER_SIZE},
+			sizeof(int));
+#endif
+	if (receiveBufferResult < 0)
+	{
+		receiveBufferResult = setsockopt(claSock->main_socket, SOL_SOCKET,
+				SO_RCVBUF, &(int){UDPCLA_RECEIVE_BUFFER_SIZE},
+				sizeof(int));
+	}
+	if (receiveBufferResult < 0)
+	{
+		writeMemo("[?] Can't enlarge UDP CLA receive buffer.");
 	}
 
 	/* Get actual bound address using getsockname() */

@@ -569,6 +569,14 @@ int ion_add_range(time_t from_time, time_t to_time,
                   uvast from_node, uvast to_node,
                   unsigned int owlt)
 {
+	return ion_add_range_ms(from_time, to_time, from_node, to_node,
+			owlt, 0);
+}
+
+int ion_add_range_ms(time_t from_time, time_t to_time,
+                  uvast from_node, uvast to_node,
+                  unsigned int owlt, uint16_t owlt_millis)
+{
 	PsmAddress	xaddr;
 	int		announce = 0;	/* Assumption: Don't announce range (private) */
 
@@ -608,9 +616,16 @@ int ion_add_range(time_t from_time, time_t to_time,
 		return -1;
 	}
 
+	if (owlt_millis > 999)
+	{
+		putErrmsg("OWLT millisecond component must be in the range 0-999.",
+				NULL);
+		return -1;
+	}
+
 	/* Insert the range */
-	if (rfx_insert_range(from_time, to_time, from_node, to_node,
-			owlt, &xaddr, announce) == 0)
+	if (rfx_insert_range_ms(from_time, to_time, from_node, to_node,
+			owlt, owlt_millis, &xaddr, announce) == 0)
 	{
 		return 0;
 	}

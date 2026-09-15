@@ -164,17 +164,17 @@ typedef struct
 	/*	Contact that forms the initial hop of the route.	*/
 
 	uvast		toFqnn;	/*	Initial-hop neighbor.	*/
-	time_t		fromTime;	/*	As from time(2).	*/
+	double		fromTime;	/* Unix time, fractional. */
 
 	/*	Time at which route shuts down: earliest contact
 	 *	end time among all contacts in the end-to-end path.	*/
 
-	time_t		toTime;		/*	As from time(2).	*/
+	double		toTime;		/* Unix time, fractional. */
 
 	/*	Details of the route.					*/
 
 	float		arrivalConfidence;
-	time_t		arrivalTime;	/*	Earliest arrival time.	*/
+	double		arrivalTime;	/* Unix time with subsecond OWLT. */
 	PsmAddress	hops;		/*	SM list: IonCXref addr.	*/
 
 	/*	Transient values, valid only for the routing of the
@@ -189,8 +189,8 @@ typedef struct
 	Scalar		committed;	/*	Bytes not overbooked.	*/
 	double		maxVolumeAvbl;
 	size_t		bundleECCC;
-	time_t		eto;		/*	Earliest xmit oppor'ty.	*/
-	time_t		pbat;		/*	Proj. bundle arr. time.	*/
+	double		eto;		/* Earliest xmit opportunity. */
+	double		pbat;		/* Projected bundle arrival time. */
 
 	/*	NOTE: initial transmission on the "spur" portion of
 	 *	this route is from the contact identified by rootOfSpur

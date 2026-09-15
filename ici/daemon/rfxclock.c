@@ -14,6 +14,32 @@
 #define	MAX_SECONDS_UNCLAIMED	(3)
 #endif
 
+#ifndef RFXCLOCK_POLL_MSEC
+#define RFXCLOCK_POLL_MSEC	(1000)
+#endif
+
+static unsigned int	getPollIntervalMs(void)
+{
+	char	*configured = getenv("ION_RFXCLOCK_POLL_MSEC");
+	char	*end;
+	long	parsed;
+
+	if (configured == NULL || *configured == '\0')
+	{
+		return RFXCLOCK_POLL_MSEC;
+	}
+
+	parsed = strtol(configured, &end, 10);
+	if (*end != '\0' || parsed < 1 || parsed > 1000)
+	{
+		writeMemoNote("[?] Invalid ION_RFXCLOCK_POLL_MSEC; using default",
+				configured);
+		return RFXCLOCK_POLL_MSEC;
+	}
+
+	return (unsigned int) parsed;
+}
+
 static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
@@ -83,7 +109,8 @@ static int	setProbeIsDue(unsigned long destFqnn,
  *	0 otherwise.							*/
 
 static int	findAdjacentStartEvent(IonVdb *vdb, time_t eventTime,
-			IonEventType startType, uvast fromFqnn, uvast toFqnn)
+			uint16_t eventTimeMs, IonEventType startType,
+			uvast fromFqnn, uvast toFqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
@@ -99,14 +126,16 @@ static int	findAdjacentStartEvent(IonVdb *vdb, time_t eventTime,
 		addr = sm_rbt_data(ionwm, elt);
 		candidateEvent = (IonEvent *) psp(ionwm, addr);
 
-		if (candidateEvent->time > eventTime)
+		if (ionCompareTimestamp(candidateEvent->time,
+			candidateEvent->timeMillis, eventTime, eventTimeMs) > 0)
 		{
-			break;	/*	Past the time we're looking for.*/
+			break;	/* Past the time we are looking for. */
 		}
 
-		if (candidateEvent->time < eventTime)
+		if (ionCompareTimestamp(candidateEvent->time,
+			candidateEvent->timeMillis, eventTime, eventTimeMs) < 0)
 		{
-			continue;	/*	Not there yet.		*/
+			continue;	/* Not there yet. */
 		}
 
 		/*	Same time - check if it's the Start event
@@ -141,6 +170,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	PsmAddress	alarmAddr;
 	IonAlarm	*alarm;
 	time_t		currentTime;
+	time_t		adjacentFireTime;
+	uint16_t	adjacentFireTimeMs;
 
 	switch (event->type)
 	{
@@ -171,7 +202,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	If found, skip setting xmitRate to 0 to maintain
 		 *	seamless transmission across adjacent contacts.	*/
 
-		if (findAdjacentStartEvent(vdb, event->time, IonStartXmit,
+		if (findAdjacentStartEvent(vdb, event->time, event->timeMillis,
+				IonStartXmit,
 				cxref->fromFqnn, cxref->toFqnn))
 		{
 #if DEBUG_RFX
@@ -217,7 +249,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	If found, skip setting fireRate to 0 to maintain
 		 *	seamless timer management across adjacent contacts.	*/
 
-		if (findAdjacentStartEvent(vdb, event->time, IonStartFire,
+		if (findAdjacentStartEvent(vdb, event->time, event->timeMillis,
+				IonStartFire,
 				cxref->fromFqnn, cxref->toFqnn))
 		{
 #if DEBUG_RFX
@@ -274,9 +307,14 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		if (findAdjacentStartEvent(vdb, event->time, IonStartRecv,
+		ionShiftTimestamp(event->time, event->timeMillis,
+				-(long) neighbor->owltInbound,
+				-(int) neighbor->owltInboundMillis,
+				&adjacentFireTime, &adjacentFireTimeMs);
+		if (findAdjacentStartEvent(vdb, event->time, event->timeMillis,
+				IonStartRecv,
 				cxref->fromFqnn, cxref->toFqnn)
-		|| findAdjacentStartEvent(vdb, event->time - neighbor->owltInbound,
+		|| findAdjacentStartEvent(vdb, adjacentFireTime, adjacentFireTimeMs,
 				IonStartFire, cxref->fromFqnn, cxref->toFqnn))
 		{
 #if DEBUG_RFX
@@ -313,6 +351,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			if (neighbor)
 			{
 				neighbor->owltOutbound = rxref->owlt;
+				neighbor->owltOutboundMillis = rxref->owltMillis;
 			}
 		}
 
@@ -322,6 +361,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			if (neighbor)
 			{
 				neighbor->owltInbound = rxref->owlt;
+				neighbor->owltInboundMillis = rxref->owltMillis;
 			}
 		}
 
@@ -403,7 +443,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			int adjacentAtStart = 0;
 			int adjacentAtEnd = 0;
 
-			if (cxref->startFire == cxref->fromTime)
+			if (ionCompareTimestamp(cxref->startFire, cxref->startFireMs,
+				cxref->fromTime, cxref->fromTimeMs) == 0)
 			{
 				/*	No maxClockError at start = adjacent
 				 *	contact before this one.		*/
@@ -411,7 +452,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 				adjacentAtStart = 1;
 			}
 
-			if (cxref->stopFire == cxref->toTime)
+			if (ionCompareTimestamp(cxref->stopFire, cxref->stopFireMs,
+				cxref->toTime, cxref->toTimeMs) == 0)
 			{
 				/*	No maxClockError at end = adjacent
 				 *	contact after this one.			*/
@@ -428,21 +470,24 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			newEvent = (IonEvent *) psp(ionwm, addr);
 			if (adjacentAtStart)
 			{
-				/*	Adjacent contact: no maxClockError
-				 *	adjustment at start.			*/
-
-				cxref->startRecv = newEvent->time =
-					cxref->startFire + neighbor->owltInbound;
+				/* Adjacent contact: no clock-error adjustment. */
+				ionShiftTimestamp(cxref->startFire, cxref->startFireMs,
+						(long) neighbor->owltInbound,
+						(int) neighbor->owltInboundMillis,
+						&cxref->startRecv, &cxref->startRecvMs);
 			}
 			else
 			{
-				/*	Normal contact: apply maxClockError.	*/
-
-				cxref->startRecv = newEvent->time =
-					cxref->startFire - iondb.maxClockError
-						+ neighbor->owltInbound;
+				ionShiftTimestamp(cxref->startFire, cxref->startFireMs,
+						(long) neighbor->owltInbound
+							- iondb.maxClockError,
+						(int) neighbor->owltInboundMillis
+							- iondb.maxClockErrorMillis,
+						&cxref->startRecv, &cxref->startRecvMs);
 			}
 
+			newEvent->time = cxref->startRecv;
+			newEvent->timeMillis = cxref->startRecvMs;
 			newEvent->type = IonStartRecv;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -461,20 +506,23 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			newEvent = (IonEvent *) psp(ionwm, addr);
 			if (adjacentAtEnd)
 			{
-				/*	Adjacent contact: no maxClockError
-				 *	adjustment at end.			*/
-
-				cxref->stopRecv = newEvent->time =
-					cxref->stopFire + neighbor->owltInbound;
+				/* Adjacent contact: no clock-error adjustment. */
+				ionShiftTimestamp(cxref->stopFire, cxref->stopFireMs,
+						(long) neighbor->owltInbound,
+						(int) neighbor->owltInboundMillis,
+						&cxref->stopRecv, &cxref->stopRecvMs);
 			}
 			else
 			{
-				/*	Normal contact: apply maxClockError.	*/
-
-				cxref->stopRecv = newEvent->time =
-					cxref->stopFire + iondb.maxClockError
-						+ neighbor->owltInbound;
+				ionShiftTimestamp(cxref->stopFire, cxref->stopFireMs,
+						(long) neighbor->owltInbound
+							+ iondb.maxClockError,
+						(int) neighbor->owltInboundMillis
+							+ iondb.maxClockErrorMillis,
+						&cxref->stopRecv, &cxref->stopRecvMs);
 			}
+			newEvent->time = cxref->stopRecv;
+			newEvent->timeMillis = cxref->stopRecvMs;
 			newEvent->type = IonStopRecv;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -496,6 +544,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 			newEvent = (IonEvent *) psp(ionwm, addr);
 			cxref->purgeTime = newEvent->time = cxref->stopRecv;
+			cxref->purgeTimeMs = newEvent->timeMillis = cxref->stopRecvMs;
 			newEvent->type = IonPurgeContact;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -552,8 +601,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_contact(cxref->regionNbr, &(cxref->fromTime),
-				cxref->fromFqnn, cxref->toFqnn, 0);
+		return rfx_remove_contact_ms(cxref->regionNbr, &(cxref->fromTime),
+				cxref->fromTimeMs, cxref->fromFqnn, cxref->toFqnn, 0);
 
 	case IonAlarmTimeout:
 		alarmAddr = event->ref;
@@ -684,6 +733,10 @@ int	main(void)
 	IonVdb		*vdb;
 	uaddr		start = 1;
 	time_t		currentTime;
+	uint16_t	currentTimeMs;
+	unsigned int	pollIntervalMs;
+	time_t		lastMaintenanceTime = 0;
+	int		doOneHzMaintenance;
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonProbe	*probe;
@@ -706,6 +759,7 @@ int	main(void)
 	ionwm = getIonwm();
 	vdb = getIonVdb();
 	isignal(SIGTERM, shutDown);
+	pollIntervalMs = getPollIntervalMs();
 
 	/*	Main loop: wait for event occurrence time, then
 	 *	execute applicable events.				*/
@@ -714,11 +768,11 @@ int	main(void)
 	writeMemo("[i] rfxclock is running.");
 	while (_running(NULL))
 	{
-		/*	Sleep for 1 second, then dispatch all events
-		 *	whose execution times have now been reached.	*/
+		/* Poll the fractional timeline.  Legacy housekeeping remains 1 Hz. */
 
-		snooze(1);
-		currentTime = getCtime();
+		microsnooze(pollIntervalMs * 1000);
+		getCtimeMs(&currentTime, &currentTimeMs);
+		doOneHzMaintenance = (currentTime != lastMaintenanceTime);
 		if (!sdr_begin_xn(sdr))
 		{
 			putErrmsg("rfxclock failed to begin new transaction.",
@@ -776,7 +830,8 @@ int	main(void)
 
 			addr = sm_rbt_data(ionwm, elt);
 			event = (IonEvent *) psp(ionwm, addr);
-			if (event->time > currentTime)
+			if (ionCompareTimestamp(event->time, event->timeMillis,
+					currentTime, currentTimeMs) > 0)
 			{
 				break;
 			}
@@ -798,25 +853,27 @@ int	main(void)
 		 *	have not yet claimed; let other applicants
 		 *	get access to ZCO space.			*/
 
-		for (i = 0; i < 2; i++)
+		if (doOneHzMaintenance)
 		{
-			for (elt = sm_list_first(ionwm, vdb->requisitions[i]);
-					elt; elt = nextElt)
+			for (i = 0; i < 2; i++)
 			{
-				nextElt = sm_list_next(ionwm, elt);
-				reqAddr = sm_list_data(ionwm, elt);
-				if (reqAddr == 0)
+				for (elt = sm_list_first(ionwm, vdb->requisitions[i]);
+					elt; elt = nextElt)
 				{
-					continue;
-				}
+					nextElt = sm_list_next(ionwm, elt);
+					reqAddr = sm_list_data(ionwm, elt);
+					if (reqAddr == 0)
+					{
+						continue;
+					}
 
-				req = (Requisition *) psp(ionwm, reqAddr);
-				switch (req->secondsUnclaimed)
-				{
-				case -1:	/*	Not serviced.	*/
-					break;	/*	Out of switch.	*/
+					req = (Requisition *) psp(ionwm, reqAddr);
+					switch (req->secondsUnclaimed)
+					{
+					case -1:	/*	Not serviced.	*/
+						break;	/*	Out of switch.	*/
 
-				case MAX_SECONDS_UNCLAIMED:
+					case MAX_SECONDS_UNCLAIMED:
 
 					/*	Requisition expired.  Free
 					 *	the requisition but leave
@@ -824,29 +881,31 @@ int	main(void)
 					 *	intact so the consumer can
 					 *	safely call ionShred().	*/
 
-					writeMemo("[?] ZCO space not claimed \
+						writeMemo("[?] ZCO space not claimed \
 in time, released to other applications.");
-					sm_SemEnd(req->semaphore);
-					sm_list_data_set(ionwm, elt, 0);
-					psm_free(ionwm, reqAddr);
-					continue;
+						sm_SemEnd(req->semaphore);
+						sm_list_data_set(ionwm, elt, 0);
+						psm_free(ionwm, reqAddr);
+						continue;
 
-				default:	/*	Still waiting.	*/
-					req->secondsUnclaimed++;
-					continue;
+					default:	/*	Still waiting.	*/
+						req->secondsUnclaimed++;
+						continue;
+					}
+
+					/*	No more serviced requisitions.	*/
+
+					break;		/*	Out of loop.	*/
 				}
-
-				/*	No more serviced requisitions.	*/
-
-				break;		/*	Out of loop.	*/
 			}
+			lastMaintenanceTime = currentTime;
 		}
 
-		/*	Finished all ION 1Hz processing.		*/
+		/* Finished fractional event and optional 1 Hz processing. */
 
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't do ION 1Hz updates.", NULL);
+			putErrmsg("Can't do ION timeline updates.", NULL);
 			return -1;
 		}
 

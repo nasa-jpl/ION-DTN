@@ -2361,30 +2361,19 @@ void	noteBundleRemoved(Bundle *bundle)
 
 void	getCurrentDtnTime(DtnTime *dt)
 {
-	struct timeval	tv;
+	time_t		ctimeSeconds;
+	uint16_t	ctimeMilliseconds;
 	uvast		tv_sec_epoch2000;
 	uvast		tv_sec_epoch2000_msec;
-	uvast		tv_usec_msec;
-
-	/* get delta from UTC 	*/
-
-	IonVdb *ionvdb = getIonVdb();
-	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
 
 	CHKVOID(dt);
-	if (gettimeofday(&tv, NULL) < 0)
-	{
-		putSysErrmsg("Can't get current DTN time", NULL);
-		*dt = 0;
-		return;
-	}
+	getCtimeMs(&ctimeSeconds, &ctimeMilliseconds);
 
 	/*	EPOCH_2000_SEC is 30 years of seconds.			*/
 
-	tv_sec_epoch2000 = tv.tv_sec - delta - EPOCH_2000_SEC;
+	tv_sec_epoch2000 = ctimeSeconds - EPOCH_2000_SEC;
 	tv_sec_epoch2000_msec = tv_sec_epoch2000 * 1000;
-	tv_usec_msec = tv.tv_usec / 1000;
-	*dt = tv_sec_epoch2000_msec + tv_usec_msec;
+	*dt = tv_sec_epoch2000_msec + ctimeMilliseconds;
 }
 
 Throttle	*applicableThrottle(VPlan *vplan)

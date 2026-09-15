@@ -153,7 +153,7 @@ range commands to the region.  Default is 0 (disable).");
 	PUTS("\t\texcept time '0' indicates a hypothetical contact");
 	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
 	PUTS("\t   a range <from time> <until time> <from node> <to node> \
-<OWLT, i.e., range in light seconds>");
+<OWLT seconds, optionally with millisecond precision>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c contact <from time> <from node> <to node> <xmit rate \
 in bytes per second> [confidence in occurrence]");
@@ -174,8 +174,8 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t\tThe Brief command generates a file of ionrc 'a' commands to");
 	PUTS("\t\tadd all ranges or add all contacts in the selected region.");
 	PUTS("\tm\tManage ION database: clock, space occupancy, etc.");
-	PUTS("\t   m utcdelta <local time minus correct UTC, in seconds>");
-	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
+	PUTS("\t   m utcdelta <local time minus correct UTC, seconds[.milliseconds]>");
+	PUTS("\t   m clockerr <maximum clock error, seconds[.milliseconds]>");
 	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
@@ -237,20 +237,123 @@ static int	initializeNode(int tokenCount, char **tokens)
 			0, 1.0, &xaddr, _announce(NULL));
 }
 
+static int	parseSecondsMilliseconds(char *text, unsigned int *seconds,
+			uint16_t *milliseconds)
+{
+	char		*decimalPoint;
+	char		secondsText[32];
+	size_t		wholeLength;
+	size_t		fractionLength;
+	size_t		i;
+	uvast		parsedSeconds;
+	unsigned int	parsedMilliseconds = 0;
+
+	CHKERR(text);
+	CHKERR(seconds);
+	CHKERR(milliseconds);
+	decimalPoint = strchr(text, '.');
+	wholeLength = decimalPoint ? (size_t) (decimalPoint - text)
+			: strlen(text);
+	if (wholeLength == 0 || wholeLength >= sizeof(secondsText))
+	{
+		return -1;
+	}
+
+	for (i = 0; i < wholeLength; i++)
+	{
+		if (!isdigit((unsigned char) text[i]))
+		{
+			return -1;
+		}
+	}
+
+	memcpy(secondsText, text, wholeLength);
+	secondsText[wholeLength] = '\0';
+	if (platform_parse_uvast(secondsText, &parsedSeconds) < 0
+	|| parsedSeconds > UINT_MAX)
+	{
+		return -1;
+	}
+
+	if (decimalPoint)
+	{
+		fractionLength = strlen(decimalPoint + 1);
+		if (fractionLength == 0 || fractionLength > 3)
+		{
+			return -1;
+		}
+
+		for (i = 0; i < fractionLength; i++)
+		{
+			if (!isdigit((unsigned char) decimalPoint[1 + i]))
+			{
+				return -1;
+			}
+
+			parsedMilliseconds = (parsedMilliseconds * 10)
+					+ (decimalPoint[1 + i] - '0');
+		}
+
+		while (fractionLength++ < 3)
+		{
+			parsedMilliseconds *= 10;
+		}
+	}
+
+	*seconds = (unsigned int) parsedSeconds;
+	*milliseconds = (uint16_t) parsedMilliseconds;
+	return 0;
+}
+
+static int	parseSignedSecondsMilliseconds(char *text, int *seconds,
+			int16_t *milliseconds)
+{
+	char		*magnitudeText;
+	int		sign = 1;
+	unsigned int	parsedSeconds;
+	uint16_t	parsedMilliseconds;
+
+	CHKERR(text);
+	CHKERR(seconds);
+	CHKERR(milliseconds);
+	magnitudeText = text;
+	if (*magnitudeText == '-' || *magnitudeText == '+')
+	{
+		if (*magnitudeText == '-')
+		{
+			sign = -1;
+		}
+
+		magnitudeText++;
+	}
+
+	if (parseSecondsMilliseconds(magnitudeText, &parsedSeconds,
+			&parsedMilliseconds) < 0 || parsedSeconds > INT_MAX)
+	{
+		return -1;
+	}
+
+	*seconds = sign * (int) parsedSeconds;
+	*milliseconds = sign * (int16_t) parsedMilliseconds;
+	return 0;
+}
+
 static void executeAdd(int tokenCount, char **tokens)
 {
 	uvast		ownFqnn = getOwnFqnn();
 	time_t		refTime;
 	time_t		fromTime;
+	uint16_t	fromTimeMs = 0;
 	time_t		toTime;
+	uint16_t	toTimeMs = 0;
 	uvast		fromFqnnNbr;
 	uvast		toFqnnNbr;
 	PsmAddress	xaddr;
 	unsigned int	xmitRate;
 	float		confidence;
 	unsigned int	owlt;
+	uint16_t	owltMillis;
 	uvast		parsed_xmitRate;
-	uvast		parsed_owlt;
 	double		parsed_double;
 	char		errMsg[256];
 
@@ -308,27 +411,41 @@ static void executeAdd(int tokenCount, char **tokens)
 		if (strncmp(tokens[2], "0", 2) == 0)
 		{
 			fromTime = 0;
+			fromTimeMs = 0;
 		}
 		else if (strncmp(tokens[2], "-1", 3) == 0)
 		{
 			fromTime = MAX_POSIX_TIME;
+			fromTimeMs = 0;
 		}
 		else
 		{
-			fromTime = readTimestampUTC(tokens[2], refTime);
+			if (readTimestampUTCMs(tokens[2], refTime, &fromTime,
+				&fromTimeMs) < 0)
+			{
+				printText("[?] Invalid contact start timestamp.");
+				return;
+			}
 		}
 
 		if (strncmp(tokens[3], "0", 2) == 0)
 		{
 			toTime = 0;
+			toTimeMs = 0;
 		}
 		else if (strncmp(tokens[3], "-1", 3) == 0)
 		{
 			toTime = MAX_POSIX_TIME;
+			toTimeMs = 0;
 		}
 		else
 		{
-			toTime = readTimestampUTC(tokens[3], refTime);
+			if (readTimestampUTCMs(tokens[3], refTime, &toTime,
+				&toTimeMs) < 0)
+			{
+				printText("[?] Invalid contact end timestamp.");
+				return;
+			}
 		}
 
 		if (fromTime == MAX_POSIX_TIME)
@@ -362,7 +479,8 @@ from or to node must be the local node and the other must not.");
 		}
 		else	/*	Scheduled contact.			*/
 		{
-			if (toTime <= fromTime)
+			if (ionCompareTimestamp(toTime, toTimeMs, fromTime,
+					fromTimeMs) <= 0)
 			{
 				printText("[?] Interval end time must be later \
 than start time and earlier than 19 January 2038.");
@@ -378,7 +496,8 @@ than start time and earlier than 19 January 2038.");
 			xmitRate = (unsigned int)parsed_xmitRate;
 		}
 
-		if (rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
+		if (rfx_insert_contact_ms(_regionNbr(NULL), fromTime, fromTimeMs,
+				toTime, toTimeMs,
 				fromFqnnNbr, toFqnnNbr, xmitRate, confidence,
 				&xaddr, _announce(NULL)) == 0)
 		{
@@ -399,16 +518,16 @@ time and earlier than 19 January 2038.");
 			return;
 		}
 
-		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
+		if (parseSecondsMilliseconds(tokens[6], &owlt, &owltMillis) < 0)
 		{
-			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: must be a positive integer within bounds. (Got: %s)", tokens[6]);
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: use non-negative seconds with up to three fractional digits. (Got: %s)", tokens[6]);
 			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
-		owlt = (unsigned int)parsed_owlt;
 
-		oK(rfx_insert_range(fromTime, toTime, fromFqnnNbr,
-				toFqnnNbr, owlt, &xaddr, _announce(NULL)));
+		oK(rfx_insert_range_ms(fromTime, toTime, fromFqnnNbr,
+				toFqnnNbr, owlt, owltMillis, &xaddr,
+				_announce(NULL)));
 		return;
 	}
 
@@ -419,6 +538,7 @@ static void executeChange(int tokenCount, char **tokens)
 {
 	time_t		refTime;
 	time_t		fromTime;
+	uint16_t	fromTimeMs;
 	uvast		fromFqnnNbr;
 	uvast		toFqnnNbr;
 	unsigned int	xmitRate;
@@ -462,8 +582,8 @@ static void executeChange(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	fromTime = readTimestampUTC(tokens[2], refTime);
-	if (fromTime == 0)
+	if (readTimestampUTCMs(tokens[2], refTime, &fromTime,
+			&fromTimeMs) < 0)
 	{
 		SYNTAX_ERROR;
 		return;
@@ -480,7 +600,8 @@ static void executeChange(int tokenCount, char **tokens)
 	}
 	xmitRate = (unsigned int)parsed_xmitRate;
 
-	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromFqnnNbr,
+	oK(rfx_revise_contact_ms(_regionNbr(NULL), fromTime, fromTimeMs,
+			fromFqnnNbr,
 			toFqnnNbr, xmitRate, confidence, _announce(NULL)));
 }
 
@@ -488,6 +609,7 @@ static void executeDelete(int tokenCount, char **tokens)
 {
 	time_t	refTime;
 	time_t	fromTime;
+	uint16_t	fromTimeMs = 0;
 	time_t	*scope = &fromTime;
 	uvast	fromFqnnNbr;
 	uvast	toFqnnNbr;
@@ -519,7 +641,20 @@ static void executeDelete(int tokenCount, char **tokens)
 	else				/*	Predicted or Scheduled.	*/
 	{
 		refTime = _referenceTime(NULL);
-		fromTime = readTimestampUTC(tokens[2], refTime);
+		if (strcmp(tokens[1], "contact") == 0)
+		{
+			if (readTimestampUTCMs(tokens[2], refTime, &fromTime,
+					&fromTimeMs) < 0)
+			{
+				SYNTAX_ERROR;
+				return;
+			}
+		}
+		else
+		{
+			fromTime = readTimestampUTC(tokens[2], refTime);
+		}
+
 		if (fromTime == 0)
 		{
 			SYNTAX_ERROR;
@@ -531,7 +666,8 @@ static void executeDelete(int tokenCount, char **tokens)
 	toFqnnNbr = getFqn(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(_regionNbr(NULL), scope, fromFqnnNbr,
+		oK(rfx_remove_contact_ms(_regionNbr(NULL), scope, fromTimeMs,
+				fromFqnnNbr,
 				toFqnnNbr, _announce(NULL)));
 		oK(_forecastNeeded(1));
 		return;
@@ -554,6 +690,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		fromTime;
+	uint16_t	fromTimeMs = 0;
 	uvast		fromFqnn;
 	uvast		toFqnn;
 	IonCXref	arg1;
@@ -635,7 +772,19 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 	else				/*	Predicted or Scheduled.	*/
 	{
-		fromTime = readTimestampUTC(tokens[2], refTime);
+		if (strcmp(tokens[1], "contact") == 0)
+		{
+			if (readTimestampUTCMs(tokens[2], refTime, &fromTime,
+					&fromTimeMs) < 0)
+			{
+				printText("[?] Invalid contact timestamp.");
+				return;
+			}
+		}
+		else
+		{
+			fromTime = readTimestampUTC(tokens[2], refTime);
+		}
 	}
 
 	fromFqnn = getFqn(tokens[3]);
@@ -643,10 +792,11 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));
-		oK(ionRegionOf(fromFqnn, toFqnn, &arg1.regionNbr));
+		arg1.regionNbr = _regionNbr(NULL);
 		arg1.fromFqnn = fromFqnn;
 		arg1.toFqnn = toFqnn;
 		arg1.fromTime = fromTime;
+		arg1.fromTimeMs = fromTimeMs;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
@@ -765,8 +915,9 @@ static void	executeBrief(int tokenCount, char **tokens)
 
 static void	manageUtcDelta(int tokenCount, char **tokens)
 {
-	int	newDelta;
-	char	errMsg[256];
+	int		newDelta;
+	int16_t		newDeltaMillis;
+	char		errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -774,7 +925,8 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (platform_parse_int(tokens[2], &newDelta) < 0)
+	if (parseSignedSecondsMilliseconds(tokens[2], &newDelta,
+			&newDeltaMillis) < 0)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid UTC delta: %s", tokens[2]);
@@ -782,7 +934,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 		return;
 	}
 
-	CHKVOID(setDeltaFromUTC(newDelta) == 0);
+	CHKVOID(setDeltaFromUTCMs(newDelta, newDeltaMillis) == 0);
 }
 
 static void	manageClockError(int tokenCount, char **tokens)
@@ -790,8 +942,9 @@ static void	manageClockError(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	SdrObject iondbObj = getIonDbObject();
 	IonDB	iondb;
-	int	newMaxClockError;
-	char	errMsg[256];
+	unsigned int	newMaxClockError;
+	uint16_t	newMaxClockErrorMillis;
+	char		errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -799,7 +952,8 @@ static void	manageClockError(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (platform_parse_int(tokens[2], &newMaxClockError) < 0)
+	if (parseSecondsMilliseconds(tokens[2], &newMaxClockError,
+			&newMaxClockErrorMillis) < 0)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid clock error: %s", tokens[2]);
@@ -807,15 +961,17 @@ static void	manageClockError(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (newMaxClockError < 0 || newMaxClockError > 60)
+	if (newMaxClockError > 60
+	|| (newMaxClockError == 60 && newMaxClockErrorMillis != 0))
 	{
-		putErrmsg("Maximum clock error out of range (0-60).", NULL);
+		putErrmsg("Maximum clock error out of range (0-60 seconds).", NULL);
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	iondb.maxClockError = newMaxClockError;
+	iondb.maxClockError = (int) newMaxClockError;
+	iondb.maxClockErrorMillis = newMaxClockErrorMillis;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 	if (sdr_end_xn(sdr) < 0)
 	{

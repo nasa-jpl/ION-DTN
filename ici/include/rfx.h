@@ -38,6 +38,18 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	Functions for inserting and removing contact notes.	*/
 
+extern int		rfx_insert_contact_ms(uint32_t regionNbr,
+				time_t fromTime,
+				uint16_t fromTimeMs,
+				time_t toTime,
+				uint16_t toTimeMs,
+				uvast fromFqnn,
+				uvast toFqnn,
+				size_t xmitRate,
+				float confidence,
+				PsmAddress *cxaddr,
+				int announce);
+
 extern int		rfx_insert_contact(uint32_t regionNbr,
 				time_t fromTime,
 				time_t toTime,
@@ -86,6 +98,15 @@ extern void		rfx_brief_contacts(uint32_t regionNbr);
 			 *	the indicated region.  The file's name
 			 *	will be 'contacts.REGIONNBR.ionrc'.	*/
 
+extern int		rfx_revise_contact_ms(uint32_t regionNbr,
+				time_t fromTime,
+				uint16_t fromTimeMs,
+				uvast fromFqnn,
+				uvast toFqnn,
+				size_t xmitRate,
+				float confidence,
+				int announce);
+
 extern int		rfx_revise_contact(uint32_t regionNbr,
 				time_t fromTime,
 				uvast fromFqnn,
@@ -99,6 +120,15 @@ extern int		rfx_revise_contact(uint32_t regionNbr,
 				Returns zero on success, -1 on any
 				system error, an indicative value
 				greater than 0 on any user error.	*/
+
+extern int		rfx_remove_contact_ms(uint32_t regionNbr,
+				time_t *fromTime,
+				uint16_t fromTimeMs,
+				uvast fromFqnn,
+				uvast toFqnn,
+				int announce);
+			/* Millisecond-aware variant.  A NULL fromTime
+			 * retains wildcard removal semantics. */
 
 extern int		rfx_remove_contact(uint32_t regionNbr,
 				time_t *fromTime,
@@ -120,6 +150,15 @@ extern int		rfx_insert_range(time_t fromTime,
 				uvast fromFqnn,
 				uvast toFqnn,
 				unsigned int owlt,
+				PsmAddress *rxaddr,
+				int announce);
+
+extern int		rfx_insert_range_ms(time_t fromTime,
+				time_t toTime,
+				uvast fromFqnn,
+				uvast toFqnn,
+				unsigned int owlt,
+				uint16_t owltMillis,
 				PsmAddress *rxaddr,
 				int announce);
 			/*	Creates a new IonRange object,
