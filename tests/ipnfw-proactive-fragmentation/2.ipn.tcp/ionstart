@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+ionadmin    amroc.ionrc
+ionadmin    global.ionrc
+ionsecadmin amroc.ionsecrc
+bpadmin     amroc.bprc

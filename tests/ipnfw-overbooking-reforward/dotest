@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# Regression test for CGR overbooking management.
+#
+# Two ~10 KB bundles are sent over a 2 -> 3 TCP link toward a small future
+# contact that can hold only about one of them.  The first is Bulk priority,
+# the second Expedited.  When the Expedited bundle is enqueued into that
+# contact it overbooks it, so overbooking management (manageOverbooking)
+# must reforward the lower-priority Bulk bundle already queued there; the
+# Bulk bundle is then routed onto a later, larger contact.
+#
+# The reforward is counted in the reforward (rfw) statistics, so the test
+# asserts that the sender's rfw tally is non-zero, that both bundles are
+# ultimately delivered, and that the sender did not corrupt its SDR.
+#
+# TCP is the convergence layer so nothing is lost and delivery is
+# deterministic.
+
+trap 'killm f' EXIT
+
+. ../test_utils.sh
+
+echo "########################################"
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo "PURPOSE: verify overbooking management reforwards a lower-priority"
+echo "  bundle when a higher-priority bundle overbooks its contact, that the"
+echo "  reforward is counted, and that both bundles are still delivered."
+echo "########################################"
+
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Two ~10 KB bundles: either fits the 12 KB first contact alone, but
+# together they overbook it.  Use dd, not "head -c", which is not portable
+# to Solaris.
+dd if=/dev/zero of=2.ipn.tcp/bulk.file bs=1000 count=10 2>/dev/null
+dd if=/dev/zero of=2.ipn.tcp/exp.file  bs=1000 count=10 2>/dev/null
+
+echo "Starting node 3 (receiver)..."
+cd 3.ipn.tcp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then
+	echo "Node 3 not started: aborting test"
+	exit 1
+fi
+
+echo "Starting node 2 (sender)..."
+cd ../2.ipn.tcp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then
+	echo "Node 2 not started: aborting test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+cd ../3.ipn.tcp
+bprecvfile ipn:3.1 &
+sleep 1
+
+cd ../2.ipn.tcp
+echo "Sending Bulk (priority 0) bundle, which books the small first contact..."
+bpsendfile ipn:2.1 ipn:3.1 bulk.file "0.0"
+sleep 3
+echo "Sending Expedited (priority 2) bundle, which overbooks that contact..."
+bpsendfile ipn:2.1 ipn:3.1 exp.file "0.2"
+cd ..
+
+echo "Waiting for both contacts to open and both bundles to be delivered..."
+sleep 35
+
+RETVAL=0
+
+# ---- 1. overbooking reforwarded the lower-priority bundle ----
+( cd 2.ipn.tcp && bpstats )
+sleep 1
+RFW=$(lastBpTally rfw 2.ipn.tcp/ion.log)
+echo "node 2 reforward tally: rfw=$RFW"
+if [ "$RFW" -ge 1 ]; then
+	echo "PASS: overbooking management reforwarded a lower-priority bundle (rfw=$RFW)."
+else
+	echo "FAIL: expected a reforward from overbooking management; got rfw=$RFW."
+	RETVAL=1
+fi
+
+# ---- 2. both bundles were ultimately delivered ----
+( cd 3.ipn.tcp && bpstats )
+sleep 1
+DLV=$(lastBpTally dlv 3.ipn.tcp/ion.log)
+echo "node 3 delivered tally: dlv=$DLV"
+if [ "$DLV" -ge 2 ]; then
+	echo "PASS: both bundles delivered (dlv=$DLV)."
+else
+	echo "FAIL: expected both bundles delivered (dlv>=2); got dlv=$DLV."
+	RETVAL=1
+fi
+
+# ---- 3. regression guard: sender must not have corrupted its SDR ----
+# Fixed-string greps (portable; Solaris grep lacks -E).
+if grep -q "SDR boundaries or integrity violation" 2.ipn.tcp/ion.log 2>/dev/null \
+	|| grep -q "Unrecoverable SDR error" 2.ipn.tcp/ion.log 2>/dev/null; then
+	echo "FAIL: SDR boundary violation detected on the sender."
+	RETVAL=1
+fi
+
+echo "Overbooking-reforward test completed (retval=$RETVAL)."
+exit $RETVAL

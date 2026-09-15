@@ -1,0 +1,8 @@
+# Contact 1 (small, future): holds ~one 10 KB bundle.  A second, higher-
+# priority bundle enqueued into it overbooks the contact, so overbooking
+# management must reforward the lower-priority (Bulk) bundle already there.
+# Contact 2 (later, larger): absorbs the reforwarded Bulk bundle.
+m horizon +0
+a range   +1 +3600   2 3   1
+a contact +10 +13    2 3   4000
+a contact +18 +26    2 3   4000

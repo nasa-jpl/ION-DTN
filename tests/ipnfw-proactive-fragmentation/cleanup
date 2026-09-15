@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Remove state from a previous run.  Called explicitly at the start of
+# dotest (not from an EXIT trap, so runtests can preserve logs on failure).
+killm f >/dev/null 2>&1
+rm -f ./ion_nodes
+for d in 2.ipn.tcp 3.ipn.tcp; do
+	rm -f "$d"/ion.log "$d"/node*.stdout "$d"/my.file "$d"/testfile* \
+		"$d"/bpacq.* "$d"/*.out
+done
+exit 0

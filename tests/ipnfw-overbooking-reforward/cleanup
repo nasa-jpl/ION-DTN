@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+killm f >/dev/null 2>&1
+rm -f ./ion_nodes
+for d in 2.ipn.tcp 3.ipn.tcp; do
+	rm -f "$d"/ion.log "$d"/node*.stdout "$d"/bulk.file "$d"/exp.file \
+		"$d"/testfile* "$d"/bpacq.* "$d"/*.out
+done
+exit 0

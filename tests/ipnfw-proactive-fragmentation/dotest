@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+#
+# Regression test for proactive (CGR contact-volume-driven) fragmentation.
+#
+# A 50 KB bundle is sent over a 2 -> 3 TCP link whose contact plan offers
+# only a series of short, time-disjoint future contacts, each far too small
+# to carry the whole bundle.  ipnfw must therefore proactively fragment the
+# bundle at enqueue time (enqueueToEntryNode -> proactivelyFragment), spread
+# the fragments across successive contacts, and the destination must
+# reassemble them into the original file.
+#
+# TCP is used as the convergence layer so that (a) nothing is lost, making
+# reassembly deterministic, and (b) the CL imposes no datagram size limit --
+# so any fragmentation observed is necessarily proactive/contact-driven, not
+# a convergence-layer artifact.
+#
+# This exercises the fix for the use-after-free in which enqueueToEntryNode
+# replaced the bundle with its first fragment but the freed original object
+# was still used by tryCGR/enqueueBundle: if that regressed, the sender
+# would corrupt its SDR (free-list / boundary violation) and the file would
+# not arrive.
+
+trap 'killm f' EXIT
+
+. ../test_utils.sh
+
+echo "########################################"
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo "PURPOSE: verify a bundle too large for any single contact is"
+echo "  proactively fragmented across multiple short future contacts and"
+echo "  reassembled at the destination (guards the ipnfw fragmentation UAF)."
+echo "########################################"
+
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# A bundle larger than any single contact's volume (each contact carries
+# 5000 B/s * 5 s = 25 KB; the bundle is 50 KB).  Use dd, not "head -c",
+# which is not portable to Solaris.
+dd if=/dev/zero of=2.ipn.tcp/my.file bs=1000 count=50 2>/dev/null
+
+echo "Starting node 3 (receiver)..."
+cd 3.ipn.tcp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then
+	echo "Node 3 not started: aborting test"
+	exit 1
+fi
+
+echo "Starting node 2 (sender)..."
+cd ../2.ipn.tcp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then
+	echo "Node 2 not started: aborting test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+cd ../3.ipn.tcp
+bprecvfile ipn:3.1 &
+sleep 1
+
+echo "Sending 50 KB file ipn:2.1 -> ipn:3.1 (must fragment across contacts)..."
+cd ../2.ipn.tcp
+bpsendfile ipn:2.1 ipn:3.1 my.file
+cd ..
+
+echo "Waiting for contacts to open and fragments to arrive..."
+sleep 40
+
+RETVAL=0
+
+# ---- 1. reassembly ----
+if diff 2.ipn.tcp/my.file 3.ipn.tcp/testfile1 >/dev/null 2>&1; then
+	echo "PASS: file reassembled from fragments at node 3."
+else
+	echo "FAIL: file was NOT reassembled correctly at node 3."
+	RETVAL=1
+fi
+
+# ---- 2. fragmentation actually occurred ----
+# With TCP (no CL fragmentation), the destination receives one bundle per
+# fragment but delivers a single reassembled ADU: rcv > dlv proves the
+# proactive-fragmentation path ran.
+( cd 3.ipn.tcp && bpstats )
+sleep 1
+RCV=$(lastBpTally rcv 3.ipn.tcp/ion.log)
+DLV=$(lastBpTally dlv 3.ipn.tcp/ion.log)
+echo "node 3 tallies: rcv=$RCV dlv=$DLV"
+if [ "$RCV" -ge 2 ] && [ "$DLV" -ge 1 ]; then
+	echo "PASS: bundle was proactively fragmented ($RCV fragments -> $DLV ADU)."
+else
+	echo "FAIL: expected fragmentation (rcv>=2, dlv>=1); got rcv=$RCV dlv=$DLV."
+	RETVAL=1
+fi
+
+# ---- 3. regression guard: the sender must not have corrupted its SDR ----
+# With SDR bounds checking on (configFlags 9), a forwarder that wrote outside
+# a validly allocated object would log a boundary violation here.  Use fixed-
+# string greps (portable; Solaris grep lacks -E).
+if grep -q "SDR boundaries or integrity violation" 2.ipn.tcp/ion.log 2>/dev/null \
+	|| grep -q "Unrecoverable SDR error" 2.ipn.tcp/ion.log 2>/dev/null; then
+	echo "FAIL: SDR boundary violation detected on the sender."
+	RETVAL=1
+fi
+
+echo "Proactive-fragmentation test completed (retval=$RETVAL)."
+exit $RETVAL

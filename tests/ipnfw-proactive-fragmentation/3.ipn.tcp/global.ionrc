@@ -1,0 +1,10 @@
+# Multiple short, time-disjoint future contacts on the 2->3 link.
+# Each contact's volume (duration * rate) is far smaller than the 50 KB
+# bundle, so CGR must proactively fragment it and spread the fragments
+# across successive contacts.
+m horizon +0
+a range   +1 +3600   2 3   1
+a contact +5  +10     2 3   5000
+a contact +13 +18     2 3   5000
+a contact +21 +26     2 3   5000
+a contact +29 +34     2 3   5000
