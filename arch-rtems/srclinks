@@ -367,6 +367,7 @@ ln -s ../cfdp/include/cfdpops.h .
 
 # dgr/library
 ln -s ../dgr/library/libdgr.c .
+ln -s ../dgr/library/dgrP.h .
 
 # dgr/test - not included
 # dtpc - not included
