@@ -53,6 +53,7 @@
       - [Excluded neighbors](#excluded-neighbors)
       - [Critical bundles](#critical-bundles)
       - [Dynamic Route Selection Algorithm](#dynamic-route-selection-algorithm)
+      - [Enqueuing: Proactive Fragmentation and Overbooking Management](#enqueuing-proactive-fragmentation-and-overbooking-management)
     - [Exception Handling](#exception-handling)
       - [Contact Failure](#contact-failure)
       - [Custody refusal](#custody-refusal)
@@ -2251,6 +2252,101 @@ Otherwise:
   - Otherwise, the node with the smallest node number among all
     nodes with the earliest best-case delivery time and smallest hop
     count is arbitrarily chosen as the most preferred neighbor.
+
+#### Enqueuing: Proactive Fragmentation and Overbooking Management
+
+Route selection, above, ends by choosing a single proximate node and
+enqueuing the bundle on the outduct to that neighbor.
+Two further adjustments may occur at enqueue time,
+both governed by how much of the selected contact's capacity is actually
+available to the bundle:
+*proactive fragmentation* and *overbooking management*.
+
+##### Available capacity is reckoned per priority
+
+As noted under *Residual capacity*,
+the volume a contact can offer a bundle is not simply its unused
+capacity.
+A contact tracks a separate residual volume for each priority --
+Bulk, Standard, and Expedited --
+and the volume available to a bundle is the contact's capacity less only
+the estimated capacity consumption of the already-queued bundles whose
+priority is **equal to or higher than** the bundle's own.
+Volume currently held by *lower*-priority bundles counts as available,
+because a higher-priority bundle is entitled to preempt it.
+
+A higher-priority bundle therefore sees more room in the same contact.
+Consider a contact of capacity 100 whose queue already holds
+40 (Bulk) + 30 (Standard) + 10 (Expedited) = 80 units,
+leaving 20 units unused.
+The volume available to a newly presented bundle is:
+
+| New bundle priority | Available volume | Composition              |
+| ------------------- | ---------------- | ------------------------ |
+| Bulk                | 20               | unused only              |
+| Standard            | 60               | unused + Bulk            |
+| Expedited           | 90               | unused + Bulk + Standard |
+
+The volume a bundle sees beyond the 20 truly-unused units is exactly the
+lower-priority traffic it is entitled to displace;
+reconciling that displacement is the job of overbooking management,
+below.
+
+##### Proactive fragmentation
+
+When the volume available on the selected contact is smaller than the
+bundle's estimated capacity consumption -- and the bundle permits
+fragmentation -- the bundle is fragmented at enqueue time,
+rather than committing an oversized bundle to a contact that cannot
+carry it.
+The first fragment is sized to the available volume
+(discounted to leave room for the fragment's own header and
+convergence-layer overhead) and is enqueued to the proximate node.
+The remainder is handed back to the forwarder to be routed again from
+scratch.
+
+Because the remainder is a fresh forwarding problem,
+route selection reconsiders it against the current contact plan.
+The contact that the first fragment filled now offers little or no
+volume, so the remainder is typically routed to a later contact on the
+same link -- or to a different neighbor.
+Should the remainder still exceed the volume available on its newly
+selected contact, it is fragmented again, and so on.
+Proactive fragmentation therefore spreads a bundle across successive
+contacts as a chain of fragments;
+the chain is finite because each fragment is strictly smaller than the
+one before it, and it is bounded overall by the bundle's expiration.
+
+##### Overbooking management
+
+Admitting a bundle to a contact can drive the total volume committed to
+that contact -- the backlog already scheduled there plus this bundle --
+beyond the contact's capacity.
+The amount by which the commitment exceeds capacity is the contact's
+*overbooked* volume.
+Since a bundle only ever displaces traffic of lower priority than itself
+(equal-or-higher-priority traffic is protected),
+the overbooked volume is precisely the quantity of lower-priority
+bundles that admitting this bundle has bumped out of the contact.
+
+Overbooking management relieves this by re-forwarding the displaced
+bundles.
+It walks the proximate node's transmission queues from the lowest
+priority upward and re-routes lower-priority bundles -- each of which
+re-enters route selection as a fresh forwarding problem -- until the
+overbooked volume has been reclaimed.
+The bundle just accommodated is never itself re-forwarded by this step.
+
+Two accounting properties are worth noting.
+The reserved volume records the *enqueue*, not the eventual transmission,
+and is not credited back to the contact when a bundle is later
+re-forwarded onto a different route;
+the reservation is thus a deliberately conservative overestimate.
+And when a bundle has been proactively fragmented,
+the overbooking figures are those computed for the original,
+un-fragmented bundle,
+so overbooking management may re-forward somewhat more lower-priority
+traffic than the enqueued fragment strictly displaces.
 
 ### Exception Handling
 
