@@ -107,9 +107,7 @@ ui_cb_return_values_t ui_print_agents_cb_fn(int idx, int keypress, void* data, c
 
 static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* status_msg) {
 	int choice;
-	int rtv = UI_CB_RTV_CONTINUE;
 	agent_t *agent = (agent_t*)data;
-	char *subtitle = "";
 	char *tmp;
 
 	/* Parameter intentionally unused. */
@@ -405,7 +403,6 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	else if(rpt->id->type == AMP_TYPE_TBLT)
 	{
 		int i = 0;
-		vecit_t it;
 		tbl_t *tbl = NULL;
 
 		for(i = 0; i < num_entries; i++)
@@ -477,7 +474,6 @@ static void ui_print_report_entry(ui_print_cfg_t *fd, char *name, tnv_t *val)
  *****************************************************************************/
 void ui_print_report_set(agent_t* agent)
 {
-	rpt_t *cur_report = NULL;
 	vecit_t rpt_it;
 	int num_rpts;
 	char title[40];
@@ -511,7 +507,6 @@ void ui_print_report_set(agent_t* agent)
 
 void ui_print_table_set(agent_t* agent)
 {
-	tbl_t *cur_report = NULL;
 	vecit_t tbl_it;
 	int num_tbls;
 	char title[40];
@@ -548,17 +543,47 @@ void ui_print_table_set(agent_t* agent)
 char *ui_str_from_ac(ac_t *ac)
 {
 	char *str = STAKE(1024);
+	char *cursor;
+	size_t rem = 1024, len;
 	vecit_t it;
 
-	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+	CHKNULL(str);
+	cursor = str;
+	*cursor = '\0';
+
+	/* Use capacity tracking to prevent overflow during iteration */
+	for(it = vecit_first(&(ac->values)); vecit_valid(it);
+	    it = vecit_next(it))
 	{
 		ari_t *id = (ari_t*) vecit_data(it);
 		char *alt_str = ui_str_from_ari(id, NULL, 0);
-		strcat(str, (alt_str==NULL) ? "null" : alt_str);
-		strcat(str, " ");
+		char *app_str = (alt_str == NULL) ? (char *)"null" : alt_str;
+
+		len = istrlen(app_str, rem);
+		/* Clean up temporary ARI string and bail on overflow */
+		if (len >= rem) {
+			SRELEASE(alt_str);
+			putErrmsg("ac capacity exceeded", NULL);
+			SRELEASE(str);
+			return NULL;
+		}
+		istrcat(cursor, app_str, rem);
+		cursor += len;
+		rem -= len;
+
+		/* Ensure 1 byte exists for trailing space */
+		if (1 >= rem) {
+			SRELEASE(alt_str);
+			putErrmsg("ac capacity exceeded", NULL);
+			SRELEASE(str);
+			return NULL;
+		}
+		istrcat(cursor, (char *)" ", rem);
+		cursor += 1;
+		rem -= 1;
+
 		SRELEASE(alt_str);
 	}
-
 	return str;
 }
 
@@ -719,30 +744,74 @@ char *ui_str_from_mac(macdef_t *mac)
 {
 	char *result = STAKE(4096);
 	char fmt[1024];
-	char *tmp = NULL;
+	char *tmp = NULL, *cursor;
+	size_t rem = 4096, len;
 	int i = 0;
 	vecit_t it;
+
+	CHKNULL(result);
+	cursor = result;
+	*cursor = '\0';
 
 	tmp = ui_str_from_ari(mac->ari, NULL, 0);
 	isprintf(fmt, sizeof fmt, "%s = [", (tmp==NULL) ? "null" : tmp);
 	SRELEASE(tmp);
 
-	strcat(result, fmt);
+	len = istrlen(fmt, rem);
+	/* Validate prefix fits in 4096-byte STAKE buffer */
+	if (len >= rem) {
+		putErrmsg("mac capacity exceeded", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+	istrcat(cursor, fmt, rem);
+	cursor += len;
+	rem -= len;
 
-	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
+	/* Safely append each control definition string */
+	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it);
+	    it = vecit_next(it))
 	{
 		ctrl_t *cur_ctrl = (ctrl_t*) vecit_data(it);
 		tmp = ui_str_from_ctrl(cur_ctrl);
+
 		if(i != 0)
 		{
-			strcat(result,", ");
+			len = istrlen(", ", rem);
+			if (len >= rem) {
+				if (tmp) SRELEASE(tmp);
+				putErrmsg("mac capacity exceeded", NULL);
+				SRELEASE(result);
+				return NULL;
+			}
+			istrcat(cursor, (char *)", ", rem);
+			cursor += len;
+			rem -= len;
 		}
-		strcat(result, tmp);
-		SRELEASE(tmp);
+
+		if (tmp != NULL) {
+			len = istrlen(tmp, rem);
+			if (len >= rem) {
+				SRELEASE(tmp);
+				putErrmsg("mac capacity exceeded", NULL);
+				SRELEASE(result);
+				return NULL;
+			}
+			istrcat(cursor, tmp, rem);
+			cursor += len;
+			rem -= len;
+			SRELEASE(tmp);
+		}
 		i++;
 	}
 
-	strcat(result, "]");
+	len = istrlen("]", rem);
+	if (len >= rem) {
+		putErrmsg("mac capacity exceeded", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+	istrcat(cursor, (char *)"]", rem);
 
 	return result;
 }
@@ -821,33 +890,52 @@ char *ui_str_from_sbr(rule_t *sbr)
 
 char *ui_str_from_tbl(tbl_t *tbl)
 {
-	char *result = STAKE(8192); // todo dynamically size this.
+	char *result = STAKE(8192);
 	char fmt[100];
-	vecit_t it;
-	size_t i;
+	size_t i, num_rows = 0, rem = 8192, len;
 	int j;
-	size_t num_rows = 0;
 	tnvc_t *cur_row = NULL;
 	tblt_t *tblt = VDB_FINDKEY_TBLT(tbl->id);
-	char *tmp = NULL;
+	char *tmp = NULL, *cursor;
+	char *div =
+	"----------------------------------------------------------------------\n";
 
 	CHKNULL(result);
+	cursor = result;
+	*cursor = '\0';
 
-	/* Print table headers, if we have a table template. */
 	if((tmp = ui_str_from_tblt(tblt)) == NULL)
 	{
 		SRELEASE(result);
 		return NULL;
 	}
 
-	strcat(result, tmp);
+	len = istrlen(tmp, rem);
+	/* Ensure the dynamically generated header fits */
+	if (len >= rem) {
+		SRELEASE(tmp);
+		putErrmsg("tbl capacity exceeded", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+	istrcat(cursor, tmp, rem);
+	cursor += len;
+	rem -= len;
 	SRELEASE(tmp);
 
 	num_rows = tbl_num_rows(tbl);
 
-	strcat(result, "----------------------------------------------------------------------\n");
+	len = istrlen(div, rem);
+	if (len >= rem) {
+		putErrmsg("tbl capacity exceeded", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+	istrcat(cursor, div, rem);
+	cursor += len;
+	rem -= len;
 
-	/* For each row */
+	/* Safely append rows and columns within remaining capacity */
 	for(i = 0; i < num_rows; i++)
 	{
 		cur_row = tbl_get_row(tbl, i);
@@ -857,17 +945,57 @@ char *ui_str_from_tbl(tbl_t *tbl)
 			tnv_t *val = tnvc_get(cur_row, j);
 			if(j == 0)
 			{
-				strcat(result, "|");
+				if (1 >= rem) {
+					putErrmsg("tbl cap exceeded", NULL);
+					SRELEASE(result);
+					return NULL;
+				}
+				istrcat(cursor, (char *)"|", rem);
+				cursor += 1;
+				rem -= 1;
 			}
 			tmp = ui_str_from_tnv(val);
-			isprintf(fmt, sizeof fmt,"   %23s   ", tmp);
+			isprintf(fmt, sizeof fmt,"   %23s   ",
+			         (tmp == NULL) ? "null" : tmp);
 			SRELEASE(tmp);
-			strcat(result, fmt);
-			strcat(result, "|");
+
+			len = istrlen(fmt, rem);
+			/* Ensure cell data does not overflow buffer */
+			if (len >= rem) {
+				putErrmsg("tbl capacity exceeded", NULL);
+				SRELEASE(result);
+				return NULL;
+			}
+			istrcat(cursor, fmt, rem);
+			cursor += len;
+			rem -= len;
+
+			if (1 >= rem) {
+				putErrmsg("tbl capacity exceeded", NULL);
+				SRELEASE(result);
+				return NULL;
+			}
+			istrcat(cursor, (char *)"|", rem);
+			cursor += 1;
+			rem -= 1;
 		}
-		strcat(result, "\n");
+		if (1 >= rem) {
+			putErrmsg("tbl capacity exceeded", NULL);
+			SRELEASE(result);
+			return NULL;
+		}
+		istrcat(cursor, (char *)"\n", rem);
+		cursor += 1;
+		rem -= 1;
 	}
-	strcat(result, "----------------------------------------------------------------------\n");
+
+	len = istrlen(div, rem);
+	if (len >= rem) {
+		putErrmsg("tbl capacity exceeded", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+	istrcat(cursor, div, rem);
 
 	return result;
 }
@@ -997,28 +1125,60 @@ char *ui_str_from_tnv(tnv_t *tnv)
 char *ui_str_from_tnvc(tnvc_t *tnvc)
 {
 	char *str = STAKE(1024);
-	int i;
-	int max;
+	char *cursor;
+	size_t rem = 1024, len;
+	int i, max;
+
 	CHKNULL(str);
+	cursor = str;
+	*cursor = '\0';
 
 	max = tnvc_get_count(tnvc);
 	if(max == 0)
 	{
-		strcat(str,"null");
+		istrcpy(str, "null", rem);
 		return str;
 	}
 
+	/*
+	 * Bounded string builder: track remaining capacity (rem) and
+	 * append directly at the cursor to avoid heap overflows and
+	 * O(N^2) traversal penalties on repeated concatenations.
+	 */
 	for(i = 0; i < max; i++)
 	{
-		char *val_str = ui_str_from_tnv(tnvc_get(tnvc,i));
+		char *vstr = ui_str_from_tnv(tnvc_get(tnvc,i));
+
 		if(i != 0)
 		{
-			strcat(str, ", ");
+			len = istrlen(", ", rem);
+			/* Abort and prevent memory leak if delimiter exceeds rem */
+			if (len >= rem) {
+				if (vstr) SRELEASE(vstr);
+				putErrmsg("tnvc capacity exceeded", NULL);
+				SRELEASE(str);
+				return NULL;
+			}
+			istrcat(cursor, (char *)", ", rem);
+			cursor += len;
+			rem -= len;
 		}
-		strcat(str, val_str);
-		SRELEASE(val_str);
-	}
 
+		if (vstr == NULL) continue;
+
+		len = istrlen(vstr, rem);
+		/* Abort and clean up if value string exceeds rem */
+		if (len >= rem) {
+			SRELEASE(vstr);
+			putErrmsg("tnvc capacity exceeded", NULL);
+			SRELEASE(str);
+			return NULL;
+		}
+		istrcat(cursor, vstr, rem);
+		cursor += len;
+		rem -= len;
+		SRELEASE(vstr);
+	}
 	return str;
 }
 
