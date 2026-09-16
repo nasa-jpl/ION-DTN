@@ -101,7 +101,7 @@ the attempt to send the content.
 On any failure, returns -1 and sets I<*rc> to DgrFailed.  On success, returns
 zero.
 
-=item int dgr_receive(Dgr dgr, unsigned short *fromPortNbr, unsigned int *fromIpAddress, char *content, int contentBufSize, int *length, int *errnbr, int timeoutSeconds, DgrRC *rc)
+=item int dgr_receive(Dgr dgr, unsigned short *fromPortNbr, unsigned int *fromIpAddress, char *content, int capacity, int *length, int *errnbr, int timeoutSeconds, DgrRC *rc)
 
 Delivers the oldest undelivered DGR event queued for delivery.
 
@@ -123,11 +123,10 @@ DgrDatagramAcknowledged will be placed in I<*rc>.  Otherwise,
 DgrDatagramNotAcknowledged will be placed in I<*rc> and
 the relevant errno (if any) will be placed in I<*errnbr>.
 
-I<contentBufSize> is the size, in bytes, of the I<content> buffer.  It
-should be at least 65535 to enable delivery of the content of any received
-or delivered/undeliverable message.  An event whose content is larger than
-I<contentBufSize> is discarded rather than copied, so it can never overrun
-I<content>.
+The I<capacity> argument indicates the allocated size of the I<content> buffer
+(which should be at least 65535 bytes) to protect against buffer overflows.
+If an inbound network message exceeds this capacity, the event is rejected;
+for local delivery notices, the message is safely truncated to fit.
 
 I<timeoutSeconds> controls blocking behavior.  If I<timeoutSeconds>
 is DGR_BLOCKING (i.e., -1), dgr_receive() will not return until (a) there

@@ -2157,10 +2157,23 @@ recvfrom");
 			iwatch('s');
 		}
 
+		/*
+		 * Prevent 32-bit wrap. Ensure contentLength fits within
+		 * positive signed 32-bit int minus struct overhead.
+		 * Must check before sendReport to avoid ACKing dropped data.
+		 */
+		if (contentLength > (uvast) (INT_MAX
+				- sizeof(struct dgr_rec) + 1))
+		{
+			putErrmsg("Receiver dropped packet: length > capacity.",
+			          NULL);
+			continue;
+		}
+
 		/*	Now send acknowledgment (report).		*/
 
 		if (sendReport(sap, reportBuffer, headerLength, ckptSerialNbr,
-				    contentLength, sockName, sockaddrlen) < 0)
+		               contentLength, sockName, sockaddrlen) < 0)
 		{
 			break;		/*	Out of main loop.	*/
 		}
@@ -2757,7 +2770,7 @@ rcSnoozes++;
 }
 
 int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
-		unsigned int *fromIpAddress, char *content, int contentBufSize,
+		unsigned int *fromIpAddress, char *content, int capacity,
 		int *length, int *errnbr, int timeoutSeconds, DgrRC *rc)
 {
 	int		timeoutUsec;
@@ -2771,6 +2784,7 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	CHKERR(length);
 	CHKERR(errnbr);
 	CHKERR(rc);
+	CHKERR(capacity > 0);
 	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point damaged; close and reopen.");
@@ -2843,30 +2857,34 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 			return 0;
 		}
 
-		/*	Never copy more than the caller's buffer holds;
-		 *	an oversized event is discarded rather than
-		 *	overrun "content".  The receiver already bounds
-		 *	inbound content to the datagram size, so a caller
-		 *	providing the documented 65535-byte buffer never
-		 *	reaches this discard.				*/
+		/*
+		 * Reject oversized inbound network payloads to prevent memory
+		 * corruption. The receiver bounds inbound content to DGR_BUF_SIZE
+		 * (65535 bytes), but callers may provide a smaller destination
+		 * capacity. Local delivery status records bypass this discard
+		 * and are safely truncated.
+		 */
 
-		if (rec->contentLength > contentBufSize)
+		if (rec->contentLength > capacity)
 		{
-			char	textbuf[128];
-
-			isprintf(textbuf, sizeof textbuf, "[?] DGR discarding \
-inbound record (%d bytes) larger than receive buffer (%d bytes).",
-					rec->contentLength, contentBufSize);
-			writeMemo(textbuf);
-			MRELEASE(rec);
-			continue;	/*	Wait for the next event.*/
+			if (rec->type == DgrMsgIn)
+			{
+				putErrmsg("DGR receive aborted: record > dest capacity.", NULL);
+				MRELEASE(rec);
+				*rc = DgrFailed;
+				continue;
+			}
 		}
 
 		break;			/*	Deliver this event.	*/
 	}
 
-	*length = rec->contentLength;
-	memcpy(content, rec->segment.content, rec->contentLength);
+	*length = MIN(rec->contentLength, capacity);
+	if (*length > 0)
+	{
+		memcpy(content, rec->segment.content, *length);
+	}
+
 	switch (rec->type)
 	{
 	case DgrMsgIn:

@@ -130,8 +130,8 @@ static void	*dgrMamsReceiver(void *parm)
 	while (1)
 	{
 		rc = DgrFailed;
-		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
-				buffer, DGRTS_MAX_MSG_LEN, &length, &errnbr,
+		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,
+				DGRTS_MAX_MSG_LEN, &length, &errnbr,
 				DGR_BLOCKING, &rc));
 		switch (rc)
 		{
