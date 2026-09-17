@@ -37,6 +37,42 @@ Note that functions taking Bundle* parameters are internal APIs called from
 within libbpP.c. External applications should only use the configuration and
 query functions that do not require Bundle*.
 
+=head2 CUSTODY SEQUENCE NUMBERING
+
+Every custody bundle carries, in its CTEB,
+a Bundle Sequence ID and Bundle Sequence Number
+alongside a Block Source Administrative Endpoint ID.
+Per the Orange Book these are tools of the bundle node, not the application:
+the sequence number is a value drawn from a sequence counter maintained by
+the node's administrative element,
+and the tuple (Block Source AEID, Sequence ID, Sequence Number) identifies a
+bundle within custody signaling.
+It is independent of the bundle's primary identity
+(source endpoint and creation time), which is left unchanged.
+
+ION uses these tools to keep that tuple unique on each node.
+A node maintains a single custody sequence counter keyed on its own
+administrative endpoint,
+and stamps a number from it into the CTEB both when it originates a custody
+bundle and when it accepts custody of one it is forwarding.
+Because a node that takes custody inserts a fresh CTEB naming itself as the
+Block Source (Orange Book 4.3.4),
+the sequence number is regenerated at every custodian rather than carried
+end to end;
+it is local to the current custodian,
+and the returning Compressed Custody Signal refers to it in that custodian's
+namespace.
+
+A nonzero Sequence ID is always used for custody.
+Sequence ID zero selects per-destination counters (Orange Book 3.2.4),
+which restart at zero for each destination
+and so cannot by themselves distinguish the bundles a node both originates
+and forwards for others;
+ION therefore promotes a zero Sequence ID to a reserved node-wide custody
+counter.
+An application-supplied nonzero Sequence ID is preserved,
+and simply selects which of the node's counters is used.
+
 =head2 CONSTANTS
 
 =head3 Block and Admin Record Types
