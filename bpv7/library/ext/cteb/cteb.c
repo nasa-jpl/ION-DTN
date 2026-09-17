@@ -61,9 +61,8 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	CtebScratchpad	scratch;
+	uvast		seqId;
 	uvast		seqNum;
-	char		*sourceEidStr;
-	char		*destEidStr;
 	SdrObject	scratchAddr;
 
 	/*	Check if Orange Book custody mode is active.
@@ -109,46 +108,27 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
-	/*	CTEB is needed. Allocate sequence number for custody.	*/
+	/*	CTEB is needed.  Allocate a sequence number from a counter
+	 *	keyed on the Block Source AEID (our admin EID) and the
+	 *	custody seqId, so the (Block Source AEID, seqId, seqNum)
+	 *	tracking key is unique across every bundle this node
+	 *	originates or forwards under custody (Orange Book 3.2,
+	 *	3.2.7).  A nonzero seqId is used so the counter is global
+	 *	rather than per-destination (see cbrCustodySeqId).	*/
 
-	readEid(&bundle->id.source, &sourceEidStr);
-	if (sourceEidStr == NULL)
+	seqId = cbrCustodySeqId(bundle->ancillaryData.cbrSeqId);
+	if (cbr_allocateSeqNum(sdr, vscheme->adminEid, NULL, seqId, 1, &seqNum)
+			< 0)
 	{
-		putErrmsg("CTEB: can't read source EID.", NULL);
-		return -1;
-	}
-
-	/*	Read destination EID for sequence counter lookup.
-	 *	Per Orange Book, seqId 0 uses destination-specific counters. */
-
-	readEid(&bundle->destination, &destEidStr);
-	if (destEidStr == NULL)
-	{
-		MRELEASE(sourceEidStr);
-		putErrmsg("CTEB: can't read destination EID.", NULL);
-		return -1;
-	}
-
-	/*	Use bundle's cbrSeqId (0 = destination-specific counters).
-	 *	forCustody = 1 to use custody-specific counter.		*/
-
-	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr,
-			bundle->ancillaryData.cbrSeqId, 1, &seqNum) < 0)
-	{
-		MRELEASE(sourceEidStr);
-		MRELEASE(destEidStr);
 		putErrmsg("CTEB: can't allocate sequence number.", NULL);
 		return -1;
 	}
-
-	MRELEASE(destEidStr);
-	MRELEASE(sourceEidStr);
 
 	/*	Populate scratchpad with CTEB data.			*/
 
 	memset(&scratch, 0, sizeof(CtebScratchpad));
 	scratch.seqNum = seqNum;
-	scratch.seqId = bundle->ancillaryData.cbrSeqId;
+	scratch.seqId = seqId;
 	istrcpy(scratch.custodianEid, vscheme->adminEid, MAX_EID_LEN);
 
 	/*	Store scratchpad in SDR for later serialization.	*/
@@ -411,6 +391,8 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	CtebBlk		ctebData;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	uvast		reMintSeqId = 0;
+	uvast		reMintSeqNum = 0;
 	SdrObject	bundleAddr = (SdrObject) ctxt; /* From forwardBundle */
 
 	if (blk->object == 0)
@@ -505,10 +487,27 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	writeMemoNote("[i] CTEB: Accepting custody from", ctebData.custodianEid ?
 			ctebData.custodianEid : "(null)");
 
-	if (cbr_acceptCustody(sdr, bundle, bundleAddr, &ctebData) < 0)
+	if (cbr_acceptCustody(sdr, bundle, bundleAddr, &ctebData,
+			&reMintSeqId, &reMintSeqNum) < 0)
 	{
 		putErrmsg("CTEB: custody acceptance failed.", NULL);
 		return -1;
+	}
+
+	/*	This node is now the custodian: replace the CTEB's block
+	 *	source AEID with our admin EID and its seqId/seqNum with the
+	 *	values we just minted (Orange Book 4.3.4c), so the CTEB we
+	 *	forward carries our custody identity and the next custodian's
+	 *	CCS resolves the entry we tracked.  Destination delivery
+	 *	(bundleAddr == 0) is not forwarded, so its CTEB is untouched.	*/
+
+	if (bundleAddr != 0 && vschemeElt != 0)
+	{
+		scratch.seqId = reMintSeqId;
+		scratch.seqNum = reMintSeqNum;
+		istrcpy(scratch.custodianEid, vscheme->adminEid, MAX_EID_LEN);
+		sdr_write(sdr, blk->object, (char *) &scratch,
+				sizeof(CtebScratchpad));
 	}
 
 	if (sendCustodyCrsIfRequested(sdr, bundle,

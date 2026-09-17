@@ -141,6 +141,30 @@ extern "C" {
 #define CBR_COUNTER_MAX_32BIT		0xFFFFFFFFULL		/* 4294967295 */
 #define CBR_COUNTER_MAX_64BIT		0xFFFFFFFFFFFFFFFFULL	/* Default */
 
+/*
+ * Reserved Bundle Sequence ID for custody transfer.  A single sequence
+ * counter per node -- keyed by (Block Source AEID, this ID) -- backs every
+ * CTEB the node stamps, so the custody-tracking key (Block Source AEID, seqId,
+ * seqNum) is unique by construction (Orange Book 3.2, 3.2.7).  A nonzero ID is
+ * required: seqId 0 selects per-destination counters, which restart at zero
+ * per destination and cannot uniquely key a node that both originates and
+ * forwards custody bundles.
+ */
+#define CBR_CUSTODY_SEQ_ID		1
+
+/*
+ * The Bundle Sequence ID a node stamps into a custody CTEB: the caller's
+ * chosen seqId when nonzero, otherwise the reserved single-counter ID.  A
+ * nonzero ID is required for custody -- seqId 0 selects per-destination
+ * counters, which restart at zero per destination and so cannot uniquely key
+ * a node that both originates and forwards custody bundles.  Applications that
+ * choose a nonzero seqId keep it; the default (0) is promoted here.  seqId 0
+ * for status reporting (CREB) is unaffected.  Evaluates its argument twice;
+ * pass a plain lvalue.
+ */
+#define cbrCustodySeqId(seqId) \
+	(((uvast) (seqId)) != 0 ? ((uvast) (seqId)) : (uvast) CBR_CUSTODY_SEQ_ID)
+
 /*	*	*	Error Codes	*	*	*	*	*/
 
 #define CBR_OK				0
@@ -357,7 +381,7 @@ extern int		cbr_removeCustodyReq(Sdr sdr, const char *eid);
  * @return		0 on success, -1 on error
  */
 extern int cbr_acceptCustody(Sdr sdr, Bundle *bundle, SdrObject bundleAddr,
-		CtebBlk *cteb);
+		CtebBlk *cteb, uvast *reMintSeqId, uvast *reMintSeqNum);
 
 /**
  * Refuse custody of a bundle.

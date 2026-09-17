@@ -155,9 +155,13 @@ typedef struct {
 typedef struct {
 	SdrObject	bundleObj;	/* Reference to the Bundle in SDR */
 	SdrObject	destEid;	/* SDR string: Next custodian EID */
-	uvast		seqId;		/* CTEB sequence identifier */
-	uvast		seqNum;		/* CTEB sequence number */
-	SdrObject	sourceEid;	/* SDR string: Bundle source EID */
+	uvast		seqId;		/* CTEB sequence identifier (ours) */
+	uvast		seqNum;		/* CTEB sequence number (ours, minted) */
+	SdrObject	sourceEid;	/* SDR string: Block Source AEID (ours) */
+	SdrObject	inCustodianEid;	/* SDR string: predecessor custodian we
+					 * accepted from; 0 if originated here */
+	uvast		inSeqId;	/* seqId of the CTEB we accepted */
+	uvast		inSeqNum;	/* seqNum of the CTEB we accepted */
 	time_t		custodyAccepted;/* When custody was accepted */
 	time_t		lastTransmit;	/* When last transmitted */
 	int		retransmitCount;/* Number of retransmissions */
@@ -231,12 +235,27 @@ extern SdrObject cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNum);
 
 /**
- * Add a bundle to custody tracking.
+ * Add a bundle to custody tracking.  sourceEid/seqId/seqNum are this node's
+ * (Block Source AEID, seqId, minted seqNum) key.  inCustodianEid/inSeqId/
+ * inSeqNum record the CTEB this node accepted -- the predecessor custodian and
+ * the seqId/seqNum it minted -- so a re-forwarded duplicate can be recognized
+ * (Orange Book 4.3.5); pass inCustodianEid == NULL for a bundle originated here.
  *
  * @return	SDR list element of new CustodyBundle, 0 on error
  */
 extern SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj,
-		char *destEid, char *sourceEid, uvast seqId, uvast seqNum);
+		char *destEid, char *sourceEid, uvast seqId, uvast seqNum,
+		char *inCustodianEid, uvast inSeqId, uvast inSeqNum);
+
+/**
+ * Find a custody bundle by the incoming CTEB identity (predecessor custodian
+ * EID, seqId, seqNum) it was accepted under.  Used to detect a re-forwarded
+ * duplicate per Orange Book 4.3.5.
+ *
+ * @return	SDR list element of CustodyBundle, 0 if not found
+ */
+extern SdrObject cbr_findCustodyByIncoming(Sdr sdr, char *inCustodianEid,
+		uvast inSeqId, uvast inSeqNum);
 
 /**
  * Increment the custodyOriginated counter.

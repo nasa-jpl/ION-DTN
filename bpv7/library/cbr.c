@@ -2332,12 +2332,60 @@ SdrObject cbr_findCustodyBundle(Sdr sdr, char *sourceEid, uvast seqId,
 }
 
 /**
+ * Find a custody bundle by the incoming CTEB identity it was accepted under.
+ *
+ * @return	SDR list element of CustodyBundle, 0 if not found
+ */
+SdrObject cbr_findCustodyByIncoming(Sdr sdr, char *inCustodianEid,
+		uvast inSeqId, uvast inSeqNum)
+{
+	CbrDb		*cbrConstants;
+	SdrObject	elt;
+	SdrObject	cbObj;
+	CustodyBundle	cb;
+	char		eidBuf[MAX_EID_LEN];
+
+	if (inCustodianEid == NULL || inCustodianEid[0] == '\0')
+	{
+		return 0;
+	}
+
+	cbrConstants = getCbrConstants();
+	if (cbrConstants == NULL)
+	{
+		return 0;
+	}
+
+	for (elt = sdr_list_first(sdr, cbrConstants->custodyBundles);
+			elt; elt = sdr_list_next(sdr, elt))
+	{
+		cbObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+
+		if (cb.inCustodianEid == 0 || cb.inSeqId != inSeqId
+				|| cb.inSeqNum != inSeqNum)
+		{
+			continue;
+		}
+
+		sdr_string_read(sdr, eidBuf, cb.inCustodianEid);
+		if (strcmp(eidBuf, inCustodianEid) == 0)
+		{
+			return elt;
+		}
+	}
+
+	return 0;
+}
+
+/**
  * Add a bundle to custody tracking.
  *
  * @return	SDR list element of new CustodyBundle, 0 on error
  */
 SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
-		char *sourceEid, uvast seqId, uvast seqNum)
+		char *sourceEid, uvast seqId, uvast seqNum,
+		char *inCustodianEid, uvast inSeqId, uvast inSeqNum)
 {
 	CbrDb		*cbrConstants;
 	CustodyBundle	cb;
@@ -2351,7 +2399,10 @@ SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
 		return 0;
 	}
 
-	/*	Check if already tracked (shouldn't happen).		*/
+	/*	The (sourceEid, seqId, seqNum) key is minted from this
+	 *	node's own monotonic custody counter, so a live entry here
+	 *	is a genuine anomaly rather than the sequence-space
+	 *	collision seen when foreign seqNums shared the key.	*/
 	if (cbr_findCustodyBundle(sdr, sourceEid, seqId, seqNum) != 0)
 	{
 		writeMemo("[?] CBR: Bundle already in custody tracking.");
@@ -2363,6 +2414,8 @@ SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
 	cb.bundleObj = bundleObj;
 	cb.seqId = seqId;
 	cb.seqNum = seqNum;
+	cb.inSeqId = inSeqId;
+	cb.inSeqNum = inSeqNum;
 	cb.custodyAccepted = getCtime();
 	cb.lastTransmit = cb.custodyAccepted;
 	cb.retransmitCount = 0;
@@ -2382,12 +2435,33 @@ SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
 		return 0;
 	}
 
+	/*	Record the accepted CTEB identity (predecessor custodian
+	 *	plus its seqId/seqNum) for duplicate detection; a bundle
+	 *	originated here has no predecessor.			*/
+	if (inCustodianEid != NULL && inCustodianEid[0] != '\0')
+	{
+		cb.inCustodianEid = sdr_string_create(sdr, inCustodianEid);
+		if (cb.inCustodianEid == 0)
+		{
+			sdr_free(sdr, cb.destEid);
+			sdr_free(sdr, cb.sourceEid);
+			putErrmsg("CBR: Can't store incoming custodian EID.",
+					NULL);
+			return 0;
+		}
+	}
+
 	/*	Store in SDR.						*/
 	cbObj = sdr_malloc(sdr, sizeof(CustodyBundle));
 	if (cbObj == 0)
 	{
 		sdr_free(sdr, cb.destEid);
 		sdr_free(sdr, cb.sourceEid);
+		if (cb.inCustodianEid)
+		{
+			sdr_free(sdr, cb.inCustodianEid);
+		}
+
 		putErrmsg("CBR: Can't allocate CustodyBundle.", NULL);
 		return 0;
 	}
@@ -2400,6 +2474,11 @@ SdrObject cbr_trackCustodyBundle(Sdr sdr, SdrObject bundleObj, char *destEid,
 	{
 		sdr_free(sdr, cb.destEid);
 		sdr_free(sdr, cb.sourceEid);
+		if (cb.inCustodianEid)
+		{
+			sdr_free(sdr, cb.inCustodianEid);
+		}
+
 		sdr_free(sdr, cbObj);
 		putErrmsg("CBR: Can't add to custody list.", NULL);
 		return 0;
@@ -2447,6 +2526,11 @@ void cbr_untrackCustodyBundle(Sdr sdr, SdrObject custodyElt)
 	if (cb.sourceEid != 0)
 	{
 		sdr_free(sdr, cb.sourceEid);
+	}
+
+	if (cb.inCustodianEid != 0)
+	{
+		sdr_free(sdr, cb.inCustodianEid);
 	}
 
 	/*	Free the CustodyBundle object and list element.		*/
@@ -2882,22 +2966,39 @@ int	cbr_removeCustodyReq(Sdr sdr, const char *eid)
 }
 
 int cbr_acceptCustody(Sdr sdr, Bundle *bundle, SdrObject bundleAddr,
-		CtebBlk *cteb)
+		CtebBlk *cteb, uvast *reMintSeqId, uvast *reMintSeqNum)
 {
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	uvast		seqId;
 	int		result;
 
 	CHKERR(cteb);
 	CHKERR(cteb->custodianEid);
 
-	/*	The block source AEID for any future CTEB this node mints
-	 *	on behalf of the bundle is the local admin EID, and per
-	 *	Orange Book 4.2.4 the next-hop CCS coming back to us will
-	 *	omit that AEID from its BSC.  We therefore key custody
-	 *	tracking on the local admin EID, so cbr_handleCcs can look
-	 *	the bundle up after substituting that same EID for the
-	 *	missing wire field.					*/
+	/*	The custody seqId this node stamps: the incoming one if
+	 *	nonzero, else the reserved single-counter ID.		*/
+	seqId = cbrCustodySeqId(cteb->seqId);
+
+	/*	Default: the forwarded CTEB keeps the seqId/seqNum we
+	 *	received, overridden below with our freshly minted values
+	 *	when we take custody of a bundle we will forward.	*/
+	if (reMintSeqId)
+	{
+		*reMintSeqId = seqId;
+	}
+
+	if (reMintSeqNum)
+	{
+		*reMintSeqNum = cteb->seqNum;
+	}
+
+	/*	The block source AEID of the new CTEB this node inserts as
+	 *	custodian (Orange Book 4.3.4c) is the local admin EID, and
+	 *	per 4.2.4 the next-hop CCS coming back to us omits that AEID
+	 *	from its BSC.  We therefore key custody tracking on the local
+	 *	admin EID, so cbr_handleCcs can look the bundle up after
+	 *	substituting that same EID for the missing wire field.	*/
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0 || vscheme->adminEid[0] == '\0')
 	{
@@ -2906,17 +3007,71 @@ int cbr_acceptCustody(Sdr sdr, Bundle *bundle, SdrObject bundleAddr,
 		return -1;
 	}
 
-	/*	Add bundle to custody tracking (skip for destination).
-	 *	bundleAddr == 0 indicates destination delivery - no need
-	 *	to track custody since there's no next hop to wait for.	*/
+	/*	Track the bundle (skip for destination delivery, where
+	 *	bundleAddr == 0 and there is no next hop to wait for).	*/
 	if (bundleAddr != 0)
 	{
+		SdrObject	dupElt;
+		uvast		newSeqNum;
+
+		/*	Orange Book 4.3.5: a bundle the previous custodian
+		 *	re-forwards (its CCS was lost) carries the same CTEB
+		 *	identity we already accepted.  Resend the acceptance
+		 *	and reuse the seqNum we minted the first time; do not
+		 *	create a second tracking entry.			*/
+		dupElt = cbr_findCustodyByIncoming(sdr, cteb->custodianEid,
+				cteb->seqId, cteb->seqNum);
+		if (dupElt != 0)
+		{
+			CustodyBundle	dupCb;
+
+			sdr_read(sdr, (char *) &dupCb,
+					sdr_list_data(sdr, dupElt),
+					sizeof(CustodyBundle));
+			if (reMintSeqNum)
+			{
+				*reMintSeqNum = dupCb.seqNum;
+			}
+
+			if (queueCcs(sdr, cteb->custodianEid,
+					cteb->custodianEid, cteb->seqId,
+					cteb->seqNum, CBR_CUSTODY_ACCEPTED) < 0)
+			{
+				putErrmsg("CBR: Can't re-queue CCS acceptance.",
+						NULL);
+				return -1;
+			}
+
+			writeMemo("[i] CBR: Duplicate custody bundle;"
+					" acceptance resent.");
+			return 0;
+		}
+
+		/*	Re-mint a node-local sequence number for the CTEB
+		 *	we insert as the new custodian (4.3.4c / 3.2.5),
+		 *	keyed on our admin EID, and track under it.  The CCS
+		 *	we return below still references the predecessor's
+		 *	seqNum, which lives in the predecessor's namespace.	*/
+		if (cbr_allocateSeqNum(sdr, vscheme->adminEid, NULL,
+				seqId, 1, &newSeqNum) < 0)
+		{
+			putErrmsg("CBR: Can't allocate custody sequence number.",
+					NULL);
+			return -1;
+		}
+
+		if (reMintSeqNum)
+		{
+			*reMintSeqNum = newSeqNum;
+		}
+
 		if (cbr_trackCustodyBundle(sdr, bundleAddr,
 				bundle->proxNodeEid ? "" : cteb->custodianEid,
-				vscheme->adminEid, cteb->seqId, cteb->seqNum)
+				vscheme->adminEid, seqId, newSeqNum,
+				cteb->custodianEid, cteb->seqId, cteb->seqNum)
 				== 0)
 		{
-			/*	May already be tracked or allocation failed. */
+			/*	Allocation failed. */
 			writeMemoNote("[?] CBR: Failed to track custody bundle",
 					vscheme->adminEid);
 			/*	Continue anyway to send CCS.		*/

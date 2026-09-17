@@ -7057,7 +7057,8 @@ when asking for status reports.");
 					if (cbr_trackCustodyBundle(sdr, bundleAddr,
 							destEidString,
 							vscheme->adminEid,
-							seqId, seqNum) != 0)
+							seqId, seqNum,
+							NULL, 0, 0) != 0)
 					{
 						/*	Custody tracked - detain
 						 *	bundle until CCS received. */
