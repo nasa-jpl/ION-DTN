@@ -1,0 +1,4 @@
+## IPN routing configuration for Node 1
+## Route to node 2 (direct neighbor) via UDP
+
+a plan 2 udp/127.0.0.1:4552

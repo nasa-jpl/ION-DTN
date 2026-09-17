@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# custody-key-collision: regression test for the custody-tracking key
+# collision (issue #1492).
+#
+# A node that concurrently forwards custody bundles for others and originates
+# its own used to key every tracked bundle on (local admin EID, seqId, seqNum)
+# with the seqNum drawn from independent counters that each restart at zero --
+# per-destination counters for seqId 0, and the foreign originator's counter
+# for accepted bundles (which were never re-minted).  Overlapping low sequence
+# numbers then collided: cbr_trackCustodyBundle logged
+# "[?] CBR: Bundle already in custody tracking." and silently dropped the
+# bundle from tracking.
+#
+# The fix stamps every CTEB this node inserts (on origination and on custody
+# acceptance) with a sequence number from a single monotonic per-node counter,
+# under a nonzero seqId, so the tracking key is unique by construction.
+#
+# This test drives node 2 into both roles at once -- forwarding node 1's
+# custody bundles to node 3 while originating its own to node 3 -- and asserts
+# that node 2 logs no collision, that custody is released everywhere, and that
+# every bundle is delivered.  It runs the scenario for seqId 0 (the default,
+# promoted to the reserved global counter) and for a nonzero seqId.
+#
+# Topology: Node 1 (source) -> Node 2 (custodian + source) -> Node 3 (dest)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Custody Key-Collision Regression Test ==="
+echo "Topology: Node 1 -> Node 2 (forwards + originates) -> Node 3"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ "$1" -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Run one collision scenario.  $1 is a human label, $2 is the bpdriver seqId
+# argument ("" for the default seqId 0, "s<N>" for a nonzero seqId).
+run_phase() {
+    phase_label="$1"
+    seq_arg="$2"
+    count=5
+
+    echo "--- Phase: $phase_label (bpdriver seq arg='${seq_arg:-<default 0>}') ---"
+
+    # Record node 2's current collision-warning count so each phase is
+    # measured independently of any earlier phase.  (grep -c prints "0" and
+    # exits 1 on no match, so a "|| echo 0" fallback would double the value;
+    # capture the count directly and default only when the file is absent.)
+    before=$(grep -c "Bundle already in custody tracking" \
+            "$TESTDIR/2.node/ion.log" 2>/dev/null)
+    before=${before:-0}
+
+    # Receiver on node 3 for node 1's bundles + node 2's bundles.
+    cd "$TESTDIR/3.node"
+    bpcounter ipn:3.1 $((count * 2)) > counter_${phase_label}.txt 2>&1 &
+    counter_pid=$!
+    sleep 2
+
+    # Node 1 originates custody bundles to node 3; node 2 forwards and holds
+    # custody (node 3 delays its CCS via cbraggr), so node 2 has live tracked
+    # entries when it originates below.
+    cd "$TESTDIR/1.node"
+    bpdriver -${count} ipn:1.2 ipn:3.1 -1000 t600 $seq_arg \
+            > driver_fwd_${phase_label}.txt 2>&1
+
+    # Node 2 originates its own custody bundles while still holding the
+    # forwarded ones -- this is the multi-role condition that used to collide.
+    cd "$TESTDIR/2.node"
+    bpdriver -${count} ipn:2.1 ipn:3.1 -1000 t600 $seq_arg \
+            > driver_orig_${phase_label}.txt 2>&1
+
+    # Assert immediately: the collision (if any) is logged at accept/originate
+    # time, before any CCS could release an entry.
+    after=$(grep -c "Bundle already in custody tracking" \
+            "$TESTDIR/2.node/ion.log" 2>/dev/null)
+    after=${after:-0}
+    new_warnings=$((after - before))
+    if [ "$new_warnings" -eq 0 ]; then
+        test_result 0 "$phase_label: no custody-tracking key collision at node 2"
+    else
+        test_result 1 "$phase_label: $new_warnings custody-tracking collision(s) at node 2"
+    fi
+
+    # Wait for CCS flush (cbraggr timeout) and custody release everywhere.
+    sleep 12
+
+    if ! kill -0 $counter_pid 2>/dev/null; then
+        test_result 0 "$phase_label: all $((count * 2)) bundles delivered to node 3"
+    else
+        kill $counter_pid 2>/dev/null || true
+        test_result 1 "$phase_label: not all bundles delivered (timeout)"
+    fi
+
+    for src in 1 2; do
+        cd "$TESTDIR/${src}.node"
+        cbrcustodytest -l > custody_${phase_label}.txt 2>&1
+        if grep -q "0 bundle(s) in custody" custody_${phase_label}.txt 2>/dev/null
+        then
+            test_result 0 "$phase_label: custody released at node $src"
+        else
+            remaining=$(grep -c "destEid=" custody_${phase_label}.txt 2>/dev/null)
+            test_result 1 \
+                "$phase_label: custody NOT released at node $src (${remaining:-0} left)"
+        fi
+    done
+
+    echo ""
+}
+
+run_phase "seqid0" ""
+run_phase "seqid-nonzero" "s7"
+
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]
