@@ -2338,6 +2338,64 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 		BSL_LOG_CRIT("failed to unlock mutex");
 	}
 
+	/*	On the receive (CLIN) and accept/deliver (APPOUT) stages,
+	 *	record which of the primary and payload blocks BSL verified,
+	 *	so a require-BIB administrative-record policy can enforce it
+	 *	after delivery (see bp_getAdminAuthRequireBib()).  This mirrors
+	 *	what the native BPSec path records in bib.c/bcb.c.  Per RFC 9172
+	 *	the primary block can carry only a BIB; the payload may carry a
+	 *	BIB or a BCB, either of which authenticates it.  The action set
+	 *	holds each security operation with its target block number and,
+	 *	after BSL_API_ApplySecurity, its SUCCESS/FAILURE conclusion.	*/
+
+	if (returncode == 0 && (loc == BSL_POLICYLOCATION_CLIN
+			|| loc == BSL_POLICYLOCATION_APPOUT))
+	{
+		Bundle	*bundle = &(((AcqWorkArea *) bundleWorkArea)->bundle);
+		size_t	nActions;
+		size_t	a;
+
+		nActions = BSL_SecurityActionSet_CountActions(malloced_action_set);
+		for (a = 0; a < nActions; a++)
+		{
+			const BSL_SecurityAction_t	*action;
+			size_t				nOps;
+			size_t				o;
+
+			action = BSL_SecurityActionSet_GetActionAtIndex(
+					malloced_action_set, a);
+			if (action == NULL)
+			{
+				continue;
+			}
+
+			nOps = BSL_SecurityAction_CountSecOpers(action);
+			for (o = 0; o < nOps; o++)
+			{
+				BSL_SecOper_t	*op;
+				int		tgtNum;
+
+				op = BSL_SecurityAction_GetSecOperAtIndex(action,
+						o);
+				if (op == NULL || BSL_SecOper_GetConclusion(op)
+						!= BSL_SECOP_CONCLUSION_SUCCESS)
+				{
+					continue;
+				}
+
+				tgtNum = (int) BSL_SecOper_GetTargetBlockNum(op);
+				if (tgtNum == PrimaryBlk && BSL_SecOper_IsBIB(op))
+				{
+					bundle->primaryIntegrityVerified = 1;
+				}
+				else if (tgtNum == PayloadBlk)
+				{
+					bundle->payloadAuthVerified = 1;
+				}
+			}
+		}
+	}
+
 	/*	After BSL creates security blocks on the transmit path,
 	 *	we must CBOR-serialize them. BSL writes raw BTSD into
 	 *	blk->bytes, but ION expects blk->bytes to contain the

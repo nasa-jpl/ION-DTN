@@ -1,0 +1,14 @@
+## require-BIB test - Node 3 (protected reporter): BIB-protects the primary and
+## payload blocks of its delivery CRS addressed to node 1.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4553 udpcli
+a outduct udp 127.0.0.1:4552 udpclo
+r 'ipnadmin node.ipnrc'
+m srmode compressed
+m cbraggr 1 1 2
+s

@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# bpsec-adminrec-require: administrative-record 'require' tier.
+#
+# Node 1 sets 'm adminauth require', so it acts on an administrative record only
+# when both its primary block (BIB) and its payload block (BIB or BCB) were
+# verified during acquisition (dlv->primaryIntegrityVerified &&
+# dlv->payloadAuthVerified, checked before admin-record dispatch).
+#
+# Topology (chain; node 1 requires BIB):
+#   Node 1 (require) <-> Node 2 (relay, UNprotected reporter) <-> Node 3
+#   (protected reporter: BIB over primary + payload of its delivery CRS).
+#
+# Verifies:
+#   1. A delivery CRS from node 3, BIB-protected over primary AND payload, is
+#      ACCEPTED (recorded) by node 1.
+#   2. A delivery CRS from node 2, unprotected, is REJECTED (ignored) by node 1.
+#
+# Runs under the default NULL_SUITES build: pass/fail hinges on BIB presence per
+# block, not on HMAC strength.  Native BPSec only (.exclude_bsl).
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Admin-record 'require' tier (BIB over primary + payload) ==="
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ "$1" -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+crs_recv() {   # node 1's "CRS Signals Recv" tally
+    ( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null ) \
+        | grep "CRS Signals Recv" | awk '{print $NF}'
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started."
+echo ""
+
+echo "Waiting for contacts to become active..."
+sleep 3
+
+cd "$TESTDIR/2.node"; bpsink ipn:2.1 > sink2.txt 2>&1 &
+SINK2=$!
+cd "$TESTDIR/3.node"; bpsink ipn:3.1 > sink3.txt 2>&1 &
+SINK3=$!
+sleep 2
+
+# ---------------------------------------------------------------
+echo "--- Test 1: BIB-protected admin record (from node 3) is accepted ---"
+R1=$(crs_recv); R1=${R1:-0}
+( cd "$TESTDIR/1.node" && bptrace -msg "protected" -ttl 60 -flags dlv \
+    ipn:1.2 ipn:3.1 ipn:1.0 > trace_protected.txt 2>&1 )
+sleep 10
+R1b=$(crs_recv); R1b=${R1b:-0}
+echo "  Node 1 CRS Signals Recv: $R1 -> $R1b"
+if [ "$R1b" -gt "$R1" ]; then
+    test_result 0 "require accepted the BIB-protected admin record"
+else
+    test_result 1 "require did not accept the BIB-protected admin record"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: unprotected admin record (from node 2) is rejected ---"
+R2=$(crs_recv); R2=${R2:-0}
+( cd "$TESTDIR/1.node" && bptrace -msg "unprotected" -ttl 60 -flags dlv \
+    ipn:1.2 ipn:2.1 ipn:1.0 > trace_unprotected.txt 2>&1 )
+sleep 10
+R2b=$(crs_recv); R2b=${R2b:-0}
+echo "  Node 1 CRS Signals Recv: $R2 -> $R2b"
+if [ "$R2b" -eq "$R2" ]; then
+    test_result 0 "require ignored the unprotected admin record"
+else
+    test_result 1 "require recorded an unprotected admin record"
+fi
+if grep -q "Ignored unauthenticated admin record" "$TESTDIR/1.node/ion.log"; then
+    test_result 0 "Node 1 logged the ignored unauthenticated record"
+else
+    test_result 1 "Node 1 did not log the ignored unauthenticated record"
+fi
+
+kill $SINK2 $SINK3 2>/dev/null || true
+sleep 1
+
+# ---------------------------------------------------------------
+echo ""
+echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
+if [ "$TESTS_FAILED" -eq 0 ]; then
+    echo "TEST PASSED"
+    exit 0
+else
+    echo "TEST FAILED"
+    exit 1
+fi

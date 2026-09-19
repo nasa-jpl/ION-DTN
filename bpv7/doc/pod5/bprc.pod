@@ -163,6 +163,66 @@ preventing a status report from triggering another status report.
 This command requires B<m custodymode orangebook> to be effective for
 compressed reporting.
 
+=item B<m adminauth> { trust | require | allow I<EID> | deny I<EID> }
+
+The B<manage administrative-record authentication> command.  This command
+controls whether the local node acts on a received administrative record
+according to the record's origin.  The records in scope are the bundle
+protocol agent's own action-bearing records: compressed custody signals
+(CCS), reporting signals (CRS) and traditional status reports, and
+contact-discovery (saga) messages.  Such a record can drive local state --
+a custody signal can release a bundle held under custody, and a saga
+message rewrites the contact plan -- yet the bundle protocol agent cannot
+prove the record's origin unless BPSec protects the bundle, so this policy
+binds the record to a trusted source before acting on it.  The modes are:
+
+B<trust>          Act on every administrative record regardless of its
+                  source.  This is the default.
+
+B<require>        Act on an administrative record only when both its
+                  primary block and its payload block are verified by
+                  BPSec: the primary block by a Block Integrity Block
+                  (BIB), the payload block by a BIB or a Block
+                  Confidentiality Block (BCB).  Any other record is
+                  ignored.
+
+B<allow> I<EID>   Authorize source endpoint ID I<EID> to send
+                  administrative records.  Adding any specific EID other
+                  than the "any" sentinel drops "any" and moves the node
+                  from B<trust> into node-state-with-allowlist mode (below).
+
+B<deny> I<EID>    Remove I<EID> from the authorization list.  Use
+                  B<m adminauth deny any> to drop the "any" sentinel
+                  without naming a source, entering
+                  node-state-with-allowlist mode with an empty allowlist.
+
+In node-state-with-allowlist mode -- reached whenever the allowlist holds
+specific EIDs rather than the "any" sentinel -- the node acts on an
+administrative record only when its source is the peer the node expects
+that record from, or is on the allowlist.  The expected peer is
+record-specific: for a custody signal it is the exact next custodian to
+which the node handed the bundle's custody; for a saga message it is a
+contact-plan neighbor.  Any other record is ignored.
+
+The allowlist is consulted live, so B<allow> and B<deny> take effect at
+once.  The B<require> setting, by contrast, is read from the BP database
+when each ION daemon starts and is cached for the life of that process, so
+set B<m adminauth require> in the B<.bprc> before the B<s> (start) command;
+changing it on a running node does not take effect until the node is
+restarted.
+
+The default is B<trust>, so an existing deployment is unaffected until an
+operator opts into a stricter mode.
+
+Note: a node whose BP database was initialized by an earlier ION release
+retains its previously configured authorization list across upgrade; only
+newly initialized nodes start with the B<trust> ("any") default.
+
+This command governs the bundle protocol agent's own administrative
+records only.  Actions and responses at the application layer -- CFDP,
+DTPC, and other services above the bundle protocol agent -- are not vetted
+here and are expected to perform their own authentication.
+
 =item B<m cbraggr> I<crs_limit> I<ccs_limit> I<timeout_seconds>
 
 The B<manage CBR aggregation> command.  This command configures the

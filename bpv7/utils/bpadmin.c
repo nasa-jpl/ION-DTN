@@ -137,6 +137,14 @@ payload length");
 	PUTS("\t   m bsl <local ipn eid> <key reg. file path name> <policy config. file pathname>");
 	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
 	PUTS("\t   m srmode <status report mode: none | traditional | compressed | both>");
+	PUTS("\t   m adminauth <require | trust | allow <EID> | deny <EID>>");
+	PUTS("\t      trust (default): act on any admin record regardless of source.");
+	PUTS("\t      allow/deny <EID>: add/remove an authorized admin-record source;");
+	PUTS("\t      the first specific EID switches the node to accepting a record");
+	PUTS("\t      only from the peer it expects it from (a custody signal's next");
+	PUTS("\t      custodian, a saga neighbor) or an allowlisted source.");
+	PUTS("\t      require: act only on records whose primary block (BIB) and");
+	PUTS("\t      payload block (BIB or BCB) are verified (restart to apply).");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
@@ -2314,6 +2322,87 @@ running daemons; restart the node for this change to take effect.");
 	}
 }
 
+static void	manageAdminAuth(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (tokenCount == 4)
+	{
+		if (strcmp(tokens[2], "allow") == 0)
+		{
+			if (bp_addAdminAuthEid(sdr, tokens[3]) < 0)
+			{
+				putErrmsg("Can't authorize admin-record \
+source.", tokens[3]);
+			}
+			else
+			{
+				printText("Admin-record source authorized.");
+			}
+		}
+		else if (strcmp(tokens[2], "deny") == 0)
+		{
+			if (bp_removeAdminAuthEid(sdr, tokens[3]) < 0)
+			{
+				putErrmsg("Can't withdraw admin-record \
+source.", tokens[3]);
+			}
+			else
+			{
+				printText("Admin-record source withdrawn.");
+			}
+		}
+		else
+		{
+			SYNTAX_ERROR;
+		}
+
+		return;
+	}
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "require") == 0)
+	{
+		if (bp_setAdminAuthRequireBib(sdr, 1) < 0)
+		{
+			putErrmsg("Can't set admin-record authentication mode.",
+					NULL);
+			return;
+		}
+	}
+	else if (strcmp(tokens[2], "trust") == 0)
+	{
+		/*	Turn off require-BIB and restore the "any" sentinel,
+		 *	returning the node to accept-all.		*/
+
+		if (bp_setAdminAuthRequireBib(sdr, 0) < 0
+		|| bp_addAdminAuthEid(sdr, BP_ADMIN_AUTH_ANY) < 0)
+		{
+			putErrmsg("Can't set admin-record authentication mode.",
+					NULL);
+			return;
+		}
+	}
+	else
+	{
+		printText("Admin-record authentication must be 'require', \
+'trust', or 'allow'/'deny' <endpoint ID>.");
+		return;
+	}
+
+	printText("Admin-record authentication mode set.");
+	if (bp_agent_is_started())
+	{
+		printText("Note: the require-BIB setting is cached by running \
+daemons; restart the node for a change to it to take effect.");
+	}
+}
+
 static void	manageCrebExplicitEid(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -2452,6 +2541,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "srmode") == 0)
 	{
 		manageSrMode(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "adminauth") == 0)
+	{
+		manageAdminAuth(tokenCount, tokens);
 		return;
 	}
 

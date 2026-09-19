@@ -163,6 +163,30 @@ static void	*udpMamsReceiver(void *parm)
 				putSysErrmsg("udpts failed receiving MAMS \
 message", NULL);
 			}
+			else	/*	Short datagram: possible shutdown.	*/
+			{
+				struct sockaddr_in	boundAddr;
+				socklen_t		boundSize;
+
+				/*	udpShutdown() signals shutdown by
+				 *	sending a 1-byte datagram to this
+				 *	socket's own bound address, so honor
+				 *	the signal only when it actually
+				 *	originates from that address.  A short
+				 *	datagram from any other peer is spoofed
+				 *	and must not shut the receiver down.	*/
+
+				boundSize = sizeof boundAddr;
+				if (getsockname(fd, (struct sockaddr *)
+						&boundAddr, &boundSize) < 0
+				|| fromAddr.sin_family != boundAddr.sin_family
+				|| fromAddr.sin_addr.s_addr
+						!= boundAddr.sin_addr.s_addr
+				|| fromAddr.sin_port != boundAddr.sin_port)
+				{
+					continue;	/*	Ignore it.	*/
+				}
+			}
 
 			closesocket(fd);
 			MRELEASE(buffer);
@@ -300,6 +324,30 @@ static void	*udpAmsReceiver(void *parm)
 
 				putSysErrmsg("udpts failed receiving AMS \
 message", NULL);
+			}
+			else	/*	Short datagram: possible shutdown.	*/
+			{
+				struct sockaddr_in	boundAddr;
+				socklen_t		boundSize;
+
+				/*	udpShutdown() signals shutdown by
+				 *	sending a 1-byte datagram to this
+				 *	socket's own bound address, so honor
+				 *	the signal only when it actually
+				 *	originates from that address.  A short
+				 *	datagram from any other peer is spoofed
+				 *	and must not shut the receiver down.	*/
+
+				boundSize = sizeof boundAddr;
+				if (getsockname(fd, (struct sockaddr *)
+						&boundAddr, &boundSize) < 0
+				|| fromAddr.sin_family != boundAddr.sin_family
+				|| fromAddr.sin_addr.s_addr
+						!= boundAddr.sin_addr.s_addr
+				|| fromAddr.sin_port != boundAddr.sin_port)
+				{
+					continue;	/*	Ignore it.	*/
+				}
 			}
 
 			closesocket(fd);

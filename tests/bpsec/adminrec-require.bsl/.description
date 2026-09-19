@@ -1,0 +1,1 @@
+Admin-record 'require' tier: a node that requires BPSec accepts an administrative record only when its primary and payload blocks are BIB-verified, and rejects an unprotected one.

@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# adminrec-auth-ccs-forged: forged custody-signal rejection (node-state tier).
+#
+# Node 1 holds custody of a bundle it forwarded to node 2 (its expected next
+# custodian, ipn:2.0).  In node-state mode ('m adminauth deny any'), a custody
+# signal is honored only from that expected custodian.  This test injects, with
+# bespokebpv7, a crafted CCS "custody accepted" from an arbitrary NON-custodian
+# source and confirms node 1 does NOT release the bundle -- then injects one from
+# the real custodian (ipn:2.0) and confirms it does.
+#
+# Requires python3 >= 3.10 and the bespokebpv7 package; SKIPs (exit 2) otherwise.
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+PYTHON_CMD="python3"
+if ! command -v "$PYTHON_CMD" >/dev/null 2>&1; then
+    echo "SKIP: python3 not found."; exit 2
+fi
+py_ok=$("$PYTHON_CMD" -c 'import sys; print(1 if sys.version_info[:2] >= (3,10) else 0)' 2>/dev/null)
+if [ "$py_ok" != "1" ]; then
+    echo "SKIP: python3 >= 3.10 required."; exit 2
+fi
+if ! "$PYTHON_CMD" -c 'import bespokebpv7, cbor2' >/dev/null 2>&1; then
+    echo "SKIP: bespokebpv7 / cbor2 not available."; exit 2
+fi
+
+echo "=== Forged custody-signal rejection (node-state tier) ==="
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+test_result() {
+    if [ "$1" -eq 0 ]; then TESTS_PASSED=$((TESTS_PASSED+1)); echo "  PASS: $2"
+    else TESTS_FAILED=$((TESTS_FAILED+1)); echo "  FAIL: $2"; fi
+}
+
+custody_count() {   # bundles in custody at node 1
+    ( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null ) \
+        | sed -n 's/.*: \([0-9][0-9]*\) bundle(s) in custody.*/\1/p' | head -1
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"; chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+if [ "$(pgrep -x rfxclock | wc -l)" -lt 2 ]; then
+    echo "ERROR: nodes did not start."; exit 1
+fi
+sleep 3
+
+# Node 1 enters node-state mode (drop the accept-all "any" sentinel).
+( cd "$TESTDIR/1.node" && echo 'm adminauth deny any' | bpadmin > deny_any.txt 2>&1 )
+
+# Node 1 originates a custody bundle to node 3 (not running); node 1 forwards it
+# to node 2 (its expected custodian) and keeps custody, since node 2 runs custody
+# OFF and has no onward route, so no real custody signal ever returns.
+# cbrcustodytest then blocks polling for release, so run it in the background.
+( cd "$TESTDIR/1.node" && cbrcustodytest ipn:3.1 > originate.txt 2>&1 ) &
+ORIG_PID=$!
+sleep 4
+
+LISTING=$( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null )
+echo "$LISTING" | grep -E "seqId=|in custody" | head
+SEQID=$(echo "$LISTING" | sed -n 's/.*seqId=\([0-9][0-9]*\).*/\1/p' | head -1)
+SEQNUM=$(echo "$LISTING" | sed -n 's/.*seqNum=\([0-9][0-9]*\).*/\1/p' | head -1)
+CNT0=$(custody_count); CNT0=${CNT0:-0}
+echo "  in custody=$CNT0 seqId=$SEQID seqNum=$SEQNUM"
+
+if [ "$CNT0" -ge 1 ] && [ -n "$SEQID" ] && [ -n "$SEQNUM" ]; then
+    test_result 0 "Node 1 holds custody (setup)"
+else
+    test_result 1 "Node 1 did not hold custody (setup)"
+    kill $ORIG_PID 2>/dev/null || true
+    echo "=== Results: $TESTS_PASSED passed, $((TESTS_FAILED)) failed ==="
+    echo "TEST FAILED"; exit 1
+fi
+
+kill $ORIG_PID 2>/dev/null || true   # stop the blocking release poll
+
+# ---------------------------------------------------------------
+echo "--- Test 1: forged CCS from a non-custodian is ignored ---"
+"$PYTHON_CMD" "$TESTDIR/inject_ccs.py" --induct-port 4551 --source ipn:99.0 \
+    --dest ipn:1.0 --seq-id "$SEQID" --seq-num "$SEQNUM" --disposition 1 \
+    >> "$TESTDIR/1.node/inject.txt" 2>&1
+sleep 5
+CNT1=$(custody_count); CNT1=${CNT1:-0}
+echo "  in custody after forged CCS: $CNT1"
+if [ "$CNT1" -ge 1 ]; then
+    test_result 0 "Forged CCS did not release custody"
+else
+    test_result 1 "Forged CCS released custody"
+fi
+if grep -q "custody NOT released" "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "Node 1 logged the rejected custody signal"
+else
+    test_result 1 "Node 1 did not log the rejected custody signal"
+fi
+
+# ---------------------------------------------------------------
+echo "--- Test 2: CCS from the real custodian releases custody ---"
+"$PYTHON_CMD" "$TESTDIR/inject_ccs.py" --induct-port 4551 --source ipn:2.0 \
+    --dest ipn:1.0 --seq-id "$SEQID" --seq-num "$SEQNUM" --disposition 1 \
+    >> "$TESTDIR/1.node/inject.txt" 2>&1
+sleep 5
+CNT2=$(custody_count); CNT2=${CNT2:-0}
+echo "  in custody after genuine CCS: $CNT2"
+if [ "$CNT2" -eq 0 ]; then
+    test_result 0 "Genuine custodian's CCS released custody"
+else
+    test_result 1 "Genuine custodian's CCS did not release custody"
+fi
+
+echo ""
+echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
+if [ "$TESTS_FAILED" -eq 0 ]; then echo "TEST PASSED"; exit 0
+else echo "TEST FAILED"; exit 1; fi

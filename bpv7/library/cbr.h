@@ -405,10 +405,14 @@ extern int		cbr_refuseCustody(Sdr sdr, Bundle *bundle,
  * @param seqId		Sequence identifier from CCS
  * @param seqNumStart	Start of sequence range
  * @param length	Number of bundles in range
+ * @param senderEid	Source EID of the bundle carrying this CCS (may be NULL);
+ *			each release is honored only from the bundle's expected
+ *			custodian unless admin-record policy overrides.
  * @return		Number of bundles released, -1 on error
  */
 extern int		cbr_releaseCustody(Sdr sdr, char *sourceEid,
-				uvast seqId, uvast seqNumStart, uvast length);
+				uvast seqId, uvast seqNumStart, uvast length,
+				const char *senderEid);
 
 /*	Signal Transmission						*/
 
@@ -476,10 +480,11 @@ extern int		cbr_setCrsHistoryMax(Sdr sdr, unsigned int max);
  * @param sdr		SDR handle
  * @param adminRecord	Raw admin record content
  * @param length	Length of admin record
+ * @param senderEid	Source EID of the bundle carrying this CCS (may be NULL)
  * @return		0 on success, -1 on error
  */
 extern int		cbr_handleCcs(Sdr sdr, unsigned char *adminRecord,
-				int length);
+				int length, const char *senderEid);
 
 /*	Configuration							*/
 

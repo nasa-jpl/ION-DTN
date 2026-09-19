@@ -3155,8 +3155,34 @@ int	cbr_refuseCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb,
 	return 0;
 }
 
+/*	Returns 1 when a custody signal from senderEid may act on the bundle
+ *	at bundleObj, i.e. it comes from the node this bundle's custody was
+ *	handed to (its proxNodeEid), or admin-record policy (accept-all /
+ *	allowlist / verified BIB) authorizes it; 0 otherwise.  A signal from
+ *	any other node must not release or reforward the bundle.	*/
+
+static int	cbrSignalFromCustodian(Sdr sdr, SdrObject bundleObj,
+			const char *senderEid)
+{
+	Bundle	bundle;
+	char	expectedBuf[SDRSTRING_BUFSZ];
+	char	*expectedPeer = NULL;
+
+	if (bundleObj != 0)
+	{
+		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+		if (bundle.proxNodeEid && sdr_string_read(sdr, expectedBuf,
+				bundle.proxNodeEid) > 0)
+		{
+			expectedPeer = expectedBuf;
+		}
+	}
+
+	return bpVerifyAdminPeer(senderEid, expectedPeer, "CCS");
+}
+
 int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
-		uvast seqNumStart, uvast length)
+		uvast seqNumStart, uvast length, const char *senderEid)
 {
 	uvast		i;
 	SdrObject	custodyElt;
@@ -3175,6 +3201,18 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 			/*	Get custody bundle data before untracking.	*/
 			cbObj = sdr_list_data(sdr, custodyElt);
 			sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+
+			/*	Honor the release only from this bundle's
+			 *	expected custodian; a forged acceptance from any
+			 *	other node must not delete an in-custody bundle.	*/
+			if (cbrSignalFromCustodian(sdr, cb.bundleObj, senderEid)
+					== 0)
+			{
+				writeMemoNote("[?] CCS: custody NOT released; \
+signal not from the expected custodian, seqNum",
+						itoa(seqNumStart + i));
+				continue;
+			}
 
 			/*	Clear detained flag and destroy bundle.
 			 *	bpDestroyBundle will call cbr_untrackBundleByObj
@@ -3246,6 +3284,16 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length,
 
 	/*	CRS content format (after stripping admin record header):
 	 *	{ status-reason => [Bundle-Sequence, ...], ... }	*/
+
+	/*	A CRS records custody-reporting history keyed by sender;
+	 *	bind it to a recognized peer so a forged signal cannot
+	 *	poison that history (see cbr_handleCcs).  An unrecognized
+	 *	sender is ignored, not treated as a handler failure.	*/
+
+	if (bpVerifyAdminSource(senderEid, "CRS") == 0)
+	{
+		return 0;
+	}
 
 	CHKERR(sdr_begin_xn(sdr));
 
@@ -3453,7 +3501,8 @@ SdrObject cbr_getCrsHistoryList(Sdr sdr)
 	return cbrDb.crsHistory;
 }
 
-int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
+int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length,
+		const char *senderEid)
 {
 	unsigned char	*cursor = adminRecord;
 	unsigned int	unparsedBytes = length;
@@ -3480,6 +3529,15 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	 *	Disposition is SIGNED: 1=accepted, -1=refused		*/
 
 	cbrConstants = getCbrConstants();
+
+	/*	A CCS "accepted" disposition releases -- and destroys --
+	 *	a bundle this node is holding under custody, and a "refused"
+	 *	disposition reforwards it.  The signal is bound to its
+	 *	expected origin per bundle (its recorded next custodian) as
+	 *	each bundle is acted on below (see cbr_releaseCustody and the
+	 *	refusal path), so an off-path attacker cannot forge custody
+	 *	disposition for a bundle it was not handed.  When require-BIB
+	 *	is set the signal was already authenticated at dispatch.	*/
 
 	/*	Start transaction for SDR operations (custody release,
 	 *	statistics updates).					*/
@@ -3597,7 +3655,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 					/*	Simple contiguous range.*/
 					cbr_releaseCustody(sdr, sourceEid,
 							seqId, seqNumStart,
-							bundleLen);
+							bundleLen, senderEid);
 				}
 				else
 				{
@@ -3613,7 +3671,8 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 								sourceEid,
 								seqId,
 								rangeStart,
-								rangeLen);
+								rangeLen,
+								senderEid);
 						}
 						rangeStart += rangeLen;
 					}
@@ -3691,6 +3750,18 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 								sdr_list_data(sdr,
 								custodyElt),
 								sizeof(CustodyBundle));
+
+							/*	Only the expected
+							 *	custodian may force a
+							 *	reforward.	*/
+							if (cbrSignalFromCustodian(
+								sdr,
+								retxCb.bundleObj,
+								senderEid) == 0)
+							{
+								continue;
+							}
+
 							if (cbrConstants->maxRetransmissions > 0
 							&& (unsigned int) retxCb.retransmitCount
 									>= cbrConstants->maxRetransmissions)
@@ -3738,6 +3809,16 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 										sdr_list_data(sdr,
 										custodyElt),
 										sizeof(CustodyBundle));
+
+									/*	Expected custodian only.	*/
+									if (cbrSignalFromCustodian(
+										sdr,
+										retxCb.bundleObj,
+										senderEid) == 0)
+									{
+										continue;
+									}
+
 									if (cbrConstants->maxRetransmissions > 0
 									&& (unsigned int) retxCb.retransmitCount
 											>= cbrConstants->maxRetransmissions)

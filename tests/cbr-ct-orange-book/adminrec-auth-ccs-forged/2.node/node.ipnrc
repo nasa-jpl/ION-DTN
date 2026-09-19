@@ -1,0 +1,3 @@
+## Deliberately NO egress plan back to node 1: node 2 receives node 1's custody
+## bundle on its induct and accepts custody, but cannot deliver its own custody
+## signal, so node 1 keeps custody and the only signals it acts on are injected.

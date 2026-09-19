@@ -329,6 +329,8 @@ typedef struct
 	char		insecure;	/*	Boolean.		*/
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
+	char		primaryIntegrityVerified;	/*	BIB over primary.	*/
+	char		payloadAuthVerified;	/*	BIB or BCB over payload.*/
 	char		fragmented;	/*	Boolean.		*/
 	char		hopLimitExceeded;	/*	Boolean.	*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
@@ -656,6 +658,30 @@ typedef enum
 	BP_SR_MODE_NONE        = 3	/*	Generation disabled (default)	*/
 } BpStatusReportMode;
 
+/*	Administrative-record source authentication.
+ *
+ *	A received administrative record (compressed custody signal,
+ *	compressed reporting signal, contact-discovery/saga message, ...)
+ *	can drive local state changes -- releasing custody of a bundle,
+ *	rewriting the contact plan.  The bundle protocol agent cannot
+ *	cryptographically prove the record's origin unless BPSec protects
+ *	the bundle, so a phased policy applies:
+ *
+ *	  - default: the allowlist holds only the sentinel "any", so every
+ *	    admin record is accepted (no behavioural change out of the box).
+ *	  - specific allowlist (no "any"): accept a record only when its
+ *	    source is the peer the node expects it from (node state -- for a
+ *	    custody signal the exact next custodian, for saga a contact-plan
+ *	    neighbor) or is an allowlist entry; otherwise ignore it.
+ *	  - adminAuthRequireBib on (tight, opt-in): accept a record only when
+ *	    both its primary block (BIB) and its payload block (BIB or BCB)
+ *	    are cryptographically verified; otherwise ignore it.
+ *
+ *	See bpVerifyAdminPeer() / bpVerifyAdminSource().  "any" is not a
+ *	valid endpoint ID, so it never collides with a real source EID.	*/
+
+#define	BP_ADMIN_AUTH_ANY	"any"
+
 typedef enum
 {
 	BP_CUSTODY_NONE      = 0,	/*	No custody transfer		*/
@@ -736,6 +762,12 @@ typedef struct
 
 	BpStatusReportMode	statusRptMode;	/*	For local bundles.	*/
 	BpCustodyMode		custodyMode;	/*	CT mechanism to use.	*/
+	int			adminAuthRequireBib;	/*	Boolean; tight opt-in.	*/
+	SdrObject		adminAuthList;	/*	SDR list of sdrstrings:
+						 *	authorized admin-record
+						 *	source EIDs, or just the
+						 *	sentinel "any" (= accept
+						 *	all; the default).	*/
 } BpDB;
 
 #define BP_STATUS_RECEIVE	0
@@ -1328,6 +1360,39 @@ extern void		computePriorClaims(BpPlan *plan, Bundle *bundle,
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
 extern void		clearMetaEid(MetaEid *metaEid);
+
+/*	Administrative-record source authentication.
+ *	bp_getAdminAuthRequireBib returns the node's require-BIB flag (0 on
+ *	any error).  bp_setAdminAuthRequireBib persists it (cached by running
+ *	daemons; a node restart applies a change).
+ *
+ *	bpVerifyAdminPeer returns 1 when an admin record claiming to
+ *	originate at claimedSourceEid may drive local state, else 0 (ignore).
+ *	expectedPeerEid, when non-NULL, is the single peer this record must
+ *	come from (a custody signal's exact next custodian) -- the source is
+ *	accepted on an exact match; when NULL, generic node state (egress
+ *	plan or contact-plan neighbor) is consulted instead.  The allowlist
+ *	and the require-BIB tier are applied around that.  recordType names
+ *	the record class for the log message on rejection.  bpVerifyAdminSource
+ *	is the expectedPeerEid == NULL convenience form.			*/
+
+extern int		bp_getAdminAuthRequireBib(Sdr sdr);
+extern int		bp_setAdminAuthRequireBib(Sdr sdr, int requireBib);
+extern int		bpVerifyAdminPeer(const char *claimedSourceEid,
+				const char *expectedPeerEid,
+				const char *recordType);
+extern int		bpVerifyAdminSource(const char *claimedSourceEid,
+				const char *recordType);
+
+/*	Manage the admin-record source allowlist.  bp_addAdminAuthEid
+ *	authorizes a source EID (idempotent); adding any EID other than the
+ *	sentinel "any" also drops "any" (switching the node from accept-all
+ *	to node-state+allowlist).  bp_removeAdminAuthEid withdraws an EID.
+ *	Allowlist edits take effect at once (read live at check time).	*/
+
+extern int		bp_addAdminAuthEid(Sdr sdr, char *eid);
+extern int		bp_removeAdminAuthEid(Sdr sdr, char *eid);
+
 extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 
 #define writeEid(eid, meid)	recordEid(eid, meid, EidNV)

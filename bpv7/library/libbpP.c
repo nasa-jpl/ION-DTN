@@ -1811,6 +1811,27 @@ int	bpInit(void)
 		 *	'm srmode' command.				*/
 
 		bpdbBuf.statusRptMode = BP_SR_MODE_NONE;
+
+		/*	Administrative-record source authentication starts in
+		 *	the permissive default: the allowlist holds only the
+		 *	"any" sentinel, so every admin record is accepted.
+		 *	Operators tighten this with 'm adminauth' (a specific
+		 *	allowlist, or 'require' for BPSec-authenticated only).	*/
+
+		bpdbBuf.adminAuthRequireBib = 0;
+		bpdbBuf.adminAuthList = sdr_list_create(sdr);
+		if (bpdbBuf.adminAuthList)
+		{
+			SdrObject	anyEid;
+
+			anyEid = sdr_string_create(sdr, BP_ADMIN_AUTH_ANY);
+			if (anyEid)
+			{
+				oK(sdr_list_insert_last(sdr,
+						bpdbBuf.adminAuthList, anyEid));
+			}
+		}
+
 		sdr_write(sdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(sdr, _bpdbName(), 0, bpdbObject);
 		if (sdr_end_xn(sdr))
@@ -7489,6 +7510,17 @@ failed.", NULL);
 			}
 
 			bundle->insecure = nullWorkArea.bundle.insecure;
+
+			/*	The acceptor-stage bslProcess above verifies
+			 *	the primary/payload security blocks on this
+			 *	throwaway copy; carry the per-block results
+			 *	back so a require-BIB admin-record policy can
+			 *	see them on the delivered bundle.	*/
+
+			bundle->primaryIntegrityVerified =
+					nullWorkArea.bundle.primaryIntegrityVerified;
+			bundle->payloadAuthVerified =
+					nullWorkArea.bundle.payloadAuthVerified;
 			if (bundle->insecure)
 			{
 				return bpAbandon(bundleObj, bundle,
@@ -13674,6 +13706,389 @@ static int	defaultSrh(BpDelivery *dlv, unsigned char *cursor,
 	return 0;
 }
 
+/*	*	*	Admin-record source authentication	*	*	*/
+
+int	bp_getAdminAuthRequireBib(Sdr sdr)
+{
+	BpDB	*bpConstants;
+
+	(void) sdr;	/*	Needed for interface consistency.	*/
+	bpConstants = getBpConstants();
+	if (bpConstants == NULL)
+	{
+		return 0;	/*	Can't require what we can't read.	*/
+	}
+
+	return bpConstants->adminAuthRequireBib ? 1 : 0;
+}
+
+int	bp_setAdminAuthRequireBib(Sdr sdr, int requireBib)
+{
+	SdrObject	bpDbObj;
+	BpDB		bpDb;
+
+	bpDbObj = getBpDbObject();
+	if (bpDbObj == 0)
+	{
+		putErrmsg("BP database not available.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	bpDb.adminAuthRequireBib = requireBib ? 1 : 0;
+	sdr_write(sdr, bpDbObj, (char *) &bpDb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set admin-record authentication mode.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bp_addAdminAuthEid(Sdr sdr, char *eid)
+{
+	SdrObject	bpDbObj;
+	BpDB		bpDb;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	strObj;
+	char		buf[SDRSTRING_BUFSZ];
+	int		dropAny;
+	int		present = 0;
+
+	CHKERR(eid);
+	dropAny = (strcmp(eid, BP_ADMIN_AUTH_ANY) != 0);
+	bpDbObj = getBpDbObject();
+	if (bpDbObj == 0)
+	{
+		putErrmsg("BP database not available.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	if (bpDb.adminAuthList == 0)
+	{
+		bpDb.adminAuthList = sdr_list_create(sdr);
+		sdr_write(sdr, bpDbObj, (char *) &bpDb, sizeof(BpDB));
+	}
+
+	/*	Adding any specific EID drops the "any" sentinel, switching
+	 *	the node from accept-all to node-state+allowlist.	*/
+
+	for (elt = sdr_list_first(sdr, bpDb.adminAuthList); elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		strObj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, strObj) <= 0)
+		{
+			continue;
+		}
+
+		if (strcmp(buf, eid) == 0)
+		{
+			present = 1;	/*	Already authorized.	*/
+		}
+		else if (dropAny && strcmp(buf, BP_ADMIN_AUTH_ANY) == 0)
+		{
+			sdr_free(sdr, strObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+		}
+	}
+
+	if (!present)
+	{
+		strObj = sdr_string_create(sdr, eid);
+		if (strObj == 0 || sdr_list_insert_last(sdr,
+				bpDb.adminAuthList, strObj) == 0)
+		{
+			putErrmsg("Can't authorize admin-record source.", eid);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't authorize admin-record source.", eid);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bp_removeAdminAuthEid(Sdr sdr, char *eid)
+{
+	SdrObject	bpDbObj;
+	BpDB		bpDb;
+	SdrObject	elt;
+	SdrObject	nextElt;
+	SdrObject	strObj;
+	char		buf[SDRSTRING_BUFSZ];
+
+	CHKERR(eid);
+	bpDbObj = getBpDbObject();
+	if (bpDbObj == 0)
+	{
+		putErrmsg("BP database not available.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	if (bpDb.adminAuthList == 0)
+	{
+		sdr_exit_xn(sdr);	/*	Nothing to remove.	*/
+		return 0;
+	}
+
+	for (elt = sdr_list_first(sdr, bpDb.adminAuthList); elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		strObj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, strObj) > 0
+				&& strcmp(buf, eid) == 0)
+		{
+			sdr_free(sdr, strObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't withdraw admin-record source.", eid);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*	Scans the admin-record allowlist once, reporting whether it holds
+ *	the "any" sentinel and whether it holds the given EID (eid may be
+ *	NULL).  Reads live from the SDR; reuses an open transaction when the
+ *	caller already holds one (the custody path), else opens its own.	*/
+
+static void	bpAdminAllowlistScan(const char *eid, int *hasAny, int *hasEid)
+{
+	Sdr		sdr = getIonsdr();
+	BpDB		*bpConstants;
+	SdrObject	elt;
+	SdrObject	strObj;
+	char		buf[SDRSTRING_BUFSZ];
+	int		startedXn = 0;
+
+	*hasAny = 0;
+	*hasEid = 0;
+	bpConstants = getBpConstants();
+	if (bpConstants == NULL || bpConstants->adminAuthList == 0)
+	{
+		return;
+	}
+
+	if (!sdr_in_xn(sdr))
+	{
+		if (!sdr_begin_xn(sdr))
+		{
+			return;		/*	Fail closed (nothing found).	*/
+		}
+
+		startedXn = 1;
+	}
+
+	for (elt = sdr_list_first(sdr, bpConstants->adminAuthList); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		strObj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, strObj) <= 0)
+		{
+			continue;
+		}
+
+		if (strcmp(buf, BP_ADMIN_AUTH_ANY) == 0)
+		{
+			*hasAny = 1;
+		}
+		else if (eid != NULL && strcmp(buf, eid) == 0)
+		{
+			*hasEid = 1;
+		}
+	}
+
+	if (startedXn)
+	{
+		sdr_exit_xn(sdr);
+	}
+}
+
+/*	Canonical EID equality: compares ipn node numbers so that e.g.
+ *	"ipn:2.0" and a 3-element form of the same node match; falls back
+ *	to an exact string compare for other schemes.			*/
+
+static int	bpAdminEidsEqual(const char *a, const char *b)
+{
+	char		abuf[SDRSTRING_BUFSZ];
+	char		bbuf[SDRSTRING_BUFSZ];
+	MetaEid		ma;
+	MetaEid		mb;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	int		equal = 0;
+
+	if (a == NULL || b == NULL)
+	{
+		return 0;
+	}
+
+	if (strcmp(a, b) == 0)
+	{
+		return 1;
+	}
+
+	istrcpy(abuf, a, sizeof abuf);
+	istrcpy(bbuf, b, sizeof bbuf);
+	if (parseEidString(abuf, &ma, &vscheme, &vschemeElt))
+	{
+		if (parseEidString(bbuf, &mb, &vscheme, &vschemeElt))
+		{
+			if (ma.schemeCodeNbr == ipn && mb.schemeCodeNbr == ipn
+			&& ma.nullEndpoint == 0 && mb.nullEndpoint == 0
+			&& ma.elementNbr == mb.elementNbr)
+			{
+				equal = 1;
+			}
+
+			clearMetaEid(&mb);
+		}
+
+		clearMetaEid(&ma);
+	}
+
+	return equal;
+}
+
+int	bpVerifyAdminPeer(const char *claimedSourceEid,
+		const char *expectedPeerEid, const char *recordType)
+{
+	char		eidBuf[SDRSTRING_BUFSZ];
+	char		typeBuf[32];
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	IonVdb		*ionvdb;
+	PsmAddress	neighborElt;
+	int		hasAny = 0;
+	int		hasEid = 0;
+	int		recognized = 0;
+
+	/*	Require-BIB tier: when on, the BIB check has already been
+	 *	enforced at admin-record dispatch, so accept here.	*/
+
+	if (bp_getAdminAuthRequireBib(NULL))
+	{
+		return 1;
+	}
+
+	istrcpy(typeBuf, (recordType == NULL) ? "admin record" : recordType,
+			sizeof typeBuf);
+
+	/*	A record with no verifiable source can be accepted only by
+	 *	the "any" sentinel.					*/
+
+	if (claimedSourceEid != NULL && (*claimedSourceEid == '\0'
+			|| strcmp(claimedSourceEid, _nullEid()) == 0))
+	{
+		claimedSourceEid = NULL;
+	}
+
+	bpAdminAllowlistScan(claimedSourceEid, &hasAny, &hasEid);
+
+	/*	Default posture: allowlist holds "any" -> accept all.	*/
+
+	if (hasAny)
+	{
+		return 1;
+	}
+
+	if (claimedSourceEid == NULL)
+	{
+		writeMemoNote("[?] Ignored admin record with no verifiable \
+source", typeBuf);
+		return 0;
+	}
+
+	/*	Keep a non-const copy of the source for the reject log and
+	 *	the node-state lookups (parseEidString and findPlan copy
+	 *	their input internally, so eidBuf stays intact).	*/
+
+	istrcpy(eidBuf, claimedSourceEid, sizeof eidBuf);
+
+	if (expectedPeerEid != NULL)
+	{
+		/*	Custody signal: bind to the exact expected next
+		 *	custodian only -- no generic neighbor fallback.	*/
+
+		if (bpAdminEidsEqual(claimedSourceEid, expectedPeerEid))
+		{
+			recognized = 1;
+		}
+	}
+	else
+	{
+		/*	Generic node state: an egress plan for the source
+		 *	(static routing) or a contact-plan neighbor (CGR /
+		 *	saga).							*/
+
+		findPlan(eidBuf, &vplan, &vplanElt);
+		if (vplanElt != 0)
+		{
+			recognized = 1;
+		}
+
+		if (!recognized
+		&& parseEidString(eidBuf, &metaEid, &vscheme, &vschemeElt))
+		{
+			if (metaEid.schemeCodeNbr == ipn
+					&& metaEid.nullEndpoint == 0)
+			{
+				ionvdb = getIonVdb();
+				if (ionvdb != NULL && findNeighbor(ionvdb,
+						metaEid.elementNbr,
+						&neighborElt) != NULL)
+				{
+					recognized = 1;
+				}
+			}
+
+			clearMetaEid(&metaEid);
+		}
+	}
+
+	/*	... or an operator has explicitly allowlisted the source.	*/
+
+	if (!recognized && hasEid)
+	{
+		recognized = 1;
+	}
+
+	if (!recognized)
+	{
+		writeMemoNote("[?] Ignored admin record from unrecognized \
+source", eidBuf);
+		return 0;
+	}
+
+	return 1;
+}
+
+int	bpVerifyAdminSource(const char *claimedSourceEid, const char *recordType)
+{
+	return bpVerifyAdminPeer(claimedSourceEid, NULL, recordType);
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 {
 	Sdr		sdr = getIonsdr();
@@ -13842,7 +14257,22 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		oK(sdr_end_xn(sdr));
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
-		switch (adminRecType)
+
+		/*	require-BIB tier: accept an administrative record only
+		 *	when its primary block (BIB) and its payload block (BIB
+		 *	or BCB) were both verified during acquisition.  This is a
+		 *	single strict gate over every record type; the
+		 *	node-state/allowlist tier (per handler, below) applies
+		 *	only when require-BIB is off.				*/
+
+		if (bp_getAdminAuthRequireBib(NULL)
+		&& (dlv.primaryIntegrityVerified == 0
+			|| dlv.payloadAuthVerified == 0))
+		{
+			writeMemoNote("[?] Ignored unauthenticated admin record \
+(require-BIB)", itoa(adminRecType));
+		}
+		else switch (adminRecType)
 		{
 		case BP_STATUS_REPORT:
 			if (handleStatusRpt(&dlv, cursor, unparsedBytes) < 0)
@@ -13887,7 +14317,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			break;
 
 		case CBR_ADMIN_RECORD_CCS:
-			if (cbr_handleCcs(sdr, cursor, unparsedBytes) < 0)
+			if (cbr_handleCcs(sdr, cursor, unparsedBytes,
+					dlv.bundleSourceEid) < 0)
 			{
 				putErrmsg("CBR custody signal (CCS) handler \
 failed.", NULL);

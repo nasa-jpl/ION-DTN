@@ -1,0 +1,13 @@
+## node 1 -> node 2 -> node 3.  Node 3 is never started, so a custody bundle
+## addressed to node 3 is forwarded by node 1 to node 2 (node 1's expected
+## custodian, ipn:2.0) and stalls there -- node 2 runs custody OFF and has no
+## onward route, so it never returns a custody signal and node 1 keeps custody.
+m horizon +0
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+a range +0 +600 2 3 1
+a range +0 +600 3 2 1
+a contact +0 +600 1 2 100000
+a contact +0 +600 2 1 100000
+a contact +0 +600 2 3 100000
+a contact +0 +600 3 2 100000

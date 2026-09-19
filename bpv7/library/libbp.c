@@ -2079,6 +2079,14 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
 	dlvBuffer->timeToLive = bundle.timeToLive;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;
+
+	/*	Surface the BPSec verification state recorded during
+	 *	acquisition so the admin-record handler can enforce a
+	 *	require-BIB policy; this is the last point the Bundle's
+	 *	security flags are reachable before delivery.		*/
+
+	dlvBuffer->primaryIntegrityVerified = bundle.primaryIntegrityVerified;
+	dlvBuffer->payloadAuthVerified = bundle.payloadAuthVerified;
 	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
 

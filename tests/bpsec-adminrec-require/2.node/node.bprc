@@ -1,0 +1,15 @@
+## require-BIB test - Node 2 (relay + unprotected reporter): forwards node 3's
+## protected CRS, and itself emits an UNprotected delivery CRS toward node 1.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4552 udpcli
+a outduct udp 127.0.0.1:4551 udpclo
+a outduct udp 127.0.0.1:4553 udpclo
+r 'ipnadmin node.ipnrc'
+m srmode compressed
+m cbraggr 1 1 2
+s

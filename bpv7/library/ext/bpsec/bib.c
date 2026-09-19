@@ -364,6 +364,22 @@ int bpsec_verify(AcqWorkArea *work)
 							primeBibcheck = 1;
 							work->authentic = 1;
 						}
+
+						/*	Record per-block integrity so a
+						 *	require-BIB administrative-record
+						 *	policy can enforce it after the
+						 *	bundle is delivered (the target
+						 *	result is removed just below on
+						 *	the acceptor path).		*/
+						if (target->scTargetId == PrimaryBlk)
+						{
+							bundle->primaryIntegrityVerified = 1;
+						}
+						else if (target->scTargetId == PayloadBlk)
+						{
+							bundle->payloadAuthVerified = 1;
+						}
+
 						if (bpsec_util_destIsLocalCheck(bundle))
 						{
 							ADD_BIB_RX_PASS(fromEid, 1, length);

@@ -328,6 +328,17 @@ int    bpsec_decrypt(AcqWorkArea *work)
 					{
 						BCB_DEBUG_INFO("Processing of block %d by rule %d successful.", tgtResult->scTargetId, polRule->user_id);
 
+						/*	A verified BCB over the payload
+						 *	authenticates it via the AES-GCM
+						 *	tag, which a require-BIB admin-record
+						 *	policy accepts in lieu of a payload
+						 *	BIB (recorded before the target
+						 *	result is removed below).	*/
+						if (tgtResult->scTargetId == PayloadBlk)
+						{
+							bundle->payloadAuthVerified = 1;
+						}
+
 						/* Handle sop_processed event */
 						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_processed, bcbBlkElt, tgtResultElt, tgtResult->scTargetId);
 

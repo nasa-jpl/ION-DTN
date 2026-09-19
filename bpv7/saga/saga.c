@@ -749,8 +749,17 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	SdrObject	bundleElt;
 	SdrObject	nextBundleElt;
 
-	/* Parameter intentionally unused. */
-	(void)dlv;
+	/*	A saga contact-discovery message rewrites the local contact
+	 *	plan (saga_ingest below erases and recomputes predicted
+	 *	contacts), so bind it to a node the local node recognizes as
+	 *	a peer before acting on it; otherwise an off-path attacker
+	 *	could inject fabricated contacts by forging the source EID.
+	 *	An unrecognized sender is ignored (not a handler failure).	*/
+
+	if (bpVerifyAdminSource(dlv ? dlv->bundleSourceEid : NULL, "saga") == 0)
+	{
+		return 0;
+	}
 
 	uvtemp = 0;
 	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)

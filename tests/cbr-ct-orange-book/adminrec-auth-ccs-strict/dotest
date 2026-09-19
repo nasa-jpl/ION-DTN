@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# adminrec-auth-ccs-strict: 'require' rejects an unauthenticated custody signal
+# even from a known neighbor / the real custodian.
+#
+# Node 1 sets 'm adminauth require', so an administrative record is acted on only
+# when its primary and payload blocks are BPSec-verified.  Node 1 holds custody
+# of a bundle it forwarded to node 2 (ipn:2.0) -- node 2 is both a contact-plan
+# neighbor and the bundle's expected next custodian, so in node-state mode a CCS
+# from ipn:2.0 WOULD be honored.  This test injects, with bespokebpv7, an
+# UNPROTECTED (no-BIB) CCS "custody accepted" from ipn:2.0 and confirms node 1
+# still rejects it -- require does not fall back to node-state.
+#
+# Requires python3 >= 3.10 and the bespokebpv7 package; SKIPs (exit 2) otherwise.
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+PYTHON_CMD="python3"
+if ! command -v "$PYTHON_CMD" >/dev/null 2>&1; then
+    echo "SKIP: python3 not found."; exit 2
+fi
+py_ok=$("$PYTHON_CMD" -c 'import sys; print(1 if sys.version_info[:2] >= (3,10) else 0)' 2>/dev/null)
+if [ "$py_ok" != "1" ]; then
+    echo "SKIP: python3 >= 3.10 required."; exit 2
+fi
+if ! "$PYTHON_CMD" -c 'import bespokebpv7, cbor2' >/dev/null 2>&1; then
+    echo "SKIP: bespokebpv7 / cbor2 not available."; exit 2
+fi
+
+echo "=== 'require' rejects an unauthenticated CCS even from a known neighbor ==="
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+test_result() {
+    if [ "$1" -eq 0 ]; then TESTS_PASSED=$((TESTS_PASSED+1)); echo "  PASS: $2"
+    else TESTS_FAILED=$((TESTS_FAILED+1)); echo "  FAIL: $2"; fi
+}
+
+custody_count() {
+    ( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null ) \
+        | sed -n 's/.*: \([0-9][0-9]*\) bundle(s) in custody.*/\1/p' | head -1
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"; chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+if [ "$(pgrep -x rfxclock | wc -l)" -lt 2 ]; then
+    echo "ERROR: nodes did not start."; exit 1
+fi
+sleep 3
+
+# Node 1 (require mode from its bprc) originates a custody bundle to node 3
+# (not running); it forwards to node 2 (ipn:2.0) and keeps custody, since node 2
+# cannot deliver a custody signal back (no egress plan to node 1).
+( cd "$TESTDIR/1.node" && cbrcustodytest ipn:3.1 > originate.txt 2>&1 ) &
+ORIG_PID=$!
+sleep 4
+
+LISTING=$( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null )
+SEQID=$(echo "$LISTING" | sed -n 's/.*seqId=\([0-9][0-9]*\).*/\1/p' | head -1)
+SEQNUM=$(echo "$LISTING" | sed -n 's/.*seqNum=\([0-9][0-9]*\).*/\1/p' | head -1)
+CNT0=$(custody_count); CNT0=${CNT0:-0}
+echo "  in custody=$CNT0 seqId=$SEQID seqNum=$SEQNUM"
+if [ "$CNT0" -ge 1 ] && [ -n "$SEQID" ] && [ -n "$SEQNUM" ]; then
+    test_result 0 "Node 1 holds custody (setup)"
+else
+    test_result 1 "Node 1 did not hold custody (setup)"
+    kill $ORIG_PID 2>/dev/null || true
+    echo "TEST FAILED"; exit 1
+fi
+kill $ORIG_PID 2>/dev/null || true
+
+# ---------------------------------------------------------------
+echo "--- Test: unprotected CCS from the real custodian (ipn:2.0) is rejected ---"
+"$PYTHON_CMD" "$TESTDIR/inject_ccs.py" --induct-port 4551 --source ipn:2.0 \
+    --dest ipn:1.0 --seq-id "$SEQID" --seq-num "$SEQNUM" --disposition 1 \
+    >> "$TESTDIR/1.node/inject.txt" 2>&1
+sleep 5
+CNT1=$(custody_count); CNT1=${CNT1:-0}
+echo "  in custody after unprotected CCS from ipn:2.0: $CNT1"
+if [ "$CNT1" -ge 1 ]; then
+    test_result 0 "require ignored the unprotected CCS from the known neighbor"
+else
+    test_result 1 "require released custody on an unprotected CCS"
+fi
+if grep -q "Ignored unauthenticated admin record" "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "Node 1 logged the ignored unauthenticated record"
+else
+    test_result 1 "Node 1 did not log the ignored unauthenticated record"
+fi
+
+echo ""
+echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
+if [ "$TESTS_FAILED" -eq 0 ]; then echo "TEST PASSED"; exit 0
+else echo "TEST FAILED"; exit 1; fi

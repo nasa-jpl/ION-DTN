@@ -1,0 +1,16 @@
+## require-BIB test (BSL) - Node 1 (receiver): requires BPSec-authenticated
+## admin records and verifies node 3's BIB over primary + payload via BSL.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4551 udpcli
+a outduct udp 127.0.0.1:4552 udpclo
+m bsl 'ipn:1.0' '../key_set.json' 'policy_node1.json'
+r 'ipnadmin node.ipnrc'
+m srmode compressed
+m adminauth require
+m cbraggr 1 1 2
+s

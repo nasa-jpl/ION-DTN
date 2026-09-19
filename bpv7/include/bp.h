@@ -413,6 +413,8 @@ typedef struct
 	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
+	int		primaryIntegrityVerified;	/*	BIB over primary.	*/
+	int		payloadAuthVerified;	/*	BIB or BCB over payload.*/
 	SdrObject	adu;		/*	Zero-copy object.	*/
 
 	unsigned char	metadataType;	/*	See RFC 6258.		*/

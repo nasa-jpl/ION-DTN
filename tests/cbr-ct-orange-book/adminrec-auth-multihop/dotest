@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# adminrec-auth-multihop: administrative-record source authentication,
+# node-state + allowlist tier.
+#
+# A received administrative record (here a compressed reporting signal) can
+# drive local state.  Policy is phased:
+#   - default: the allowlist holds "any", so every admin record is accepted;
+#   - a specific allowlist (drop "any" with 'm adminauth deny any') tightens the
+#     node to accept a record only from the peer it expects it from (node state
+#     -- a contact-plan neighbor) or an allowlisted source (bpVerifyAdminPeer(),
+#     the same gate custody signals and saga messages use).
+#
+# Topology (chain; node 1 and node 3 are NOT neighbors):
+#   Node 1 (source, report-to) <-> Node 2 (relay) <-> Node 3 (destination)
+#
+# Node 1 asks node 3 for a delivery status signal back to itself.  Node 3's CRS
+# source (ipn:3.0) is a legitimate but non-adjacent peer of node 1.
+#
+# Verifies:
+#   0. Default 'trust' (allowlist "any"): node 1 records the CRS.
+#   1. 'm adminauth deny any' (node state): node 1 ignores the CRS from the
+#      unrecognized, non-adjacent source.
+#   2. 'm adminauth allow ipn:3.0': node 1 records it again.
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Admin-record source authentication (node-state + allowlist) ==="
+echo "Topology: Node 1 (report-to) <-> Node 2 (relay) <-> Node 3 (reporter)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ "$1" -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+crs_recv() {   # $1 = node dir; prints that node's "CRS Signals Recv" tally
+    ( cd "$TESTDIR/$1" && cbrcustodytest -l 2>/dev/null ) \
+        | grep "CRS Signals Recv" | awk '{print $NF}'
+}
+
+# Send one delivery-reporting bundle from node 1 to node 3, wait for the CRS.
+send_and_wait() {   # $1 = message label
+    ( cd "$TESTDIR/1.node" && bptrace -msg "$1" -ttl 60 -flags dlv \
+        ipn:1.2 ipn:3.1 ipn:1.0 > "trace_$1.txt" 2>&1 )
+    sleep 10
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started."
+echo ""
+
+echo "Waiting for contacts to become active..."
+sleep 3
+
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_output.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# ---------------------------------------------------------------
+echo "--- Phase 0: default 'trust' accepts the CRS ---"
+R0=$(crs_recv 1.node); R0=${R0:-0}
+send_and_wait phase0
+R0b=$(crs_recv 1.node); R0b=${R0b:-0}
+echo "  Node 1 CRS Signals Recv: $R0 -> $R0b"
+if [ "$R0b" -gt "$R0" ]; then
+    test_result 0 "Default (trust) recorded the CRS"
+else
+    test_result 1 "Default (trust) did not record the CRS"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase 1: 'm adminauth deny any' (node state) ignores it ---"
+( cd "$TESTDIR/1.node" && echo 'm adminauth deny any' | bpadmin > deny_any.txt 2>&1 )
+R1=$(crs_recv 1.node); R1=${R1:-0}
+send_and_wait phase1
+R1b=$(crs_recv 1.node); R1b=${R1b:-0}
+echo "  Node 1 CRS Signals Recv: $R1 -> $R1b"
+if [ "$R1b" -eq "$R1" ]; then
+    test_result 0 "Node state ignored the CRS from the unrecognized source"
+else
+    test_result 1 "Node state recorded a CRS from an unrecognized source"
+fi
+if grep -q "Ignored admin record from unrecognized source" \
+        "$TESTDIR/1.node/ion.log"; then
+    test_result 0 "Node 1 logged the ignored admin record"
+else
+    test_result 1 "Node 1 did not log the ignored admin record"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase 2: 'm adminauth allow ipn:3.0' authorizes the reporter ---"
+( cd "$TESTDIR/1.node" && echo 'm adminauth allow ipn:3.0' | bpadmin > allow.txt 2>&1 )
+R2=$(crs_recv 1.node); R2=${R2:-0}
+send_and_wait phase2
+R2b=$(crs_recv 1.node); R2b=${R2b:-0}
+echo "  Node 1 CRS Signals Recv: $R2 -> $R2b"
+if [ "$R2b" -gt "$R2" ]; then
+    test_result 0 "Allowlisted source's CRS was recorded"
+else
+    test_result 1 "Allowlisted source's CRS was not recorded"
+fi
+
+kill $SINK_PID 2>/dev/null || true
+sleep 1
+
+# ---------------------------------------------------------------
+echo ""
+echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
+if [ "$TESTS_FAILED" -eq 0 ]; then
+    echo "TEST PASSED"
+    exit 0
+else
+    echo "TEST FAILED"
+    exit 1
+fi

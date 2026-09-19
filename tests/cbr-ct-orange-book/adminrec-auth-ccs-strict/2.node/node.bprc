@@ -1,0 +1,13 @@
+## Forged-CCS test - Node 2: the neighbor node 1 forwards custody to; runs with
+## custody OFF so it never returns a real custody signal (node 1 keeps custody).
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4552 udpcli
+a outduct udp 127.0.0.1:4551 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode none
+s

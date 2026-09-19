@@ -1,0 +1,15 @@
+## require-BIB test (BSL) - Node 3 (protected reporter): BSL applies a BIB over
+## the primary and payload blocks of its delivery CRS addressed to node 1.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4553 udpcli
+a outduct udp 127.0.0.1:4552 udpclo
+m bsl 'ipn:3.0' '../key_set.json' 'policy_node3.json'
+r 'ipnadmin node.ipnrc'
+m srmode compressed
+m cbraggr 1 1 2
+s

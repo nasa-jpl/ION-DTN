@@ -1,0 +1,16 @@
+## Admin-record source-authentication test - Node 1 (source / report-to).
+## Leaves admin-record authentication at its secure default (require), so a
+## status signal from a node that is not a recognized peer is ignored until
+## the operator authorizes that source with 'm adminauth allow'.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4551 udpcli
+a outduct udp 127.0.0.1:4552 udpclo
+r 'ipnadmin node.ipnrc'
+m srmode compressed
+m cbraggr 1 1 2
+s
