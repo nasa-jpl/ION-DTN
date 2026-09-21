@@ -40,7 +40,13 @@
 #include "platform.h"
 #include "platform_sm.h"
 
-#ifndef ION_HAVE_ROBUST_MUTEX
+/*	The robust-mutex global IPC lock -- the subject of this test --
+ *	exists only in the POSIX named-semaphore backend built with
+ *	robust-mutex support.  Other configurations (no robust mutex, or
+ *	the SVR4 semaphore backend, which locks with an SVR4 semaphore)
+ *	have nothing for this test to exercise, so build a SKIP stub.	*/
+
+#if !defined(ION_HAVE_ROBUST_MUTEX) || !defined(POSIX_NAMED_SEMAPHORES)
 
 #if defined (ION_LWT)
 int	ipc_lock_recovery_test(saddr a1, saddr a2, saddr a3, saddr a4,
@@ -53,12 +59,13 @@ int	main(int argc, char **argv)
 {
 	(void)argc; (void)argv;
 #endif
-	printf("SKIP: built without ION_HAVE_ROBUST_MUTEX; robust-mutex "
-			"recovery is not applicable on this platform.\n");
+	printf("SKIP: robust-mutex global IPC lock not in use (requires "
+			"ION_HAVE_ROBUST_MUTEX with POSIX named semaphores); "
+			"robust-mutex recovery is not applicable here.\n");
 	return 2;
 }
 
-#else	/*	ION_HAVE_ROBUST_MUTEX					*/
+#else	/*	ION_HAVE_ROBUST_MUTEX && POSIX_NAMED_SEMAPHORES		*/
 
 #include <sys/wait.h>
 #include <signal.h>
@@ -275,4 +282,4 @@ int	main(int argc, char **argv)
 	return 0;
 }
 
-#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+#endif	/*	ION_HAVE_ROBUST_MUTEX && POSIX_NAMED_SEMAPHORES		*/
