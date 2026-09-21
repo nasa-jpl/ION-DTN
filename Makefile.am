@@ -221,20 +221,6 @@ clean-local: $(CLEAN_LOCAL_DEPS)
 	@rm -f .build_finished
 	@rm -f ion.pc
 
-build-man-directories:
-	mkdir -p $(top_builddir)/ici/doc
-	mkdir -p $(top_builddir)/ltp/doc
-	mkdir -p $(top_builddir)/dgr/doc
-	mkdir -p $(top_builddir)/$(BP_DIR)/doc
-	mkdir -p $(top_builddir)/tc/doc
-	mkdir -p $(top_builddir)/bss/doc
-	mkdir -p $(top_builddir)/dtpc/doc
-	mkdir -p $(top_builddir)/ams/doc
-	mkdir -p $(top_builddir)/cfdp/doc
-	mkdir -p $(top_builddir)/nm/doc
-	mkdir -p $(top_builddir)/restart/doc
-
-
 bin_PROGRAMS = \
 	$(icibin) \
 	$(ltpbin) \
@@ -301,7 +287,6 @@ noinst_HEADERS = \
 
 if ENABLE_MANPAGES
 man_MANS = \
-	build-man-directories \
 	$(icimans) \
 	$(ltpmans) \
 	$(dgrmans) \
