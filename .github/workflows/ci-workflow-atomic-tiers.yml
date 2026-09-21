@@ -92,6 +92,7 @@ jobs:
   # --------------------------------------------------------------------------
   setup:
     runs-on: arc-runner-set-u22
+    timeout-minutes: 20
     outputs:
       testmatrix: ${{ steps.dataStep.outputs.testoutput }}
       x86_tiers: ${{ steps.tiers.outputs.x86_tiers }}
@@ -156,6 +157,7 @@ jobs:
         runner: [arc-runner-set-rhel9, arc-runner-set-ol9, arc-runner-set-u22]
         tier: ${{ fromJSON(needs.setup.outputs.x86_tiers) }}
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
 
     steps:
       - name: Checkout ION source under test
@@ -182,7 +184,6 @@ jobs:
 
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
         run: |
           {
             export USER=$(whoami)
@@ -233,6 +234,7 @@ jobs:
         tier: ${{ fromJSON(needs.setup.outputs.x86_tiers) }}
         testchunk: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
 
     steps:
       - name: Checkout ION source under test
@@ -265,7 +267,6 @@ jobs:
 
       - name: Install ION and run tests
         if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
         run: |
           {
             echo "Starting test run at $(date)"
@@ -659,6 +660,7 @@ jobs:
     needs: [setup, install-and-test-linux-x86_64, arm64-linux-tiers]
     runs-on: arc-runner-set-ol9
     if: ${{ always() }}
+    timeout-minutes: 20
     steps:
       - name: Generate timestamp
         id: timestamp
