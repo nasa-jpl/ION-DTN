@@ -1367,6 +1367,8 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	int		semSetIdx;
 	int		semid;
 
+	(void)semType;	/*	SVR4 semaphores do not honor semType.	*/
+
 	/*	Look through list of all existing ICI semaphores.	*/
 
 	takeIpcLock();
@@ -1636,6 +1638,7 @@ void	sm_SemUnend(sm_SemId i)
 
 static void	handleTimeout(int signum)
 {
+	(void)signum;
 	return;
 }
 

@@ -766,6 +766,16 @@ int pthread_setname_np(const char *name);
 #if defined (SVR4_SEMAPHORES)	/****	SVR4_SEMAPHORES		     ****/
 
 #include <sys/ipc.h>
+/*	semtimedop() is a GNU extension that <sys/sem.h> declares only
+ *	when __USE_GNU is set (normally via _GNU_SOURCE).  ION builds to a
+ *	strict language standard that does not enable it, and features.h
+ *	has already been processed by this point, so force __USE_GNU on
+ *	for this include to obtain the declaration.  Harmless where it is
+ *	already defined or where the platform declares semtimedop
+ *	unconditionally.						*/
+#ifndef __USE_GNU
+#define __USE_GNU 1
+#endif
 #include <sys/sem.h>
 
 /*	Override these macros with -D option on gcc command line
