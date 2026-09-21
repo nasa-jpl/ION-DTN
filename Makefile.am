@@ -434,11 +434,6 @@ node10_DATA = \
 #
 #############
 
-# Define pod2man stuff
-iciPODM1 = pod2man -s 1 -c "ICI executables"
-iciPODM3 = pod2man -s 3 -c "ICI library functions"
-iciPODM5 = pod2man -s 5 -c "ICI configuration files"
-
 icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
 
 icibin = \
@@ -793,13 +788,6 @@ rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 #
 ##########################
 
-# Define pod2man stuff
-ltpPODM1 = pod2man -s 1 -c "LTP executables"
-ltpPODM3 = pod2man -s 3 -c "LTP library functions"
-ltpPODM5 = pod2man -s 5 -c "LTP configuration files"
-
-ltpmandir = $(top_builddir)/ltp/doc
-
 ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
@@ -984,10 +972,6 @@ xlso_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS)
 
 if ENABLE_DGR
 
-# Define pod2man stuff
-dgrPODM1 = pod2man -s 1 -c "DGR executables"
-dgrPODM3 = pod2man -s 3 -c "DGR library functions"
-
 dgrcflags = -I$(srcdir)/dgr/library -I$(srcdir)/dgr/test
 
 dgrbin = \
@@ -1072,11 +1056,6 @@ AMP_VERSION = @AMP_VERSION@
 ##########################
 
 BP_SRC_DIR = $(srcdir)/bpv7
-
-# Define pod2man stuff
-bpPODM1 = pod2man -s 1 -c "BP executables"
-bpPODM3 = pod2man -s 3 -c "BP library functions"
-bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
 bpcflags = \
 	-I$(BP_SRC_DIR)/bpsec/instr \
@@ -1934,11 +1913,6 @@ endif
 
 if ENABLE_TC
 
-# Define pod2man stuff
-tcPODM1 = pod2man -s 1 -c "TC executables"
-tcPODM3 = pod2man -s 3 -c "TC library functions"
-tcPODM5 = pod2man -s 5 -c "TC configuration files"
-
 tccflags = -I$(srcdir)/tc/authority -I$(srcdir)/tc/client -I$(srcdir)/tc/include -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/include
 
 tcbin = \
@@ -2106,9 +2080,6 @@ endif # ENABLE_TC
 nmbin= nm_agent nm_mgr
 nmlib= libamp.la libampAgentADM.la
 
-nmPODM1 = pod2man -s 1 -c "NM executables"
-nmPODM3 = pod2man -s 1 -c "NM libraries"
-
 # CBOR Library Sources
 nm_cbor_src = \
 	nm/contrib/QCBOR/src/UsefulBuf.c \
@@ -2239,12 +2210,6 @@ nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp
 # AMS SECTION
 #
 ##########################
-
-# Define pod2man stuff
-amsPODM1 = pod2man -s 1 -c "AMS executables"
-amsPODM3 = pod2man -s 3 -c "AMS library functions"
-amsPODM5 = pod2man -s 5 -c "AMS configuration files"
-#amsPODH = pod2html --noindex
 
 if CRYPTO_MBEDTLS
     amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/MBEDTLS_SUITES -DUDPTS -DTCPTS
@@ -2409,11 +2374,6 @@ ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 #
 ##############
 
-# Define pod2man stuff
-cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
-cfdpPODM3 = pod2man -s 3 -c "CFDP library functions"
-cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
-
 cfdpcflags = -I$(srcdir)/cfdp/library -I$(srcdir)/cfdp/include
 
 cfdpbin = \
@@ -2528,10 +2488,6 @@ tcputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 #
 ##############
 
-# Define pod2man stuff
-bssPODM1 = pod2man -s 1 -c "BSS executables"
-bssPODM3 = pod2man -s 3 -c "BSS library functions"
-
 bsscflags = -I$(srcdir)/bss/library -I$(srcdir)/bss/include
 
 bssbin = \
@@ -2597,11 +2553,6 @@ bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 ##############
 
 if ENABLE_DTPC
-
-# Define pod2man stuff
-dtpcPODM1 = pod2man -s 1 -c "DTPC executables"
-dtpcPODM3 = pod2man -s 3 -c "DTPC library functions"
-dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
 
 dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
