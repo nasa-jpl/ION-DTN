@@ -572,7 +572,6 @@ extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sparc)        ****/
 
 #ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
-#include <ucontext.h>		/****	For printstack() on Solaris  ****/
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES are the default on Solaris */

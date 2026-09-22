@@ -8,7 +8,6 @@ the following actions occur:
     and the failed assertion expression
 2.  All error memos are written to the log via `writeErrmsgMemos()`
 3.  A stack trace is printed via `printStackTrace()`
-    (on Linux and Solaris platforms)
 4.  If fail-fast mode is enabled (`CORE_FILE_NEEDED=1`),
     `sm_Abort()` is called to terminate immediately with a core dump
 5.  Otherwise, the function returns
@@ -42,15 +41,11 @@ int on = 1;
 
 The `printStackTrace()` function prints a symbolic stack trace
 when assertions fail.
-This is supported on:
+This relies on libc support
+for `<execinfo.h>`, `backtrace()`, and `backtrace_symbols()`
+(note that behavior differs across libcs).
 
--   **Linux**: Requires `HAVE_EXECINFO_H` to be defined
-    and linking with `-rdynamic`
--   **Solaris**: Uses `printstack()` from `<ucontext.h>`
--   **FreeBSD**: Uses `backtrace()` from `<execinfo.h>`
--   **macOS**: Uses `backtrace()` from `<execinfo.h>`
-
-On other platforms,
+On platforms where these functions are unavailable,
 a message indicating stack trace unavailability
 will be logged instead.
 

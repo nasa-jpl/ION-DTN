@@ -638,17 +638,15 @@ of the messages.
 
 =item void printStackTrace(void)
 
-On Linux machines only, uses writeMemo() to print a trace of the process's
-current execution stack, starting with the lowest level of the stack and
-proceeding to the main() function of the executable.
+The printStackTrace() function uses writeMemo() to print a trace of the
+process's current execution stack, starting with the lowest level of the stack
+and proceeding to the main() function of the executable.
 
-Note that (a) printStackTrace() is B<only> implemented for Linux platforms
-at this time; (b) symbolic names of functions can only be printed if the
-I<-rdynamic> flag was enabled when the executable was linked; (c) only the
-names of non-static functions will appear in the stack trace.
+Note that printStackTrace() has the same limitations and bugs as described in
+backtrace(3).
 
 For more complete information about the state of the executable at the time
-the stack trace snapshot was taken, use the Linux I<addr2line> tool. To do
+the stack trace snapshot was taken, use the addr2line(1) utility.  To do
 this, cd into a directory in which the executable file resides (such as
 /opt/bin) and submit an addr2line command as follows:
 

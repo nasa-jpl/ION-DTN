@@ -179,10 +179,12 @@ EXTERNAL_MANPAGES = {
     "strlen(3)",
     "string(3)",
     "arc4random_buf(3)",
+    "backtrace(3)",
     # platform-specific RNG / crypto
     "BCryptGenRandom(3)",
     "SecRandomCopyBytes(3)",
     # common CLI tools / other sections
+    "addr2line(1)",
     "base64(1)",
     "hostname(1)",
     "time(1)",

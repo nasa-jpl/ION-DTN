@@ -1614,8 +1614,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace(void)
 {
-#if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
-		&& !defined(solaris)
+#if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS)
 #define MAX_TRACE_DEPTH 100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
@@ -1638,10 +1637,6 @@ void	printStackTrace(void)
 
 	free(functionNames);
 #undef	MAX_TRACE_DEPTH
-#elif defined(solaris)
-	/*	Solaris uses printstack() from <ucontext.h>.		*/
-	writeMemo("[i] Current stack trace:");
-	printstack(STDERR_FILENO);
 #else
 	writeMemo("[?] No stack trace available on this platform.");
 #endif
