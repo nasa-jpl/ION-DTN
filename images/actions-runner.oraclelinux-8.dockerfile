@@ -21,6 +21,7 @@ ARG DOCKER_GROUP_GID=121
 RUN microdnf install -y oracle-epel-release-el8 \
     && microdnf update -y \
     && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
+    && rpm --import https://cli.github.com/packages/githubcli-archive-keyring.asc \
     && microdnf install -y \
     curl \
     ca-certificates \
@@ -156,7 +157,7 @@ RUN mkdir /run/user/$RUNNER_USER_UID \
 # We place the scripts in `/usr/bin` so that users who extend this image can
 # override them with scripts of the same name placed in `/usr/local/bin`.
 RUN mkdir -p /tmp/arc \
-    && curl -fL -o arc.tar.gz "https://github.com/actions/actions-runner-controller/archive/refs/tags/v${ARC_VERSION}.tar.gz" \
+    && curl -fL -o arc.tar.gz "https://github.com/actions/actions-runner-controller/archive/refs/tags/gha-runner-scale-set-${ARC_VERSION}.tar.gz" \
     && tar -xzf arc.tar.gz -C /tmp/arc --strip-components=1 \
     && cd /tmp/arc/runner \
     && install -m 755 entrypoint.sh startup.sh logger.sh graceful-stop.sh update-status /usr/bin/ \
@@ -183,7 +184,7 @@ RUN pyenv install ${PYTHON_VERSION} && pyenv global ${PYTHON_VERSION} \
     && rm -rf /home/runner/.pyenv/sources/* \
     && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
 
-COPY requirements.txt /tmp/requirements.txt
+COPY --chown=runner:runner requirements.txt /tmp/requirements.txt
 RUN /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt \
     && if [ ! -z "${PIP_INDEX}" ]; then \
