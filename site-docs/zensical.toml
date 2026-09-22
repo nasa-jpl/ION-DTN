@@ -79,7 +79,6 @@ nav = [
         { "Knowledge Base, Issues & Patches" = "known-issues.md" },
         { "ION Shutdown Guide" = "shutdown-guide.md" },
         { "Standard Operations Procedure" = "standard-operating-procedure.md" },
-        { "Platform Macros & Error Reporting" = "platform-macros-error-reporting.md" },
         { "CHK macro behavior" = "chk-macro-behavior.md" },
         { "Atomic operations" = "atomic-operations.md" },
         { "Static analysis notes" = "static-analysis.md" },
