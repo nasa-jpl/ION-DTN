@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# shell script to stop the node
+bpadmin .
+ltpadmin .
+ionadmin .

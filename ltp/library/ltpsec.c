@@ -41,6 +41,43 @@ static void	writeRuleMessage(char* ruleMessage, uvast engineId,
 	writeMemoNote(ruleMessage, buf);
 }
 
+/*	Rejects any rule the LTP engine could not actually enforce, so
+ *	that an operator never ends up with authentication configured
+ *	but not applied.  Returns 1 if the ciphersuite is usable.	*/
+
+static int	ciphersuiteIsUsable(int cipher)
+{
+#ifndef LTPAUTH
+	/*	The authentication extension is not in this build, so
+	 *	no rule would ever be consulted.			*/
+
+	(void)cipher;
+	writeMemo("[?] LTP authentication is not available in this build; \
+rebuild with --enable-crypto-mbedtls.");
+	return 0;
+#else
+	if (cipher != 0 && cipher != 1 && cipher != 255)
+	{
+		writeMemoNote("[?] Invalid ciphersuite", itoa(cipher));
+		return 0;
+	}
+
+	if (cipher == 1)
+	{
+		/*	RSA-SHA256 relies on the rsa_* entry points in
+		 *	ici/crypto, which are still stubs in every
+		 *	suite; a rule using it would attach an all-zero
+		 *	signature.					*/
+
+		writeMemo("[?] LTP ciphersuite 1 (RSA-SHA256) is not \
+implemented; use 0 (HMAC-SHA1-80).");
+		return 0;
+	}
+
+	return 1;
+#endif
+}
+
 /******************************************************************************
  *
  * \par Function Name: sec_findLtpXmitAuthRule
@@ -124,9 +161,8 @@ int	sec_addLtpXmitAuthRule(uvast ltpEngineId,
 
 	CHKERR(secdb);
 	CHKERR(keyName);
-	if (cipher != 0 && cipher != 1 && cipher != 255)
+	if (!ciphersuiteIsUsable(cipher))
 	{
-		writeMemoNote("[?] Invalid ciphersuite", itoa(cipher));
 		return 0;
 	}
 
@@ -204,9 +240,8 @@ int	sec_updateLtpXmitAuthRule(uvast ltpEngineId,
 	LtpXmitAuthRule	rule;
 
 	CHKERR(keyName);
-	if (cipher != 0 && cipher != 1 && cipher != 255)
+	if (!ciphersuiteIsUsable(cipher))
 	{
-		writeMemoNote("[?] Invalid ciphersuite", itoa(cipher));
 		return 0;
 	}
 
@@ -370,9 +405,8 @@ int	sec_addLtpRecvAuthRule(uvast ltpEngineId,
 
 	CHKERR(secdb);
 	CHKERR(keyName);
-	if (cipher != 0 && cipher != 1 && cipher != 255)
+	if (!ciphersuiteIsUsable(cipher))
 	{
-		writeMemoNote("[?] Invalid ciphersuite", itoa(cipher));
 		return 0;
 	}
 
@@ -451,9 +485,8 @@ int	sec_updateLtpRecvAuthRule(uvast ltpEngineId,
 	LtpRecvAuthRule	rule;
 
 	CHKERR(keyName);
-	if (cipher != 0 && cipher != 1 && cipher != 255)
+	if (!ciphersuiteIsUsable(cipher))
 	{
-		writeMemoNote("[?] Invalid ciphersuite", itoa(cipher));
 		return 0;
 	}
 
