@@ -1,0 +1,42 @@
+name: Vendored FEC Reachability
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - integration
+    paths:
+      - "tc/gf-complete/**"
+      - "tc/jerasure/**"
+      - "tc/library/ion_fec.c"
+      - "tc/include/ion_fec.h"
+      - ".github/scripts/**"
+      - ".github/workflows/fec-deadcode-check.yml"
+  pull_request:
+    branches:
+      - integration
+    paths:
+      - "tc/gf-complete/**"
+      - "tc/jerasure/**"
+      - "tc/library/ion_fec.c"
+      - "tc/include/ion_fec.h"
+      - ".github/scripts/**"
+      - ".github/workflows/fec-deadcode-check.yml"
+  workflow_dispatch:
+
+jobs:
+  reachability:
+    name: Vendored FEC reachability
+    runs-on: arc-runner-set-ol9
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compare reachable surface against the manifest
+        run: ./.github/scripts/fec-deadcode-check.sh

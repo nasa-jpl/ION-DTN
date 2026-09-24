@@ -20,3 +20,28 @@ ION-specific modifications:
   function not declared without <strings.h>, causing implicit function
   declaration errors on Solaris 11 and other strict compilers. memset() is
   C standard and portable across Linux, FreeBSD, macOS, and Solaris.
+- src/gf.c: Reduced the width dispatch in gf_init_hard() and
+  gf_scratch_size() to the widths ION can reach.
+  ION enters gf-complete only through tc/library/ion_fec.c, which encodes at
+  w=8; jerasure's galois_region_xor() additionally routes blocks of 16 bytes
+  or more through a GF(2^32), gf_w32_init() needs gf_w16, and gf_w8_init()
+  needs gf_w4 and gf_wgen.
+  Widths 64 and 128 and the generic gf_wgen dispatch are unreachable, so the
+  cases were removed and their implementations are no longer built.
+
+Build scope:
+  Only src/gf.c, gf_w4.c, gf_w8.c, gf_w16.c, gf_w32.c, gf_wgen.c and
+  gf_cpu.c are compiled; the rest of the upstream snapshot was deleted as
+  unreachable from ION.  See the commit that removed it for which files
+  went and why:
+    git log --diff-filter=D -- tc/gf-complete
+    git checkout <commit>^ -- tc/gf-complete/src/gf_w64.c
+  Restoring a file also means adding it back to libgfcomplete_la_SOURCES
+  in the top-level Makefile.am, and for a width implementation restoring
+  its case in the two width switches in src/gf.c.
+
+  The library is built as a convenience archive absorbed into libionfec
+  rather than an installed shared object, and its symbols are hidden, so
+  gf-complete's API is not part of ION's published ABI.
+  .github/scripts/fec-deadcode-check.sh records which functions in the
+  compiled sources remain unreachable and fails if that set changes.

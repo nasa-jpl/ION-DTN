@@ -13,3 +13,25 @@ ION-specific modifications:
   portability. bzero() is a legacy BSD function that causes implicit function
   declaration errors on Solaris 11 and other strict compilers. memset() is
   C standard and portable across Linux, FreeBSD, macOS, and Solaris.
+
+Build scope:
+  Only src/jerasure.c, reed_sol.c and galois.c are compiled.
+  tc/library/ion_fec.c uses only reed_sol_vandermonde_coding_matrix(),
+  jerasure_matrix_encode() and jerasure_matrix_decode(), so the rest of
+  the upstream snapshot was deleted as unreachable.  See the commit that
+  removed it for which files went and why:
+    git log --diff-filter=D -- tc/jerasure
+    git checkout <commit>^ -- tc/jerasure/src/cauchy.c
+  Restoring a file also means adding it back to libjerasure_la_SOURCES in
+  the top-level Makefile.am.
+
+  Deleting whole files does not account for all of the unreachable code:
+  src/jerasure.c holds the matrix routines ION uses and the
+  scheduled-decode and bitmatrix families it does not, in one translation
+  unit.  Those are listed in .github/scripts/fec-deadcode.manifest, and
+  the build drops them from the binary where the toolchain supports
+  section garbage collection.
+
+  The library is built as a convenience archive absorbed into libionfec
+  rather than an installed shared object, and its symbols are hidden, so
+  jerasure's API is not part of ION's published ABI.

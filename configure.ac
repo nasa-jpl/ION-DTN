@@ -1141,6 +1141,49 @@ AC_ARG_ENABLE([robust-sdr-lock],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-robust-sdr-lock])])],
   [enable_robust_sdr_lock="yes"])
 
+# Used for the vendored FEC sources; see tc/*/VERSION.txt.  Optional:
+# Solaris Studio spells this -xldscope, so fall back to nothing.
+AC_CACHE_CHECK([whether $CC supports -fvisibility=hidden],
+  [ac_cv_visibility_hidden],
+  [save_CFLAGS="$CFLAGS"
+   CFLAGS="$CFLAGS -fvisibility=hidden -Werror"
+   AC_COMPILE_IFELSE(
+     [AC_LANG_SOURCE([[int fn(void); int fn(void) { return 0; }]])],
+     [ac_cv_visibility_hidden=yes],
+     [ac_cv_visibility_hidden=no])
+   CFLAGS="$save_CFLAGS"])
+
+AS_IF([test "x$ac_cv_visibility_hidden" = xyes],
+  [VISIBILITY_HIDDEN_CFLAGS="-fvisibility=hidden"],
+  [VISIBILITY_HIDDEN_CFLAGS=""
+   AC_MSG_NOTICE([no -fvisibility=hidden; FEC symbols stay visible])])
+AC_SUBST([VISIBILITY_HIDDEN_CFLAGS])
+
+# With the flag above, drops unreachable vendored FEC code from the
+# binary.  Optional: not every linker has it, so fall back to nothing.
+AC_CACHE_CHECK([whether $CC and the linker support --gc-sections],
+  [ac_cv_gc_sections],
+  [save_CFLAGS="$CFLAGS"
+   save_LDFLAGS="$LDFLAGS"
+   CFLAGS="$CFLAGS -ffunction-sections -fdata-sections"
+   LDFLAGS="$LDFLAGS -Wl,--gc-sections"
+   AC_LINK_IFELSE(
+     [AC_LANG_SOURCE([[int unused_fn(void) { return 1; }
+int main(void) { return 0; }]])],
+     [ac_cv_gc_sections=yes],
+     [ac_cv_gc_sections=no])
+   CFLAGS="$save_CFLAGS"
+   LDFLAGS="$save_LDFLAGS"])
+
+AS_IF([test "x$ac_cv_gc_sections" = xyes],
+  [GC_SECTIONS_CFLAGS="-ffunction-sections -fdata-sections"
+   GC_SECTIONS_LDFLAGS="-Wl,--gc-sections"],
+  [GC_SECTIONS_CFLAGS=""
+   GC_SECTIONS_LDFLAGS=""
+   AC_MSG_NOTICE([no --gc-sections; unreachable FEC code stays in binary])])
+AC_SUBST([GC_SECTIONS_CFLAGS])
+AC_SUBST([GC_SECTIONS_LDFLAGS])
+
 AC_CACHE_CHECK([whether $CC supports robust process-shared mutexes],
   [ac_cv_robust_mutex],
   [save_LIBS="$LIBS"

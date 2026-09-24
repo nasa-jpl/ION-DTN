@@ -304,10 +304,12 @@ lib_LTLIBRARIES = \
 	$(secryptlib) \
 	$(metadatalib)
 
+noinst_LTLIBRARIES =
+
 # Linenoise: lightweight readline replacement (BSD-2-Clause)
 # Only built when --enable-commandline-history is used
 if ENABLE_CMD_HIST
-noinst_LTLIBRARIES = liblinenoise.la
+noinst_LTLIBRARIES += liblinenoise.la
 liblinenoise_la_SOURCES = ici/linenoise/linenoise.c
 liblinenoise_la_CFLAGS = $(AM_CFLAGS)
 LINENOISE_LDADD = liblinenoise.la
@@ -1908,9 +1910,12 @@ tclib = \
 	libtc.la \
 	libtcaP.la \
 	libtcc.la \
-	libgfcomplete.la \
-	libjerasure.la \
 	libionfec.la
+
+# Absorbed into libionfec; see tc/*/VERSION.txt.
+noinst_LTLIBRARIES += \
+	libgfcomplete.la \
+	libjerasure.la
 
 tcinclude = \
 	tc/dtka/dtka.h \
@@ -1976,29 +1981,26 @@ libgfcomplete_la_SOURCES = \
 	tc/gf-complete/src/gf_w8.c \
 	tc/gf-complete/src/gf_w16.c \
 	tc/gf-complete/src/gf_w32.c \
-	tc/gf-complete/src/gf_w64.c \
-	tc/gf-complete/src/gf_w128.c \
 	tc/gf-complete/src/gf_wgen.c \
-	tc/gf-complete/src/gf_general.c \
-	tc/gf-complete/src/gf_rand.c \
-	tc/gf-complete/src/gf_method.c \
 	tc/gf-complete/src/gf_cpu.c
-libgfcomplete_la_CFLAGS = -I$(srcdir)/tc/gf-complete/include -w
+libgfcomplete_la_CFLAGS = -I$(srcdir)/tc/gf-complete/include -w \
+	$(VISIBILITY_HIDDEN_CFLAGS) $(GC_SECTIONS_CFLAGS)
 
 # Jerasure library (Reed-Solomon erasure coding)
 # Note: This is vendored third-party code; suppress warnings that are treated as errors
 libjerasure_la_SOURCES = \
 	tc/jerasure/src/jerasure.c \
 	tc/jerasure/src/reed_sol.c \
-	tc/jerasure/src/galois.c \
-	tc/jerasure/src/cauchy.c \
-	tc/jerasure/src/liberation.c
-libjerasure_la_CFLAGS = -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include -w
-libjerasure_la_LIBADD = libgfcomplete.la
+	tc/jerasure/src/galois.c
+libjerasure_la_CFLAGS = -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include -w \
+	$(VISIBILITY_HIDDEN_CFLAGS) $(GC_SECTIONS_CFLAGS)
+# No LIBADD: libionfec links both, so absorbing one into the other would
+# define every gf-complete symbol twice.
 
 # ION FEC wrapper library
 libionfec_la_SOURCES = tc/library/ion_fec.c
 libionfec_la_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tc/include -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include
+libionfec_la_LDFLAGS = $(GC_SECTIONS_LDFLAGS)
 libionfec_la_LIBADD = libjerasure.la libgfcomplete.la
 
 

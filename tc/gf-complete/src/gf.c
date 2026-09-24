@@ -441,9 +441,8 @@ int gf_scratch_size(int w,
     case 8: return gf_w8_scratch_size(mult_type, region_type, divide_type, arg1, arg2);
     case 16: return gf_w16_scratch_size(mult_type, region_type, divide_type, arg1, arg2);
     case 32: return gf_w32_scratch_size(mult_type, region_type, divide_type, arg1, arg2);
-    case 64: return gf_w64_scratch_size(mult_type, region_type, divide_type, arg1, arg2);
-    case 128: return gf_w128_scratch_size(mult_type, region_type, divide_type, arg1, arg2);
-    default: return gf_wgen_scratch_size(w, mult_type, region_type, divide_type, arg1, arg2);
+    /* ION: see VERSION.txt */
+    default: return -1;
   }
 }
 
@@ -517,9 +516,8 @@ int gf_init_hard(gf_t *gf, int w, int mult_type,
     case 8: return gf_w8_init(gf);
     case 16: return gf_w16_init(gf);
     case 32: return gf_w32_init(gf);
-    case 64: return gf_w64_init(gf);
-    case 128: return gf_w128_init(gf);
-    default: return gf_wgen_init(gf);
+    /* ION: w64/w128/wgen not built; see VERSION.txt */
+    default: return 0;
   }
 }
 
