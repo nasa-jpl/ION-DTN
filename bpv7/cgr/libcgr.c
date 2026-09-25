@@ -401,6 +401,26 @@ static void	detachRoutingObject(PsmPartition ionwm,
 		sm_list_destroy(ionwm, routingObject->proximateNodes, NULL,
 				NULL);
 	}
+
+	if (routingObject->fairRrEntries)
+	{
+		PsmAddress	rrElt;
+		PsmAddress	rrAddr;
+
+		for (rrElt = sm_list_first(ionwm,
+				routingObject->fairRrEntries); rrElt;
+				rrElt = sm_list_next(ionwm, rrElt))
+		{
+			rrAddr = sm_list_data(ionwm, rrElt);
+			if (rrAddr)
+			{
+				psm_free(ionwm, rrAddr);
+			}
+		}
+
+		sm_list_destroy(ionwm, routingObject->fairRrEntries, NULL,
+				NULL);
+	}
 }
 
 void	cgr_clear_vdb(CgrVdb *vdb)
@@ -2708,10 +2728,8 @@ usable route found -> limbo.", (uvast) terminusNode->fqnn, routesComputed);
 	}
 }
 
-static int	loadCriticalBestRoutesList(IonNode *terminusNode,
-			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
-			Lyst bestRoutes, time_t currentTime, time_t deadline,
-			CgrRtgObject *routingObj)
+static int	buildProximateNodesList(CgrRtgObject *routingObj,
+			time_t currentTime, uvast terminusFqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	uvast		ownNodeNbr = getOwnFqnn();
@@ -2720,94 +2738,107 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 	IonCXref	*contact;
 	PsmAddress	elt2;
 	uvast		fqnn;
-	Lyst		routes;
 
+	if (routingObj->proximateNodes != 0)
+	{
+		return 0;	/*	Already built.			*/
+	}
+
+	routingObj->proximateNodes = sm_list_create_unlocked(ionwm);
 	if (routingObj->proximateNodes == 0)
 	{
-		routingObj->proximateNodes = sm_list_create_unlocked(ionwm);
-		if (routingObj->proximateNodes == 0)
+		putErrmsg("Can't build list of proximate nodes.",
+				utoa(terminusFqnn));
+		return -1;
+	}
+
+	/*	Identify all proximate nodes by scanning all
+	 *	contacts that transmit from the local node.
+	 *
+	 *	Because the contact index in the IonVdb
+	 *	contains all contacts involving nodes in
+	 *	all regions in which the local node resides,
+	 *	this list of proximate nodes may include nodes
+	 *	residing in either the home region or outer
+	 *	region (if any) of the local node.		*/
+
+	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		if (contact->fromFqnn != ownNodeNbr)
 		{
-			putErrmsg("Can't build list of proximate nodes.",
-					utoa(terminusNode->fqnn));
-			return -1;
+			continue;
 		}
 
-		/*	Identify all proximate nodes by scanning all
-		 *	contacts that transmit from the local node.
-		 *
-		 *	Because the contact index in the IonVdb
-		 *	contains all contacts involving nodes in
-		 *	all regions in which the local node resides,
-		 *	this list of proximate nodes may include nodes
-		 *	residing in either the home region or outer
-		 *	region (if any) of the local node.		*/
-
-		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-				elt = sm_rbt_next(ionwm, elt))
+		if (contact->toTime <= currentTime)
 		{
-			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
-						elt));
-			if (contact->fromFqnn != ownNodeNbr)
+			/*	Contact is ended, is about to be purged.*/
+
+			continue;
+		}
+
+		for (elt2 = sm_list_first(ionwm, routingObj->proximateNodes);
+				elt2; elt2 = sm_list_next(ionwm, elt2))
+		{
+			fqnn = (uvast) sm_list_data(ionwm, elt2);
+			if (fqnn < contact->toFqnn)
 			{
 				continue;
 			}
 
-			if (contact->toTime <= currentTime)
-			{
-				/*	Contact is ended, is about to
-				 *	be purged.			*/
+			break;
+		}
 
-				continue;
-			}
-
-			for (elt2 = sm_list_first(ionwm,
-					routingObj->proximateNodes); elt2;
-					elt2 = sm_list_next(ionwm, elt2))
-			{
-				fqnn = (uvast) sm_list_data(ionwm, elt2);
-				if (fqnn < contact->toFqnn)
-				{
-					continue;
-				}
-
-				break;
-			}
-
-			if (elt2 == 0)	/*	No greater prox node#.	*/
-			{
-				if (sm_list_insert_last(ionwm,
-					routingObj->proximateNodes,
-					(PsmAddress) (contact->toFqnn)) == 0)
-				{
-					putErrmsg("Can't insert prox node.",
-						utoa(terminusNode->fqnn));
-					return -1;
-				}
-
-				continue;	/*	Next contact.	*/
-			}
-
-			if (fqnn == contact->toFqnn)
-			{
-				/*	Prox node is already in list.	*/
-
-				continue;	/*	Next contact.	*/
-			}
-
-			/*	This node number must be inserted here.	*/
-
-			if (sm_list_insert_before(ionwm, elt2,
-					(PsmAddress) (contact->toFqnn)) == 0)
+		if (elt2 == 0)	/*	No greater prox node#.		*/
+		{
+			if (sm_list_insert_last(ionwm,
+				routingObj->proximateNodes,
+				(PsmAddress) (contact->toFqnn)) == 0)
 			{
 				putErrmsg("Can't insert prox node.",
-						utoa(terminusNode->fqnn));
+						utoa(terminusFqnn));
 				return -1;
 			}
+
+			continue;	/*	Next contact.		*/
 		}
 
-		/*	All contacts have been checked against the
-		 *	proximate nodes list, so the list is ready
-		 *	to use.						*/
+		if (fqnn == contact->toFqnn)
+		{
+			/*	Prox node is already in list.		*/
+
+			continue;	/*	Next contact.		*/
+		}
+
+		/*	This node number must be inserted here.		*/
+
+		if (sm_list_insert_before(ionwm, elt2,
+				(PsmAddress) (contact->toFqnn)) == 0)
+		{
+			putErrmsg("Can't insert prox node.",
+					utoa(terminusFqnn));
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int	loadCriticalBestRoutesList(IonNode *terminusNode,
+			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
+			Lyst bestRoutes, time_t currentTime, time_t deadline,
+			CgrRtgObject *routingObj)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt2;
+	uvast		fqnn;
+	Lyst		routes;
+
+	if (buildProximateNodesList(routingObj, currentTime,
+			terminusNode->fqnn) < 0)
+	{
+		return -1;
 	}
 
 	routes = lyst_create_using(getIonMemoryMgr());
@@ -2853,7 +2884,373 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 	return 0;
 }
 
+static int	loadFairRoutesList(IonNode *terminusNode, Bundle *bundle,
+			Lyst excludedNodes, CgrTrace *trace, Lyst bestRoutes,
+			time_t currentTime, time_t deadline,
+			CgrRtgObject *routingObj, int allowDelaySec)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt2;
+	uvast		fqnn;
+	Lyst		routes;
+	LystElt		elt;
+	LystElt		nextElt;
+	CgrRoute	*route;
+	time_t		minPbat;
+	time_t		cutoff;
+
+	if (buildProximateNodesList(routingObj, currentTime,
+			terminusNode->fqnn) < 0)
+	{
+		return -1;
+	}
+
+	routes = lyst_create_using(getIonMemoryMgr());
+	if (routes == NULL)
+	{
+		putErrmsg("Can't create routes list.",
+				utoa(terminusNode->fqnn));
+		return -1;
+	}
+
+	/*	Find the best route via each proximate neighbor; one
+	 *	route per neighbor (deduplicated on first hop, since
+	 *	multiple routes through the same neighbor share the
+	 *	same plan and offer no parallel link capacity).		*/
+
+	for (elt2 = sm_list_first(ionwm, routingObj->proximateNodes); elt2;
+			elt2 = sm_list_next(ionwm, elt2))
+	{
+		fqnn = (uvast) sm_list_data(ionwm, elt2);
+		if (loadBestRoutesList(terminusNode, fqnn, bundle,
+				excludedNodes, trace, routes, currentTime,
+				deadline, routingObj) < 0)
+		{
+			putErrmsg("Can't find best route via node.",
+					utoa(fqnn));
+			lyst_destroy(routes);
+			return -1;
+		}
+
+		if (lyst_length(routes) > 0)
+		{
+			if (lyst_insert_last(bestRoutes,
+					lyst_data(lyst_last(routes))) == NULL)
+			{
+				putErrmsg("Can't insert best route via node.",
+						utoa(fqnn));
+				lyst_destroy(routes);
+				return -1;
+			}
+
+			lyst_clear(routes);
+		}
+	}
+
+	lyst_destroy(routes);
+
+	/*	Filter the eligible set by the ETA window: keep only
+	 *	routes whose terminus arrival time is within
+	 *	allowDelaySec of the best route's PBAT.  Resolution is
+	 *	currently 1 second since CGR PBAT is a time_t.		*/
+
+	if (lyst_length(bestRoutes) <= 1)
+	{
+		return 0;	/*	Nothing to filter.		*/
+	}
+
+	minPbat = 0;
+	for (elt = lyst_first(bestRoutes); elt; elt = lyst_next(elt))
+	{
+		route = (CgrRoute *) lyst_data(elt);
+		if (minPbat == 0 || route->pbat < minPbat)
+		{
+			minPbat = route->pbat;
+		}
+	}
+
+	cutoff = minPbat + allowDelaySec;
+	elt = lyst_first(bestRoutes);
+	while (elt)
+	{
+		nextElt = lyst_next(elt);
+		route = (CgrRoute *) lyst_data(elt);
+		if (route->pbat > cutoff)
+		{
+			lyst_delete(elt);
+		}
+
+		elt = nextElt;
+	}
+
+	return 0;
+}
+
 #endif
+
+/*	*	Fair-routing SWRR helpers	*	*	*	*/
+
+static long	bottleneckRate(CgrRoute *route)
+{
+	PsmPartition	wm = getIonwm();
+	PsmAddress	citation;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	long		minRate = -1;
+
+	if (route->hops == 0)
+	{
+		return 1;
+	}
+
+	for (citation = sm_list_first(wm, route->hops); citation;
+			citation = sm_list_next(wm, citation))
+	{
+		contactAddr = sm_list_data(wm, citation);
+		if (contactAddr == 0)
+		{
+			continue;
+		}
+
+		contact = (IonCXref *) psp(wm, contactAddr);
+		if (minRate < 0 || (long) contact->xmitRate < minRate)
+		{
+			minRate = (long) contact->xmitRate;
+		}
+	}
+
+	if (minRate <= 0)
+	{
+		minRate = 1;	/*	Defensive: never zero weight.	*/
+	}
+
+	return minRate;
+}
+
+static int	cmpUvast(const void *a, const void *b)
+{
+	uvast	x = *(const uvast *) a;
+	uvast	y = *(const uvast *) b;
+
+	if (x < y)
+	{
+		return -1;
+	}
+
+	if (x > y)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+static uvast	computeFairRrSetHash(Lyst eligibleRoutes)
+{
+	uvast		hash = 0xcbf29ce484222325ULL;
+	int		n = lyst_length(eligibleRoutes);
+	uvast		*fqnns;
+	int		i;
+	int		b;
+	LystElt		elt;
+	CgrRoute	*route;
+	unsigned char	*p;
+
+	if (n == 0)
+	{
+		return 0;
+	}
+
+	fqnns = (uvast *) MTAKE(n * sizeof(uvast));
+	if (fqnns == NULL)
+	{
+		return 0;
+	}
+
+	i = 0;
+	for (elt = lyst_first(eligibleRoutes); elt; elt = lyst_next(elt))
+	{
+		route = (CgrRoute *) lyst_data(elt);
+		fqnns[i++] = route->toFqnn;
+	}
+
+	qsort(fqnns, n, sizeof(uvast), cmpUvast);
+
+	for (i = 0; i < n; i++)
+	{
+		p = (unsigned char *) &fqnns[i];
+		for (b = 0; b < (int) sizeof(uvast); b++)
+		{
+			hash ^= p[b];
+			hash *= 0x100000001b3ULL;
+		}
+	}
+
+	MRELEASE(fqnns);
+	return hash;
+}
+
+static void	freeFairRrEntries(CgrRtgObject *routingObj)
+{
+	PsmPartition	wm = getIonwm();
+	PsmAddress	elt;
+	PsmAddress	entryAddr;
+
+	if (routingObj->fairRrEntries == 0)
+	{
+		return;
+	}
+
+	for (elt = sm_list_first(wm, routingObj->fairRrEntries); elt;
+			elt = sm_list_next(wm, elt))
+	{
+		entryAddr = sm_list_data(wm, elt);
+		if (entryAddr)
+		{
+			psm_free(wm, entryAddr);
+		}
+	}
+
+	sm_list_destroy(wm, routingObj->fairRrEntries, NULL, NULL);
+	routingObj->fairRrEntries = 0;
+	routingObj->fairRrTotalWeight = 0;
+}
+
+static int	rebuildFairRrEntries(CgrRtgObject *routingObj,
+			Lyst eligibleRoutes)
+{
+	PsmPartition	wm = getIonwm();
+	LystElt		elt;
+	CgrRoute	*route;
+	PsmAddress	entryAddr;
+	FairRrEntry	*entry;
+	long		total = 0;
+
+	freeFairRrEntries(routingObj);
+
+	routingObj->fairRrEntries = sm_list_create_unlocked(wm);
+	if (routingObj->fairRrEntries == 0)
+	{
+		return -1;
+	}
+
+	for (elt = lyst_first(eligibleRoutes); elt; elt = lyst_next(elt))
+	{
+		route = (CgrRoute *) lyst_data(elt);
+		entryAddr = psm_zalloc(wm, sizeof(FairRrEntry));
+		if (entryAddr == 0)
+		{
+			freeFairRrEntries(routingObj);
+			return -1;
+		}
+
+		entry = (FairRrEntry *) psp(wm, entryAddr);
+		entry->toFqnn = route->toFqnn;
+		entry->weight = bottleneckRate(route);
+		entry->currentWeight = 0;
+		total += entry->weight;
+
+		if (sm_list_insert_last(wm, routingObj->fairRrEntries,
+				entryAddr) == 0)
+		{
+			psm_free(wm, entryAddr);
+			freeFairRrEntries(routingObj);
+			return -1;
+		}
+	}
+
+	routingObj->fairRrTotalWeight = total;
+	return 0;
+}
+
+CgrRoute	*cgr_pick_fair_route(IonNode *terminusNode, Lyst eligibleRoutes)
+{
+	PsmPartition	wm = getIonwm();
+	CgrRtgObject	*routingObj;
+	uvast		setHash;
+	PsmAddress	elt;
+	PsmAddress	entryAddr;
+	FairRrEntry	*entry;
+	FairRrEntry	*pickedEntry = NULL;
+	LystElt		routeElt;
+	CgrRoute	*route;
+
+	if (terminusNode == NULL || eligibleRoutes == NULL)
+	{
+		return NULL;
+	}
+
+	if (lyst_length(eligibleRoutes) == 0)
+	{
+		return NULL;
+	}
+
+	if (lyst_length(eligibleRoutes) == 1)
+	{
+		return (CgrRoute *) lyst_data(lyst_first(eligibleRoutes));
+	}
+
+	routingObj = (CgrRtgObject *) psp(wm, terminusNode->routingObject);
+	if (routingObj == NULL)
+	{
+		return (CgrRoute *) lyst_data(lyst_first(eligibleRoutes));
+	}
+
+	setHash = computeFairRrSetHash(eligibleRoutes);
+	if (setHash != routingObj->fairRrSetHash
+			|| routingObj->fairRrEntries == 0)
+	{
+		if (rebuildFairRrEntries(routingObj, eligibleRoutes) < 0)
+		{
+			putErrmsg("Can't rebuild SWRR table.", NULL);
+			return (CgrRoute *) lyst_data(lyst_first(eligibleRoutes));
+		}
+
+		routingObj->fairRrSetHash = setHash;
+	}
+
+	/*	One SWRR step: increment all currentWeight by weight,
+	 *	pick max, decrement picked by totalWeight.		*/
+
+	for (elt = sm_list_first(wm, routingObj->fairRrEntries); elt;
+			elt = sm_list_next(wm, elt))
+	{
+		entryAddr = sm_list_data(wm, elt);
+		entry = (FairRrEntry *) psp(wm, entryAddr);
+		entry->currentWeight += entry->weight;
+		if (pickedEntry == NULL
+				|| entry->currentWeight
+					> pickedEntry->currentWeight
+				|| (entry->currentWeight
+						== pickedEntry->currentWeight
+					&& entry->toFqnn < pickedEntry->toFqnn))
+		{
+			pickedEntry = entry;
+		}
+	}
+
+	if (pickedEntry == NULL)
+	{
+		return (CgrRoute *) lyst_data(lyst_first(eligibleRoutes));
+	}
+
+	pickedEntry->currentWeight -= routingObj->fairRrTotalWeight;
+
+	/*	Find the route in eligibleRoutes whose toFqnn matches
+	 *	the picked entry.					*/
+
+	for (routeElt = lyst_first(eligibleRoutes); routeElt;
+			routeElt = lyst_next(routeElt))
+	{
+		route = (CgrRoute *) lyst_data(routeElt);
+		if (route->toFqnn == pickedEntry->toFqnn)
+		{
+			return route;
+		}
+	}
+
+	return (CgrRoute *) lyst_data(lyst_first(eligibleRoutes));
+}
 
 int	cgr_create_routing_object(IonNode *node)
 {
@@ -2948,6 +3345,18 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 				currentTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find all best routes to destination.",
+					utoa(terminusNode->fqnn));
+			return -1;
+		}
+	}
+	else if (ionGetRoutingStrategy() == IonRoutingFair)
+	{
+		if (loadFairRoutesList(terminusNode, bundle, excludedNodes,
+				trace, bestRoutes, currentTime, deadline,
+				routingObj,
+				ionGetAllowRoutingDelayMsec() / 1000) < 0)
+		{
+			putErrmsg("Can't find fair routes to destination.",
 					utoa(terminusNode->fqnn));
 			return -1;
 		}

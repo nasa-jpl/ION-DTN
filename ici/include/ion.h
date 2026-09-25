@@ -279,6 +279,20 @@ typedef struct
 	float		confidence;	/*	Confidence in contact.	*/
 } CpsNotice;
 
+/*	Routing strategy selector for CGR-based forwarders.		*/
+
+typedef enum
+{
+	IonRoutingShortestPbat = 0,	/*	Default: pick best PBAT.*/
+	IonRoutingFair = 1		/*	Stripe across eligible
+						routes within a delay window
+						of the best PBAT.	*/
+} IonRoutingStrategy;
+
+#ifndef ION_DEFAULT_ALLOW_ROUTING_DELAY_MSEC
+#define ION_DEFAULT_ALLOW_ROUTING_DELAY_MSEC	1000
+#endif
+
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
 typedef struct
@@ -309,6 +323,8 @@ typedef struct
 						   0 = disabled.	*/
 	int		wmMemProtectPercent;	/* 0-50, default 10.
 						   0 = disabled.	*/
+	int		routingStrategy;	/* IonRoutingStrategy.	*/
+	int		allowRoutingDelayMsec;	/* Fair-routing window.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
@@ -488,6 +504,8 @@ typedef struct
 	int		wmMemProtectPercent;	/* Cached from IonDB.	*/
 	char		heapThresholdBreached;	/* Boolean flag.	*/
 	char		wmThresholdBreached;	/* Boolean flag.	*/
+	int		routingStrategy;	/* Cached from IonDB.	*/
+	int		allowRoutingDelayMsec;	/* Cached from IonDB.	*/
 } IonVdb;
 
 typedef struct
@@ -662,6 +680,11 @@ extern int		ionSetMemProtect(int heapPct, int wmPct);
 extern void		ionGetMemProtect(int *heapPct, int *wmPct);
 extern int		ionHeapMemProtected(Sdr sdr);
 extern int		ionWmMemProtected(void);
+
+extern int		ionSetRoutingStrategy(int strategy);
+extern int		ionGetRoutingStrategy(void);
+extern int		ionSetAllowRoutingDelayMsec(int msec);
+extern int		ionGetAllowRoutingDelayMsec(void);
 
 #ifdef __cplusplus
 }

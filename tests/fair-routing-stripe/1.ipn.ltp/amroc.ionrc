@@ -1,0 +1,5 @@
+1 1 amroc.ionconfig
+s
+m horizon  +0
+m routing-strategy fair-routing
+m allow-routing-delay 2000
