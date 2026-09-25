@@ -2620,10 +2620,38 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 #define	CGR_NEG_CACHE_SECS	(1)
 #endif
 
+/*	Earliest future first-hop open time among the cached routes, or 0 if
+ *	none opens later: the horizon until which re-enumeration can be
+ *	deferred (#1511).  route->fromTime is the first contact's fromTime.	*/
+
+static time_t	nextRouteOpenTime(PsmPartition ionwm, CgrRtgObject *routingObj,
+			time_t currentTime)
+{
+	PsmAddress	elt;
+	PsmAddress	routeAddr;
+	CgrRoute	*route;
+	time_t		earliest = 0;
+
+	for (elt = sm_list_first(ionwm, routingObj->selectedRoutes); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		routeAddr = sm_list_data(ionwm, elt);
+		route = (CgrRoute *) psp(ionwm, routeAddr);
+		if (route->fromTime > currentTime
+		&& (earliest == 0 || route->fromTime < earliest))
+		{
+			earliest = route->fromTime;
+		}
+	}
+
+	return earliest;
+}
+
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
 			Lyst bestRoutes, time_t currentTime, time_t deadline,
-			CgrRtgObject *routingObj)
+			CgrRtgObject *routingObj, int allowCompute,
+			int *computeBounded)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
@@ -2631,6 +2659,15 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 	struct timeval	now;
 	long		elapsedUsec;
 	unsigned int	routesComputed = 0;
+
+	/*	#1511: allowCompute==0 evaluates cached routes only (no Yen
+	 *	re-enumeration).  *computeBounded, if non-NULL, reports a
+	 *	compute-bound stop with no usable route.		*/
+
+	if (computeBounded)
+	{
+		*computeBounded = 0;
+	}
 
 	/*	Perform route selection outer loop until the list
 	 *	of best routes contains the single best route for
@@ -2656,6 +2693,11 @@ time-bounded for dest node " UVAST_FIELDSPEC " after %ld us (%u routes \
 computed); %d candidate(s) so far.", (uvast) terminusNode->fqnn, elapsedUsec,
 					routesComputed, (int) lyst_length(bestRoutes));
 			writeMemo(cbuf);
+			if (computeBounded && lyst_length(bestRoutes) == 0)
+			{
+				*computeBounded = 1;
+			}
+
 			return 0;
 		}
 
@@ -2673,9 +2715,12 @@ computed); %d candidate(s) so far.", (uvast) terminusNode->fqnn, elapsedUsec,
 
 			if (lyst_length(bestRoutes) == 0)
 			{
-				/*	No candidate; force computation
-				 *	of another selected route -- the
-				 *	unbounded path, so cap it (#1048).*/
+				if (!allowCompute)
+				{
+					return 0;	/*	Deferred (#1511).	*/
+				}
+
+				/*	Force computation, but cap it (#1048).	*/
 
 				routesComputed++;
 				if (routesComputed >= CGR_MAX_ROUTES_PER_BUNDLE)
@@ -2686,6 +2731,11 @@ computed); %d candidate(s) so far.", (uvast) terminusNode->fqnn, elapsedUsec,
 route compute count-bounded for dest node " UVAST_FIELDSPEC " at %u routes; no \
 usable route found -> limbo.", (uvast) terminusNode->fqnn, routesComputed);
 					writeMemo(cbuf);
+					if (computeBounded)
+					{
+						*computeBounded = 1;
+					}
+
 					return 0;
 				}
 
@@ -2824,7 +2874,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 		fqnn = (uvast) sm_list_data(ionwm, elt2);
 		if (loadBestRoutesList(terminusNode, fqnn, bundle,
 				excludedNodes, trace, routes, currentTime,
-				deadline, routingObj) < 0)
+				deadline, routingObj, 1, NULL) < 0)
 		{
 			putErrmsg("Can't find best route via node.",
 					utoa(fqnn));
@@ -2897,6 +2947,8 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	time_t		deadline;
 	CgrRtgObject	*routingObj;
 	int		potential;
+	int		deferred;
+	int		computeBounded = 0;
 
 	/* Parameter intentionally unused. */
 	(void)sap;
@@ -2954,51 +3006,52 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	}
 	else
 	{
-		/*	Negative-result cache (#1048): if a recent decision
-		 *	found no usable route to this destination and the
-		 *	contact plan hasn't changed since (a change wipes
-		 *	this routing object), skip the costly re-enumeration
-		 *	and let the bundle wait in limbo.  Return a non-zero
-		 *	potential so the caller keeps it in limbo and retries
-		 *	rather than abandoning it.			*/
+		/*	Compute-deferral (#1048, #1511): while deferred, skip
+		 *	the expensive Yen re-enumeration but still evaluate the
+		 *	cached selectedRoutes (allowCompute==0), so a later
+		 *	bundle can match one without re-enumerating.  A contact-
+		 *	plan change wipes this routing object, clearing it.	*/
 
-		if (routingObj->computeDeferredUntil != 0
-		&& currentTime < routingObj->computeDeferredUntil)
-		{
-			TRACE(CgrNoRoute);
-			return 1;
-		}
+		deferred = (routingObj->computeDeferredUntil != 0
+				&& currentTime < routingObj->computeDeferredUntil);
 
 		if (loadBestRoutesList(terminusNode, 0, bundle,
 				excludedNodes, trace, bestRoutes,
-				currentTime, deadline, routingObj) < 0)
+				currentTime, deadline, routingObj,
+				!deferred, &computeBounded) < 0)
 		{
 			putErrmsg("Can't find best route to destination.",
 					utoa(terminusNode->fqnn));
 			return -1;
 		}
 
-		/*	Update the negative-result cache for next time.
-		 *	Arm it only when this destination has no computed
-		 *	routes at all, i.e., the route enumeration itself
-		 *	came up empty; only then would the next bundle pay
-		 *	a full re-enumeration.  When routes exist but none
-		 *	suited this particular bundle (e.g., its deadline
-		 *	precedes every route's arrival time), the next
-		 *	bundle may well qualify, and evaluating it against
-		 *	the cached route list is cheap -- arming the cache
-		 *	in that case would deny routing to viable bundles
-		 *	on the basis of an unrelated bundle's failure.	*/
+		/*	Arm when no route was usable and re-enumerating would
+		 *	repeat expensive nothing (route space empty, or compute
+		 *	bound hit); disarm as soon as a route is usable.  A
+		 *	bundle-specific miss (routes exist, none suit this bundle,
+		 *	search not bounded) leaves the deferral unchanged.	*/
 
-		if (lyst_length(bestRoutes) == 0
-		&& sm_list_length(ionwm, routingObj->selectedRoutes) == 0)
-		{
-			routingObj->computeDeferredUntil = currentTime
-					+ CGR_NEG_CACHE_SECS;
-		}
-		else
+		if (lyst_length(bestRoutes) != 0)
 		{
 			routingObj->computeDeferredUntil = 0;
+		}
+		else if (sm_list_length(ionwm, routingObj->selectedRoutes) == 0
+				|| computeBounded)
+		{
+			time_t	horizon;
+
+			/*	Defer to the next first-hop open time; a fixed
+			 *	short TTL is a no-op at the ~1 s limbo cadence.
+			 *	Fall back to the TTL when no route opens later.	*/
+
+			horizon = nextRouteOpenTime(ionwm, routingObj,
+					currentTime);
+			if (horizon == 0)
+			{
+				horizon = currentTime + CGR_NEG_CACHE_SECS;
+			}
+
+			routingObj->computeDeferredUntil = horizon;
 		}
 	}
 
