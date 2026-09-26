@@ -1149,8 +1149,8 @@ command.");
 						done_time.tv_sec
 						&& cur_time.tv_usec >=
 						done_time.tv_usec) {
-						printText("[?]  start hung up,\
- abandoned.");
+						printText("[?] CFDP start hung up,"
+							" abandoned.");
 						break;
 					}
 				}

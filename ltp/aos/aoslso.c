@@ -83,8 +83,8 @@ int	main(int argc, char *argv[])
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
-		PUTS("Usage: aoslso {<remote engine's host name> | @}[:\
-		<its port number>] <txbps (0=unlimited)> <remote engine ID>");
+		PUTS("Usage: aoslso {<remote engine's host name> | @}[:"
+		"<its port number>] <txbps (0=unlimited)> <remote engine ID>");
 		return 0;
 	}
 

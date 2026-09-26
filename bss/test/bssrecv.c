@@ -462,8 +462,8 @@ arguments");
 
 				/* Check returned 'from' and 'to' time */
 				if (from <= 0){
-					PUTS("'From' time set to 0 due to possible parsing error; check format \
-						if this is not expected.");
+					PUTS("'From' time set to 0 due to possible parsing error; check format "
+						"if this is not expected.");
 					from = 0;
 				}
 

@@ -142,8 +142,8 @@ adu.", NULL);
 				case 1:
 					if (parseInAdus(sdr) < 0)
 					{
-						putErrmsg("dtpcd can't parse \
-							inbound adus.", NULL);
+						putErrmsg("dtpcd can't parse "
+							"inbound adus.", NULL);
 						parms->running = 0;
 						continue;
 					}

@@ -137,8 +137,8 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	isprintf(buffer, sizeof(buffer), "Syntax error at line %d of \
-		bpsecadmin.c", lineNbr);
+	isprintf(buffer, sizeof(buffer), "Syntax error at line %d of "
+		"bpsecadmin.c", lineNbr);
 	bpsec_admin_printText(buffer);
 }
 #endif

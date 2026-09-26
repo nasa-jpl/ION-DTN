@@ -846,8 +846,8 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	int		res = 0;
 
 #if BSSLIBDEBUG
-printf("receiveFrame: received frame with creation time %ld (sec) and \
-	count = %d \n", bundleSeconds, dlv->bundleCreationTime.count);
+printf("receiveFrame: received frame with creation time %ld (sec) and "
+	"count = %d \n", bundleSeconds, dlv->bundleCreationTime.count);
 #endif
 
 
@@ -881,8 +881,8 @@ printf("receiveFrame: received frame with creation time %ld (sec) and \
 		newEntryOffset = (long) lseek(lstFile, 0, SEEK_END);
 		if (newEntryOffset < 0)
 		{
-			putSysErrmsg("BSS library can't seek to the end of \
-					.lst file", NULL);
+			putSysErrmsg("BSS library can't seek to the end of "
+					".lst file", NULL);
 			oK(_lockMutex(0));
 			return -1;
 		}
@@ -896,8 +896,8 @@ newEntryOffset);
 		datOffset = (off_t) lseek(datFile, 0, SEEK_END);
 		if (datOffset < 0)
 		{
-			putSysErrmsg("BSS library can't seek to the end of \
-					.dat file", NULL);
+			putSysErrmsg("BSS library can't seek to the end of "
+					".dat file", NULL);
 			oK(_lockMutex(0));
 			return -1;
 		}
@@ -947,8 +947,8 @@ printf("UpdateLstEntries failed, return -1 to receiveFrame");
 			}
 		}
 #if BSSLIBDEBUG
-printf(".lst file Entry Offset that was returned from getEntryPosition function: \
-	%ld\n", lstEntryOffset);
+printf(".lst file Entry Offset that was returned from "
+	"getEntryPosition function: %ld\n", lstEntryOffset);
 #endif
 
 		/*	OK to write dataRecord information and payload
@@ -1000,8 +1000,8 @@ printf("#2 display function returns res value = %d\n",res);
 	}
 	else
 	{
-		writeMemo("[?] Bssp content larger than buffer space. Failed to\
-		 receive bss frame.");
+		writeMemo("[?] Bssp content larger than buffer space. Failed to"
+				" receive bss frame.");
 		res = display((time_t) 0, 0, error, sizeof(error));
 	}
 

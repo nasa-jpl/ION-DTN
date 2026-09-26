@@ -1481,8 +1481,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 						{
 							close(sourceFile);
 							sdr_cancel_xn(sdr);
-							putErrmsg("CFDP metadataFn \
-	failed.", sourceFileName);
+							putErrmsg("CFDP metadataFn "
+	"failed.", sourceFileName);
 							return -1;
 						}
 
@@ -1490,8 +1490,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 						{
 							close(sourceFile);
 							sdr_cancel_xn(sdr);
-							putErrmsg("CFDP seg metadata \
-	too long.", sourceFileName);
+							putErrmsg("CFDP seg metadata "
+	"too long.", sourceFileName);
 							return -1;
 						}
 

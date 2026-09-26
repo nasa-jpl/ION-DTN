@@ -589,8 +589,8 @@ status after that transaction ends, no tracing");
 from ION configuration");
 	PUTS("   interval: polling interval in seconds");
 	PUTS("   count: number of polls");
-	PUTS("   verbose: enable verbose output, tracing all allocations, \
-		does not remove log entries for freed blocks.");
+	PUTS("   verbose: enable verbose output, tracing all allocations, "
+		"does not remove log entries for freed blocks.");
 	PUTS("");
 	PUTS("Daemon mode:");
 	PUTS("   sdrwatch [<sdr_name>] -d [<interval_minutes> \

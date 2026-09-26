@@ -608,8 +608,8 @@ int8_t  hsha_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 		/* First, make sure the passed-in digest is the right length. */
 		if(digest->len < 0 || (uint32_t)digest->len != csi_sign_res_len(suite, context))
 		{
-			CSI_DEBUG_ERR("x hsha_sign_finish: Wrong length digest in \
-	BIB: %d != %d.", digest->len, csi_sign_res_len(suite, context));
+			CSI_DEBUG_ERR("x hsha_sign_finish: Wrong length digest in "
+	"BIB: %d != %d.", digest->len, csi_sign_res_len(suite, context));
 			return 0;
 		}
 

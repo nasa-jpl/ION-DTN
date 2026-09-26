@@ -437,11 +437,11 @@ auto-detected from ION configuration.");
 	PUTS("   shared_memory_key: integer key, HEX or decimal");
 	PUTS("   memory_size: size of shared memory segment");
 	PUTS("   partition_name: name of the memory partition, 'ionwm' or 'sdrwm'");
-	PUTS("   interval: polling interval in seconds; 0 or negative \
-		values to poll without memory allocation tracing.");
+	PUTS("   interval: polling interval in seconds; 0 or negative "
+		"values to poll without memory allocation tracing.");
 	PUTS("   count: number of polls");
-	PUTS("   verbose: enable verbose output, tracing all allocations, \
-		does not remove log entries for freed blocks.");
+	PUTS("   verbose: enable verbose output, tracing all allocations, "
+		"does not remove log entries for freed blocks.");
 	PUTS("");
 	PUTS("Daemon mode:");
 	PUTS("   psmwatch -d [<interval_minutes> [<percent_threshold> \
