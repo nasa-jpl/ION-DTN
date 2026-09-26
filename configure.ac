@@ -404,6 +404,22 @@ AS_IF([test "x$enable_sdr_freelist_sweep" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DSDR_FREELIST_SWEEP"])
 
 #
+# allow the user running configure to enable CGR route-computation cost
+# instrumentation.  cgrfetch(1) then prints a per-computation cost breakdown
+# line splitting one CGR route computation into its enumeration (Dijkstra +
+# Yen) and selection phases.  Off by default; a developer/profiling aid with
+# no effect otherwise.
+#
+AC_ARG_ENABLE([cgr-bench],
+  [AS_HELP_STRING([--enable-cgr-bench], [instrument CGR route-computation cost (cgrfetch prints a cost breakdown)])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-cgr-bench])])],
+  [enable_cgr_bench=no])
+AS_IF([test "x$enable_cgr_bench" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -DENABLE_CGR_BENCH"])
+
+#
 # allow the user running configure to enable the enhanced watch character option
 #
 AC_ARG_ENABLE([ewchar],

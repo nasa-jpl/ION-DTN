@@ -91,6 +91,47 @@ List all available outducts.
 
 =back
 
+=head1 CGR COST INSTRUMENTATION
+
+When ION is built with C<configure --enable-cgr-bench>, B<cgrfetch> prints one
+extra line to stderr for each route computation, breaking the cost of that
+computation into its phases:
+
+  [CGR-BENCH] total=1003720 us | ENUM=1003720 us (clearWorkAreas=206735 us/61, dijkstra=796985 us/46) | SELECT pbat=0 us/0 | yenSpurs=15
+
+The fields are:
+
+=over 4
+
+=item B<total>
+
+Microseconds spent in the instrumented phases of the computation.
+
+=item B<ENUM>
+
+Route enumeration: C<clearWorkAreas> (the per-Dijkstra work-area reset, which is
+O(number of contacts)) plus C<dijkstra> (the Dijkstra traversal). Each is shown
+as I<microseconds>/I<call-count>.
+
+=item B<SELECT pbat>
+
+Route selection: C<computePBAT> (projected-arrival-time and capacity booking),
+as I<microseconds>/I<call-count>. Zero when every enumerated route is excluded
+(for example as too slow for the bundle deadline) before selection is reached.
+
+=item B<yenSpurs>
+
+Number of Yen K-shortest-path spur computations; each spur re-runs the Dijkstra,
+so C<dijkstra>'s call count is typically several times this.
+
+=back
+
+This is a developer/profiling aid; it is off by default and has no effect on a
+normal build. Route computation is bounded by CGR_MAX_COMPUTE_USEC (250 ms by
+default), so on a large contact plan the reported cost is the truncated hold a
+live node actually pays; rebuild with a larger C<-DCGR_MAX_COMPUTE_USEC> (and
+C<-DCGR_MAX_ROUTES_PER_BUNDLE>) to measure the full, untruncated enumeration.
+
 =head1 SEE ALSO
 
 base64(1), dot(1)

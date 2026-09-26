@@ -685,6 +685,55 @@ static CgrContactNote	*getWorkArea(PsmPartition ionwm, IonCXref *contact)
 	return work;
 }
 
+/*	ENABLE_CGR_BENCH (configure --enable-cgr-bench): opt-in cost breakdown of
+ *	one route computation.  Times the leaf phases -- clearWorkAreas, the
+ *	Dijkstra (computeDistanceToTerminus), and volume/selection (computePBAT)
+ *	-- and counts Yen spurs.  Single-threaded; the phases never nest, so one
+ *	file-scope start stamp suffices.  No effect on a normal build.		*/
+
+#ifdef ENABLE_CGR_BENCH
+#include <stdio.h>
+static long	_cgrb_t0;
+static long	_cgrb_cwa_us, _cgrb_dij_us, _cgrb_pbat_us;
+static int	_cgrb_cwa_n, _cgrb_dij_n, _cgrb_pbat_n, _cgrb_yen_n;
+
+static long	_cgrb_now(void)
+{
+	struct timeval	t;
+
+	getCurrentTime(&t);
+	return ((long) t.tv_sec) * 1000000L + t.tv_usec;
+}
+
+static void	cgr_bench_reset(void)
+{
+	_cgrb_cwa_us = _cgrb_dij_us = _cgrb_pbat_us = 0;
+	_cgrb_cwa_n = _cgrb_dij_n = _cgrb_pbat_n = _cgrb_yen_n = 0;
+}
+
+static void	cgr_bench_dump(void)
+{
+	long	enum_us = _cgrb_cwa_us + _cgrb_dij_us;
+	long	total = enum_us + _cgrb_pbat_us;
+
+	fprintf(stderr, "[CGR-BENCH] total=%ld us | ENUM=%ld us "
+		"(clearWorkAreas=%ld us/%d, dijkstra=%ld us/%d) | "
+		"SELECT pbat=%ld us/%d | yenSpurs=%d\n",
+		total, enum_us, _cgrb_cwa_us, _cgrb_cwa_n, _cgrb_dij_us,
+		_cgrb_dij_n, _cgrb_pbat_us, _cgrb_pbat_n, _cgrb_yen_n);
+}
+
+#define	CGRB_START	(_cgrb_t0 = _cgrb_now())
+#define	CGRB_ADD(us, n)	do { (us) += _cgrb_now() - _cgrb_t0; (n)++; } while (0)
+#define	CGRB_YEN()	(_cgrb_yen_n++)
+#else
+#define	cgr_bench_reset()	((void) 0)
+#define	cgr_bench_dump()	((void) 0)
+#define	CGRB_START	((void) 0)
+#define	CGRB_ADD(us, n)	((void) 0)
+#define	CGRB_YEN()	((void) 0)
+#endif
+
 static int	clearWorkAreas(IonCXref *rootContact)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -693,6 +742,7 @@ static int	clearWorkAreas(IonCXref *rootContact)
 	IonCXref	*contact;
 	CgrContactNote	*work;
 
+	CGRB_START;
 	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 			elt = sm_rbt_next(ionwm, elt))
 	{
@@ -712,6 +762,7 @@ static int	clearWorkAreas(IonCXref *rootContact)
 		}
 	}
 
+	CGRB_ADD(_cgrb_cwa_us, _cgrb_cwa_n);
 	return 0;
 }
 
@@ -1218,14 +1269,18 @@ UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
 
 	/*	Run Dijkstra search.					*/
 
+	CGRB_START;
 	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
 			currentTime, excludedEdges, route, trace) < 0)
 	{
+		CGRB_ADD(_cgrb_dij_us, _cgrb_dij_n);
 		destroyRouteHops(ionwm, route);
 		psm_free(ionwm, addr);
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
 	}
+
+	CGRB_ADD(_cgrb_dij_us, _cgrb_dij_n);
 
 	if (route->toFqnn == 0)
 	{
@@ -2222,7 +2277,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	to scan the scheduled intervals of contact with the
 	 *	candidate neighbor.					*/
 
+	CGRB_START;
 	pbat = computePBAT(route, bundle, currentTime, &plan);
+	CGRB_ADD(_cgrb_pbat_us, _cgrb_pbat_n);
 	if (pbat == 0)			/*	Can't arrive in time.	*/
 	{
 		TRACE(CgrExcludeRoute, CgrRouteCongested);
@@ -2397,6 +2454,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 			}
 
 			route->spursComputed = 1;
+			CGRB_YEN();
 			if (computeAnotherRoute(terminusNode, route,
 					currentTime, elt, trace))
 			{
@@ -3126,8 +3184,10 @@ int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle,
 		}
 	}
 
+	cgr_bench_reset();
 	result = cgr_identify_best_routes(terminusNode, bundle,
 			excludedNodes, atTime, sap, trace, bestRoutes);
+	cgr_bench_dump();
 	lyst_destroy(bestRoutes);
 	lyst_destroy(excludedNodes);
 	if (result < 0)
