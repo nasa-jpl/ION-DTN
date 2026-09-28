@@ -58,14 +58,14 @@ fi
 
 export ION_NODE_LIST_DIR="$PWD"
 
-STATUS=0
 TEST_RESULT=1
 
 echo ""
 echo "Starting Node 2..."
 cd node2
 ./ionstart
-../../../system_up -i "p 30" -b "p 30" || STATUS=$?
+../../../system_up -i "p 30" -b "p 30"
+STATUS=$?
 if [ "$STATUS" -ne 2 ]; then
     echo "Node 2 not started: Aborting Test"
     exit 1
