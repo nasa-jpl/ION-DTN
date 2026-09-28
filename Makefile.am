@@ -2064,18 +2064,15 @@ endif # ENABLE_TC
 nmbin= nm_agent nm_mgr
 nmlib= libamp.la libampAgentADM.la
 
-# CBOR Library Sources
-nm_cbor_src = \
-	nm/contrib/QCBOR/src/UsefulBuf.c \
-	nm/contrib/QCBOR/src/qcbor_encode.c \
-	nm/contrib/QCBOR/src/qcbor_decode.c \
-	nm/contrib/QCBOR/src/ieee754.c
-
-NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
+nm_cbor_cppflags = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
 #  This library is standalone (no dependencies on other ION components)
-nm_shared_src = \
+libamp_la_SOURCES = \
+	nm/contrib/QCBOR/src/UsefulBuf.c \
+	nm/contrib/QCBOR/src/ieee754.c \
+	nm/contrib/QCBOR/src/qcbor_decode.c \
+	nm/contrib/QCBOR/src/qcbor_encode.c \
 	nm/shared/adm/adm.c \
 	nm/shared/msg/msg.c \
 	nm/shared/primitives/ari.c \
@@ -2092,13 +2089,10 @@ nm_shared_src = \
 	nm/shared/utils/nm_types.c \
 	nm/shared/utils/rhht.c \
 	nm/shared/utils/utils.c \
-	nm/shared/utils/vector.c \
-	$(nm_cbor_src)
-
-libamp_la_SOURCES = $(nm_shared_src)
+	nm/shared/utils/vector.c
 libamp_la_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci -I$(srcdir)/ltp/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  $(NM_CBOR_CFLAGS)
+                  $(nm_cbor_cppflags)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
 libamp_la_LIBADD = libici.la
 
@@ -2117,7 +2111,18 @@ nm_agent_SOURCES = \
 
 NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR) -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci
 
-nm_agent_ADM_SOURCES = \
+nmextra = \
+	nm/doc/pod1/nm_agent.pod \
+	nm/doc/pod1/nm_mgr.pod
+
+nmmans = \
+	nm/doc/nm_agent.1 \
+	nm/doc/nm_mgr.1
+
+nmclean-local:
+	rm -f $(top_builddir)/nm/doc/*.1
+
+libampAgentADM_la_SOURCES = \
 	bpv7/adm/adm_bp_agent_impl.c \
 	bpv7/adm/adm_bp_agent_agent.c \
 	bpv7/adm/adm_bpsec_impl.c \
@@ -2134,43 +2139,44 @@ nm_agent_ADM_SOURCES = \
 	nm/agent/adm_ion_ltp_admin_agent.c \
 	nm/agent/adm_ltp_agent_impl.c \
 	nm/agent/adm_ltp_agent_agent.c
-
-nm_mgr_ADM_SOURCES = \
-	bpv7/adm/adm_bp_agent_mgr.c \
-	bpv7/adm/adm_bpsec_mgr.c \
-	bpv7/adm/adm_ion_bp_admin_mgr.c \
-	nm/mgr/adm_amp_agent_mgr.c \
-	nm/mgr/adm_ion_admin_mgr.c \
-	nm/mgr/adm_ionsec_admin_mgr.c \
-	nm/mgr/adm_ion_ipn_admin_mgr.c \
-	nm/mgr/adm_ion_ltp_admin_mgr.c \
-	nm/mgr/adm_ltp_agent_mgr.c
-
-nmextra = \
-	nm/doc/pod1/nm_agent.pod \
-	nm/doc/pod1/nm_mgr.pod
-
-nmmans = \
-	nm/doc/nm_agent.1 \
-	nm/doc/nm_mgr.1
-
-nmclean-local:
-	rm -f $(top_builddir)/nm/doc/*.1
-
-libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libampAgentADM_la_CFLAGS = -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE)
+libampAgentADM_la_CFLAGS = \
+	-I$(srcdir)/nm \
+	-I$(srcdir)/nm/shared/adm \
+	-I$(BP_SRC_DIR) \
+	-I$(BP_SRC_DIR)/library/ext/bpsec \
+	-I$(BP_SRC_DIR)/library \
+	-I$(srcdir)/ltp/library \
+	$(nm_cbor_cppflags) \
+	$(AM_CFLAGS) \
+	$(NO_UNUSED_VARIABLE)
 libampAgentADM_la_LIBADD = libamp.la libici.la $(bplib) libltp.la
 
 
 nm_agent_LDADD = libici.la $(bplib) libltp.la libamp.la libampAgentADM.la $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = $(AM_LDFLAGS) -L/usr/local/lib -lm -lpthread
 
-nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
-
+nm_agent_CFLAGS = \
+	-I$(srcdir)/ici/library \
+	-I$(srcdir)/bpv7/library \
+	-I$(srcdir)/nm \
+        -I$(srcdir)/nm/agent \
+	-I$(srcdir)/nm/shared/adm \
+	$(AM_CFLAGS) \
+	$(NO_UNUSED_VARIABLE) \
+        -DAGENT_ROLE \
+	$(nm_cbor_cppflags) \
+	$(NM_ADM_INCLUDES)
 
 nm_mgr_SOURCES = \
+	bpv7/adm/adm_bp_agent_mgr.c \
+	bpv7/adm/adm_bpsec_mgr.c \
+	bpv7/adm/adm_ion_bp_admin_mgr.c \
+	nm/mgr/adm_amp_agent_mgr.c \
+	nm/mgr/adm_ion_admin_mgr.c \
+	nm/mgr/adm_ion_ipn_admin_mgr.c \
+	nm/mgr/adm_ion_ltp_admin_mgr.c \
+	nm/mgr/adm_ionsec_admin_mgr.c \
+	nm/mgr/adm_ltp_agent_mgr.c \
 	nm/mgr/agents.c \
 	nm/mgr/metadata.c \
 	nm/mgr/nm_mgr_print.c \
@@ -2179,7 +2185,6 @@ nm_mgr_SOURCES = \
 	nm/mgr/nm_mgr_ui.c \
 	nm/mgr/nm_mgr.c \
 	nm/mgr/ui_input.c \
-	$(nm_mgr_ADM_SOURCES) \
 	nm/shared/msg/ion_if.c \
 	nm/shared/adm/adm_init.c
 
@@ -2187,7 +2192,16 @@ nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = $(AM_LDFLAGS) -lpthread
-nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+nm_mgr_CFLAGS = \
+	-I$(srcdir)/ici/library \
+	-I$(srcdir)/bpv7/library \
+	-I$(srcdir)/ltp/library \
+	-I$(srcdir)/nm \
+	-I$(srcdir)/nm/mgr \
+	$(AM_CFLAGS) \
+	$(NO_UNUSED_VARIABLE) \
+	$(nm_cbor_cppflags) \
+	$(NM_ADM_INCLUDES)
 
 ##########################
 #
@@ -2776,7 +2790,11 @@ check_PROGRAMS += tests/bpsec/bsl-reattach.bsl/dotest
 endif
 
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
-tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
+tests_nm_unit_dotest_SOURCES = \
+	tests/nm-unit/dotest.c \
+	$(nm_agent_SOURCES) \
+	$(libamp_la_SOURCES) \
+	$(libampAgentADM_la_SOURCES)
 tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
 tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
 	 -I$(srcdir)/nm -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
@@ -2785,7 +2803,7 @@ tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_sh
 tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
 tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
 
-tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
+tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(libamp_la_SOURCES)
 tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUTILOBJS) $(TESTUNITYOBJS) libici.la $(bplib) libltp.la
 tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
 
