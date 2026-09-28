@@ -786,6 +786,124 @@ static int	edgeIsExcluded(PsmPartition ionwm, PsmAddress excludedEdges,
 	return 0;
 }
 
+/*	Dijkstra frontier as a binary min-heap, replacing a linear scan of the
+ *	whole contact index for the least-distance unvisited contact.  Ordered
+ *	by (arrivalTime, hopCount, contact-index order) so it selects exactly
+ *	the contact the scan did.  Lazy decrease-key: relaxation pushes a new
+ *	entry; superseded or already-visited entries are dropped at pop.
+ *	Process-local and single-threaded; the buffer is reused across the Yen
+ *	re-runs of one forwarding decision.				*/
+
+typedef struct
+{
+	IonCXref	*contact;
+	time_t		arrivalTime;
+	unsigned int	hopCount;
+} CgrHeapElt;
+
+static CgrHeapElt	*cgrHeap = NULL;
+static int		cgrHeapCap = 0;
+static int		cgrHeapLen = 0;
+
+static int	cgrHeapPrecedes(PsmPartition ionwm, CgrHeapElt *a, CgrHeapElt *b)
+{
+	if (a->arrivalTime != b->arrivalTime)
+	{
+		return a->arrivalTime < b->arrivalTime;
+	}
+
+	if (a->hopCount != b->hopCount)
+	{
+		return a->hopCount < b->hopCount;
+	}
+
+	return rfx_order_contacts(ionwm, psa(ionwm, a->contact), b->contact) < 0;
+}
+
+static int	cgrHeapPush(PsmPartition ionwm, IonCXref *contact,
+			time_t arrivalTime, unsigned int hopCount)
+{
+	int		i, parent;
+	CgrHeapElt	e, tmp;
+
+	if (cgrHeapLen == cgrHeapCap)
+	{
+		int		newCap = cgrHeapCap ? (cgrHeapCap * 2) : 256;
+		CgrHeapElt	*bigger;
+
+		bigger = (CgrHeapElt *) realloc(cgrHeap,
+				newCap * sizeof(CgrHeapElt));
+		CHKERR(bigger);
+		cgrHeap = bigger;
+		cgrHeapCap = newCap;
+	}
+
+	e.contact = contact;
+	e.arrivalTime = arrivalTime;
+	e.hopCount = hopCount;
+	i = cgrHeapLen++;
+	cgrHeap[i] = e;
+	while (i > 0)
+	{
+		parent = (i - 1) / 2;
+		if (!cgrHeapPrecedes(ionwm, &cgrHeap[i], &cgrHeap[parent]))
+		{
+			break;
+		}
+
+		tmp = cgrHeap[i];
+		cgrHeap[i] = cgrHeap[parent];
+		cgrHeap[parent] = tmp;
+		i = parent;
+	}
+
+	return 0;
+}
+
+static int	cgrHeapPop(PsmPartition ionwm, CgrHeapElt *out)
+{
+	int		i, left, right, least;
+	CgrHeapElt	tmp;
+
+	if (cgrHeapLen == 0)
+	{
+		return 0;
+	}
+
+	*out = cgrHeap[0];
+	cgrHeap[0] = cgrHeap[--cgrHeapLen];
+	i = 0;
+	while (1)
+	{
+		left = (2 * i) + 1;
+		right = (2 * i) + 2;
+		least = i;
+		if (left < cgrHeapLen
+		&& cgrHeapPrecedes(ionwm, &cgrHeap[left], &cgrHeap[least]))
+		{
+			least = left;
+		}
+
+		if (right < cgrHeapLen
+		&& cgrHeapPrecedes(ionwm, &cgrHeap[right], &cgrHeap[least]))
+		{
+			least = right;
+		}
+
+		if (least == i)
+		{
+			break;
+		}
+
+		tmp = cgrHeap[i];
+		cgrHeap[i] = cgrHeap[least];
+		cgrHeap[least] = tmp;
+		i = least;
+	}
+
+	return 1;
+}
+
 static int	computeDistanceToTerminus(IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *terminusNode,
 			time_t currentTime, PsmAddress excludedEdges,
@@ -808,8 +926,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	IonCXref	*finalContact = NULL;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextCurrentContact;
-	time_t		earliestArrivalTime;
-	unsigned int	fewestHops;
+	CgrHeapElt	he;
 	time_t		earliestEndTime;
 	PsmAddress	addr;
 	PsmAddress	citation;
@@ -821,6 +938,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	current = rootContact;
 	currentWork = rootWork;
 	oK(ionRegionOf(current->toFqnn, terminusNode->fqnn, &regionNbr));
+	cgrHeapLen = 0;		/*	Empty frontier for this search.	*/
 
 	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -988,6 +1106,12 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				work->predecessor = current;
 				work->hopCount = currentWork->hopCount;
 				work->hopCount++;
+				if (cgrHeapPush(ionwm, contact,
+						work->arrivalTime,
+						work->hopCount) < 0)
+				{
+					return -1;
+				}
 			}
 		}
 
@@ -997,68 +1121,30 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		currentWork->visited = 1;
 
-		/*	Now the second inner loop: among ALL non-
-		 *	suppressed contacts in the graph (not just the
-		 *	successors to the current contact), select the
-		 *	one with the earliest arrival time (the least
-		 *	distance from the root vertex) -- and, in the
-		 *	event of a tie, the one comprising the smallest
-		 *	number of successive contacts ("hops") -- to be
-		 *	the new "current" vertex to analyze.		*/
+		/*	Select the least-distance unvisited contact --
+		 *	earliest arrival time, ties broken by fewest hops
+		 *	then contact-index order -- as the new "current"
+		 *	vertex, popping the frontier min-heap and skipping
+		 *	superseded, visited, or ended entries.		*/
 
 		nextCurrentContact = NULL;
-		earliestArrivalTime = MAX_TIME;
-		fewestHops = (unsigned int) -1;
-		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-				elt = sm_rbt_next(ionwm, elt))
+		while (cgrHeapPop(ionwm, &he))
 		{
-			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
-					elt));
-			CHKERR(contact);
+			contact = he.contact;
+			CHKERR(work = getWorkArea(ionwm, contact));
+			if (work->visited || work->suppressed
+					|| he.arrivalTime != work->arrivalTime)
+			{
+				continue;	/*	Stale/ineligible.*/
+			}
+
 			if (contact->toTime <= currentTime)
 			{
-				/*	Contact is ended, is about to
-				 *	be purged.			*/
-
-				continue;
+				continue;	/*	Contact ended.	*/
 			}
-
-			CHKERR(work = getWorkArea(ionwm, contact));
-			if (work->suppressed || work->visited)
-			{
-				continue;	/*	Ineligible.	*/
-			}
-
-			if (work->arrivalTime == MAX_TIME)
-			{
-				/*	Not reachable from root.	*/
-
-				continue;
-			}
-
-			/*	Dijkstra search edge cost function.	*/
-
-			if (work->arrivalTime > earliestArrivalTime)
-			{
-				/*	Not the lowest-cost edge.	*/
-
-				continue;
-			}
-
-			if (work->arrivalTime == earliestArrivalTime
-					&& work->hopCount >= fewestHops)
-			{
-				/*	Not the lowest-cost edge.	*/
-
-				continue;
-			}
-
-			/*	Best candidate "next current" contact
-			 *	seen so far.				*/
 
 			nextCurrentContact = contact;
-			earliestArrivalTime = work->arrivalTime;
-			fewestHops = work->hopCount;
+			break;
 		}
 
 		/*	If search is complete, stop.  Else repeat,
