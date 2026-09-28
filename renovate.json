@@ -205,6 +205,12 @@
     },
     {
       "matchDepNames": [
+        "actions/actions-runner-controller"
+      ],
+      "extractVersion": "^gha-runner-scale-set-(?<version>\\d+\\.\\d+\\.\\d+)$"
+    },
+    {
+      "matchDepNames": [
         "actions/actions-runner-controller",
         "gha-runner-scale-set-controller",
         "gha-runner-scale-set"
