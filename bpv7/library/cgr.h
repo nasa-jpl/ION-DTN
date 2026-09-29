@@ -278,6 +278,15 @@ typedef struct
 
 	PsmAddress	frontierHeap;	/*	Array of CgrHeapElt.	*/
 	int		frontierCap;	/*	Slots in frontierHeap.	*/
+
+	/*	Monotonic counter identifying the current Dijkstra search.
+	 *	clearWorkAreas bumps it instead of sweeping every contact's
+	 *	work area; a work area whose generation differs is reset
+	 *	lazily on first access (getWorkArea).  Shared in working
+	 *	memory and advanced only under the SDR lock, so it never
+	 *	collides across processes attached to the same node.	*/
+
+	uvast		generation;
 } CgrVdb;
 
 extern void		cgr_start(void);

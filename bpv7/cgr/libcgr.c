@@ -36,6 +36,7 @@ typedef struct
 	int		visited;	/*	Boolean.		*/
 	int		suppressed;	/*	Boolean.		*/
 	int		heapIndex;	/*	Slot in frontier heap, -1 if none.*/
+	uvast		generation;	/*	Search that last reset this.	*/
 } CgrContactNote;	/*	IonCXref routingObject is one of these.	*/
 
 /*		Functions for managing the CGR database.		*/
@@ -662,6 +663,11 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	return -1;
 }
 
+/*	Current Dijkstra search generation, cached from the CgrVdb by
+ *	clearWorkAreas (which always runs before any getWorkArea in a search).	*/
+
+static uvast	_cgrCurrentGen = 0;
+
 static CgrContactNote	*getWorkArea(PsmPartition ionwm, IonCXref *contact)
 {
 	CgrContactNote	*work;
@@ -682,6 +688,21 @@ static CgrContactNote	*getWorkArea(PsmPartition ionwm, IonCXref *contact)
 	else
 	{
 		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
+	}
+
+	/*	Lazily reset a work area left over from an earlier search
+	 *	(or a freshly allocated one, generation 0) on first access
+	 *	this search -- replacing clearWorkAreas' full sweep.	*/
+
+	if (work->generation != _cgrCurrentGen)
+	{
+		work->predecessor = NULL;
+		work->arrivalTime = MAX_TIME;
+		work->hopCount = 0;
+		work->visited = 0;
+		work->suppressed = 0;
+		work->heapIndex = -1;	/*	Not in frontier heap.		*/
+		work->generation = _cgrCurrentGen;
 	}
 
 	return work;
@@ -739,30 +760,45 @@ static void	cgr_bench_dump(void)
 static int	clearWorkAreas(IonCXref *rootContact)
 {
 	PsmPartition	ionwm = getIonwm();
-	IonVdb		*ionvdb = getIonVdb();
-	PsmAddress	elt;
-	IonCXref	*contact;
+	CgrVdb		*cgrvdb = cgr_get_vdb();
 	CgrContactNote	*work;
 
 	CGRB_START;
-	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-			elt = sm_rbt_next(ionwm, elt))
+
+	/*	Begin a new search generation.  Every contact's work area
+	 *	is now stale and will be reset lazily on first access, so
+	 *	no full sweep of the contact index is needed.		*/
+
+	CHKERR(cgrvdb);
+	cgrvdb->generation++;
+	_cgrCurrentGen = cgrvdb->generation;
+
+	/*	A spur waypoint root keeps its arrival time and hop count
+	 *	from the prior search; stamp it current (resetting only the
+	 *	rest) so the lazy reset does not wipe those values.	*/
+
+	if (rootContact != NULL)
 	{
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		CHKERR(work = getWorkArea(ionwm, contact));
+		if (rootContact->routingObject == 0)
+		{
+			rootContact->routingObject = psm_zalloc(ionwm,
+					sizeof(CgrContactNote));
+			CHKERR(rootContact->routingObject);
+			work = (CgrContactNote *) psp(ionwm,
+					rootContact->routingObject);
+			memset((char *) work, 0, sizeof(CgrContactNote));
+		}
+		else
+		{
+			work = (CgrContactNote *) psp(ionwm,
+					rootContact->routingObject);
+		}
+
 		work->predecessor = NULL;
 		work->visited = 0;
 		work->suppressed = 0;
-		work->heapIndex = -1;	/*	Not in the frontier heap.	*/
-
-		/*	Reset arrival time, except preserve arrival
-		 *	time of root contact.				*/
-
-		if (contact != rootContact)
-		{
-			work->arrivalTime = MAX_TIME;
-			work->hopCount = 0;
-		}
+		work->heapIndex = -1;		/*	Not in frontier heap.	*/
+		work->generation = _cgrCurrentGen;
 	}
 
 	CGRB_ADD(_cgrb_cwa_us, _cgrb_cwa_n);
