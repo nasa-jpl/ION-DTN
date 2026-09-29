@@ -11,6 +11,8 @@
 
 #include <file2dgr.h>
 
+#define	DGR2FILE_BUFSZ	(65535)
+
 static int	dgr2file_stopped = 0;
 static Dgr	dgr2file_dgr;
 static int	cycleNbr = 0;
@@ -53,7 +55,7 @@ int	main(void)
 	FILE		*outputFile;
 	unsigned int	remoteIpAddress;
 	unsigned short	remotePortNbr;
-	char		line[256];
+	char		line[DGR2FILE_BUFSZ + 1];
 	int		lineSize;
 	int		errnbr;
 
@@ -76,10 +78,9 @@ int	main(void)
 			break;
 		}
 
-		lineSize = sizeof line;
 		if (dgr_receive(dgr2file_dgr, &remotePortNbr,
-				&remoteIpAddress, line, &lineSize, &errnbr,
-				DGR_BLOCKING, &rc) < 0)
+				&remoteIpAddress, line, DGR2FILE_BUFSZ,
+				&lineSize, &errnbr, DGR_BLOCKING, &rc) < 0)
 		{
 			putErrmsg("dg_receive failed.", NULL);
 			return 0;

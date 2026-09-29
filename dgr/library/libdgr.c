@@ -2757,8 +2757,8 @@ rcSnoozes++;
 }
 
 int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
-		unsigned int *fromIpAddress, char *content, int *length,
-		int *errnbr, int timeoutSeconds, DgrRC *rc)
+		unsigned int *fromIpAddress, char *content, int contentBufSize,
+		int *length, int *errnbr, int timeoutSeconds, DgrRC *rc)
 {
 	int		timeoutUsec;
 	LystElt		elt;
@@ -2808,43 +2808,61 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 			return -1;
 		}
 
-		/*	Lyst is no longer empty, or SAP is now closed.	*/
+		/*	Lyst is no longer empty, or SAP is now closed.
+		 *	SAP might have been closed while we slept.	*/
 
-		break;				/*	Out of loop.	*/
-	}
+		if (ion_atomic_get(&sap->state) == DgrSapDamaged)
+		{
+			writeMemo("[?] DGR access point no longer usable.");
+			*rc = DgrFailed;
+			return 0;
+		}
 
-	/*	SAP might have been closed while we were sleeping.	*/
+		if (ion_atomic_get(&sap->state) == DgrSapClosed)
+		{
+			writeMemo("[i] DGR access point has been closed.");
+			*rc = DgrFailed;
+			return 0;
+		}
 
-	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
-	{
-		writeMemo("[?] DGR access point no longer usable.");
-		*rc = DgrFailed;
-		return 0;
-	}
-
-	if (ion_atomic_get(&sap->state) == DgrSapClosed)
-	{
-		writeMemo("[i] DGR access point has been closed.");
-		*rc = DgrFailed;
-		return 0;
-	}
-
-	llcv_lock(sap->inboundCV);
-	elt = lyst_first(sap->inboundEvents);
-	if (elt == NULL)
-	{
+		llcv_lock(sap->inboundCV);
+		elt = lyst_first(sap->inboundEvents);
+		if (elt == NULL)
+		{
+			llcv_unlock(sap->inboundCV);
+			*rc = DgrInterrupted;
+			return 0;
+		}
+		rec = (DgrRecord) lyst_data(elt);
+		lyst_delete(elt);
 		llcv_unlock(sap->inboundCV);
-		*rc = DgrInterrupted;
-		return 0;
-	}
-	rec = (DgrRecord) lyst_data(elt);
-	lyst_delete(elt);
-	llcv_unlock(sap->inboundCV);
 
-	if (rec == NULL)
-	{
-		*rc =  DgrInterrupted;
-		return 0;
+		if (rec == NULL)
+		{
+			*rc =  DgrInterrupted;
+			return 0;
+		}
+
+		/*	Never copy more than the caller's buffer holds;
+		 *	an oversized event is discarded rather than
+		 *	overrun "content".  The receiver already bounds
+		 *	inbound content to the datagram size, so a caller
+		 *	providing the documented 65535-byte buffer never
+		 *	reaches this discard.				*/
+
+		if (rec->contentLength > contentBufSize)
+		{
+			char	textbuf[128];
+
+			isprintf(textbuf, sizeof textbuf, "[?] DGR discarding \
+inbound record (%d bytes) larger than receive buffer (%d bytes).",
+					rec->contentLength, contentBufSize);
+			writeMemo(textbuf);
+			MRELEASE(rec);
+			continue;	/*	Wait for the next event.*/
+		}
+
+		break;			/*	Deliver this event.	*/
 	}
 
 	*length = rec->contentLength;

@@ -220,8 +220,8 @@ static void	*receiveSegments(void *parm)
 		while (1)
 		{
 			if (dgr_receive(parms->dgrSap, &fromPortNbr,
-					&fromHostNbr, buffer, &length, &errnbr,
-					DGR_BLOCKING, &rc) < 0)
+					&fromHostNbr, buffer, DGRCLA_BUFSZ,
+					&length, &errnbr, DGR_BLOCKING, &rc) < 0)
 			{
 				putErrmsg("Failed receiving segment.", NULL);
 				threadRunning = 0;

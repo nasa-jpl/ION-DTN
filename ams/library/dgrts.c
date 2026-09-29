@@ -131,7 +131,8 @@ static void	*dgrMamsReceiver(void *parm)
 	{
 		rc = DgrFailed;
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
-				buffer, &length, &errnbr, DGR_BLOCKING, &rc));
+				buffer, DGRTS_MAX_MSG_LEN, &length, &errnbr,
+				DGR_BLOCKING, &rc));
 		switch (rc)
 		{
 		case DgrFailed:
@@ -242,7 +243,8 @@ static void	*dgrAmsReceiver(void *parm)
 	{
 		rc = DgrFailed;
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,
-				&length, &errnbr, DGR_BLOCKING, &rc));
+				DGRTS_MAX_MSG_LEN, &length, &errnbr,
+				DGR_BLOCKING, &rc));
 		switch (rc)
 		{
 		case DgrFailed:

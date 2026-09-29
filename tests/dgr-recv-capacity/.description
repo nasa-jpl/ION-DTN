@@ -1,0 +1,1 @@
+Regression: dgr_receive() must bound delivery to the caller-provided buffer size, not copy a larger record past it (DGR service-data-length advisories).

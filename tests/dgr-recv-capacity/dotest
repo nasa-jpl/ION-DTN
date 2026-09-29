@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# Regression for the DGR delivery-side buffer over-write.  Compiles
+# dgr_recv_capacity_test.c and runs it over a loopback DGR exchange; see that
+# file for what the harness checks.  No AddressSanitizer is required -- the
+# over-write is detected with a guard-byte canary after the caller's buffer.
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+# Honor $CC; otherwise prefer gcc, then clang, then cc.
+if [ -z "$CC" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: dgr-recv-capacity"
+echo "PURPOSE: Verify dgr_receive() bounds delivery to the caller's buffer"
+echo "         instead of copying a larger record past it."
+echo "########################################"
+
+# ION compiler and linker flags come from pkg-config (a build dependency), so
+# the harness is built with the same ABI-defining flags as ION itself.
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+
+# The DGR entry points live in libdgr; make sure it is linked in even if ion.pc
+# does not list -ldgr among its libraries.
+case " $ION_LIBS " in
+*" -ldgr "*) ;;
+*) ION_LIBS="$ION_LIBS -ldgr" ;;
+esac
+
+BIN=$(mktemp /tmp/dgr_recv_capacity_test.XXXXXX)
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -g -O1 $ION_CFLAGS "$HERE/dgr_recv_capacity_test.c" $ION_LIBS \
+        -o "$BIN"; then
+    echo "FAIL: could not compile the DGR receive-capacity harness."
+    rm -f "$BIN"
+    exit 1
+fi
+
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+LD_LIBRARY_PATH="$LIBDIR:$LD_LIBRARY_PATH" "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: DGR delivery is bounded to the caller's buffer."
+    exit 0
+fi
+
+if [ "$RETVAL" -eq 2 ]; then
+    echo "SKIP: DGR loopback could not be established here."
+    exit 2
+fi
+
+echo "FAIL: dgr_receive() over-wrote the caller's buffer, or a fitting record"
+echo "      was not delivered correctly (exit $RETVAL)."
+exit 1

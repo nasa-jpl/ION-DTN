@@ -116,6 +116,7 @@ extern int		dgr_receive(	Dgr dgr,
 					unsigned short *fromPortNbr,
 					unsigned int *fromIpAddress,
 					char *content,
+					int contentBufSize,
 					int *length,
 					int *errnbr,
 					int timeoutSeconds,
@@ -148,10 +149,14 @@ extern int		dgr_receive(	Dgr dgr,
 			 *	*rc to either DgrDatagramAcknowledged
 			 *	or DgrDatagramNotAcknowledged.
 			 *
-			 *	The "content" buffer should be at least
-			 *	65535 bytes in length to enable delivery
-			 *	of the content of the received or
-			 *	delivered/undeliverable message.
+			 *	"contentBufSize" is the size, in bytes,
+			 *	of the "content" buffer.  It should be at
+			 *	least 65535 to enable delivery of the
+			 *	content of any received or
+			 *	delivered/undeliverable message.  An event
+			 *	whose content is larger than
+			 *	"contentBufSize" is discarded rather than
+			 *	copied, so it can never overrun "content".
 			 *
 			 *	The "timeoutSeconds" argument controls
 			 *	blocking behavior.  If timeoutSeconds
