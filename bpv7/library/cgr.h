@@ -252,7 +252,21 @@ typedef struct
 	 *	within one contact-plan version.			*/
 
 	time_t		computeDeferredUntil;
+
+	/*	Smooth weighted round-robin state for fair-routing.
+	 *	Volatile; rebuilt when the eligible-set hash changes.	*/
+
+	PsmAddress	fairRrEntries;	/*	SmList of FairRrEntry.	*/
+	uvast		fairRrSetHash;	/*	FNV-1a over sorted set.	*/
+	long		fairRrTotalWeight;
 } CgrRtgObject;	/*	IonNode's routingObject is one of these.	*/
+
+typedef struct
+{
+	uvast		toFqnn;
+	long		weight;		/*	Path bottleneck xmitRate*/
+	long		currentWeight;	/*	SWRR running counter.	*/
+} FairRrEntry;
 
 /*		Data structure for the CGR volatile database.		*/
 
@@ -288,6 +302,8 @@ extern int		cgr_preview_forward(uvast terminusNodeNbr,
 				Bundle *bundle, time_t atTime, CgrSAP sap,
 				CgrTrace *trace);
 extern int		cgr_prospect(uvast terminusNode, time_t deadline);
+extern CgrRoute		*cgr_pick_fair_route(IonNode *terminusNode,
+					Lyst eligibleRoutes);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
 extern const char	*cgr_reason_text(CgrReason reason);
 extern void		cgr_stop(void);

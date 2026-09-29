@@ -1,0 +1,6 @@
+wmKey 71005
+sdrName ion5
+wmSize 50000000
+configFlags 1
+heapWords 100000
+pathName /tmp

@@ -1,0 +1,258 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# fair-routing-stripe
+#
+# Exercises the CGR "fair-routing" strategy (ionadmin: m routing-strategy
+# fair-routing) across TWO nested split points, each with an UNEVEN weight
+# ratio, and checks the EXACT per-node forwarded counts.
+#
+# Topology -- nested, weighted parallel paths from source to destination:
+#
+#                             +--> Node 5 --+
+#                             |             |
+#         +--> Node 2 --------+ (1/2)       +--> Node 4 (dst)
+#         |                   |             |
+# Node 1 -+ (1/3)             +--> Node 6 --+
+# (src)   |                                 |
+#         +--> Node 3 ----------------------+
+#
+# Fair-routing weights each eligible route by its path bottleneck xmitRate
+# (deterministic SWRR).  Contacts are arranged so each splitter's weight is
+# its own first hop -- all downstream hops are higher-rate, so they never
+# become the bottleneck and the two split levels stay decoupled:
+#
+#   Node 1:  c(1->2)=100k : c(1->3)=300k   => 1:3 across {2,3}
+#   Node 2:  c(2->5)=100k : c(2->6)=200k   => 1:2 across {5,6}
+#   downstream c(3->4)=c(5->4)=c(6->4)=500k
+#
+# With BUNDLE_COUNT=24 both SWRR schedulers land on the following split:
+#
+#   Node 2 fwd = 24 * 1/4            = 6
+#   Node 3 fwd = 24 * 3/4            = 18
+#   Node 5 fwd = 6  * 1/3            = 2
+#   Node 6 fwd = 6  * 2/3            = 4
+#   Node 4 delivered                = 24
+#
+CONFIGFILES=" \
+./global.ionrc \
+./1.ipn.ltp/amroc.ionrc \
+./1.ipn.ltp/amroc.ltprc \
+./1.ipn.ltp/amroc.bprc \
+./1.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ipnrc \
+./4.ipn.ltp/amroc.bprc \
+./4.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ipnrc \
+./6.ipn.ltp/amroc.bprc \
+./6.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the CGR fair-routing strategy stripes non-critical"
+echo "    bundles across two nested, unevenly-weighted split points and"
+echo "    that the resulting per-node forwarded counts are exact."
+echo
+echo "CONFIG: 6 node custom LTP: N1 -1:3-> {N2,N3}; N2 -1:2-> {N5,N6}; -> N4"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+BUNDLE_COUNT=24
+
+# Expected exact outcomes (see header).
+EXP_DELIVERED=24
+EXP_N2_FWD=6
+EXP_N3_FWD=18
+EXP_N5_FWD=2
+EXP_N6_FWD=4
+
+# ---------------------------------------------------------------
+# extract_bp_stat <category> <ion.log path>
+#   Parse the last bpstats snapshot for the given category and
+#   print the "(+) total_count".
+# ---------------------------------------------------------------
+extract_bp_stat () {
+    grep "\[x\] $1 " "$2" | tail -1 | \
+        sed 's/.*(+) \([0-9][0-9]*\) .*/\1/'
+}
+
+# ---------------------------------------------------------------
+# check_eq <label> <actual> <expected>
+#   Verify actual == expected.  Sets PASS=0 on failure.
+# ---------------------------------------------------------------
+check_eq () {
+    local label=$1
+    local actual=$2
+    local expected=$3
+
+    if [ -z "$actual" ] || [ "$actual" != "$expected" ]
+    then
+        echo "FAIL: $label is '$actual', expected '$expected'"
+        PASS=0
+    else
+        echo "OK:   $label == $expected"
+    fi
+}
+
+# ===============================================================
+#  Setup
+# ===============================================================
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION (6 nodes)..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes (ionadmin loads node config, then the shared contact plan).
+for N in 1 2 3 4 5 6
+do
+    cd $N.ipn.ltp
+    ionadmin amroc.ionrc
+    ionadmin global.ionrc &
+    ionsecadmin amroc.ionsecrc &
+    ltpadmin amroc.ltprc &
+    bpadmin amroc.bprc &
+    cd ..
+done
+
+for N in 1 2 3 4 5 6
+do
+    cd $N.ipn.ltp
+    ../../../system_up -i "p 30" -l "p 30" -b "p 30"
+    if [ $? -eq 3 ]
+    then
+        echo ""
+    else
+        echo "Node $N not started: Aborting Test"
+        exit 1
+    fi
+    cd ..
+done
+
+# Let all processes settle.
+sleep 5
+
+# ===============================================================
+#  Start receiver and send bundles
+# ===============================================================
+
+echo "Starting bpsink on ipn:4.1..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 > ionreceivefile.txt &
+BPSINKPID=$!
+cd ..
+sleep 2
+
+echo "Sending $BUNDLE_COUNT bundles from Node 1 to ipn:4.1..."
+cd 1.ipn.ltp
+SENDFILE=./ionsendfile.txt
+i=1
+while [ $i -le $BUNDLE_COUNT ]
+do
+    echo "fair-routing-msg-${i}" > $SENDFILE
+    echo "!" >> $SENDFILE
+    bpsource ipn:4.1 < $SENDFILE 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+cd ..
+
+# Wait for delivery at Node 4.
+echo "Waiting for delivery..."
+TIMEOUT=60
+ELAPSED=0
+while [ $ELAPSED -lt $TIMEOUT ]
+do
+    GOT=$(grep -c "^ION event: Payload delivered\." 4.ipn.ltp/ionreceivefile.txt 2>/dev/null || echo 0)
+    if [ "$GOT" -ge "$BUNDLE_COUNT" ]
+    then
+        echo "All $BUNDLE_COUNT bundles delivered."
+        break
+    fi
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+done
+
+# Give bpclock at least 3 seconds to flush statistics deltas.
+sleep 3
+
+# ===============================================================
+#  Collect statistics on the four relay nodes
+# ===============================================================
+
+echo "Collecting statistics..."
+for N in 2 3 5 6
+do
+    cd $N.ipn.ltp
+    bpstats
+    cd ..
+done
+sleep 2
+
+# ===============================================================
+#  Validate (exact counts)
+# ===============================================================
+
+PASS=1
+
+echo ""
+echo "=== Delivery ==="
+echo "Node 4 delivered: $GOT / $BUNDLE_COUNT"
+check_eq "Node 4 delivered" "$GOT" "$EXP_DELIVERED"
+
+echo ""
+echo "=== Striping (forwarded counts on relays) ==="
+N2_FWD=$(extract_bp_stat fwd 2.ipn.ltp/ion.log)
+N3_FWD=$(extract_bp_stat fwd 3.ipn.ltp/ion.log)
+N5_FWD=$(extract_bp_stat fwd 5.ipn.ltp/ion.log)
+N6_FWD=$(extract_bp_stat fwd 6.ipn.ltp/ion.log)
+echo "Node 2 fwd=$N2_FWD  Node 3 fwd=$N3_FWD  (source split, expect 6:18)"
+echo "Node 5 fwd=$N5_FWD  Node 6 fwd=$N6_FWD  (Node 2 split, expect 2:4)"
+check_eq "Node 2 fwd" "$N2_FWD" "$EXP_N2_FWD"
+check_eq "Node 3 fwd" "$N3_FWD" "$EXP_N3_FWD"
+check_eq "Node 5 fwd" "$N5_FWD" "$EXP_N5_FWD"
+check_eq "Node 6 fwd" "$N6_FWD" "$EXP_N6_FWD"
+
+# ===============================================================
+#  Teardown
+# ===============================================================
+
+echo ""
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Stopping ION..."
+
+if [ $PASS -eq 1 ]
+then
+    echo ""
+    echo "OK: fair-routing produced the exact weighted split"
+    echo "    (delivered=$GOT; N2=$N2_FWD N3=$N3_FWD; N5=$N5_FWD N6=$N6_FWD)."
+    exit 0
+else
+    echo ""
+    echo "FAIL: fair-routing split did not match expected exact counts"
+    echo "    (delivered=$GOT; N2=$N2_FWD N3=$N3_FWD; N5=$N5_FWD N6=$N6_FWD)."
+    exit 1
+fi
