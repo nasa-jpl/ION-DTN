@@ -15,13 +15,10 @@ DOCKER_VERSION ?= 29.8.0
 DOCKER_COMPOSE_VERSION ?= v2.40.3
 # renovate: datasource=github-releases depName=Yelp/dumb-init
 DUMB_INIT_VERSION ?= 1.2.5
-# renovate: datasource=python-version depName=python
-PYTHON_VERSION ?= 3.11.15
-# renovate: datasource=github-tags depName=pyenv/pyenv
-PYENV_GIT_TAG ?= v2.6.26
+# renovate: datasource=github-releases depName=astral-sh/uv
+UV_VERSION ?= 0.12.20
 
 ARC_VERSION ?= $(shell grep -oP '(?<=appVersion: ")[0-9.]+' ../charts/arc/Chart.yaml)
-PIP_INDEX ?= ""
 
 # Handle target platform variants.
 # arch command on OS X reports "i386" for Intel CPUs regardless of bitness
@@ -41,11 +38,9 @@ docker-build:
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
-	  --build-arg PIP_INDEX=${PIP_INDEX} \
-	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
 	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg DUMB_INIT_VERSION=${DUMB_INIT_VERSION} \
-	  --build-arg PYENV_GIT_TAG=${PYENV_GIT_TAG} \
+	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -60,11 +55,9 @@ buildah-build:
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
-	  --build-arg PIP_INDEX=${PIP_INDEX} \
-	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
 	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg DUMB_INIT_VERSION=${DUMB_INIT_VERSION} \
-	  --build-arg PYENV_GIT_TAG=${PYENV_GIT_TAG} \
+	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -81,11 +74,9 @@ buildah-build-rhel:
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
-	  --build-arg PIP_INDEX=${PIP_INDEX} \
-	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
 	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg DUMB_INIT_VERSION=${DUMB_INIT_VERSION} \
-	  --build-arg PYENV_GIT_TAG=${PYENV_GIT_TAG} \
+	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \

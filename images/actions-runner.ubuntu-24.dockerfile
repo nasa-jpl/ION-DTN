@@ -3,16 +3,14 @@ FROM ubuntu:24.04 as build
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
 ARG RUNNER_CONTAINER_HOOKS_VERSION
-ARG PIP_INDEX
 
 # Docker and Docker Compose arguments
 ARG CHANNEL=stable
 ARG DOCKER_VERSION
 ARG DOCKER_COMPOSE_VERSION
 ARG DUMB_INIT_VERSION
-ARG PYTHON_VERSION
 ARG ARC_VERSION
-ARG PYENV_GIT_TAG
+ARG UV_VERSION
 
 ARG RUNNER_USER_UID=1001
 ARG DOCKER_GROUP_GID=121
@@ -47,19 +45,10 @@ RUN apt-get update -y --no-install-recommends \
     build-essential \
     rsync \
     ruby \
+    iputils-ping \
     tcpdump \
     iproute2 \
-    zlib1g-dev \
-    libbz2-dev \
     libreadline-dev \
-    libsqlite3-dev \
-    libncursesw5-dev \
-    xz-utils \
-    tk-dev \
-    libxml2-dev \
-    libxmlsec1-dev \
-    libffi-dev \
-    liblzma-dev \
     wget \
     gh \
     git-lfs \
@@ -157,28 +146,20 @@ RUN mkdir -p /tmp/arc \
     && rm -rf arc.tar.gz /tmp/arc
 
 RUN chmod -R 777 /opt /usr/share
+COPY --from=ghcr.io/astral-sh/uv:"${UV_VERSION}" /uv /uvx /usr/local/bin/
 
 USER runner
-ENV PYENV_GIT_TAG=${PYENV_GIT_TAG}
-RUN curl https://pyenv.run | bash
-ENV PYENV_ROOT="/home/runner/.pyenv"
-ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
-RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc && echo 'eval "$(pyenv init - bash)"' >> ~/.profile
+# Setup environment variables for uv virtual environment
+ENV VIRTUAL_ENV="/home/runner/.venv"
+ENV UV_PROJECT_ENVIRONMENT="/home/runner/.venv"
+ENV PATH="${VIRTUAL_ENV}/bin:/home/runner/.local/bin:${PATH}"
 
-# Install python and clear out sources/cache to save space
-RUN pyenv install ${PYTHON_VERSION} && pyenv global ${PYTHON_VERSION} \
-    && rm -rf /home/runner/.pyenv/cache/* \
-    && rm -rf /home/runner/.pyenv/sources/* \
-    && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
+# Copy dependency definition and lockfile
+COPY --chown=runner:runner pyproject.toml uv.lock .python-version /tmp/app/
+WORKDIR /tmp/app
 
-COPY --chown=runner:runner requirements.txt /tmp/requirements.txt
-RUN /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
-    && rm /tmp/requirements.txt \
-    && if [ ! -z "${PIP_INDEX}" ]; then \
-    /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.5.0 -i "${PIP_INDEX}"; \
-    else \
-    echo "bespokebpv7 not open-source yet 🙁"; \
-    fi
+# Sync locked dependencies into the virtual environment
+RUN uv sync --frozen --no-dev
 
 FROM scratch AS final
 
@@ -191,10 +172,11 @@ LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
-ENV PYENV_ROOT="/home/runner/.pyenv"
-ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
+ENV VIRTUAL_ENV="/home/runner/.venv"
+ENV PATH="${VIRTUAL_ENV}/bin:/home/runner/.local/bin:${PATH}"
 ENV ImageOS=ubuntu-24
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig:${PKG_CONFIG_PATH}"
 
 USER runner
 

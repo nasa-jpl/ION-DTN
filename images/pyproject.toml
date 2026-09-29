@@ -1,0 +1,12 @@
+[project]
+name = "ion-runner-images"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ansible==12.3.0",
+    "bespokebpv7",
+    "pip==26.1.2",
+]
+
+[tool.uv.sources]
+bespokebpv7 = { git = "https://github.com/nasa-jpl/bespokebpv7.git", tag = "v0.6.0" }

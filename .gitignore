@@ -308,8 +308,8 @@ contrib/Makefile
 site-docs/site/*
 site-docs/docs/man/*
 
-# python version file
-.python-version
+# Do Not want .python-version file in root
+/.python-version
 
 build/*
 ams/doc/html/man1/amsbenchr.html
