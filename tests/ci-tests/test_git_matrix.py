@@ -14,16 +14,21 @@ import io
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
-# Import the script to test from its new location
-spec = importlib.util.spec_from_file_location(
-    "git_matrix", Path(__file__).parent.parent / ".github" / "scripts" / "git_matrix.py"
+current_file = Path(__file__).resolve()
+script_path = (
+    current_file.parent.parent.parent / ".github" / "scripts" / "git_matrix.py"
 )
-git_matrix = importlib.util.module_from_spec(spec)
-# Register module so @patch decorators can find it
-sys.modules['git_matrix'] = git_matrix
-spec.loader.exec_module(git_matrix)
+spec = importlib.util.spec_from_file_location("git_matrix", script_path)
+
+if spec is not None and spec.loader is not None:
+    git_matrix: Any = importlib.util.module_from_spec(spec)
+    sys.modules["git_matrix"] = git_matrix
+    spec.loader.exec_module(git_matrix)
+else:
+    raise ImportError(f"Could not load script from {script_path}")
 
 
 class TestGitMatrix(unittest.TestCase):
@@ -52,7 +57,11 @@ class TestGitMatrix(unittest.TestCase):
     ):
         """Test main function with default runner count (7)."""
         # Setup mocks
-        mock_list_tests.return_value = [Path("test1"), Path("test2"), Path("test3")]
+        mock_list_tests.return_value = [
+            Path("test1"),
+            Path("test2"),
+            Path("test3"),
+        ]
         mock_get_durations.return_value = [
             {"path": Path("test1"), "duration": 10.0},
             {"path": Path("test2"), "duration": 20.0},
@@ -78,12 +87,16 @@ class TestGitMatrix(unittest.TestCase):
 
             # Verify the right functions were called with expected parameters
             mock_list_tests.assert_called_once()
-            mock_get_durations.assert_called_once_with([
-                Path("test1"),
-                Path("test2"),
-                Path("test3"),
-            ])
-            mock_balance.assert_called_once_with(mock_get_durations.return_value, 7)
+            mock_get_durations.assert_called_once_with(
+                [
+                    Path("test1"),
+                    Path("test2"),
+                    Path("test3"),
+                ]
+            )
+            mock_balance.assert_called_once_with(
+                mock_get_durations.return_value, 7
+            )
             mock_json_dumps.assert_called_once()
 
             # Check that output contains the expected JSON
@@ -100,7 +113,11 @@ class TestGitMatrix(unittest.TestCase):
     ):
         """Test main function with custom runner count (3)."""
         # Setup mocks
-        mock_list_tests.return_value = [Path("test1"), Path("test2"), Path("test3")]
+        mock_list_tests.return_value = [
+            Path("test1"),
+            Path("test2"),
+            Path("test3"),
+        ]
         mock_get_durations.return_value = [
             {"path": Path("test1"), "duration": 10.0},
             {"path": Path("test2"), "duration": 20.0},
@@ -124,16 +141,22 @@ class TestGitMatrix(unittest.TestCase):
 
             # Verify the right functions were called with expected parameters
             mock_list_tests.assert_called_once()
-            mock_get_durations.assert_called_once_with([
-                Path("test1"),
-                Path("test2"),
-                Path("test3"),
-            ])
-            mock_balance.assert_called_once_with(mock_get_durations.return_value, 3)
+            mock_get_durations.assert_called_once_with(
+                [
+                    Path("test1"),
+                    Path("test2"),
+                    Path("test3"),
+                ]
+            )
+            mock_balance.assert_called_once_with(
+                mock_get_durations.return_value, 3
+            )
             mock_json_dumps.assert_called_once()
 
             # Check that output contains the expected JSON
-            self.assertEqual(output.getvalue().strip(), '["test2", "test3", "test1"]')
+            self.assertEqual(
+                output.getvalue().strip(), '["test2", "test3", "test1"]'
+            )
         finally:
             sys.stdout = saved_stdout
 
@@ -168,7 +191,7 @@ class TestGitMatrix(unittest.TestCase):
 
     def test_balance_load(self):
         """Test the load balancing algorithm."""
-        tasks: list[git_matrix.Task] = [
+        tasks: list[dict[str, Any]] = [
             {"path": Path("test1"), "duration": 20.0},
             {"path": Path("test2"), "duration": 15.0},
             {"path": Path("test3"), "duration": 10.0},
@@ -205,7 +228,9 @@ class TestGitMatrix(unittest.TestCase):
     @patch("pathlib.Path.exists")
     @patch("pathlib.Path.is_file")
     @patch("pathlib.Path.read_text")
-    def test_get_folder_durations(self, mock_read_text, mock_is_file, mock_exists):
+    def test_get_folder_durations(
+        self, mock_read_text, mock_is_file, mock_exists
+    ):
         """Test reading duration files."""
         # Setup mocks for file operations
         mock_exists.return_value = True
@@ -261,7 +286,7 @@ class TestGitMatrix(unittest.TestCase):
     @patch("json.dumps")
     def test_print_schedule(self, mock_json_dumps):
         """Test JSON output formatting."""
-        runners: list[git_matrix.Runner] = [
+        runners: list[dict[str, Any]] = [
             {
                 "id": 1,
                 "total_time": 35.0,

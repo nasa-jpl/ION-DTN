@@ -8,19 +8,24 @@ Dependency-free (stdlib unittest only), like the checker itself:
 
 import importlib.util
 import os
-from pathlib import Path
 import shutil
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from typing import Any
 
 current_file = Path(__file__).resolve()
 script_path = (
-    current_file.parent.parent / ".github" / "scripts" / "check_doc_consistency.py"
+    current_file.parent.parent.parent
+    / ".github"
+    / "scripts"
+    / "check_doc_consistency.py"
 )
 
-spec = importlib.util.spec_from_file_location("check_doc_consistency", script_path)
+spec = importlib.util.spec_from_file_location(
+    "check_doc_consistency", script_path
+)
 
 if spec is not None and spec.loader is not None:
     cdc: Any = importlib.util.module_from_spec(spec)
@@ -81,7 +86,9 @@ class TopLevelCaseLettersTest(unittest.TestCase):
         self.assertEqual(cdc.top_level_case_letters(src), {"a", "b"})
 
     def test_no_dispatch_switch(self):
-        self.assertEqual(cdc.top_level_case_letters("int main(void) { }"), set())
+        self.assertEqual(
+            cdc.top_level_case_letters("int main(void) { }"), set()
+        )
 
 
 class ManageSubcommandsTest(unittest.TestCase):
@@ -98,10 +105,14 @@ class ManageSubcommandsTest(unittest.TestCase):
             if (strcmp(tokens[1], "span") == 0) { return; }
         }
         """
-        self.assertEqual(cdc.manage_subcommands_in_src(src), {"heapmax", "usage"})
+        self.assertEqual(
+            cdc.manage_subcommands_in_src(src), {"heapmax", "usage"}
+        )
 
     def test_absent_function(self):
-        self.assertEqual(cdc.manage_subcommands_in_src("void f(void) {}"), set())
+        self.assertEqual(
+            cdc.manage_subcommands_in_src("void f(void) {}"), set()
+        )
 
 
 class HeaderFunctionsTest(unittest.TestCase):
@@ -131,8 +142,12 @@ class HeaderFunctionsTest(unittest.TestCase):
 
 class NamespacePrefixesTest(unittest.TestCase):
     def test_underscore_and_camel_case(self):
-        self.assertEqual(cdc.namespace_prefixes({"bp_send", "bp_receive"}), {"bp_"})
-        self.assertEqual(cdc.namespace_prefixes({"ionAttach", "ionDetach"}), {"ion"})
+        self.assertEqual(
+            cdc.namespace_prefixes({"bp_send", "bp_receive"}), {"bp_"}
+        )
+        self.assertEqual(
+            cdc.namespace_prefixes({"ionAttach", "ionDetach"}), {"ion"}
+        )
 
 
 class SourceErrorStringsTest(unittest.TestCase):
@@ -192,7 +207,9 @@ class PodApiFunctionsTest(unittest.TestCase):
 
 =item void bp_detach()
 """
-        self.assertEqual(cdc.pod_api_functions(pod), {"bp_send", "bssRun", "bp_detach"})
+        self.assertEqual(
+            cdc.pod_api_functions(pod), {"bp_send", "bssRun", "bp_detach"}
+        )
 
 
 class PodCrossReferencesTest(unittest.TestCase):
@@ -254,10 +271,14 @@ class DiagnosticMatchingTest(unittest.TestCase):
         return [set(cdc._words(s)) for s in literals]
 
     def test_program_prefix_and_placeholders_ignored(self):
-        diag = cdc._diag_tokens("lgsend: can't open own endpoint I<eid>.", "lgsend")
+        diag = cdc._diag_tokens(
+            "lgsend: can't open own endpoint I<eid>.", "lgsend"
+        )
         self.assertEqual(diag, {"cant", "open", "own", "endpoint"})
         self.assertTrue(
-            cdc.diagnostic_is_documented(diag, self._tokens("Can't open own endpoint."))
+            cdc.diagnostic_is_documented(
+                diag, self._tokens("Can't open own endpoint.")
+            )
         )
 
     def test_stale_message_is_flagged(self):
@@ -280,7 +301,9 @@ class DiagnosticMatchingTest(unittest.TestCase):
 class FindingBuilderTest(unittest.TestCase):
     def test_admin_command_findings_both_directions(self):
         pod = "=item B<a>\n\n=item B<z>\n"
-        src = "switch (*(tokens[0])) { case 'a': return 0; case 'q': return 1; }"
+        src = (
+            "switch (*(tokens[0])) { case 'a': return 0; case 'q': return 1; }"
+        )
         self.assertEqual(
             cdc.admin_command_findings("x/xrc.pod", pod, src),
             [
@@ -311,13 +334,17 @@ class FindingBuilderTest(unittest.TestCase):
         )
         self.assertEqual(
             findings,
-            ["[api] bp.pod: 'bp_receive' declared in header(s) but undocumented"],
+            [
+                "[api] bp.pod: 'bp_receive' declared in header(s) but undocumented"
+            ],
         )
 
     def test_api_findings_documented_but_undeclared(self):
         self.assertEqual(
             cdc.api_findings("bp.pod", {"bp_gone"}, set()),
-            ["[api] bp.pod: 'bp_gone' documented but not declared in header(s)"],
+            [
+                "[api] bp.pod: 'bp_gone' documented but not declared in header(s)"
+            ],
         )
 
     def test_cross_reference_findings(self):
@@ -336,10 +363,15 @@ class FindingBuilderTest(unittest.TestCase):
 
     def test_admin_rc_findings(self):
         self.assertEqual(
-            cdc.admin_rc_findings("p/ionsecadmin.pod", "ionsecadmin", {"ionsecrc"}), []
+            cdc.admin_rc_findings(
+                "p/ionsecadmin.pod", "ionsecadmin", {"ionsecrc"}
+            ),
+            [],
         )
         self.assertEqual(
-            cdc.admin_rc_findings("p/ionsecadmin.pod", "ionsecadmin", {"ionrc"}),
+            cdc.admin_rc_findings(
+                "p/ionsecadmin.pod", "ionsecadmin", {"ionrc"}
+            ),
             [
                 "[adminrc] p/ionsecadmin.pod: config-file note names 'ionrc' but "
                 "ionsecadmin reads 'ionsecrc'"

@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# CI Script Tests
+#
+# Nate Richard
+# 2026-09-29
+
+set -e
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify functionality of scripts used in CI workflows."
+echo
+
+# Find the latest available Python 3 version >= 3.10
+if [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python3" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python3"
+elif [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python"
+else
+    PYTHON_CMD="python3"
+fi
+
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
+echo
+
+RETVAL=1
+
+"$PYTHON_CMD" -m unittest
+RETVAL=$?
+
+if [ "$RETVAL" -eq 1 ]; then
+    echo ""
+    echo "Failure running CI test script, see stdout."
+fi
+
+exit "$RETVAL"
