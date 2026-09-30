@@ -27,6 +27,10 @@
  **  10/06/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // Application headers.
 #include "nm_mgr.h"          // MUST be first to arm platform macros
 

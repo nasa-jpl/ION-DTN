@@ -27,10 +27,15 @@
  **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions. (Secure DTN - NASA: NNX14CS58P)
  **  10/20/18  E. Birrane     Updates for AMPv0.5 (JHU/APL)
  *****************************************************************************/
-#ifdef HAVE_MYSQL
 
 #ifndef NM_MGR_DB_H
 #define NM_MGR_DB_H
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_MYSQL
 
 /* System Headers */
 #include "stdio.h"
@@ -252,6 +257,6 @@ void db_logf_msg(size_t dbidx, const char* msg, const char* details, int level, 
 }
 #endif
 
-#endif /* NM_MGR_DB_H */
+#endif /* HAVE_MYSQL */
 
-#endif // HAVE_MYSQL
+#endif /* !NM_MGR_DB_H */

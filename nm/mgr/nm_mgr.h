@@ -29,6 +29,10 @@
 #ifndef NM_MGR_H
 #define NM_MGR_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // ION includes
 #include "platform.h"
 #include "sdr.h"

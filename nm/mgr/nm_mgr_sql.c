@@ -33,7 +33,6 @@
  **  10/20/18  E. Birrane     Updates for AMPv0.5 (JHU/APL)
  *****************************************************************************/
 
-#ifdef HAVE_MYSQL
 
 #include <string.h>
 
@@ -4592,8 +4591,3 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 
 
 }
-
-#endif /* ifdef HAVE_MYSQL */
-
-/* Dummy typedef to prevent empty translation unit warning */
-typedef int nm_mgr_sql_pedantic_dummy;

@@ -33,6 +33,10 @@
 #ifndef NM_MGR_UI_H
 #define NM_MGR_UI_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "nm_mgr.h"
 #include "agents.h"
 

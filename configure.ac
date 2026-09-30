@@ -919,17 +919,10 @@ AC_SUBST([AMP_VERSION])
 AC_ARG_WITH([mysql],
   [AS_HELP_STRING([--with-mysql], [Enable MySQL support for NM MGR])],
   [AS_CASE(["$withval"],
-     [yes|no], [mysql="${withval}"],
+     [yes|no], [],
      [AC_MSG_ERROR([bad value ${withval} for --with-mysql])])],
-  [mysql=no])
-if test "x$mysql" = "xyes" ; then
-  echo "Build against libmysql... yes"
-  CFLAGS="$CFLAGS -DHAVE_MYSQL"
-else
-  echo "Build against libmysql... no"
-fi
-AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
-
+  [with_mysql=no])
+AM_CONDITIONAL([ENABLE_MYSQL], [test "x$with_mysql" = "xyes"])
 
 AC_ARG_WITH([ncurses],
   [AS_HELP_STRING([--with-ncurses], [Enable NCURSES support for NM MGR])],
@@ -1216,12 +1209,9 @@ AC_SEARCH_LIBS([dlopen], [dl], [], [
 
 CFLAGS="$ORIGCFLAGS"
 
-AC_CHECK_LIB(
-  [mysqlclient],
-  [mysql_real_connect],
-  [AC_SUBST([MYSQL_LIBS], ["-lmysqlclient"])],
-  [AM_COND_IF([ENABLE_MYSQL], AC_MSG_ERROR([You need to install the mysqlclient library to build with MySQL.  Run configure with --with-mysql to turn on this feature.]), AC_MSG_WARN([If you wish to use MySQL for NM you will need to install the libmysqlclient.]))]
-)
+AS_IF([test "x$with_mysql" = xyes],
+  [PKG_CHECK_MODULES([MYSQL], [mysqlclient],
+                     [AC_DEFINE([HAVE_MYSQL], [1], [Use MySQL])])])
 
 AC_CHECK_LIB(
   [ncurses],

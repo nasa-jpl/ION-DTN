@@ -29,6 +29,10 @@
  **  10/07/18  E. Birrane      Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "nm_mgr.h"
 #include "platform.h"
 #include "agents.h"

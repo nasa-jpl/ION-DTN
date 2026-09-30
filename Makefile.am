@@ -2181,27 +2181,41 @@ nm_mgr_SOURCES = \
 	nm/mgr/metadata.c \
 	nm/mgr/nm_mgr_print.c \
 	nm/mgr/nm_mgr_rx.c \
-	nm/mgr/nm_mgr_sql.c \
 	nm/mgr/nm_mgr_ui.c \
 	nm/mgr/nm_mgr.c \
 	nm/mgr/ui_input.c \
 	nm/shared/msg/ion_if.c \
 	nm/shared/adm/adm_init.c
 
-nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
+nm_mgr_LDADD = \
+	libamp.la \
+	libici.la \
+	$(bplib) \
+	libltp.la \
+	$(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = $(AM_LDFLAGS) -lpthread
-nm_mgr_CFLAGS = \
+nm_mgr_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(srcdir)/ici/library \
 	-I$(srcdir)/bpv7/library \
 	-I$(srcdir)/ltp/library \
 	-I$(srcdir)/nm \
 	-I$(srcdir)/nm/mgr \
+	$(NM_ADM_INCLUDES) \
+	$(nm_cbor_cppflags)
+nm_mgr_CFLAGS = \
 	$(AM_CFLAGS) \
-	$(NO_UNUSED_VARIABLE) \
-	$(nm_cbor_cppflags) \
-	$(NM_ADM_INCLUDES)
+	$(NO_UNUSED_VARIABLE)
+
+if ENABLE_MYSQL
+nm_mgr_SOURCES += \
+	nm/mgr/nm_mgr_sql.c \
+	nm/mgr/nm_mgr_sql.h
+nm_mgr_CPPFLAGS += $(MYSQL_CFLAGS)
+nm_mgr_LDADD += $(MYSQL_LIBS)
+endif
 
 ##########################
 #
