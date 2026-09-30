@@ -24,12 +24,21 @@
  **  07/05/16  E. Birrane     Fixed time offsets when creating TRL & SRL (Secure DTN - NASA: NNX14CS58P)
  **  09/29/18  E. Birrane     Updated to AMPv0.5 (JHU/APL)
  *****************************************************************************/
-#include "platform.h"
 
 #include "rules.h"
 
-#include "../utils/utils.h"
+#include "ion.h"
+#include "platform.h"
 
+#include <string.h>
+
+#include "UsefulBuf.h"
+#include "expr.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "tnv.h"
 
 int rule_cb_comp_fn(void *i1, void *i2)
 {

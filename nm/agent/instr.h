@@ -27,10 +27,6 @@
 #ifndef INSTR_H
 #define INSTR_H
 
-
-#include "../shared/utils/nm_types.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

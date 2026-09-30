@@ -26,18 +26,27 @@
  *****************************************************************************/
 
 #include "db.h"
+
+#include "ion.h"
+#include "platform.h"
+#include "sdr.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+
+#include <string.h>
+
 #include "rhht.h"
+#include "shared/adm/adm.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/vector.h"
 #include "utils.h"
-
-#include "../primitives/ari.h"
-#include "../primitives/ctrl.h"
-#include "../primitives/report.h"
-#include "../primitives/rules.h"
-#include "../primitives/edd_var.h"
-#include "../primitives/table.h"
-
-#include "../adm/adm.h"
-
 
 vdb_store_t gVDB;
 db_store_t  gDB;

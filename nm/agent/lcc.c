@@ -25,15 +25,23 @@
 
 #include "lcc.h"
 
-#include "../shared/primitives/rules.h"
-#include "instr.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/report.h"
+#include "ion.h"
+#include "ion_atomic.h"
+#include "platform.h"
 
+#include <stdint.h>
+#include <string.h>
+
+#include "instr.h"
 #include "nmagent.h"
 #include "rda.h"
-
-
+#include "shared/msg/msg.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/report.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 
 int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
 {

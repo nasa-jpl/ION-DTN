@@ -24,27 +24,32 @@
  **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-// System headers.
-#include "unistd.h"
-
 // ION headers.
+#include "ion.h"
+#include "ion_atomic.h"
 #include "platform.h"
 
 // Deferred System Headers (POSIX Strictness)
+#include <errno.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <string.h>
 #include <signal.h>
 #include <stdint.h>
 
 // Application headers.
-#include "../shared/nm.h"
-#include "../shared/adm/adm.h"
-#include "../shared/utils/db.h"
-
-#include "nmagent.h"
 #include "ingest.h"
-#include "rda.h"
-
 #include "instr.h"
-#include "ion_atomic.h"
+#include "nmagent.h"
+#include "rda.h"
+#include "shared/adm/adm.h"
+#include "shared/msg/ion_if.h"
+#include "shared/msg/msg.h"
+#include "shared/nm.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 static void agent_signal_handler(int signum);
 

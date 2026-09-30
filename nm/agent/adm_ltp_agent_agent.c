@@ -15,15 +15,20 @@
  **
  ****************************************************************************/
 
+/* START CUSTOM INCLUDES HERE */
+#include "shared/adm/adm.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
-#include "ion.h"
-#include "platform.h"
+#include <stddef.h>
+/* STOP CUSTOM INCLUDES HERE */
+
 #include "adm_ltp_agent.h"
-#include "shared/utils/utils.h"
 #include "shared/primitives/report.h"
-#include "shared/primitives/blob.h"
 #include "adm_ltp_agent_impl.h"
-#include "agent/rda.h"
 
 static vec_idx_t g_dtn_ltp_agent_idx[11];
 

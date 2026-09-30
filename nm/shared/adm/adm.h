@@ -31,11 +31,20 @@
 #ifndef ADM_H_
 #define ADM_H_
 
-#include "../utils/nm_types.h"
-#include "../primitives/edd_var.h"
-#include "../primitives/report.h"
-#include "../primitives/ctrl.h"
-#include "../primitives/table.h"
+#include "platform.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
 #ifdef __cplusplus
 extern "C" {

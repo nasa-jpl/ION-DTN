@@ -16,12 +16,16 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "ion.h"
-#include "bp.h"
 #include "bpP.h"
 #include "bpnm.h"
+#include "ion.h"
+#include "platform.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
 
+#include <stddef.h>
 
+#include "shared/primitives/ctrl.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

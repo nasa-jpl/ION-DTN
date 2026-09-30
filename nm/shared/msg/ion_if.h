@@ -31,8 +31,10 @@
 #define ION_IF_H_
 
 #include "bp.h"
-#include "msg.h"
 
+#include "msg.h"
+#include "shared/primitives/blob.h"
+#include "shared/utils/nm_types.h"
 
 #ifdef __cplusplus
 extern "C" {

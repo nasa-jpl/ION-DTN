@@ -33,14 +33,33 @@
  **  10/20/18  E. Birrane     Updates for AMPv0.5 (JHU/APL)
  *****************************************************************************/
 
-
-#include <string.h>
+#include "nm_mgr_sql.h"
 
 #include "ion.h"
+#include "ion_atomic.h"
+#include "sdr.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+
+#include <math.h>
+#include <mysql.h>
+#include <pthread.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
+#include "UsefulBuf.h"
+#include "field_types.h"
+#include "qcbor.h"
 
 #include "nm_mgr.h"
-#include "nm_mgr_sql.h"
-#include "ion_atomic.h"
+#include "shared/msg/ion_if.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/utils.h"
 
 /* Number of threads interacting with the database.
  - DB Polling Thread - Check for reports pending transmission

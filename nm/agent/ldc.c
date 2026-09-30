@@ -25,13 +25,20 @@
  **  10/04/18  E. Birrane     UPdate to AMP V0.5. (JHU/APL)
  *****************************************************************************/
 
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/expr.h"
-
-#include "nmagent.h"
 #include "ldc.h"
 
+#include "ion.h"
+#include "platform.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/report.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 tnv_t* ldc_collect(ari_t *id, tnvc_t *parms)
 {

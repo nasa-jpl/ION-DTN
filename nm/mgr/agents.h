@@ -25,15 +25,12 @@
 #ifndef AGENTS_H
 #define AGENTS_H
 
-// Standard includes
-
-// ION includes
 #include "platform.h"
-#include "sdr.h"
-#include "../shared/utils/nm_types.h"
-#include "../shared/utils/utils.h"
 
-#include "../shared/utils/vector.h"
+#include <stdio.h>
+
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
 #ifdef __cplusplus
 extern "C" {

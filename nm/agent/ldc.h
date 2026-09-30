@@ -26,9 +26,9 @@
 #ifndef LDC_H
 #define LDC_H
 
-#include "../shared/adm/adm.h"
-
-#include "../shared/primitives/report.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

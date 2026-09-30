@@ -25,14 +25,22 @@
  **  10/01/18  E. Birrane     Updated to AMP v0.5. Migrate from pdu.h. (JHU/APL)
  *****************************************************************************/
 
+#include "msg.h"
+
 #include "platform.h"
 #include "ion.h"
 
-#include "../adm/adm.h"
-#include "../msg/msg.h"
-#include "../utils/utils.h"
-#include "../utils/cbor_utils.h"
-#include "../utils/vector.h"
+#include <string.h>
+
+#include "UsefulBuf.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 
 msg_hdr_t msg_hdr_deserialize(QCBORDecodeContext *it, int *success)
 {

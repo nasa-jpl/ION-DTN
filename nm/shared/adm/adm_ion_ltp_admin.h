@@ -18,10 +18,6 @@
 #ifndef ADM_ION_LTP_ADMIN_H_
 #define ADM_ION_LTP_ADMIN_H_
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

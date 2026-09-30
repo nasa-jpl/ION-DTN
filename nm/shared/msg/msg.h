@@ -28,13 +28,16 @@
 #ifndef MSG_H
 #define MSG_H
 
-#include "stdint.h"
-#include "../utils/nm_types.h"
-#include "../utils/vector.h"
-#include "../primitives/ari.h"
-#include "../primitives/report.h"
-#include "../primitives/table.h"
+#include "qcbor.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
+#include <stdint.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {

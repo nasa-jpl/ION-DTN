@@ -30,14 +30,20 @@
 #ifndef MGR_PRINT_H_
 #define MGR_PRINT_H_
 
-#include "../shared/utils/nm_types.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/rules.h"
-#include "../shared/primitives/expr.h"
-#include "../shared/adm/adm.h"
-#include "nm_mgr_ui.h"
-#include "nm_mgr.h"
+#include "agents.h"
 #include "metadata.h"
+#include "nm_mgr_ui.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {

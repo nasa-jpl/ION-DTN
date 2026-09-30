@@ -27,11 +27,8 @@
 #ifndef NM_TYPES_H
 #define NM_TYPES_H
 
-#include "platform.h"
-#include "debug.h"
-
+#include "platform.h" // IWYU pragma: keep
 #include <stdint.h>
-#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

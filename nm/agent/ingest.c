@@ -25,16 +25,23 @@
  **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#include "ingest.h"
-#include "instr.h"
-#include "nmagent.h"
-#include "lcc.h"
-#include "../shared/utils/db.h"
-#include "../shared/primitives/ctrl.h"
 #include "ion_atomic.h"
+#include "platform.h"
 
+#include <pthread.h>
+#include <stddef.h>
 
-
+#include "ingest.h"
+#include "lcc.h"
+#include "nmagent.h"
+#include "shared/msg/ion_if.h"
+#include "shared/msg/msg.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 
 /******************************************************************************
  *

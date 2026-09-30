@@ -20,14 +20,22 @@
  **  09/30/18  E. Birrane    Updated to AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
+#include "table.h"
+
 #include "platform.h"
 
-#include "ion.h"
-#include "../utils/utils.h"
+#include <string.h>
 
-#include "../primitives/table.h"
+#include "UsefulBuf.h"
+#include "ari.h"
+#include "blob.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 #include "tnv.h"
-
 
 /******************************************************************************
  *

@@ -23,14 +23,20 @@
  **  09/21/18  E. Birrane     Updated to AMP v5. Added EDDs. (JHU/APL)
  *****************************************************************************/
 
+#include "edd_var.h"
+
 #include "platform.h"
 
-#include "edd_var.h"
-#include "../utils/utils.h"
-#include "../utils/nm_types.h"
+#include <string.h>
 
-
-#include "../utils/db.h"
+#include "UsefulBuf.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 int       edd_cb_comp_fn(void *i1, void *i2)
 {

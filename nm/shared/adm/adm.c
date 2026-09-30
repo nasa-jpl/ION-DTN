@@ -27,17 +27,23 @@
  **  01/10/18  E. Birrane     CLean up reports, added report parameter maps. (JHU/APL)
  *****************************************************************************/
 #define _GNU_SOURCE
-#include "ion.h"
-#include "platform.h"
-
 #include "adm.h"
 
+#include "platform.h"
 
-#include "../utils/nm_types.h"
-#include "../utils/utils.h"
-#include "../utils/db.h"
+#include <string.h>
 
-#include "../primitives/expr.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/utils.h"
 
 vector_t g_adm_info;
 

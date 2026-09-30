@@ -34,20 +34,31 @@
 // Application headers.
 #include "nm_mgr.h"          // MUST be first to arm platform macros
 
-// Deferred System Headers (POSIX Strictness)
-#include <getopt.h>
-#include <signal.h>
-#include <stdint.h>
+#include "ion.h"
+#include "ion_atomic.h"
+#include "platform.h"
 
-#include "nm_mgr_ui.h"
-#include "metadata.h"
+// Deferred System Headers (POSIX Strictness)
+#include <errno.h>
+#include <getopt.h>
+#include <pthread.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "agents.h"
-
-#include "../shared/primitives/rules.h"
-#include "ion_atomic.h"
-
-
+#include "metadata.h"
+#include "nm_mgr_ui.h"
+#include "shared/adm/adm.h"
+#include "shared/msg/ion_if.h"
+#include "shared/nm.h"
+#include "shared/primitives/ari.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 mgr_db_t gMgrDB;
 iif_t ion_ptr;

@@ -25,7 +25,8 @@
 #ifndef INGEST_H
 #define INGEST_H
 
-#include "../shared/msg/msg.h"
+#include "shared/msg/msg.h"
+#include "shared/primitives/blob.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -25,8 +25,20 @@
 
 #include "ctrl.h"
 
-#include "../primitives/ari.h"
+#include "ion.h"
+#include "platform.h"
 
+#include <string.h>
+
+#include "UsefulBuf.h"
+#include "ari.h"
+#include "blob.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "tnv.h"
 
 void ctrl_cb_del_fn(void *item)
 {

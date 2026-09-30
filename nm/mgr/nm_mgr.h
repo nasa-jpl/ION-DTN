@@ -33,36 +33,21 @@
 #include "config.h"
 #endif
 
-// ION includes
-#include "platform.h"
-#include "sdr.h"
-
-// Standard includes
-#include "stdint.h"
-#include "pthread.h"
-#include "unistd.h"
-
+#include "ion_atomic.h"
 
 // Application includes
-#include "../shared/nm.h"
-#include "../shared/utils/nm_types.h"
-#include "../shared/msg/ion_if.h"
-
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/report.h"
-#include "../shared/msg/msg.h"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "shared/msg/ion_if.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
 #endif
 
-#include "ion_atomic.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Constants */
 #define NM_RECEIVE_TIMEOUT_SEC (2)

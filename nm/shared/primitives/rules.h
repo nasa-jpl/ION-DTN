@@ -27,11 +27,16 @@
 #ifndef RULES_H
 #define RULES_H
 
-#include "../utils/nm_types.h"
-#include "../utils/db.h"
-#include "../primitives/ctrl.h"
-#include "../primitives/expr.h"
+#include "platform.h"
 
+#include <stdint.h>
+
+#include "expr.h"
+#include "qcbor.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/blob.h"
+#include "shared/utils/db.h"
+#include "shared/utils/rhht.h"
 
 #ifdef __cplusplus
 extern "C" {

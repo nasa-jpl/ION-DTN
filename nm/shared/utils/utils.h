@@ -29,13 +29,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "stdint.h"
 #include "platform.h"
-#include "bp.h"
-#include "lyst.h"
 
-#include "../primitives/blob.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/param.h>
 
+#include "shared/primitives/blob.h"
 
 #ifdef __cplusplus
 extern "C" {

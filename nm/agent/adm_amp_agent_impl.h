@@ -19,12 +19,14 @@
 #define ADM_AMP_AGENT_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include <stdint.h>
+
+#include "shared/primitives/ari.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
-
-#include "shared/utils/utils.h"
-#include "shared/primitives/ctrl.h"
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 

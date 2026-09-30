@@ -19,8 +19,13 @@
 #include "ion.h"
 #include "ionsec.h"
 #include "ltpsec.h"
+#include "platform.h"
+#include "sdrlist.h"
 
+#include <stddef.h>
 
+#include "shared/primitives/ctrl.h"
+#include "shared/utils/debug.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

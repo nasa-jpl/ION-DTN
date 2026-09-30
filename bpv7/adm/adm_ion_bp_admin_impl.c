@@ -20,9 +20,22 @@
 #include "config.h"
 #endif
 
+#include "bp.h"
 #include "bpP.h"
-#include "csi.h"
+#include "bp_admin.h"
+#include "ion.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+#include "sdrstring.h"
+#include "sdrxn.h"
+#include "smlist.h"
 
+#include <string.h>
+
+#include "shared/primitives/ctrl.h"
+#include "shared/utils/debug.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

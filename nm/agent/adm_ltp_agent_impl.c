@@ -16,9 +16,19 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "../shared/primitives/table.h"
+#include "ion.h"
 #include "ltpP.h"
+#include "ltpnm.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrxn.h"
+#include "smlist.h"
 
+#include <stddef.h>
+
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/debug.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

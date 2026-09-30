@@ -19,14 +19,18 @@
 #define ADM_BP_AGENT_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include "shared/utils/nm_types.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
-
-#include "shared/utils/utils.h"
-#include "shared/primitives/ctrl.h"
-#include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
+
+/*   START CUSTOM INCLUDES HERE  */
+/*
+ * Needs to come after transitive #includes that have ION's headers since we
+ * have feature test macros in platform.h
+ */
+#include <stdint.h>
+/*   STOP CUSTOM INCLUDES HERE  */
 
 /*   START typeENUM */
 /*             TODO              */

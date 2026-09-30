@@ -16,7 +16,21 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
+#include "ion.h"
+#include "platform.h"
+#include "psm.h"
 #include "rfx.h"
+#include "sdrmgt.h"
+#include "sdrstring.h"
+#include "sdrxn.h"
+#include "smrbt.h"
+#include "zco.h"
+
+#include <string.h>
+#include <time.h>
+
+#include "shared/primitives/ctrl.h"
+#include "shared/utils/debug.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

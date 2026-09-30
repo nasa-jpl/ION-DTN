@@ -30,11 +30,15 @@
 #ifndef REPORT_H
 #define REPORT_H
 
-#include "../utils/nm_types.h"
-#include "../utils/db.h"
-#include "tnv.h"
 #include "ari.h"
+#include "blob.h"
+#include "qcbor.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "tnv.h"
 
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {

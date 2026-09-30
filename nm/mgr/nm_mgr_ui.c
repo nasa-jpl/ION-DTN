@@ -31,23 +31,37 @@
 #include "config.h"
 #endif
 
-#include "platform.h"
-#include "../shared/nm.h"
-#include "../shared/utils/utils.h"
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/rules.h"
-#include "../shared/msg/msg.h"
-
-#include "nm_mgr_ui.h"
-#include "ui_input.h"
-#include "nm_mgr_print.h"
-#include "metadata.h"
 #include "ion_atomic.h"
+#include "platform.h"
 
+#include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
+#include "metadata.h"
+#include "nm_mgr.h"
+#include "nm_mgr_print.h"
+#include "nm_mgr_ui.h"
+#include "shared/adm/adm.h"
+#include "shared/msg/ion_if.h"
+#include "shared/msg/msg.h"
+#include "shared/nm.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
+#include "ui_input.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"

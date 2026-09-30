@@ -37,11 +37,14 @@
  **  09/14/18  E. Birrane     Updates for data structures, logging, reentrance,
  **                           coding standards and documentation. (JHU/APL)
  *****************************************************************************/
-#include "utils.h"
+
 #include "rhht.h"
 
-#include "debug.h"
+#include <errno.h>
+#include <string.h>
 
+#include "debug.h"
+#include "utils.h"
 /*
  * +--------------------------------------------------------------------------+
  * |                       Private Functions                                  +

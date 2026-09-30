@@ -22,14 +22,30 @@
  **  11/01/18  E. Birrane     Update to latest AMP. (JHU/APL)
  *****************************************************************************/
 
-#include "nm_mgr_ui.h"
 #include "nm_mgr_print.h"
-#include "agents.h"
-#include "ui_input.h"
 
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/blob.h"
-#include "../shared/primitives/table.h"
+#include "platform.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "agents.h"
+#include "nm_mgr.h"
+#include "nm_mgr_ui.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
+#include "ui_input.h"
 
 #ifdef USE_NCURSES
 #include <menu.h>

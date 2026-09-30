@@ -26,12 +26,19 @@
 #ifndef UI_INPUT_H
 #define UI_INPUT_H
 
-#include "../shared/utils/nm_types.h"
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/blob.h"
-#include "../shared/primitives/rules.h"
+#include "platform.h"
 
-#include "nm_mgr_ui.h"
+#include <stdint.h>
+
+#include "shared/primitives/ari.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

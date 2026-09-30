@@ -33,9 +33,8 @@
 #ifndef RHHT_H_
 #define RHHT_H_
 
-#include "stdint.h"
-#include "ion.h"
-
+#include "platform.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

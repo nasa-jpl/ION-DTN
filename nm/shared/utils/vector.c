@@ -11,12 +11,14 @@
  *      Author: ebirrane
  */
 
-#include "shared/utils/utils.h"
-#include "platform.h"
 #include "vector.h"
 
+#include "platform.h"
 
+#include <string.h>
 
+#include "shared/primitives/blob.h"
+#include "utils.h"
 /*
  * +--------------------------------------------------------------------------+
  * |                       Private Functions                                  +

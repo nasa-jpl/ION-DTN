@@ -27,13 +27,14 @@
 #ifndef TABLE_H_
 #define TABLE_H_
 
-#include "stdint.h"
-
-#include "../utils/nm_types.h"
-#include "../utils/vector.h"
-#include "../utils/db.h"
 #include "ari.h"
-
+#include "blob.h"
+#include "qcbor.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
+#include "tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -19,8 +19,9 @@
 #ifndef ADM_AMP_AGENT_H_
 #define ADM_AMP_AGENT_H_
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
+/* START CUSTOM INCLUDES HERE */
+#include "shared/utils/vector.h"
+/* STOP CUSTOM INCLUDES HERE */
 
 #ifdef __cplusplus
 extern "C" {

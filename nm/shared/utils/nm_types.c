@@ -23,6 +23,9 @@
  *****************************************************************************/
 #include "nm_types.h"
 
+#include <stddef.h>
+#include <strings.h>
+
 const char * const amp_type_str[] = {
 	"CNST",    /* AMP_TYPE_CNST    */
 	"CTRL",    /* AMP_TYPE_CTRL    */

@@ -37,29 +37,24 @@
 
 #ifdef HAVE_MYSQL
 
-/* System Headers */
-#include "stdio.h"
-#include "unistd.h"
-#include <mysql.h>
-
 /* ION headers. */
 #include "platform.h"
 
+/* System Headers */
+#include <mysql.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+
 /* Application headers. */
-#include "../shared/adm/adm.h"
-#include "../shared/msg/ion_if.h"
-#include "../shared/msg/msg.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/rules.h"
-#include "../shared/primitives/ctrl.h"
-
-#include "../shared/utils/db.h"
-#include "../shared/utils/utils.h"
-#include "../shared/utils/vector.h"
-
-#include "nm_mgr_ui.h"
 #include "agents.h"
-
+#include "shared/msg/msg.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/blob.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
 #ifdef __cplusplus
 extern "C" {

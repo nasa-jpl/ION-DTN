@@ -27,22 +27,12 @@
 
 #define DEBUG 1
 
-// Standard includes
-#include "stdint.h"
-#include "pthread.h"
-
-// ION includes
-#include "platform.h"
-
 // Application includes
+#include "shared/msg/ion_if.h"
+#include "shared/utils/nm_types.h"
 
-#include "../shared/utils/nm_types.h"
-#include "../shared/msg/ion_if.h"
-
-#include "../shared/primitives/ari.h"
-#include "../shared/primitives/rules.h"
-
-#include "../shared/msg/msg.h"
+// Standard includes
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

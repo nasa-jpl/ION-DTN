@@ -26,8 +26,10 @@
 #ifndef LCC_H
 #define LCC_H
 
-#include "../shared/adm/adm.h"
-#include "../shared/utils/nm_types.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/nm_types.h"
 
 #ifdef __cplusplus
 extern "C" {

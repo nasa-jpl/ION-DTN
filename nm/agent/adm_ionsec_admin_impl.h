@@ -19,6 +19,13 @@
 #define ADM_IONSEC_ADMIN_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
+#include "sdrxn.h"
+
+#include <stdint.h>
+
+#include "shared/primitives/ari.h"
+#include "shared/utils/nm_types.h"
+
 #define	EPOCH_2000_SEC	946684800
 /*		LTP authentication ciphersuite numbers			*/
 #define LTP_AUTH_HMAC_SHA1_80	0
@@ -27,9 +34,6 @@
 
 /*   STOP CUSTOM INCLUDES HERE  */
 
-
-#include "shared/utils/utils.h"
-#include "shared/primitives/ctrl.h"
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 

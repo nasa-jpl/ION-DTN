@@ -18,9 +18,6 @@
 #ifndef ADM_LTP_AGENT_H_
 #define ADM_LTP_AGENT_H_
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

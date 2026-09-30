@@ -25,20 +25,26 @@
  **  08/28/18  E. Birrane     Update to latest spec and TNVs (JHU/APL)
  *****************************************************************************/
 
+#include "tnv.h"
+
 #include "platform.h"
 
-#include "ion.h"
-#include "../utils/utils.h"
+#include <stdio.h>
+#include <string.h>
 
-#include "tnv.h"
+#include "UsefulBuf.h"
 #include "ari.h"
 #include "ctrl.h"
 #include "edd_var.h"
 #include "expr.h"
 #include "report.h"
 #include "rules.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 #include "table.h"
-
 
 /* Local functions. */
 static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *it, size_t array_len, int *success);

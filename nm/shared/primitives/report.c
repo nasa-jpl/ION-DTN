@@ -25,15 +25,19 @@
  **  09/28/18  E. Birrane     Update to latest AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
-#include "platform.h"
-
-#include "../utils/utils.h"
-
 #include "report.h"
 
+#include "platform.h"
+
+#include "UsefulBuf.h"
+#include "blob.h"
+#include "shared/primitives/ari.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 #include "tnv.h"
-
-
 
 /******************************************************************************
  *

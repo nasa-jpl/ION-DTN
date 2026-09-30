@@ -19,12 +19,12 @@
 #define ADM_ION_IPN_ADMIN_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-//#include "../shared/adm/adm_bp.h"
+#include "shared/primitives/ari.h"
+#include "shared/utils/nm_types.h"
+
+#include <stdint.h>
 /*   STOP CUSTOM INCLUDES HERE  */
 
-
-#include "shared/utils/utils.h"
-#include "shared/primitives/ctrl.h"
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 

@@ -36,20 +36,27 @@
  **  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
+#include "ion.h"
+#include "ion_atomic.h"
 #include "platform.h"
 
-#include "../shared/utils/utils.h"
+#include <pthread.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
+
 #include "instr.h"
-#include "../shared/primitives/expr.h"
-
-#include "../shared/utils/db.h"
-
-#include "nmagent.h"
-#include "ldc.h"
 #include "lcc.h"
+#include "nmagent.h"
 #include "rda.h"
-#include "ion_atomic.h"
-
+#include "shared/msg/ion_if.h"
+#include "shared/msg/msg.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/rules.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/utils.h"
 
 agent_db_t gAgentDb;
 

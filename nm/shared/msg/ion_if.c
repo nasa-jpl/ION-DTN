@@ -27,15 +27,22 @@
  **  10/02/18  E. Birrane     Update to AMP v0.5 (JHUAPL)
  *****************************************************************************/
 
-#include "bp.h"
-
-#include "../utils/nm_types.h"
 #include "ion_if.h"
-#include "../utils/utils.h"
+
+#include "bp.h"
+#include "ion.h"
+#include "platform.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+#include "zco.h"
+
+#include <stdint.h>
+#include <string.h>
 
 #include "msg.h"
-
-
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 /******************************************************************************
  *

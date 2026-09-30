@@ -28,11 +28,16 @@
 #ifndef VAR_H
 #define VAR_H
 
-#include "../utils/db.h"
-#include "ari.h"
-#include "tnv.h"
-#include "expr.h"
+#include "platform.h"
 
+#include "ari.h"
+#include "expr.h"
+#include "qcbor.h"
+#include "shared/primitives/blob.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

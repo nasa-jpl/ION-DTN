@@ -24,13 +24,23 @@
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  **  09/21/18  E. Birrane     Update to AMP v03 (JHU/APL).
  *****************************************************************************/
-#include "../nm.h"
+
 #include "expr.h"
-#include "../adm/adm.h"
 
-#include "../utils/db.h"
+#include "platform.h"
 
+#include <string.h>
 
+#include "blob.h"
+#include "UsefulBuf.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 int gValNumCvtResult[6][6] = {
 {AMP_TYPE_INT,   AMP_TYPE_INT,   AMP_TYPE_VAST,  AMP_TYPE_UNK,   AMP_TYPE_REAL32,AMP_TYPE_REAL64},

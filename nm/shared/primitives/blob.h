@@ -30,9 +30,12 @@
 #ifndef BLOB_H_
 #define BLOB_H_
 
-#include "stdint.h"
-#include "qcbor.h"
+#include "platform.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "qcbor.h"
 
 #ifdef __cplusplus
 extern "C" {

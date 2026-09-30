@@ -25,8 +25,17 @@
 
 #include "metadata.h"
 
+#include "platform.h"
 
+#include <stdlib.h>
+#include <string.h>
 
+#include "nm_mgr.h"
+#include "shared/adm/adm.h"
+#include "shared/primitives/ari.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/utils.h"
 
 /*
  * Will release id on failure.

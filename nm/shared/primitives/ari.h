@@ -26,14 +26,16 @@
 #ifndef ARI_H_
 #define ARI_H_
 
-#include "stdint.h"
+#include "platform.h"
 
-#include "ion.h"
+#include <stdint.h>
 
-#include "../utils/debug.h"
-#include "../utils/rhht.h"
-#include "../utils/vector.h"
-#include "../primitives/tnv.h"
+#include "blob.h"
+#include "qcbor.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
+#include "tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

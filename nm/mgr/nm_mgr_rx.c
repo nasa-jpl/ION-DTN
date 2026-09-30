@@ -34,25 +34,29 @@
 #endif
 
 #include "nm_mgr.h"
+
 #include "platform.h"
-#include "agents.h"
+#include "ion_atomic.h"
 
 #include <pthread.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../shared/msg/ion_if.h"
-#include "../shared/utils/nm_types.h"
-#include "../shared/utils/utils.h"
-#include "../shared/utils/debug.h"
-
-#include "../shared/msg/msg.h"
-#include "ion_atomic.h"
+#include "agents.h"
+#include "nm_mgr_print.h" // For direct report file logging
+#include "nm_mgr_ui.h"
+#include "shared/msg/ion_if.h"
+#include "shared/msg/msg.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
 #endif
-
-#include "nm_mgr_print.h" // For direct report file logging
-
 
 /******************************************************************************
  *

@@ -14,17 +14,30 @@
  **  2020-04-16  AUTO             Auto-generated c file
  **
  ****************************************************************************/
-
 /*   START CUSTOM INCLUDES HERE  */
-#include "../shared/primitives/expr.h"
-#include "../shared/primitives/tnv.h"
+#include "ion.h"
+#include "ion_atomic.h"
+#include "platform.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
 #include "instr.h"
-#include "../shared/msg/msg.h"
-#include "rda.h"
 #include "ldc.h"
-
+#include "rda.h"
+#include "shared/msg/msg.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/tnv.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/utils.h"
 /*   STOP CUSTOM INCLUDES HERE  */
-
 
 #include "shared/adm/adm.h"
 #include "adm_amp_agent_impl.h"

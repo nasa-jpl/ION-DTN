@@ -26,10 +26,10 @@
 #ifndef RDA_H_
 #define RDA_H_
 
-#include "../shared/primitives/rules.h"
-#include "../shared/primitives/report.h"
-#include "../shared/msg/msg.h"
-
+#include "shared/msg/msg.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
 
 #ifdef __cplusplus
 extern "C" {

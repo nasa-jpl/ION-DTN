@@ -27,13 +27,17 @@
  **  04/14/16  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  **  08/30/18  E. Birrane     CBOR Updates and Structure Optimization (JHU/APL)
  *****************************************************************************/
+
+#include "blob.h"
+
 #include "platform.h"
-#include "../nm.h"
-#include "../adm/adm.h"
 
-#include "../primitives/blob.h"
+#include <string.h>
 
-
+#include "UsefulBuf.h"
+#include "shared/utils/cbor_utils.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/utils.h"
 
 /******************************************************************************
  *

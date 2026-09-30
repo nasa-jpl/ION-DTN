@@ -31,14 +31,15 @@
 #ifndef TNV_H_
 #define TNV_H_
 
-#include "stdint.h"
+#include "platform.h"
 
+#include <stdint.h>
+#include <time.h>
 
-#include "../utils/nm_types.h"
-#include "../utils/cbor_utils.h"
-
-#include "../utils/vector.h"
-
+#include "blob.h"
+#include "qcbor.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
 #ifdef __cplusplus
 extern "C" {

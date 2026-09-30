@@ -16,8 +16,18 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
+#include "bpP.h"
+#include "ion.h"
 #include "ipn/ipnfw.h"
+#include "platform.h"
+#include "sdrlist.h"
+#include "sdrstring.h"
+#include "sdrxn.h"
 
+#include <stddef.h>
+
+#include "shared/primitives/ctrl.h"
+#include "shared/utils/debug.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

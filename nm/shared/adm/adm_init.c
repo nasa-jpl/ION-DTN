@@ -11,6 +11,7 @@
 #include "adm_ltp_agent.h"
 #include "adm_ion_bp_admin.h"
 #include "adm_bpsec.h"
+#include "shared/utils/debug.h"
 
 /******************************************************************************
  *

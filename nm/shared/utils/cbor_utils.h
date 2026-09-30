@@ -29,10 +29,16 @@
 #ifndef CBOR_UTILS_H
 #define CBOR_UTILS_H
 
-#include "nm_types.h"
-#include "vector.h"
-#include "qcbor.h"
+#include "platform.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "debug.h"
+#include "nm_types.h"
+#include "qcbor.h"
+#include "shared/primitives/blob.h"
+#include "vector.h"
 
 #ifdef __cplusplus
 extern "C" {

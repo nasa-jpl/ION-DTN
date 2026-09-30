@@ -19,10 +19,6 @@
 #ifndef ADM_BP_AGENT_H_
 #define ADM_BP_AGENT_H_
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-
-
 /*
  * +---------------------------------------------------------------------------------------------+
  * |                                 ADM TEMPLATE DOCUMENTATION                                  +

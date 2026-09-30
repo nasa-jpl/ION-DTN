@@ -30,13 +30,14 @@
 #ifndef DB_H_
 #define DB_H_
 
-#include "platform.h"
-#include "sdr.h"
+#include "sdrxn.h"
 
-#include "nm_types.h"
+#include <stddef.h>
+#include <stdint.h>
+
 #include "rhht.h"
+#include "shared/primitives/blob.h"
 #include "vector.h"
-
 
 #ifdef __cplusplus
 extern "C" {

@@ -15,15 +15,18 @@
  **
  ****************************************************************************/
 
+/* START CUSTOM INCLUDES HERE */
+#include "shared/adm/adm.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/vector.h"
 
-#include "ion.h"
-#include "platform.h"
+#include <stddef.h>
+/* STOP CUSTOM INCLUDES HERE */
+
 #include "adm_ion_ltp_admin.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/report.h"
-#include "shared/primitives/blob.h"
 #include "adm_ion_ltp_admin_impl.h"
-#include "agent/rda.h"
 
 static vec_idx_t g_dtn_ion_ltpadmin_idx[11];
 

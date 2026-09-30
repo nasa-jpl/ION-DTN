@@ -28,12 +28,12 @@
 #ifndef METADATA_H_
 #define METADATA_H_
 
-#include "nm_mgr.h"
+#include "shared/primitives/ari.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
 
-#include "../shared/utils/nm_types.h"
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/ari.h"
-
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

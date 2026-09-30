@@ -37,14 +37,19 @@
 #include "config.h"
 #endif
 
-#include "nm_mgr.h"
+#include "platform.h"
+
+#include <stdint.h>
+#include <stdio.h>
+
 #include "agents.h"
-
-#include "../shared/utils/nm_types.h"
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/rules.h"
-
+#include "shared/msg/msg.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/edd_var.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/tnv.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -24,9 +24,23 @@
  *****************************************************************************/
 
 #include "ui_input.h"
-#include "metadata.h"
 
-#include "../shared/adm/adm.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "metadata.h"
+#include "nm_mgr.h"
+#include "nm_mgr_ui.h"
+#include "shared/adm/adm.h"
+#include "shared/primitives/blob.h"
+#include "shared/primitives/rules.h"
+#include "shared/utils/db.h"
+#include "shared/utils/debug.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/utils.h"
+#include "shared/utils/vector.h"
 
 extern int *global_nm_running;
 

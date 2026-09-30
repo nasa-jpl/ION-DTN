@@ -28,11 +28,15 @@
 #ifndef EXPR_H_
 #define EXPR_H_
 
-#include "../utils/nm_types.h"
-
 #include "ari.h"
+#include "blob.h"
+#include "qcbor.h"
+#include "shared/utils/nm_types.h"
+#include "shared/utils/rhht.h"
+#include "shared/utils/vector.h"
 #include "tnv.h"
 
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

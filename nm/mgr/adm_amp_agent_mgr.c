@@ -15,15 +15,20 @@
  **
  ****************************************************************************/
 
+/* START CUSTOM INCLUDES HERE */
+#include "shared/adm/adm.h"
+#include "shared/primitives/ari.h"
+#include "shared/primitives/expr.h"
+#include "shared/primitives/table.h"
+#include "shared/utils/db.h"
+#include "shared/utils/nm_types.h"
 
-#include "ion.h"
-#include "platform.h"
+#include <stddef.h>
+/* STOP CUSTOM INCLUDES HERE */
+
 #include "adm_amp_agent.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/report.h"
-#include "shared/primitives/blob.h"
 #include "metadata.h"
-#include "nm_mgr_ui.h"
+#include "shared/primitives/report.h"
 
 //vec_idx_t g_amp_agent_idx[11];
 

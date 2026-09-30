@@ -26,11 +26,17 @@
  **  08/31/18  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
-#include "platform.h"
 #include "cbor_utils.h"
+
+#include "platform.h"
+
+#include <string.h>
+
+#include "UsefulBuf.h"
+#include "debug.h"
+#include "nm_types.h"
 #include "utils.h"
-
-
+#include "vector.h"
 
  uint8_t gEncBuf[CUT_ENC_BUFSIZE];
 

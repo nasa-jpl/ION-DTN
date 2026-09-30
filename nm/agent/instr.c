@@ -23,8 +23,7 @@
  *****************************************************************************/
 
 #include "instr.h"
-
-#include <string.h>
+#include "ion_atomic.h"
 
 agent_instr_t gAgentInstr;
 

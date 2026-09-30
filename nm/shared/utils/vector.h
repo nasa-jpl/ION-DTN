@@ -15,8 +15,10 @@
 #define VECTOR_H
 
 #include "platform.h"
-#include "../primitives/blob.h"
 
+#include <stdint.h>
+
+#include "shared/primitives/blob.h"
 
 #ifdef __cplusplus
 extern "C" {
