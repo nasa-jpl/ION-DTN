@@ -19,10 +19,11 @@ extern "C" {
 
 extern uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen,
 			uint16_t crc);
-#ifdef ENABLE_HIGH_SPEED
+/*	Always available: the CRC16 slice-by-8 kernel is compiled
+ *	unconditionally (endian-independent, identical value).		*/
 extern uint16_t ion_CRC16_1021_X25_slice(const char *data, uint32_t dLen,
 			uint16_t crc);
-
+#ifdef ENABLE_HIGH_SPEED
 extern uint32_t ion_CRC32_1EDC6F41_C_slice(const char *data, uint32_t dLen,
 			uint32_t crc);
 

@@ -422,8 +422,13 @@ static uint32_t  crctable_1EDC6F41_r[256] =
  *      3. Data is reflected.
  *      4. crc type must be unsigned.
  *      5. init = 0xffff xorout = 0xffff
- *      6. check = 0x9063 (for input "123456789")
+ *      6. check = 0x906e (for input "123456789")
  *****************************************************************************/
+/*	Byte-at-a-time reference implementation.  Retained as the simple,
+ *	endian-trivial, easily-verified path; ion_CRC16_1021_X25_slice below
+ *	(always compiled) is the faster slice-by-8 equivalent that callers use
+ *	by default.  Both yield identical values (canonical CRC-16/X-25).	*/
+
 uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
 {
 	if (data == NULL)
@@ -2842,6 +2847,13 @@ uint32_t ion_CRC32_04C11DB7_slice(const char *data, uint32_t dLen, uint32_t crc)
 	return crc32_16bytes(data, dLen, crc, crctable_04C11DB7_r_slice);
 }
 
+#endif	/*	End of ENABLE_HIGH_SPEED (CRC32 slice paths).		*/
+
+/*	The CRC16 slice-by-8 table and kernel below are compiled
+ *	unconditionally: byte-indexed (endian-independent) and identical in
+ *	value to the byte-at-a-time loop, so the default ion_CRC16_1021_X25
+ *	routes through crc16_8bytes for speed regardless of ENABLE_HIGH_SPEED.	*/
+
 /*****************************************************************/
 /*                                                               */
 /* CRC SLICE-BY-8 LOOKUP TABLE                                   */
@@ -3187,5 +3199,3 @@ uint16_t ion_CRC16_1021_X25_slice(const char *data, uint32_t dLen, uint16_t crc)
 
 	return crc16_8bytes(data, dLen, crc);
 }
-
-#endif //end of ENABLE_HIGH_SPEED
