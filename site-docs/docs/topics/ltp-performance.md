@@ -1,10 +1,13 @@
-# LTP Performance
+# LTP Performance and Tuning
 
-Consolidated reference for measured ION LTP throughput. It pulls together
-results that were previously scattered across the Deployment Guide (ION 4.1.2
-and 4.2-alpha, LTP over UDP) and the `bench-ltp-xlsa` demo (LTP over the
-shared-memory link service), organized by the three dimensions that all of
-them sweep: **bundle size, LTP segment size, and platform**.
+Consolidated reference for measured ION LTP throughput **and practical guidance
+for tuning it**. It pulls together results that were previously scattered across
+the Deployment Guide (ION 4.1.2 and 4.2-alpha, LTP over UDP) and the
+`bench-ltp-xlsa` demo (LTP over the shared-memory link service), organized by the
+three dimensions that all of them sweep: **bundle size, LTP segment size, and
+platform**. If you came here to tune a node, jump to
+[Tuning for throughput](#tuning-for-throughput); the measured results are the
+evidence behind that advice.
 
 All numbers are illustrative of ION's software pipeline on the hardware noted;
 they bound the *shape* of LTP performance, not a portable ceiling. For
@@ -140,6 +143,110 @@ Guide history) established the durable trends that still hold:
   throughput because aggregation keeps the LTP session/handshake count low.
 - **Kernel UDP buffers matter** (8 MB unblocked higher rates on the 10 Gbps
   study) — the same lesson the 4.2 UDP results make mandatory.
+
+## Tuning for throughput
+
+The sections above are the "why"; this is the "what to do," biggest-impact
+first. None of it changes correctness — it changes how close a node gets to the
+ceilings shown above.
+
+### It runs on one core
+
+ION processes each node's traffic through a single shared data store, and only
+one thread can be inside that store at a time, so a node's **LTP data path is
+effectively single-threaded** — the "mutex-bound" / per-segment-SDR-transaction
+ceiling seen in the xlsa results above, and the "single-stream-bound" limit in
+the historical 10 Gbps result.
+
+- **More cores do not make one flow faster.** A single sender-to-receiver
+  transfer is bound by how fast *one* core runs the engine; prefer a high
+  single-core clock over many slower cores.
+- **Give each node its own CPU.** Running a sender and a receiver on the same
+  host makes them share it — fine for testing, not for peak throughput.
+- **Do not pin ION to a core** on a general-purpose host; let the OS place the
+  processes. Manual pinning rarely helps and can hurt by stopping the sender,
+  receiver, and link-service helpers from running in parallel. (A dedicated
+  single-purpose node is the exception — measure before relying on it.)
+
+### Keep the CPU at full clock
+
+LTP works in short bursts — send a round of segments, wait for a report, repeat
+— so Linux's default `powersave` CPU governor can read the gaps as idle and drop
+the clock, cutting throughput substantially. On a throughput-sensitive node, set
+the `performance` governor on **both** ends:
+
+```sh
+sudo cpupower frequency-set -g performance
+```
+
+It is one of the easiest wins and costs only power.
+
+### Build ION with optimization on
+
+Compiler optimization has a large effect on throughput — an unoptimized build can
+run on the order of a third slower. ION compiles with `-O2` by default, **but only
+when you do not set your own `CFLAGS`**. If you pass `CFLAGS` (for example to add
+`-D` defines), it replaces that default, and unless you include an optimization
+level the compiler silently falls back to unoptimized `-O0`. So either leave
+`CFLAGS` unset, or include a level when you set it — `CFLAGS="-O2 …"`.
+
+### Match the SDR store to the node's job
+
+ION's SDR (its transaction store) can keep an undo log so transactions roll back
+cleanly after a crash — *reversibility* — which is valuable operationally but
+costly on the throughput path (see the reversibility cost noted under the
+historical baseline above). Two settings help:
+
+- Where crash-consistency is not required (test nodes, replaceable relays), run
+  the SDR non-reversible for best throughput.
+- Where reversibility is needed, keep the heap in memory and give the undo log a
+  non-zero in-memory size (`logSize`) so it lives in shared memory rather than a
+  file. A file-mode log makes a write system call on every update — several times
+  slower — **even when the file sits on a RAM filesystem** like `/dev/shm`.
+
+### Choose the link service
+
+- **UDP** (`udplso`/`udplsi`) is fine up to a point, but at high datagram rates
+  the kernel receive buffer overflows and throughput collapses into
+  retransmission. **Raise the kernel socket buffers before pushing UDP hard** (and
+  consider multisend) — see
+  [LTP UDP multisend tuning](ltp-udp-multisend-tuning.md); the UDP table above was
+  taken with buffers raised to 16 MB/8 MB.
+- **Shared memory** (`xlsa`) avoids the UDP socket path entirely and is the better
+  substrate for a high-rate link between nodes on the same host (the xlsa table
+  above).
+- **In flight**, use the mission's link service; the guidance here applies to the
+  engine running above it.
+
+### Size the span parameters
+
+Match **segment size** to the link — around the Ethernet MTU for terrestrial
+links, large CCSDS frames for space links. Per the two-regime model, a larger
+segment helps most when the node is CPU-limited and only a little on a fast link
+at full clock, so there is no need to chase very large segments. **Aggregation**
+and **export sessions** are sized from the link's bandwidth-delay product; the
+full procedure, worked examples, and a calculator are in
+[LTP UDP multisend tuning](ltp-udp-multisend-tuning.md#configuring-ltp-for-high-throughput)
+and [Using the LTP Configuration Tool](../using-ltp-config-tool.md). The exact
+`ltpadmin` command syntax is in the Deployment Guide.
+
+### Reliability costs time, not throughput
+
+On a lossy link, bound how long LTP keeps retrying a block with the repair-round
+budget described next; it trades worst-case delivery time against giving up
+early and does not change steady-state throughput on a clean link.
+
+### Quick checklist
+
+- Built with optimization on (a custom `CFLAGS` has not dropped `-O`).
+- `performance` CPU governor on sender and receiver.
+- One ION node per CPU for peak throughput.
+- SDR run non-reversible where crash-consistency is not needed (or, if it is, an
+  in-memory undo log rather than a file one).
+- Segment size matched to the link MTU.
+- Kernel socket buffers raised before pushing UDP.
+- Aggregation and export sessions sized for the bandwidth-delay product.
+- Do not expect a single flow to scale with core count.
 
 ## Bounding session repair
 
