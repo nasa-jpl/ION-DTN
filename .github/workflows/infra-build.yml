@@ -135,18 +135,15 @@ jobs:
             rhel9) echo "os_image=rhel-9" >> $GITHUB_OUTPUT; echo "target=buildah-build-rhel" >> $GITHUB_OUTPUT ;;
           esac
 
-      - name: Build the container image
+      - name: Build and Push the container image
         run: |
           cd images && \
-          make ${{ steps.vars.outputs.target }} \
+          sudo make ${{ steps.vars.outputs.target }} \
             PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=${{ steps.vars.outputs.os_image }} \
-            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
-
-      - name: Push the container image
-        run: |
-          cd images && \
-          make buildah-push \
+            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images && \
+          sudo make buildah-push \
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=${{ steps.vars.outputs.os_image }} \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 

@@ -52,7 +52,7 @@ docker-build:
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
 
 buildah-build:
-	sudo ${BUILDAH} bud \
+	${BUILDAH} bud \
 	  --isolation=chroot \
 	  --storage-driver=vfs \
 	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
@@ -71,7 +71,7 @@ buildah-build:
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
 
 buildah-build-rhel:
-	sudo ${BUILDAH} bud \
+	${BUILDAH} bud \
 	  --isolation=chroot \
 	  --storage-driver=vfs \
 	  --volume /etc/pki/entitlement:/etc/pki/entitlement:ro \
@@ -95,4 +95,4 @@ docker-push:
 	${DOCKER} push "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
 
 buildah-push:
-	sudo ${BUILDAH} push "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
+	${BUILDAH} push --storage-driver=vfs "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
