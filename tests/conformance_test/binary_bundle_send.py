@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
 """
 Sends string hexadecimal representations of full bundle(s) to a local node
 running the UDPCLA. Accepts them either passed via the command line or a file.
 
 Nate Richard 2025/12/19 JPL
 """
+
 import argparse
 import binascii
 import socket

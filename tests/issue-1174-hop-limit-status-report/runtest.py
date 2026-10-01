@@ -26,22 +26,22 @@ from queue import Empty, Queue
 
 try:
     from bespokebpv7.admin_records import (
-        BundleStatusReport,  # type: ignore[import-untyped]
+        BundleStatusReport,
     )
-    from bespokebpv7.block_enum import (  # type: ignore[import-untyped]
+    from bespokebpv7.block_enum import (
         BlockType,
         CRCType,
     )
-    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+    from bespokebpv7.bpv7 import BPv7
     from bespokebpv7.utils import (
-        bundle_converter,  # type: ignore[import-untyped]
+        bundle_converter,
     )
 except ImportError:
     print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
     sys.exit(2)
 
-NODE_ADDR = ("127.0.0.1", 3213)     # ION node's udp induct
-REPORT_ADDR = ("127.0.0.1", 5215)   # egress duct for node 5 (report-to)
+NODE_ADDR = ("127.0.0.1", 3213)  # ION node's udp induct
+REPORT_ADDR = ("127.0.0.1", 5215)  # egress duct for node 5 (report-to)
 FORWARD_ADDR = ("127.0.0.1", 8200)  # egress duct for node 2 (bundle dest)
 
 HOP_LIMIT_EXCEEDED = 9
@@ -152,12 +152,9 @@ def wait_for_deletion_report() -> bool:
 def main() -> int:
     stop_event = threading.Event()
     threads = []
-    for addr, queue in ((REPORT_ADDR, report_queue),
-                        (FORWARD_ADDR, forwarded_queue)):
+    for addr, queue in ((REPORT_ADDR, report_queue), (FORWARD_ADDR, forwarded_queue)):
         active = threading.Event()
-        t = threading.Thread(
-            target=receiver, args=(addr, queue, stop_event, active)
-        )
+        t = threading.Thread(target=receiver, args=(addr, queue, stop_event, active))
         t.start()
         threads.append(t)
         active.wait()
@@ -180,8 +177,7 @@ def main() -> int:
         # The bundle itself must NOT have been forwarded onward.
         try:
             forwarded_queue.get(timeout=2.0)
-            print("FAILURE: bundle was forwarded despite exceeding its "
-                  "hop limit.")
+            print("FAILURE: bundle was forwarded despite exceeding its hop limit.")
             return 1
         except Empty:
             pass

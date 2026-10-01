@@ -94,9 +94,7 @@ class TestGitMatrix(unittest.TestCase):
                     Path("test3"),
                 ]
             )
-            mock_balance.assert_called_once_with(
-                mock_get_durations.return_value, 7
-            )
+            mock_balance.assert_called_once_with(mock_get_durations.return_value, 7)
             mock_json_dumps.assert_called_once()
 
             # Check that output contains the expected JSON
@@ -148,15 +146,11 @@ class TestGitMatrix(unittest.TestCase):
                     Path("test3"),
                 ]
             )
-            mock_balance.assert_called_once_with(
-                mock_get_durations.return_value, 3
-            )
+            mock_balance.assert_called_once_with(mock_get_durations.return_value, 3)
             mock_json_dumps.assert_called_once()
 
             # Check that output contains the expected JSON
-            self.assertEqual(
-                output.getvalue().strip(), '["test2", "test3", "test1"]'
-            )
+            self.assertEqual(output.getvalue().strip(), '["test2", "test3", "test1"]')
         finally:
             sys.stdout = saved_stdout
 
@@ -228,9 +222,7 @@ class TestGitMatrix(unittest.TestCase):
     @patch("pathlib.Path.exists")
     @patch("pathlib.Path.is_file")
     @patch("pathlib.Path.read_text")
-    def test_get_folder_durations(
-        self, mock_read_text, mock_is_file, mock_exists
-    ):
+    def test_get_folder_durations(self, mock_read_text, mock_is_file, mock_exists):
         """Test reading duration files."""
         # Setup mocks for file operations
         mock_exists.return_value = True

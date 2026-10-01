@@ -26,18 +26,19 @@ has neither a CRC nor a BIB); extension blocks are left CRC-less.
 
 Deterministic inputs keep the emitted hex stable across regenerations.
 """
+
 import cbor2
 
 CREATION_MS = 836179200000
 LIFETIME_MS = 3155760000000
-N_EXT_BLOCKS = 40          # comfortably past the 32-entry array
+N_EXT_BLOCKS = 40  # comfortably past the 32-entry array
 BUNDLE_AGE_BLK = 7
 PAYLOAD_BLK = 1
 CRC16 = 1
 
-DEST = [2, [3, 1]]         # ipn:3.1
-SRC = [2, [2, 1]]          # ipn:2.1
-REPORT_TO = [2, [2, 1]]    # ipn:2.1
+DEST = [2, [3, 1]]  # ipn:3.1
+SRC = [2, [2, 1]]  # ipn:2.1
+REPORT_TO = [2, [2, 1]]  # ipn:2.1
 
 
 def crc16_x25(data):
@@ -58,8 +59,9 @@ def with_crc(block_list):
 
 
 def primary_block():
-    return with_crc([7, 0, CRC16, DEST, SRC, REPORT_TO,
-                     [CREATION_MS, 0], LIFETIME_MS, None])
+    return with_crc(
+        [7, 0, CRC16, DEST, SRC, REPORT_TO, [CREATION_MS, 0], LIFETIME_MS, None]
+    )
 
 
 def payload_block(data):
@@ -80,12 +82,14 @@ def bundle_hex(ext_blocks, payload):
 
 
 def main():
-    age = cbor2.dumps(0)   # Bundle Age block data: CBOR uint (age in ms)
+    age = cbor2.dumps(0)  # Bundle Age block data: CBOR uint (age in ms)
     flood = [ext_block(n, age) for n in range(2, 2 + N_EXT_BLOCKS)]
 
     print("# control: ordinary single-payload bundle (node must survive + deliver)")
     print(bundle_hex([], b"control"))
-    print(f"# flood: {N_EXT_BLOCKS} Bundle Age extension blocks, distinct numbers 2..{1 + N_EXT_BLOCKS}")
+    print(
+        f"# flood: {N_EXT_BLOCKS} Bundle Age extension blocks, distinct numbers 2..{1 + N_EXT_BLOCKS}"
+    )
     print(bundle_hex(flood, b"flood"))
 
 

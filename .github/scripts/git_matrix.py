@@ -101,7 +101,9 @@ def is_excluded(
 
 
 def list_tests(
-    solaris_run: bool = False, bpsec: str = "native_bpsec", exclude_optional: bool = False
+    solaris_run: bool = False,
+    bpsec: str = "native_bpsec",
+    exclude_optional: bool = False,
 ) -> list[Path]:
     """Generate list of tests.
 
@@ -385,4 +387,10 @@ if __name__ == "__main__":
     else:
         RUNNER_COUNT = args.runners
 
-    main(RUNNER_COUNT, test_subset, args.solaris, current_bpsec_mode, args.exclude_optional)
+    main(
+        RUNNER_COUNT,
+        test_subset,
+        args.solaris,
+        current_bpsec_mode,
+        args.exclude_optional,
+    )

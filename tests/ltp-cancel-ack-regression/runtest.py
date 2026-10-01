@@ -15,14 +15,14 @@ import time
 SO_REUSEPORT = getattr(socket, "SO_REUSEPORT", None)
 
 try:
-    from bespokebpv7.block_enum import CRCType  # type: ignore[import-untyped]
-    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
-    from bespokebpv7.ltp import LTP  # type: ignore[import-untyped]
-    from bespokebpv7.segment_enum import (  # type: ignore[import-untyped]
+    from bespokebpv7.block_enum import CRCType
+    from bespokebpv7.bpv7 import BPv7
+    from bespokebpv7.ltp import LTP
+    from bespokebpv7.segment_enum import (
         CancelReasonCode,
         LTPSegmentType,
     )
-    from bespokebpv7.segments import (  # type: ignore[import-untyped]
+    from bespokebpv7.segments import (
         CancelSegment,
         DataSegment,
     )

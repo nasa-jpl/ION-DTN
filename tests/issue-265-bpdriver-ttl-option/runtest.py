@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 
 try:
-    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+    from bespokebpv7.bpv7 import BPv7
 except ImportError:
     print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
     sys.exit(2)

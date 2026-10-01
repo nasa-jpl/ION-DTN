@@ -32,17 +32,22 @@ def main():
     host = sys.argv[1]
     port = int(sys.argv[2])
 
-    segment = bytes([
-        0x04,               # control: version 0, type LtpDsGreen (EXC flag)
-        0x01,               # session originator engine ID = 1 (matches span)
-        0xBD, 0x84, 0x40,   # session number = 1000000 (SDNV); high, so it
-                            #   does not collide with a closed session created
-                            #   by ordinary loopback traffic
-        0x00,               # extension counts: no header/trailer extensions
-        0x01,               # client service ID = 1 (BpLtpClientId, ltpcli)
-        0x00,               # offset = 0
-        0x00,               # length = 0   <-- zero-length green segment
-    ])
+    # fmt: off
+    segment = bytes(
+        [
+            0x04,  # control: version 0, type LtpDsGreen (EXC flag)
+            0x01,  # session originator engine ID = 1 (matches span)
+            # session number = 1000000 (SDNV); high, so it
+            # does not collide with a closed session created
+            # by ordinary loopback traffic
+            0xBD, 0x84, 0x40,
+            0x00,  # extension counts: no header/trailer extensions
+            0x01,  # client service ID = 1 (BpLtpClientId, ltpcli)
+            0x00,  # offset = 0
+            0x00,  # length = 0   <-- zero-length green segment
+        ]
+    )
+    # fmt: on
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:

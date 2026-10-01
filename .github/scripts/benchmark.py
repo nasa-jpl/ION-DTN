@@ -119,7 +119,9 @@ def _run_single_iteration(
         _run_cleanup(script_dir, log_handle, env)
 
         if process.returncode == 2:
-            log_handle.write("\nTest missing necessary component(s), setting .DURATION to 0\n")
+            log_handle.write(
+                "\nTest missing necessary component(s), setting .DURATION to 0\n"
+            )
             return 0
 
         if process.returncode != 0:
@@ -296,7 +298,9 @@ def main() -> None:
         result = benchmark_and_log(script, force_update=args.force_update)
         if result == "FAILED":
             if (script / ".DURATION").exists():
-                print(f"  [Warning] {script.name} failed, but .DURATION exists. Ignoring fatal failure.")
+                print(
+                    f"  [Warning] {script.name} failed, but .DURATION exists. Ignoring fatal failure."
+                )
             else:
                 has_failures = True
         results.append((str(script), result))

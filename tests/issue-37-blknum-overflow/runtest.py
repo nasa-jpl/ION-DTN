@@ -15,13 +15,13 @@ import threading
 import time
 
 try:
-    from bespokebpv7.block_enum import (  # type: ignore[import-untyped]
+    from bespokebpv7.block_enum import (
         BlockFlags,
         BlockType,
         CRCType,
     )
-    from bespokebpv7.blocks import CanonicalBlock  # type: ignore[import-untyped]
-    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+    from bespokebpv7.blocks import CanonicalBlock
+    from bespokebpv7.bpv7 import BPv7
 except ImportError:
     print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
     sys.exit(2)
@@ -127,7 +127,9 @@ def receive_bundle(bind_port: int, timeout: int, result_holder: dict) -> None:
     block_numbers = []
     for block in received_bundle.blocks.values():
         block_numbers.append(block.block_number)
-        print(f"[Receiver] Found block type {block.block_type} with block_number {block.block_number}")
+        print(
+            f"[Receiver] Found block type {block.block_type} with block_number {block.block_number}"
+        )
 
     # Check for block number 0 (overflow indicator)
     if 0 in block_numbers:
@@ -139,7 +141,9 @@ def receive_bundle(bind_port: int, timeout: int, result_holder: dict) -> None:
     # Check for duplicate block number 1 (should only be payload)
     if block_numbers.count(1) > 1:
         result_holder["success"] = False
-        result_holder["message"] = f"✗ Duplicate block number 1 found ({block_numbers.count(1)} occurrences)"
+        result_holder["message"] = (
+            f"✗ Duplicate block number 1 found ({block_numbers.count(1)} occurrences)"
+        )
         print(f"[Receiver] {result_holder['message']}")
         return
 
@@ -148,7 +152,9 @@ def receive_bundle(bind_port: int, timeout: int, result_holder: dict) -> None:
         ext_block = received_bundle.blocks[BlockType(200)]
         if ext_block.block_number == 255:
             result_holder["success"] = True
-            result_holder["message"] = "✓ Block 255 found, no block 0, no duplicate block 1"
+            result_holder["message"] = (
+                "✓ Block 255 found, no block 0, no duplicate block 1"
+            )
             print(f"[Receiver] {result_holder['message']}")
         else:
             result_holder["success"] = False

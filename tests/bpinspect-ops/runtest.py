@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Automated regression test for bpinspect utility operations using bespokebpv7.
 
@@ -13,9 +12,9 @@ import sys
 import time
 from pathlib import Path
 
-from bespokebpv7.block_enum import BlockType, CRCType  # type: ignore[import-untyped]
-from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
-from bespokebpv7.ext_functions import BPQExt  # type: ignore[import-untyped]
+from bespokebpv7.block_enum import BlockType, CRCType
+from bespokebpv7.bpv7 import BPv7
+from bespokebpv7.ext_functions import BPQExt
 
 MAINDIR = Path.cwd()
 NODE2DIR = MAINDIR.joinpath("node2")
@@ -29,8 +28,6 @@ ION_INIT_ERRORS = (
 
 class IonInitializationError(Exception):
     """Custom exception raised when ION/BP initialization errors are detected in stdout."""
-
-    pass
 
 
 class BPInspectTester:

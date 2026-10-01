@@ -68,12 +68,12 @@ The code on this repository named `sense.py` is based on the implementation of [
 In the code, edit the following fields:
 
 ```python
-ssl_private_key_filepath = '/home/pi/sensing_private.pem'
-ssl_algorithm = 'RS256'
-root_cert_filepath = '/home/pi/roots.pem'
-project_id = 'if you have to use a project ID identifier in your cloud service'
-registry_id = 'name of your registry'
-device_id = 'name of your device'
+ssl_private_key_filepath = "/home/pi/sensing_private.pem"
+ssl_algorithm = "RS256"
+root_cert_filepath = "/home/pi/roots.pem"
+project_id = "if you have to use a project ID identifier in your cloud service"
+registry_id = "name of your registry"
+device_id = "name of your device"
 ```
 Once you have configured the above parameters in the file sense.py, on your Raspberry Pi run the command:
 ````
@@ -88,7 +88,8 @@ $ mkdir dtn
 CD into dtn directory, and clone the file named `iot.py`. In this file configure the following parameters:
 ```python
 subscription_path = subscriber.subscription_path(
-  'ID_OF_YOUR_CLOUD_PROJECT', 'ID_OF_YOUR_SUBSCRIPTION')
+    "ID_OF_YOUR_CLOUD_PROJECT", "ID_OF_YOUR_SUBSCRIPTION"
+)
 ```
 And add `host 2` as the receiver of the telemetry data:
 ```python

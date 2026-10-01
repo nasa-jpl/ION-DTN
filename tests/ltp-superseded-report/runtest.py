@@ -47,10 +47,10 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-import dtnmitm as M  # noqa: E402
-from bespokebpv7.segment_enum import LTPSegmentType  # noqa: E402
-from bespokebpv7.segments import ReportSegment  # noqa: E402
-from bespokebpv7.utils import bundle_converter  # noqa: E402
+import dtnmitm as M
+from bespokebpv7.segment_enum import LTPSegmentType
+from bespokebpv7.segments import ReportSegment
+from bespokebpv7.utils import bundle_converter
 
 DATA_LISTEN_PORT = 2112
 DATA_FORWARD_PORT = 3113

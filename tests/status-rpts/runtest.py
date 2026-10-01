@@ -49,13 +49,13 @@ from queue import Empty, Queue
 
 try:
     from bespokebpv7.admin_records import (
-        BundleStatusReport,  # type: ignore[import-untyped]
+        BundleStatusReport,
     )
-    from bespokebpv7.block_enum import (  # type: ignore[import-untyped]
+    from bespokebpv7.block_enum import (
         BlockType,
         CRCType,
     )
-    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+    from bespokebpv7.bpv7 import BPv7
 except ImportError:
     print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
     sys.exit(2)

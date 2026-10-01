@@ -23,33 +23,33 @@ import sys
 
 def build_bundle(payload_len):
     # CBOR indefinite-length array: the bundle.
-    out = bytearray([0x9f])
+    out = bytearray([0x9F])
 
     # Primary block: CBOR array(8) -- version, flags, crc-type, dest, src,
     # report-to, creation timestamp, lifetime.  No CRC, not fragmented.
     out += bytes([0x88])
-    out += bytes([0x07])                    # version 7
-    out += bytes([0x00])                    # bundle processing flags
-    out += bytes([0x00])                    # CRC type 0 (none)
+    out += bytes([0x07])  # version 7
+    out += bytes([0x00])  # bundle processing flags
+    out += bytes([0x00])  # CRC type 0 (none)
     out += bytes([0x82, 0x02, 0x82, 0x01, 0x01])  # dest ipn:1.1 = [2,[1,1]]
     out += bytes([0x82, 0x02, 0x82, 0x01, 0x02])  # src  ipn:1.2 = [2,[1,2]]
     out += bytes([0x82, 0x02, 0x82, 0x01, 0x02])  # report-to ipn:1.2
-    out += bytes([0x82, 0x00, 0x00])        # creation timestamp [0,0]
-    out += bytes([0x00])                    # lifetime 0
+    out += bytes([0x82, 0x00, 0x00])  # creation timestamp [0,0]
+    out += bytes([0x00])  # lifetime 0
 
     # Payload block: CBOR array(5) -- type, number, flags, crc-type, data.
     out += bytes([0x85])
-    out += bytes([0x01])                    # block type 1 (payload)
-    out += bytes([0x01])                    # block number 1
-    out += bytes([0x00])                    # block processing flags
-    out += bytes([0x00])                    # CRC type 0 (none)
+    out += bytes([0x01])  # block type 1 (payload)
+    out += bytes([0x01])  # block number 1
+    out += bytes([0x00])  # block processing flags
+    out += bytes([0x00])  # CRC type 0 (none)
     # Byte string whose declared length is payload_len, encoded as a 4-byte
     # (0x5a) CBOR uint when it fits, otherwise an 8-byte (0x5b) CBOR uint.
     if payload_len <= 0xFFFFFFFF:
-        out += bytes([0x5a]) + struct.pack(">I", payload_len)
+        out += bytes([0x5A]) + struct.pack(">I", payload_len)
     else:
-        out += bytes([0x5b]) + struct.pack(">Q", payload_len)
-    out += bytes([0xff])                    # one buffered payload byte
+        out += bytes([0x5B]) + struct.pack(">Q", payload_len)
+    out += bytes([0xFF])  # one buffered payload byte
 
     # No closing break: the parser records the declared length and processes
     # the single buffered byte before it ever looks for the terminator.

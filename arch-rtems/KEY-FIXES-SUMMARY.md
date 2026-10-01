@@ -77,12 +77,12 @@ rtems_task Init(rtems_task_argument ignored)
 **Code Location:** [wscript:58](wscript#L58)
 
 ```python
-iondefines=[
-    'RTEMS',
-    'BP_EXTENDED',
+iondefines = [
+    "RTEMS",
+    "BP_EXTENDED",
     # ... other defines ...
-    'USING_RTEMS_LIBBSD',
-    'MAX_SPAWNS=32'         # CRITICAL: Increase from default 8
+    "USING_RTEMS_LIBBSD",
+    "MAX_SPAWNS=32",  # CRITICAL: Increase from default 8
 ]
 ```
 
@@ -162,16 +162,16 @@ static void initNetwork()
 
 **Required Build Configuration:** [wscript:57](wscript#L57)
 ```python
-iondefines=[
+iondefines = [
     # ...
-    'USING_RTEMS_LIBBSD',   # Exclude socket stubs
+    "USING_RTEMS_LIBBSD",  # Exclude socket stubs
     # ...
 ]
 ```
 
 **Required Library Link Order:** [wscript:537](wscript#L537)
 ```python
-lib=['rtemscpu', 'rtemsbsp', 'bsd', 'm']  # Order matters!
+lib = ["rtemscpu", "rtemsbsp", "bsd", "m"]  # Order matters!
 ```
 
 **Socket Stub Exclusion:** [rtems_stubs.c:88,262](rtems_stubs.c#L88)

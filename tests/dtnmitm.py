@@ -44,8 +44,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from bespokebpv7.ltp import LTP  # type: ignore[import-untyped]
-from bespokebpv7.segment_enum import LTPSegmentType  # type: ignore[import-untyped]
+from bespokebpv7.ltp import LTP
+from bespokebpv7.segment_enum import LTPSegmentType
+from typing_extensions import Self
 
 RED_DATA = (
     LTPSegmentType.DATA_RED,
@@ -294,7 +295,7 @@ class Mitm:
         self.rules = list(rules)
         self.label = label
 
-        self._trace = open(trace_path, "a", buffering=1) if trace_path else None
+        self._trace = open(trace_path, "a", buffering=1) if trace_path else None  # ruff: ignore[SIM115]
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind((host, listen_port))

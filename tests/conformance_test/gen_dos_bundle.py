@@ -20,6 +20,7 @@ Deterministic inputs (fixed creation time + ~100 year lifetime) keep the
 generated hex stable across regenerations and ensure the bundle is never
 treated as expired during acquisition.
 """
+
 from bespokebpv7.block_enum import BlockType, CRCType
 from bespokebpv7.bpv7 import BPv7
 

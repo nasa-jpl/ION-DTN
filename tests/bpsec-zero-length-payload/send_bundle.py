@@ -3,6 +3,7 @@
 
 usage: send_bundle.py <hex-bundle> <port>
 """
+
 import binascii
 import socket
 import sys

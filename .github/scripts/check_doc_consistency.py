@@ -354,9 +354,7 @@ def manage_subcommands_in_src(src):
     if not block:
         return set()
     body = src[block[0] : block[1]]
-    return set(
-        re.findall(r'strcmp\(\s*tokens\[1\]\s*,\s*"([^"]+)"\s*\)', body)
-    )
+    return set(re.findall(r'strcmp\(\s*tokens\[1\]\s*,\s*"([^"]+)"\s*\)', body))
 
 
 def _strip_c_comments(text):
@@ -394,9 +392,7 @@ def header_functions(text):
     names = set()
     # function-like macros: name immediately followed by '('
     # (no space, per C)
-    for m in re.finditer(
-        r"^\s*#\s*define\s+([A-Za-z_]\w*)\(", text, re.MULTILINE
-    ):
+    for m in re.finditer(r"^\s*#\s*define\s+([A-Za-z_]\w*)\(", text, re.MULTILINE):
         names.add(m.group(1))
     # drop every preprocessor directive (including '\'-continued macro
     # bodies) so macro bodies don't bleed into the following declaration
@@ -434,12 +430,8 @@ def namespace_prefixes(names):
 # -------------------------------------------------------------------- #
 
 # A command item: =item B<X...> where X is a single command code.
-POD_CMD_RE = re.compile(
-    r"^=item\s+B<\s*([a-z0-9?#@!^~&$])(?:\s|>|$)", re.MULTILINE
-)
-POD_M_SUB_RE = re.compile(
-    r"^=item\s+B<m\s+([a-z][a-z0-9_-]*)>", re.MULTILINE
-)
+POD_CMD_RE = re.compile(r"^=item\s+B<\s*([a-z0-9?#@!^~&$])(?:\s|>|$)", re.MULTILINE)
+POD_M_SUB_RE = re.compile(r"^=item\s+B<m\s+([a-z][a-z0-9_-]*)>", re.MULTILINE)
 
 
 def pod_command_letters(text):
@@ -532,15 +524,11 @@ def pod_diagnostics(text):
     section/category headings (e.g. bptracker's "B<Normal operation>"),
     not message strings, and are skipped.
     """
-    m = re.search(
-        r"(?ms)^=head1[ \t]+DIAGNOSTICS\b(.*?)(?=^=head1[ \t]|\Z)", text
-    )
+    m = re.search(r"(?ms)^=head1[ \t]+DIAGNOSTICS\b(.*?)(?=^=head1[ \t]|\Z)", text)
     if not m:
         return []
     items = re.findall(r"(?m)^=item[ \t]+(.*\S)[ \t]*$", m.group(1))
-    return [
-        d for d in items if not re.fullmatch(r"B<[^>]*>", d.strip())
-    ]
+    return [d for d in items if not re.fullmatch(r"B<[^>]*>", d.strip())]
 
 
 def source_error_strings(text):
@@ -551,9 +539,7 @@ def source_error_strings(text):
     text = text.replace("\\\n", "")  # join line continuations
     out = set()
     for s in re.findall(r'"((?:[^"\\]|\\.)*)"', text):
-        out.add(
-            re.sub(r"\\.", " ", s)
-        )  # collapse \n, \t, \" ... to space
+        out.add(re.sub(r"\\.", " ", s))  # collapse \n, \t, \" ... to space
     return out
 
 
@@ -571,9 +557,7 @@ def _diag_tokens(s, progname):
     leading program-name token removed.
     """
     s = re.sub(r"I<[^>]*>", " ", s)  # drop variable placeholders
-    s = re.sub(
-        r"[A-Z]<([^>]*)>", r"\1", s
-    )  # unwrap other B<>/C<> wrappers
+    s = re.sub(r"[A-Z]<([^>]*)>", r"\1", s)  # unwrap other B<>/C<> wrappers
     return {t for t in _words(s) if t != progname}
 
 
@@ -583,9 +567,7 @@ def diagnostic_is_documented(diag_tokens, src_token_sets):
     """
     if not diag_tokens:
         return True  # nothing distinctive to match
-    best = max(
-        (len(diag_tokens & s) for s in src_token_sets), default=0
-    )
+    best = max((len(diag_tokens & s) for s in src_token_sets), default=0)
     return best / len(diag_tokens) >= DIAG_MATCH_THRESHOLD
 
 
@@ -639,9 +621,7 @@ def api_findings(pod, documented, declared):
             continue
         if prefixes and not any(f.startswith(p) for p in prefixes):
             continue
-        findings.append(
-            f"[api] {pod}: '{f}' declared in header(s) but undocumented"
-        )
+        findings.append(f"[api] {pod}: '{f}' declared in header(s) but undocumented")
     return findings
 
 
@@ -691,9 +671,7 @@ def diagnostics_findings(rel, name, diags, src_token_sets):
     return [
         f'[diag] {rel}: documented diagnostic not found in source: "{d}"'
         for d in diags
-        if not diagnostic_is_documented(
-            _diag_tokens(d, name), src_token_sets
-        )
+        if not diagnostic_is_documented(_diag_tokens(d, name), src_token_sets)
     ]
 
 
@@ -791,10 +769,7 @@ class SourceTokens:
     def module(self, module):
         if module not in self._cache:
             self._cache[module] = self.paths(
-                set(
-                    self.module_c.get(module, [])
-                    + self.module_c.get("ici", [])
-                )
+                set(self.module_c.get(module, []) + self.module_c.get("ici", []))
             )
         return self._cache[module]
 
@@ -827,14 +802,10 @@ def check_pod3_api(root):
         declared = set()
         for h in headers:
             if missing(root, h):
-                findings.append(
-                    f"[api] MISSING HEADER: {h} (for {pod})"
-                )
+                findings.append(f"[api] MISSING HEADER: {h} (for {pod})")
                 continue
             declared |= header_functions(read(root, h))
-        findings += api_findings(
-            pod, pod_api_functions(read(root, pod)), declared
-        )
+        findings += api_findings(pod, pod_api_functions(read(root, pod)), declared)
     return findings
 
 
@@ -845,9 +816,7 @@ def check_pod1_synopsis(root):
         if os.path.basename(rel)[:-4] in POD1_SYNOPSIS_SKIP:
             continue
         if not pod_has_synopsis(read(root, rel)):
-            findings.append(
-                f"[pod1] {rel}: missing '=head1 SYNOPSIS' section"
-            )
+            findings.append(f"[pod1] {rel}: missing '=head1 SYNOPSIS' section")
     return findings
 
 
@@ -960,9 +929,7 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument(
-        "--root", help="ION-DTN repository root (default: auto-detect)"
-    )
+    ap.add_argument("--root", help="ION-DTN repository root (default: auto-detect)")
     ap.add_argument(
         "--update-baseline",
         action="store_true",
@@ -1006,11 +973,7 @@ def main():
     new = [f for f in findings if f not in baseline_set]
     # a partial run cannot tell a pruned finding from one of the checks
     # it skipped, so the stale report is only meaningful for a full run
-    stale = (
-        []
-        if args.check
-        else [f for f in baseline if f not in set(findings)]
-    )
+    stale = [] if args.check else [f for f in baseline if f not in set(findings)]
 
     if args.all or args.check:
         print(f"All findings ({len(findings)}):")

@@ -76,9 +76,9 @@ static void initClock()
 
 **Implementation:** [wscript:58](wscript#L58)
 ```python
-iondefines=[
+iondefines = [
     # ... other defines ...
-    'MAX_SPAWNS=32'
+    "MAX_SPAWNS=32"
 ]
 ```
 
@@ -156,14 +156,14 @@ rtems_task Init(rtems_task_argument ignored)
 
 **Conditional Compilation:** [wscript:38-59](wscript#L38-L59)
 ```python
-iondefines=[
-    'RTEMS',
-    'BP_EXTENDED',
-    'CRYPTO',
+iondefines = [
+    "RTEMS",
+    "BP_EXTENDED",
+    "CRYPTO",
     # ... other defines ...
-    'PRIVATE_SYMTAB',
-    'USING_RTEMS_LIBBSD',  # Exclude socket stubs
-    'MAX_SPAWNS=32'         # Increase daemon limit
+    "PRIVATE_SYMTAB",
+    "USING_RTEMS_LIBBSD",  # Exclude socket stubs
+    "MAX_SPAWNS=32",  # Increase daemon limit
 ]
 ```
 
@@ -178,7 +178,7 @@ int socket(int domain, int type, int protocol) { ... }
 
 **Library Link Order:** [wscript:537](wscript#L537)
 ```python
-lib=['rtemscpu', 'rtemsbsp', 'bsd', 'm']  # Order critical: BSD before math lib
+lib = ["rtemscpu", "rtemsbsp", "bsd", "m"]  # Order critical: BSD before math lib
 ```
 
 ### RTEMS Resource Configuration

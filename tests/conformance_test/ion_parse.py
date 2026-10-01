@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 """Script that provides functionality to parse the ION log for certain information."""
+
 import argparse
 import re
 import sys

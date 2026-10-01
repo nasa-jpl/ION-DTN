@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Script to pass conformance testing bundles through ION and verify they
 pass/fail correctly.
@@ -6,6 +5,7 @@ pass/fail correctly.
 Nate Richard JPL
 2026-01-12
 """
+
 import argparse
 import shlex
 import subprocess
@@ -83,9 +83,7 @@ def main(bundles: list[str], mapping: dict[int, dict]) -> None:
             bpstats()
             time.sleep(1)
             if mapping[num]["msg"]:
-                log_result = ion_parse.ion_log_parse(
-                    mapping[num]["msg"], str(NODE3LOG)
-                )
+                log_result = ion_parse.ion_log_parse(mapping[num]["msg"], str(NODE3LOG))
             else:
                 log_result = 1
             stats_result = bpstats_check(total_bundles, total_bytes)
