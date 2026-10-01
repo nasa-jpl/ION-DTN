@@ -112,6 +112,7 @@ def _run_single_iteration(
             stderr=subprocess.STDOUT,
             text=True,
             env=env,
+            check=False,
         )
 
         elapsed = time.perf_counter() - start_time

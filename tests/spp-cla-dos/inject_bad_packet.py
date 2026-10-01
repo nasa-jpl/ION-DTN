@@ -18,7 +18,7 @@ import sys
 fifo = sys.argv[1] if len(sys.argv) > 1 else "/tmp/spp_loopback_fifo"
 
 if not os.path.exists(fifo):
-    sys.stderr.write("inject_bad_packet: FIFO %s does not exist\n" % fifo)
+    sys.stderr.write(f"inject_bad_packet: FIFO {fifo} does not exist\n")
     sys.exit(1)
 
 # 0x00080000 = 524288 bytes, comfortably above MAX_PACKET_SIZE (65536).
@@ -32,5 +32,6 @@ try:
 finally:
     os.close(fd)
 
-sys.stderr.write("inject_bad_packet: wrote oversized SPP frame header "
-                 "(declared length 524288)\n")
+sys.stderr.write(
+    "inject_bad_packet: wrote oversized SPP frame header (declared length 524288)\n"
+)

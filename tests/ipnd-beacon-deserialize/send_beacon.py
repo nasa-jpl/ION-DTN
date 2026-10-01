@@ -59,7 +59,7 @@ def main():
     elif which == "svc":
         data = beacon_svc()
     else:
-        sys.stderr.write("unknown beacon type: %s\n" % which)
+        sys.stderr.write(f"unknown beacon type: {which}\n")
         return 1
 
     # ipnd ignores datagrams whose source matches one of its own listen
@@ -72,8 +72,7 @@ def main():
     finally:
         sock.close()
 
-    sys.stderr.write("sent %d-byte '%s' beacon to %s:%d\n"
-                     % (len(data), which, host, port))
+    sys.stderr.write(f"sent {len(data)}-byte '{which}' beacon to {host}:{port}\n")
     return 0
 
 

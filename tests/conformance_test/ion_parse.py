@@ -13,7 +13,7 @@ def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> tuple[int, int]:
     stats_lines = []
 
     with open(logfile, "r", encoding="utf-8") as file:
-        for line in file.readlines():
+        for line in file:
             if "Start of statistics snapshot" in line:
                 bpstats = True
             if bpstats and bundle_type in line:

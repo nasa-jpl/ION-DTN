@@ -38,8 +38,7 @@ def main():
         sent = sock.sendto(payload, (host, port))
         # For a 0-byte payload sendto() returns 0, which is success here.
         if sent != nbytes:
-            sys.stderr.write(
-                "short send: asked %d, sent %d\n" % (nbytes, sent))
+            sys.stderr.write(f"short send: asked {nbytes}, sent {sent}\n")
             return 1
     finally:
         sock.close()

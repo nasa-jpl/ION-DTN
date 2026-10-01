@@ -327,7 +327,7 @@ class Mitm:
         if self._trace is not None:
             self._trace.close()
 
-    def __enter__(self) -> Mitm:
+    def __enter__(self) -> Self:
         """Start the relay.
 
         Returns:

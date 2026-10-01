@@ -12,7 +12,8 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(("127.0.0.1", port))
 s.sendall(header + (b"B" * remaining))
 try:
-    s.settimeout(3); s.recv(16)
-except Exception:
+    s.settimeout(3)
+    s.recv(16)
+except (OSError, TimeoutError):
     pass
 s.close()

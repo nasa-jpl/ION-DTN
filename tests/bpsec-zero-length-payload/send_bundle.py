@@ -15,7 +15,7 @@ def main() -> None:
     try:
         bundle = binascii.unhexlify(sys.argv[1])
     except binascii.Error as exc:
-        raise SystemExit("invalid bundle hex: %s" % exc)
+        raise SystemExit(f"invalid bundle hex: {exc}")
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:

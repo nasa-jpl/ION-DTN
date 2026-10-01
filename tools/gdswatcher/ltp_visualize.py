@@ -25,7 +25,6 @@ import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -43,7 +42,7 @@ class SessionEvent:
 
 # Mapping of regex pattern -> (event_type, direction) for EWCHAR strings.
 # Patterns are tried in order; first match wins.
-EWCHAR_PATTERNS: List[Tuple[str, str, str]] = [
+EWCHAR_PATTERNS: list[tuple[str, str, str]] = [
     # --- Transmitted segments (g) ---
     (r'^\(rcp(\d+)\)g$',   'retx_checkpoint',  'tx'),
     (r'^\(cp(\d+)\)g$',    'checkpoint',        'tx'),
@@ -113,7 +112,7 @@ class SessionStats:
     neg_ack_retx: int = 0
     cancel_events: int = 0
     outcome: str = "unknown"  # "complete", "canceled", "finalized", "unknown"
-    events: List[SessionEvent] = field(default_factory=list)
+    events: list[SessionEvent] = field(default_factory=list)
 
     @property
     def duration(self) -> float:
@@ -131,20 +130,21 @@ class SessionStats:
 # Parsing
 # ---------------------------------------------------------------------------
 
-def parse_log(filepath: str) -> Tuple[Dict[str, SessionStats], List[dict]]:
+
+def parse_log(filepath: str) -> tuple[dict[str, SessionStats], list[dict]]:
     """Parse a gdswatcher log file.
 
     Returns:
         sessions: dict mapping session_id -> SessionStats
         bare_events: list of dicts for non-session events
     """
-    sessions: Dict[str, SessionStats] = {}
-    bare_events: List[dict] = []
+    sessions: dict[str, SessionStats] = {}
+    bare_events: list[dict] = []
 
     line_re = re.compile(r'^(\d+\.\d+)\s+(.+)$')
 
     with open(filepath, 'r') as f:
-        for lineno, line in enumerate(f, 1):
+        for line in f:
             line = line.rstrip('\n')
             m = line_re.match(line)
             if not m:
@@ -199,18 +199,17 @@ def parse_log(filepath: str) -> Tuple[Dict[str, SessionStats], List[dict]]:
     return sessions, bare_events
 
 
-def _record_event(sessions: Dict[str, SessionStats],
-                  sid: str, evt: SessionEvent) -> None:
+def _record_event(
+    sessions: dict[str, SessionStats], sid: str, evt: SessionEvent
+) -> None:
     """Add an event to the appropriate session, updating counters."""
     if sid not in sessions:
         sessions[sid] = SessionStats(session_id=sid)
     ss = sessions[sid]
     ss.events.append(evt)
 
-    if evt.timestamp < ss.first_time:
-        ss.first_time = evt.timestamp
-    if evt.timestamp > ss.last_time:
-        ss.last_time = evt.timestamp
+    ss.first_time = min(ss.first_time, evt.timestamp)
+    ss.last_time = max(ss.last_time, evt.timestamp)
 
     et = evt.event_type
     d = evt.direction
@@ -254,8 +253,8 @@ def _record_event(sessions: Dict[str, SessionStats],
 # Statistics output
 # ---------------------------------------------------------------------------
 
-def print_summary(sessions: Dict[str, SessionStats],
-                  bare_events: List[dict]) -> None:
+
+def print_summary(sessions: dict[str, SessionStats], bare_events: list[dict]) -> None:
     """Print a text summary to stdout."""
     if not sessions:
         print("No LTP sessions found in log file.")
@@ -314,7 +313,7 @@ def print_summary(sessions: Dict[str, SessionStats],
     print()
 
 
-def write_csv(sessions: Dict[str, SessionStats], filepath: str) -> None:
+def write_csv(sessions: dict[str, SessionStats], filepath: str) -> None:
     """Write per-session statistics to a CSV file."""
     sorted_sessions = sorted(sessions.values(),
                              key=lambda s: s.first_time)
@@ -369,7 +368,6 @@ def plot_timeline(sessions: Dict[str, SessionStats],
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        import matplotlib.patches as mpatches
     except ImportError:
         print("  WARNING: matplotlib not available, skipping timeline plot.",
               file=sys.stderr)
@@ -509,13 +507,7 @@ def plot_retx_histogram(sessions: Dict[str, SessionStats],
 
     fig, ax = plt.subplots(figsize=(8, 5))
     max_retx = max(retx_counts)
-    bins = range(0, max_retx + 2)
-    ax.hist(retx_counts, bins=bins, color='#2196F3', edgecolor='white',
-            alpha=0.8, align='left')
-    ax.set_xlabel('Retransmission events per session')
-    ax.set_ylabel('Number of sessions')
-    ax.set_title('LTP Retransmission Distribution')
-    ax.grid(axis='y', alpha=0.3)
+    bins = range(max_retx + 2)
 
     plt.tight_layout()
     fig.savefig(out_path, dpi=150)

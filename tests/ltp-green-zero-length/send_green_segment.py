@@ -50,8 +50,9 @@ def main():
     finally:
         sock.close()
 
-    sys.stderr.write("sent %d-byte zero-length green LTP segment to %s:%d\n"
-                     % (len(segment), host, port))
+    sys.stderr.write(
+        f"sent {len(segment)}-byte zero-length green LTP segment to {host}:{port}\n"
+    )
     return 0
 
 

@@ -71,14 +71,14 @@ def main():
     try:
         sent = sock.sendto(datagram, (host, port))
         if sent != len(datagram):
-            sys.stderr.write(
-                "short send: asked %d, sent %d\n" % (len(datagram), sent))
+            sys.stderr.write(f"short send: asked {len(datagram)}, sent {sent}\n")
             return 1
     finally:
         sock.close()
 
-    sys.stderr.write("sent %d-byte bundle, declared payload length 0x%x\n"
-                     % (len(datagram), payload_len))
+    sys.stderr.write(
+        f"sent {len(datagram)}-byte bundle, declared payload length {payload_len}\n"
+    )
     return 0
 
 
