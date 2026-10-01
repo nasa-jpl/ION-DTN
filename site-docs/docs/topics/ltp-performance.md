@@ -185,10 +185,12 @@ It is one of the easiest wins and costs only power.
 
 Compiler optimization has a large effect on throughput — an unoptimized build can
 run on the order of a third slower. ION compiles with `-O2` by default, **but only
-when you do not set your own `CFLAGS`**. If you pass `CFLAGS` (for example to add
-`-D` defines), it replaces that default, and unless you include an optimization
-level the compiler silently falls back to unoptimized `-O0`. So either leave
-`CFLAGS` unset, or include a level when you set it — `CFLAGS="-O2 …"`.
+when you do not set your own `CFLAGS`**: setting `CFLAGS` replaces that default
+(standard Autotools behavior), so adding flags there without an optimization level
+leaves the compiler at unoptimized `-O0`. The clean way to add build flags is to
+put preprocessor defines in **`CPPFLAGS`**, not `CFLAGS` — `CPPFLAGS="-DFOO"` keeps
+`CFLAGS` and its `-g -O2` default intact. If you do set `CFLAGS`, include a level
+yourself — `CFLAGS="-O2 …"`.
 
 ### Match the SDR store to the node's job
 
