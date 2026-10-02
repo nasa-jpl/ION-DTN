@@ -90,7 +90,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 		AMP_DEBUG_WARN("msg_rx_data_rpt",
 				"Received group is from an unknown sender (%s); ignoring it.",
 				meta->senderEid.name);
-		agent = (agent_t*) vec_at(&gMgrDB.agents, 0);
+		return;
 	}
 	else
 	{
@@ -179,6 +179,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 		AMP_DEBUG_WARN("msg_rx_data_tbl",
 				"Received group is from an unknown sender (%s); ignoring it.",
 				meta->senderEid.name);
+		return;
 	}
 	else
 	{
