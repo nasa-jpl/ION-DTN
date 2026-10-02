@@ -79,6 +79,19 @@ on_interrupt () {
         wait "$DOTEST_PID" 2>/dev/null
     fi
     killm f 2>/dev/null
+
+    # Count a mid-flight test as failed; it did not pass.
+    if [ "${TEST_IN_FLIGHT:-0}" = "1" ] && [ -n "${TEST:-}" ]; then
+        case " $TESTS_FAILED " in
+            *" $TEST "*) : ;;
+            *) fail_test "$TEST" ;;
+        esac
+        echo "INTERRUPTED: ${TEST}" >> "$PROGRESSFILE"
+    fi
+
+    # Write the "failed:" section; generate-test-summary.sh reads
+    # failures only from it, else an interrupted run reads as success.
+    (generate_initial_summary) | tee -a "$PROGRESSFILE"
     exit 130
 }
 trap on_interrupt INT TERM
@@ -380,11 +393,15 @@ function run_a_test () {
         PROGRESS_PREFIX=""
     fi
 
-    # Abort if disk space is critically low
+    # Abort if disk space is critically low.  Count the test as failed
+    # and set the sticky RUN_ABORTED (the retest pass zeroes NUM_FAILED),
+    # so an abort can never be read as a clean exit 0.
     if ! check_disk_space; then
         echo "ABORTING: insufficient disk space before starting $TEST" | tee -a $PROGRESSFILE
         echo "[$TEST_START_TIMESTAMP] ${PROGRESS_PREFIX}ABORT: $TEST (disk full)" >&2
+        fail_test "$TEST"
         ABORT_RUN=1
+        RUN_ABORTED=1
         return
     fi
 
@@ -534,6 +551,8 @@ function run_a_test () {
     # Run the driver script for the test with timeout monitoring.
     # We run dotest in the background so we can collect diagnostics
     # BEFORE killing it on timeout (stack traces need a live process).
+    # TEST_IN_FLIGHT lets on_interrupt attribute a signal to this test.
+    TEST_IN_FLIGHT=1
     if [[ -n "${RESULTSFILE}" ]] ; then
         ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1 &
     else
@@ -699,6 +718,9 @@ function run_a_test () {
         echo "dotest exit value: $TEST_RETVAL" >> "${RESULTSFILE}"
         echo "end time: `date`" >> "${RESULTSFILE}"
     fi
+
+    # Disposition recorded; a later signal is no longer this test's.
+    TEST_IN_FLIGHT=0
 
     # Allow some extra time for ION to fully shutdown on Solaris
     if [[ "$OS_VERSION" == "solaris" ]] ; then
@@ -961,6 +983,10 @@ TESTS_OPTIONAL_FAILED=''
 
 # Flag to indicate when we're retesting
 RETESTING="false"
+
+# Sticky across the retest counter reset: a disk-space abort sets it so
+# the final exit stays non-zero even if NUM_FAILED is later zeroed.
+RUN_ABORTED=0
 
 # Stress test mode variables
 STRESS_MODE=""
@@ -1281,7 +1307,7 @@ fi
 echo "# Testing ended by $0 `date`" >> "$PROGRESSFILE"
 cp "${PROGRESSFILE}" "${PROGRESSFILE}.`date | sed 's/ /_/g'`"
 
-if [[ $NUM_FAILED == 0 ]]; then
+if [[ $NUM_FAILED == 0 && $RUN_ABORTED == 0 ]]; then
     exit 0
 else
     exit 1
