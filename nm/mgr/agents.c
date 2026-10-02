@@ -133,7 +133,7 @@ void agent_rotate_log(agent_t *agent, int force)
 #if defined(VXWORKS)
 				mkdir(fn);
 #else
-				mkdir(fn,0777); // This will fail if directory already exists, which is acceptable
+				mkdir(fn, 0755); // This will fail if directory already exists, which is acceptable
 #endif
 			}
 		}
