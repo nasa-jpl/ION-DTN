@@ -35,6 +35,7 @@ typedef struct
 	unsigned int	hopCount;
 	int		visited;	/*	Boolean.		*/
 	int		suppressed;	/*	Boolean.		*/
+	int		heapIndex;	/*	Slot in frontier heap, -1 if none.*/
 } CgrContactNote;	/*	IonCXref routingObject is one of these.	*/
 
 /*		Functions for managing the CGR database.		*/
@@ -676,6 +677,7 @@ static CgrContactNote	*getWorkArea(PsmPartition ionwm, IonCXref *contact)
 
 		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
 		memset((char *) work, 0, sizeof(CgrContactNote));
+		work->heapIndex = -1;	/*	Not in the frontier heap.	*/
 	}
 	else
 	{
@@ -751,6 +753,7 @@ static int	clearWorkAreas(IonCXref *rootContact)
 		work->predecessor = NULL;
 		work->visited = 0;
 		work->suppressed = 0;
+		work->heapIndex = -1;	/*	Not in the frontier heap.	*/
 
 		/*	Reset arrival time, except preserve arrival
 		 *	time of root contact.				*/
@@ -786,13 +789,14 @@ static int	edgeIsExcluded(PsmPartition ionwm, PsmAddress excludedEdges,
 	return 0;
 }
 
-/*	Dijkstra frontier as a binary min-heap, replacing a linear scan of the
- *	whole contact index for the least-distance unvisited contact.  Ordered
- *	by (arrivalTime, hopCount, contact-index order) so it selects exactly
- *	the contact the scan did.  Lazy decrease-key: relaxation pushes a new
- *	entry; superseded or already-visited entries are dropped at pop.
- *	Process-local and single-threaded; the buffer is reused across the Yen
- *	re-runs of one forwarding decision.				*/
+/*	Dijkstra frontier as an indexed binary min-heap (replaces the linear
+ *	scan for the least-distance unvisited contact).  Ordered by (arrivalTime,
+ *	hopCount, contact-index order) -- the scan's selection key.  heapIndex on
+ *	each CgrContactNote (-1 == not in heap) gives one slot per contact and a
+ *	real decrease-key, bounding the frontier to the contact count.  The
+ *	backing array is held in the CgrVdb (reattached across forwarder
+ *	restarts, freed with the vdb) and pre-sized past its high-water mark, so
+ *	route computation never allocates on its push path.			*/
 
 typedef struct
 {
@@ -801,9 +805,66 @@ typedef struct
 	unsigned int	hopCount;
 } CgrHeapElt;
 
-static CgrHeapElt	*cgrHeap = NULL;
-static int		cgrHeapCap = 0;
-static int		cgrHeapLen = 0;
+#define	CGR_HEAP_INITIAL	(256)
+
+static CgrHeapElt	*cgrHeap = NULL;	/*	Process cache of vdb buf.*/
+static int		cgrHeapCap = 0;		/*	Slots in cgrHeap.	*/
+static int		cgrHeapLen = 0;		/*	Live entries this search.*/
+
+/*	Size the frontier to hold n entries (floor CGR_HEAP_INITIAL) and cache
+ *	this process's pointer to the vdb-held buffer.  Caller holds the memory
+ *	lock (psm_zalloc/psm_free).  Heap is empty at every call site.		*/
+
+static int	cgrHeapEnsureCapacity(PsmPartition ionwm, CgrVdb *vdb, int n)
+{
+	PsmAddress	buf;
+
+	if (n < CGR_HEAP_INITIAL)
+	{
+		n = CGR_HEAP_INITIAL;
+	}
+
+	if (vdb->frontierHeap != 0 && n <= vdb->frontierCap)
+	{
+		cgrHeap = (CgrHeapElt *) psp(ionwm, vdb->frontierHeap);
+		cgrHeapCap = vdb->frontierCap;
+		return 0;
+	}
+
+	buf = psm_zalloc(ionwm, n * sizeof(CgrHeapElt));
+	if (buf == 0)
+	{
+		putErrmsg("Can't allocate CGR frontier heap.", itoa(n));
+		return -1;
+	}
+
+	if (vdb->frontierHeap != 0)
+	{
+		psm_free(ionwm, vdb->frontierHeap);
+	}
+
+	vdb->frontierHeap = buf;
+	vdb->frontierCap = n;
+	cgrHeap = (CgrHeapElt *) psp(ionwm, buf);
+	cgrHeapCap = n;
+	return 0;
+}
+
+/*	Release the frontier buffer (called from cgr_stop with the memory lock).	*/
+
+static void	cgrHeapFree(PsmPartition ionwm, CgrVdb *vdb)
+{
+	if (vdb->frontierHeap != 0)
+	{
+		psm_free(ionwm, vdb->frontierHeap);
+		vdb->frontierHeap = 0;
+	}
+
+	vdb->frontierCap = 0;
+	cgrHeap = NULL;
+	cgrHeapCap = 0;
+	cgrHeapLen = 0;
+}
 
 static int	cgrHeapPrecedes(PsmPartition ionwm, CgrHeapElt *a, CgrHeapElt *b)
 {
@@ -820,29 +881,26 @@ static int	cgrHeapPrecedes(PsmPartition ionwm, CgrHeapElt *a, CgrHeapElt *b)
 	return rfx_order_contacts(ionwm, psa(ionwm, a->contact), b->contact) < 0;
 }
 
-static int	cgrHeapPush(PsmPartition ionwm, IonCXref *contact,
-			time_t arrivalTime, unsigned int hopCount)
+/*	Swap two heap slots, keeping each contact's heapIndex in step.		*/
+
+static void	cgrHeapSwap(PsmPartition ionwm, int i, int j)
 {
-	int		i, parent;
-	CgrHeapElt	e, tmp;
+	CgrHeapElt	tmp = cgrHeap[i];
+	CgrContactNote	*iNote;
+	CgrContactNote	*jNote;
 
-	if (cgrHeapLen == cgrHeapCap)
-	{
-		int		newCap = cgrHeapCap ? (cgrHeapCap * 2) : 256;
-		CgrHeapElt	*bigger;
+	cgrHeap[i] = cgrHeap[j];
+	cgrHeap[j] = tmp;
+	iNote = (CgrContactNote *) psp(ionwm, cgrHeap[i].contact->routingObject);
+	jNote = (CgrContactNote *) psp(ionwm, cgrHeap[j].contact->routingObject);
+	iNote->heapIndex = i;
+	jNote->heapIndex = j;
+}
 
-		bigger = (CgrHeapElt *) realloc(cgrHeap,
-				newCap * sizeof(CgrHeapElt));
-		CHKERR(bigger);
-		cgrHeap = bigger;
-		cgrHeapCap = newCap;
-	}
+static void	cgrHeapSiftUp(PsmPartition ionwm, int i)
+{
+	int	parent;
 
-	e.contact = contact;
-	e.arrivalTime = arrivalTime;
-	e.hopCount = hopCount;
-	i = cgrHeapLen++;
-	cgrHeap[i] = e;
 	while (i > 0)
 	{
 		parent = (i - 1) / 2;
@@ -851,28 +909,15 @@ static int	cgrHeapPush(PsmPartition ionwm, IonCXref *contact,
 			break;
 		}
 
-		tmp = cgrHeap[i];
-		cgrHeap[i] = cgrHeap[parent];
-		cgrHeap[parent] = tmp;
+		cgrHeapSwap(ionwm, i, parent);
 		i = parent;
 	}
-
-	return 0;
 }
 
-static int	cgrHeapPop(PsmPartition ionwm, CgrHeapElt *out)
+static void	cgrHeapSiftDown(PsmPartition ionwm, int i)
 {
-	int		i, left, right, least;
-	CgrHeapElt	tmp;
+	int	left, right, least;
 
-	if (cgrHeapLen == 0)
-	{
-		return 0;
-	}
-
-	*out = cgrHeap[0];
-	cgrHeap[0] = cgrHeap[--cgrHeapLen];
-	i = 0;
 	while (1)
 	{
 		left = (2 * i) + 1;
@@ -895,10 +940,52 @@ static int	cgrHeapPop(PsmPartition ionwm, CgrHeapElt *out)
 			break;
 		}
 
-		tmp = cgrHeap[i];
-		cgrHeap[i] = cgrHeap[least];
-		cgrHeap[least] = tmp;
+		cgrHeapSwap(ionwm, i, least);
 		i = least;
+	}
+}
+
+/*	Insert contact, or decrease-key if already on the frontier (relaxation
+ *	only lowers arrivalTime, so sift-up suffices; capacity ensured at
+ *	computation start).						*/
+
+static void	cgrHeapUpdate(PsmPartition ionwm, IonCXref *contact,
+			CgrContactNote *work)
+{
+	int	i = work->heapIndex;
+
+	if (i < 0)			/*	Not in heap: insert at end.	*/
+	{
+		i = cgrHeapLen++;
+		cgrHeap[i].contact = contact;
+		work->heapIndex = i;
+	}
+
+	cgrHeap[i].arrivalTime = work->arrivalTime;
+	cgrHeap[i].hopCount = work->hopCount;
+	cgrHeapSiftUp(ionwm, i);
+}
+
+static int	cgrHeapPop(PsmPartition ionwm, CgrHeapElt *out)
+{
+	CgrContactNote	*note;
+
+	if (cgrHeapLen == 0)
+	{
+		return 0;
+	}
+
+	*out = cgrHeap[0];
+	note = (CgrContactNote *) psp(ionwm, out->contact->routingObject);
+	note->heapIndex = -1;		/*	No longer in heap.		*/
+	cgrHeapLen--;
+	if (cgrHeapLen > 0)
+	{
+		cgrHeap[0] = cgrHeap[cgrHeapLen];
+		note = (CgrContactNote *) psp(ionwm,
+				cgrHeap[0].contact->routingObject);
+		note->heapIndex = 0;
+		cgrHeapSiftDown(ionwm, 0);
 	}
 
 	return 1;
@@ -911,6 +998,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
+	CgrVdb		*cgrvdb = cgr_get_vdb();
+	size_t		nContacts;
 	IonCXref	*current;
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
@@ -934,10 +1023,26 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
+	CHKERR(cgrvdb);
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
 	oK(ionRegionOf(current->toFqnn, terminusNode->fqnn, &regionNbr));
+
+	/*	Size the frontier to the contact count; the heap is empty here.	*/
+
+	nContacts = sm_rbt_length(ionwm, ionvdb->contactIndex);
+	if (nContacts > INT_MAX)
+	{
+		putErrmsg("Too many contacts for CGR frontier heap.", NULL);
+		return -1;
+	}
+
+	if (cgrHeapEnsureCapacity(ionwm, cgrvdb, (int) nContacts) < 0)
+	{
+		return -1;
+	}
+
 	cgrHeapLen = 0;		/*	Empty frontier for this search.	*/
 
 	/*	Perform this outer loop until either the best
@@ -1106,12 +1211,11 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				work->predecessor = current;
 				work->hopCount = currentWork->hopCount;
 				work->hopCount++;
-				if (cgrHeapPush(ionwm, contact,
-						work->arrivalTime,
-						work->hopCount) < 0)
-				{
-					return -1;
-				}
+
+				/*	Insert, or decrease-key if the
+				 *	contact is already on the frontier.	*/
+
+				cgrHeapUpdate(ionwm, contact, work);
 			}
 		}
 
@@ -1338,6 +1442,7 @@ UVAST_FIELDSPEC ".", (uvast) rootContactElt, (uvast) rootContactAddr,
 		rootContact = &graphRoot;
 		memset((char *) &graphRootWork, 0, sizeof graphRootWork);
 		graphRootWork.arrivalTime = currentTime;
+		graphRootWork.heapIndex = -1;	/*	Not in frontier heap.	*/
 		rootWork = &graphRootWork;
 		rootOfSpur = 0;
 	}
@@ -3348,7 +3453,22 @@ int	cgr_prospect(uvast terminusNodeNbr, time_t deadline)
 
 void	cgr_start(void)
 {
-	oK(cgr_get_vdb());
+	Sdr	sdr = getIonsdr();
+	CgrVdb	*vdb = cgr_get_vdb();
+
+	if (vdb == NULL)
+	{
+		return;
+	}
+
+	/*	Pre-allocate the frontier heap so route computation never
+	 *	allocates on its hot path; psm_zalloc needs the memory lock.	*/
+
+	if (sdr_begin_xn(sdr))
+	{
+		oK(cgrHeapEnsureCapacity(getIonwm(), vdb, 0));
+		sdr_exit_xn(sdr);
+	}
 }
 
 const char	*cgr_tracepoint_text(CgrTraceType traceType)
@@ -3451,6 +3571,7 @@ volume for this bundle",
 void	cgr_stop(void)
 {
 	PsmPartition	wm = getIonwm();
+	Sdr		sdr = getIonsdr();
 	char		*name = "cgrvdb";
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
@@ -3467,6 +3588,12 @@ void	cgr_stop(void)
 	if (elt)
 	{
 		vdb = (CgrVdb *) psp(wm, vdbAddress);
+		if (sdr_begin_xn(sdr))	/*	Lock memory for psm_free.	*/
+		{
+			cgrHeapFree(wm, vdb);
+			sdr_exit_xn(sdr);
+		}
+
 		cgr_clear_vdb(vdb);
 		psm_free(wm, vdbAddress);
 		if (psm_uncatlg(wm, name) < 0)

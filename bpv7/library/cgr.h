@@ -271,6 +271,13 @@ typedef struct
 	 *	remote destination node that has got a routing object.	*/
 
 	PsmAddress	routingObjects;	/*	SmList of CgrRtgObject.	*/
+
+	/*	Pre-allocated Dijkstra frontier min-heap (one slot per
+	 *	contact).  Lives here so a restarting forwarder reattaches
+	 *	it rather than leaking and re-allocating.		*/
+
+	PsmAddress	frontierHeap;	/*	Array of CgrHeapElt.	*/
+	int		frontierCap;	/*	Slots in frontierHeap.	*/
 } CgrVdb;
 
 extern void		cgr_start(void);
