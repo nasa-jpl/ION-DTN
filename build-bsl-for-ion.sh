@@ -44,6 +44,34 @@ case "${1:-build}" in
         # on hosts without it.
         NOTEST_OPTS="-DBUILD_TESTING=OFF -DBUILD_UNITTEST=OFF"
 
+        # Point CMake's find_package(OpenSSL) at an OpenSSL >= 3. BSL needs 3.x,
+        # but some distros parallel-install the 3.x build under the pkg-config
+        # name "openssl3" alongside a default 1.1.x "openssl" (e.g. Oracle Linux
+        # 8, with headers in /usr/include/openssl3 and dev libs in
+        # /usr/lib64/openssl3). Without a hint, find_package picks the default
+        # 1.1.x and the build fails with implicit-declaration errors on 3.x EVP
+        # APIs. Detect the right module portably and pass explicit paths; on
+        # distros where "openssl" is already 3.x this resolves to the standard
+        # locations and is a harmless no-op.
+        OSSL_OPTS=""
+        if command -v pkg-config >/dev/null 2>&1; then
+            for _ossl in openssl3 openssl; do
+                pkg-config --exists "$_ossl" 2>/dev/null || continue
+                pkg-config --atleast-version=3.0.0 "$_ossl" 2>/dev/null || continue
+                _inc=$(pkg-config --cflags-only-I "$_ossl" | tr ' ' '\n' | sed -n 's/^-I//p' | head -1)
+                [ -n "$_inc" ] || _inc=$(pkg-config --variable=includedir "$_ossl")
+                _lib=$(pkg-config --libs-only-L "$_ossl" | tr ' ' '\n' | sed -n 's/^-L//p' | head -1)
+                [ -n "$_lib" ] || _lib=$(pkg-config --variable=libdir "$_ossl")
+                if [ -f "$_inc/openssl/opensslv.h" ] && [ -e "$_lib/libcrypto.so" ]; then
+                    OSSL_OPTS="-DOPENSSL_ROOT_DIR=$_lib -DOPENSSL_INCLUDE_DIR=$_inc"
+                    OSSL_OPTS="$OSSL_OPTS -DOPENSSL_CRYPTO_LIBRARY=$_lib/libcrypto.so"
+                    OSSL_OPTS="$OSSL_OPTS -DOPENSSL_SSL_LIBRARY=$_lib/libssl.so"
+                    echo "Using OpenSSL via pkg-config '$_ossl' (inc=$_inc lib=$_lib)"
+                    break
+                fi
+            done
+        fi
+
         # BSL's resources/prep.sh hardcodes "-G Ninja".  Fall back to Unix
         # Makefiles when ninja isn't installed; a later -G overrides the
         # earlier one.
@@ -61,11 +89,11 @@ case "${1:-build}" in
                     break
                 fi
             done
-            ./build.sh prep $NOTEST_OPTS -DTEST_MEMCHECK=OFF -G "Unix Makefiles" $JANSSON_OPTS
+            ./build.sh prep $NOTEST_OPTS $OSSL_OPTS -DTEST_MEMCHECK=OFF -G "Unix Makefiles" $JANSSON_OPTS
         elif [ "$NEED_MAKE_GENERATOR" = yes ]; then
-            ./build.sh prep $NOTEST_OPTS -G "Unix Makefiles"
+            ./build.sh prep $NOTEST_OPTS $OSSL_OPTS -G "Unix Makefiles"
         else
-            ./build.sh prep $NOTEST_OPTS
+            ./build.sh prep $NOTEST_OPTS $OSSL_OPTS
         fi
         ./build.sh
         ./build.sh install
