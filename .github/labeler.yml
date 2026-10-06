@@ -17,24 +17,34 @@ CI/CD:
               - "!tests/*/**"
 
 test-mods:
-  - any:
+  - all:
+      - any:
+          - changed-files:
+              - all-globs-to-any-file:
+                  - "tests/**"
+                  - "!tests/alltests"
+                  - "!tests/cleanup"
+                  - "!tests/list_all_tests"
+                  - "!tests/normaltests"
+                  - "!tests/quicktests"
+                  - "!tests/README"
+                  - "!tests/runcleanup"
+                  - "!tests/runtests"
+                  - "!tests/runtestset"
+                  - "!tests/*.py"
+                  - "!tests/test_utils.sh"
+          - changed-files:
+              - any-glob-to-any-file:
+                  - "demos/**"
+      # Must NOT contain C code / build file changes
       - changed-files:
-          - all-globs-to-any-file:
-              - "tests/**"
-              - "!tests/alltests"
-              - "!tests/cleanup"
-              - "!tests/list_all_tests"
-              - "!tests/normaltests"
-              - "!tests/quicktests"
-              - "!tests/README"
-              - "!tests/runcleanup"
-              - "!tests/runtests"
-              - "!tests/runtestset"
-              - "!tests/*.py"
-              - "!tests/test_utils.sh"
-      - changed-files:
-          - any-glob-to-any-file:
-              - "demos/**"
+          - all-globs-to-all-files:
+              - "!**/*.c"
+              - "!**/*.h"
+              - "!configure.ac"
+              - "!Makefile.am"
+              - "!build-bsl-for-ion.sh"
+              - "!killm"
 
 quick-test:
   - any:
