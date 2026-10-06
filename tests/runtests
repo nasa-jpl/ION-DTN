@@ -178,13 +178,14 @@ function find_tests_in () {
     # grep .: Filter out any empty lines that might still somehow appear (robustness).
     # xargs -L 1 dirname: For each line (found 'dotest' path), get its parent directory.
     # sed 's/\/\+$//': Remove any trailing slashes from the resulting directory names for consistency.
-    # sort: Sort the list of test directories alphabetically.
+    # LC_ALL=C sort: sort the test directories byte-wise, so the order is
+    # locale-independent and matches the byte-wise --from/--to comparison below.
     find "${paths_to_search[@]}" \( -type f -o -type l \) -a -name 'dotest' | \
         grep -v "\.libs/" | \
         grep . | \
         xargs -L 1 dirname | \
         sed 's/\/\+$//' | \
-        sort
+        LC_ALL=C sort
 }
 
 
@@ -1147,9 +1148,16 @@ else
     TESTS=$(find_tests_in "$@")
 fi
 
-# Filter by --from / --to using alphabetical comparison on test path
+# Filter by --from / --to using a byte-wise comparison on the test path.
+# The demos tests are listed with a ../demos/ prefix, so under C collation
+# they sort ahead of the tests/ names, matching the order they run in.  A
+# locale whose collation ignores leading punctuation (e.g. en_US.UTF-8)
+# would instead sort them by their first letter and fail to drop them, so
+# pin LC_COLLATE=C for the comparison regardless of the caller's locale.
 if [ -n "$FROM_TEST" ] || [ -n "$TO_TEST" ]; then
     FILTERED=""
+    saved_lc_collate="${LC_COLLATE-}"
+    LC_COLLATE=C
     for T in $TESTS; do
         NAME="${T#./}"
         if [ -n "$FROM_TEST" ] && [[ "$NAME" < "$FROM_TEST" ]] && [[ "$NAME" != "$FROM_TEST" ]]; then
@@ -1160,6 +1168,7 @@ if [ -n "$FROM_TEST" ] || [ -n "$TO_TEST" ]; then
         fi
         FILTERED="$FILTERED $T"
     done
+    LC_COLLATE="$saved_lc_collate"
     TESTS="$FILTERED"
 fi
 
