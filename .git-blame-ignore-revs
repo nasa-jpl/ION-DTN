@@ -3,6 +3,10 @@
 # filtering out non-functional changes (whitespace, typos, formatting).
 # This file is sorted in git log order (newest commits first).
 
+# docs/chk-macro-behavior: Modernize formatting
+fde4c94743f915ed039a6a554ac5bf351c183fe8
+# docs/coding-guide: Apply SemBr
+c7291f8e1c2841b312de171473658ad2a173339f
 # rtems/wscript: Format with Ruff
 dd918d3cbbf39158dd86f42945b077811806b3f7
 # udplso: Realign local variable declarations
