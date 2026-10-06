@@ -496,18 +496,21 @@ jobs:
             echo "⚠ No test result artifacts found to bundle"
           fi
 
+      - name: Check if cancelled
+        if: cancelled()
+        run: echo "SUMMARY_CANCELLED_FLAG=--is-cancelled" >> $GITHUB_ENV
+
       - name: Generate Final Summary Table and Status
         id: test-status
         continue-on-error: true
         env:
-          IS_CANCELLED: ${{ contains(needs.*.result, 'cancelled') }}
           TOTAL_BATCHES: ${{ needs.generate-matrix.outputs.count }}
         run: |
           bash .github/scripts/generate-test-summary.sh \
             --platform solaris \
             --artifact-pattern "all-artifacts/test-results-${{ github.run_id }}-batch-*" \
             --total-batches "$TOTAL_BATCHES" \
-            --is-cancelled "$IS_CANCELLED"
+            ${SUMMARY_CANCELLED_FLAG:-} \
 
       - name: Set PR status
         if: ${{ inputs.update_pr_status }}

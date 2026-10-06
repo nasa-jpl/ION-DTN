@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --is-cancelled)
         IS_CANCELLED="true"
-        shift 2
+        shift 1
         ;;
     --total-batches)
         TOTAL_BATCHES="$2"
@@ -198,7 +198,7 @@ for dir in "${ARTIFACT_DIRS[@]}"; do
                     else
                         runner_failed[$RUNNER]="Workflow cancelled"
                     fi
-                    OVERALL_STATUS="pending"
+                    [ "$OVERALL_STATUS" != "failure" ] && OVERALL_STATUS="pending"
                     [ -z "$FAILED" ] && FAILED="-"
                 elif [ -n "$FAILED" ]; then
                     RESULT="❌ failed"
@@ -304,7 +304,7 @@ if [[ "$PLATFORM" == "solaris" ]] && [ -n "$TOTAL_BATCHES" ]; then
         if [ -z "${processed_batches[$i]:-}" ]; then
             if [ "$IS_CANCELLED" == "true" ]; then
                 echo "| Batch $i | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
-                OVERALL_STATUS="pending"
+                [ "$OVERALL_STATUS" != "failure" ] && OVERALL_STATUS="pending"
             else
                 echo "| Batch $i | ❌ missing | - | - |" >>"$GITHUB_STEP_SUMMARY"
                 OVERALL_STATUS="failure"
@@ -326,7 +326,7 @@ if [[ "$PLATFORM" == "arc" ]] && [ -n "$ACTIVE_RUNNERS" ] && [ "$ACTIVE_RUNNERS"
             for ((i = 1; i <= TOTAL_BATCHES; i++)); do
                 if [ -z "${processed_arc_batches["${short_runner}-${i}"]:-}" ]; then
                     if [ "$IS_CANCELLED" == "true" ]; then
-                        OVERALL_STATUS="pending"
+                        [ "$OVERALL_STATUS" != "failure" ] && OVERALL_STATUS="pending"
                         runner_status[$short_runner]="pending"
                         runner_failed[$short_runner]="Workflow cancelled"
                         echo "| $short_runner | Batch $i | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
@@ -343,16 +343,27 @@ if [[ "$PLATFORM" == "arc" ]] && [ -n "$ACTIVE_RUNNERS" ] && [ "$ACTIVE_RUNNERS"
 fi
 
 # Handle edge case where no test results were downloaded
-if [ "$FOUND_ANY_RESULTS" = "false" ] && [ "$IS_CANCELLED" = "false" ]; then
-    echo "ERROR: No test results found - all jobs may have failed"
-    OVERALL_STATUS="failure"
-
-    if [[ "$PLATFORM" == "solaris" ]]; then
-        echo "| N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
-    elif [[ "$PLATFORM" == "rtems" ]]; then
-        echo "| N/A | N/A | - | - | ❌ no results |" >>"$GITHUB_STEP_SUMMARY"
+if [ "$FOUND_ANY_RESULTS" = "false" ]; then
+    if [ "$IS_CANCELLED" = "true" ]; then
+        [ "$OVERALL_STATUS" != "failure" ] && OVERALL_STATUS="pending"
+        if [[ "$PLATFORM" == "solaris" ]]; then
+            echo "| N/A | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
+        elif [[ "$PLATFORM" == "rtems" ]]; then
+            echo "| N/A | N/A | - | - | ⚠️ cancelled |" >>"$GITHUB_STEP_SUMMARY"
+        else
+            echo "| N/A | N/A | ⚠️ cancelled | - | - |" >>"$GITHUB_STEP_SUMMARY"
+        fi
     else
-        echo "| N/A | N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
+        echo "ERROR: No test results found - all jobs may have failed"
+        OVERALL_STATUS="failure"
+
+        if [[ "$PLATFORM" == "solaris" ]]; then
+            echo "| N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
+        elif [[ "$PLATFORM" == "rtems" ]]; then
+            echo "| N/A | N/A | - | - | ❌ no results |" >>"$GITHUB_STEP_SUMMARY"
+        else
+            echo "| N/A | N/A | ❌ no results | - | - |" >>"$GITHUB_STEP_SUMMARY"
+        fi
     fi
 fi
 
