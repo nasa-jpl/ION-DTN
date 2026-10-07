@@ -1,0 +1,2 @@
+Native BPSec test (exercises bpsec_sci_polParmPrint via ION's private
+bpsec headers); excluded from BSL builds.
