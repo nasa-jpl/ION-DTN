@@ -534,7 +534,6 @@ tests/tcpcl-dos/2.ipn.tcp/ion.log
 bptracker
 tests/issue-260-teach-valgrind-mtake/valgrind-output
 demos/bench-ltp/global.ionrc
-tests/nm-unit-ipn2/dotest
 ion.pc
 tests/admin_public_api/dotest
 tests/admin_public_api/ltp_loopback/dotest

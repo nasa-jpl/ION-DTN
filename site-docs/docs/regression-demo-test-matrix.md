@@ -52,7 +52,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/cpsync` | multicast | Multicast (imc) bundle transmission | Integration | RFC 9171 | Contact plan sync / multicast delivery; imc scheme is ION-specific |
 | `tests/req-0003-multicast` | multicast | Multicast transmission | Integration | RFC 9171 | imc/multicast group delivery |
 | `tests/req-0003-multicast-v7` | multicast | BPv7 multicast transmission | Integration | RFC 9171 | imc/multicast group delivery under BPv7 |
-| `tests/req-0003-multicast-v7.ipn2` | multicast | BPv7 multicast transmission (ipn2 variant) | Integration | RFC 9171 | imc/multicast group delivery; ipn2 addressing |
 | `tests/priorities` | priority-qos | Bundle priority effect on transmission ordering | Integration | RFC 9171 | Class-of-service priority ordering |
 | `tests/stewardship` | reliability-stewardship | Delay bundle deletion until CLA notifies transmission outcome | Regression | RFC 9171 | Non-custodial bundle not deleted before CL xmit-completion notice |
 | `tests/status-rpts` | status-reports | Bundle status report generation and logging | Integration | RFC 9171 | Status reports generated and logged |
@@ -67,9 +66,7 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | Test | Subcategory | DTN function / behavior | Type | Spec § | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `tests/bibect` | bibe-custody | Bundle-in-Bundle Encapsulation transfer | Integration | draft-ietf-dtn-bibect | BIBE encapsulation |
-| `tests/bibect.ipn2` | bibe-custody | Bundle-in-Bundle Encapsulation transfer | Integration | draft-ietf-dtn-bibect | ipn2 SANA-range variant |
 | `tests/req-0019-bibe` | bibe-custody | Bundle-in-Bundle Encapsulation | Integration | draft-ietf-dtn-bibect | BIBE encapsulation of bundles |
-| `tests/req-0019-bibe.ipn2` | bibe-custody | Bundle-in-Bundle Encapsulation (ipn2 variant) | Integration | draft-ietf-dtn-bibect | BIBE; ipn2 addressing |
 | `tests/cbr-ct-orange-book/cbr-aggr-runtime` | cbr-ct-signaling | Runtime reconfiguration of CRS aggregation limits | Integration | CCSDS 734.6-O-1 §5.2 | G8: live m cbraggr flushes pending CRS; 2 nodes |
 | `tests/cbr-ct-orange-book/cbr-counter-width` | cbr-ct-signaling | Configurable sequence-counter wraparound width | Regression | CCSDS 734.6-O-1 §3.2 | G5: m cbrcounterwidth 16/32/64; single node config |
 | `tests/cbr-ct-orange-book/creb-eid-persist` | cbr-ct-signaling | CREB source EID preserved through relay re-serialization | Regression | CCSDS 734.6-O-1 §5.1 | creb_parse sourceEid persistence (arrayLen>=4) through relay; 3 nodes |
@@ -102,7 +99,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/issue-323-congestion-forecasting-overflow` | congestion-forecasting | Congestion forecasting overflow corrected | Regression | ION-specific (no ratified standard) | Pins #323; overflow-inducing config still delivers |
 | `tests/bug-0001-cgr-loopback` | contact-graph-routing | CGR routes bundles over loopback interface | Regression | CCSDS 734.3-B-1 | CGR loopback routing |
 | `tests/cgr-test` | contact-graph-routing | CGR routing over a very large contact graph | Integration | CCSDS 734.3-B-1 | large contact plan scale test of SABR/CGR |
-| `tests/cgr-test.ipn2` | contact-graph-routing | CGR routing over a very large contact graph | Integration | CCSDS 734.3-B-1 | ipn2 variant; large contact plan scale test |
 | `tests/cgr-zeroed-hop-recovery` | contact-graph-routing | Relay contact expiry must not crash ipnfw via zeroed route hop | Regression | CCSDS 734.3-B-1 | pins #1047; zeroed CGR route-hop guard on contact expiry |
 | `tests/issue-950-cgr-semaphores` | contact-graph-routing | CGR semaphore-footprint regression | Regression | CCSDS 734.3-B-1 | Issue #950; CGR resource/semaphore usage |
 | `tests/adjacent-contacts` | contact-plan-mgmt | Seamless bundle transfer across adjacent contacts | Integration | CCSDS 734.3-B-1 | 2-node; back-to-back contacts without overlap; 6000 bundles |
@@ -114,7 +110,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/issue-276-loopback-range` | contact-plan-mgmt | Non-zero loopback one-way light time supported | Regression | ION-specific (no ratified standard) | Pins #276; range/OWLT on loopback |
 | `tests/bug-0008-limbo-bpclock-use-after-free` | limbo-reforwarding | Delete limbo-queued bundles on lifetime expiration | Regression | RFC 9171 §5.4 | limbo queue use-after-free fix in bpclock; secondary: lifetime-expiration |
 | `tests/limbo` | limbo-reforwarding | Bundle limbo via blocking/unblocking an outduct | Integration | ION-specific (no ratified standard) | Limbo/reforwarding on outduct block-unblock |
-| `tests/limbo.ipn2` | limbo-reforwarding | Bundle limbo via blocking/unblocking an outduct | Integration | ION-specific (no ratified standard) | Limbo/reforwarding on outduct block-unblock; ipn2 variant |
 | `tests/req-0033-prob-CGR` | opportunistic-prob-routing | Opportunistic/probabilistic forwarding | Integration | CCSDS 734.3-B-1 | Simple opportunistic forwarding test |
 
 ### Licklider Transmission Protocol (LTP)  <span style="font-weight:normal">(LTP, 18 tests)</span>
@@ -130,7 +125,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/1002.loopback-valgrind` | red-retransmission | LTP loopback bundle send under valgrind | Integration | RFC 5326 | Single-node LTP loopback; valgrind profiling; CCSDS 734.1-B-1 equivalent |
 | `tests/1003.loopback-sdr` | red-retransmission | LTP loopback multi-bundle send, memory-leak check | Integration | RFC 5326 | Single-node loopback; SDR memory-leak regression origin |
 | `tests/ltp-retransmission` | red-retransmission | LTP block reassembly with out-of-order retransmitted segments | Integration | RFC 5326 | 2-node LTP; red-part retransmission; CCSDS 734.1-B-1 equivalent |
-| `tests/ltp-retransmission.ipn2` | red-retransmission | Red block reassembly with out-of-order segments from retransmission | Integration | RFC 5326 | Retransmission-induced out-of-order arrival; ipn2 variant |
 | `tests/ltp-sda` | service-data-aggregation | LTP Service Data Aggregation with two client IDs | Integration | CCSDS 734.1-B-1 §7 | SDA client op per CCSDS LTP §7; distinct client IDs at different layers |
 | `tests/ltp-cancel-ack-regression` | session-cancellation | Cancel Segment ack for already-completed sessions | Regression | RFC 5326 §6 | Cancel segs after session completion must be acked; prevents needless retransmission |
 | `tests/ltp-purge` | session-cancellation | LTP Purge functionality | Integration | RFC 5326 | Issue #173; multi-node purge of LTP sessions/blocks |
@@ -168,7 +162,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/bpsec/bpsec-bib-only.bsl` | bib-integrity | BIB integrity blocks across 3 nodes over LTP | Integration | RFC 9172 | BSL; integrity only; RFC 9173 default contexts |
 | `tests/bpsec/bpsec-verifier.bsl` | bib-integrity | BIB/BCB verification at intermediate relay node | Integration | RFC 9172 | Verifier role (2->3->4) over LTP; BIB and BCB verification |
 | `tests/tc-dtka` | key-distribution | Delay-tolerant key administration (DTKA) key distribution | Integration | draft-burleigh-dtnwg-dtka | DTKA; multi-node public-key distribution |
-| `tests/tc-dtka.ipn2` | key-distribution | Delay-tolerant key administration (DTKA) key distribution | Integration | draft-burleigh-dtnwg-dtka | DTKA; ipn2 variant; multi-node key distribution |
 | `tests/bpsec/bpsec-all-multinode-test.bsl` | security-policy | BIB+BCB applied across 3 nodes over LTP | Integration | RFC 9172 | BSL; 6 bundles integrity+confidentiality; 2->3 and 2->3->4; RFC 9173 contexts |
 | `tests/bpsec/bpsec-policy-test` | security-policy | BPSec policy rules for BIB and BCB source/acceptor | Integration | RFC 9172 | 3-4 nodes over LTP; bpsecadmin policyrule/event_set; bptrace-driven |
 | `tests/bpsec/bpsec-target-mult.bsl` | security-policy | Multiple security blocks per bundle over LTP relay | Integration | RFC 9172 | BSL target multiplicity (2->3); RFC 9173 contexts |
@@ -182,9 +175,7 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `demos/bench-cfdp` | file-delivery | Benchmark/exercise CCSDS file delivery protocol revisions | Benchmark | CCSDS 727.0-B | CFDP throughput demo; secondary: BENCH |
 | `tests/cfdpv1` | file-delivery | CFDP v1 file delivery protocol revisions | Integration | CCSDS 727.0-B | baseline CFDP v1 test |
 | `tests/cfdpv1-4node-ltp` | file-delivery | CFDP over LTP with limbo via outduct block/unblock | Integration | CCSDS 727.0-B | 4-node over LTP; limbo/reforwarding; RFC 5326 LTP CLA |
-| `tests/cfdpv1-4node-ltp.ipn2` | file-delivery | CFDP over LTP with limbo via outduct block/unblock | Integration | CCSDS 727.0-B | 4-node ipn2 over LTP; limbo/reforwarding; RFC 5326 LTP CLA |
 | `tests/cfdpv1-tcp` | file-delivery | CFDP v1 file delivery over TCP CLA | Integration | CCSDS 727.0-B | TCPCL transport |
-| `tests/cfdpv1-tcp.ipn2` | file-delivery | CFDP v1 file delivery over TCP CLA | Integration | CCSDS 727.0-B | ipn2 variant; TCPCL transport |
 | `tests/issue-358-cfdp-inactivity` | inactivity-deadline | CFDP inactivity deadline option handled correctly | Regression | CCSDS 727.0-B | Pins #358; CFDP inactivity deadline config |
 
 ### Application Services & Utilities  <span style="font-weight:normal">(APP-SVC, 17 tests)</span>
@@ -192,7 +183,6 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | Test | Subcategory | DTN function / behavior | Type | Spec § | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `tests/ams-sana` | ams | AMS with large Node/Continuum numbers (SANA range upgrade) | Integration | CCSDS 735.1-B | Verifies AMS message space with expanded SANA node/continuum ranges |
-| `tests/ams-sana.ipn2` | ams | AMS with large Node/Continuum numbers (SANA range upgrade) | Integration | CCSDS 735.1-B | ipn2 variant; expanded SANA node/continuum ranges |
 | `tests/issue-319-parseSocketSpec` | ams | AMS socket-spec parsing / basic AMS functionality | Regression | CCSDS 735.1-B | Pins #319 parseSocketSpec; AMS message space |
 | `tests/bpchat` | bp-utilities | bpchat bidirectional bundle send/receive | Utility | RFC 9171 | Exercises bpchat CLI over BP |
 | `tests/bpcp-dirlist-truncation` | bp-utilities | bpcp -r surfaces incomplete listings/unsafe filenames/symlinks | Regression | ION-specific (no ratified standard) | bpcp recursive-copy safety |
