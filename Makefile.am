@@ -2781,6 +2781,8 @@ if USING_POSIX_NAMED_SEMAPHORES
 check_PROGRAMS += tests/semaphore-deferred-deletion/dotest
 endif
 
+check_PROGRAMS += tests/crc-hwaccel/dotest
+
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
 tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
@@ -2912,6 +2914,10 @@ tests_semaphore_deferred_deletion_dotest_SOURCES = tests/semaphore-deferred-dele
 tests_semaphore_deferred_deletion_dotest_LDADD = libici.la -lpthread
 tests_semaphore_deferred_deletion_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
 endif
+
+tests_crc_hwaccel_dotest_SOURCES = tests/crc-hwaccel/dotest.c
+tests_crc_hwaccel_dotest_LDADD = libici.la -lm
+tests_crc_hwaccel_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 
 # ---- generated test rules (added by configure) ------------------

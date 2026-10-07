@@ -280,6 +280,7 @@ tests/progress\.*
 tests/results\.*
 
 # Compiled test binaries (or libtool wrappers)
+tests/crc-hwaccel/dotest
 tests/1000.loopback/dotest
 tests/ltp-budget-unit/dotest
 tests/1300.loopback-tcp/dotest

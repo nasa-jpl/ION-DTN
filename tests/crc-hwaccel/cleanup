@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# crc-hwaccel writes no files and starts no ION node; this is a no-op
+# kept for harness symmetry (runtests invokes ./cleanup when present).
+#
+exit 0
