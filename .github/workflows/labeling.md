@@ -23,7 +23,7 @@ The workflow runs `actions/labeler` on PR updates to apply labels based on file 
 
 * **`no-test`**: Automatically assigned if *all* modified files match non-code paths such as markdown files (`**/*.md`, `**/*.pod`, `**/README*`), site documentation (`site-docs/**`), or infrastructure directories (`charts/**`, `images/**`).
 
-* **`test-mods`**: Automatically assigned if *all* modified files reside inside `tests/**` or `demos/**`.
+* **`test-mods`**: Automatically assigned if *all* modified files reside inside `tests/**` or `demos/**`, provided that no file is a test runner/infrastructure script (e.g., `tests/runtests`, `tests/runtestset`, `tests/quicktests`, `demos/*.py`) and no source code or build files (`.c`, `.h`, `Makefile.am`, etc.) are modified.
 
 * **`CI/CD`**: Automatically assigned if any changed file resides in `.github/**`.
 

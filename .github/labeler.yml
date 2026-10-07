@@ -18,24 +18,10 @@ CI/CD:
 
 test-mods:
   - all:
-      - any:
-          - changed-files:
-              - all-globs-to-any-file:
-                  - "tests/**"
-                  - "!tests/alltests"
-                  - "!tests/cleanup"
-                  - "!tests/list_all_tests"
-                  - "!tests/normaltests"
-                  - "!tests/quicktests"
-                  - "!tests/README"
-                  - "!tests/runcleanup"
-                  - "!tests/runtests"
-                  - "!tests/runtestset"
-                  - "!tests/*.py"
-                  - "!tests/test_utils.sh"
-          - changed-files:
-              - any-glob-to-any-file:
-                  - "demos/**"
+      - changed-files:
+          - any-glob-to-any-file:
+              - "tests/**"
+              - "demos/**"
       # Must NOT contain C code / build file changes
       - changed-files:
           - all-globs-to-all-files:
@@ -45,6 +31,19 @@ test-mods:
               - "!Makefile.am"
               - "!build-bsl-for-ion.sh"
               - "!killm"
+      # Must NOT be test runner / infrastructure files
+      - changed-files:
+          - all-globs-to-all-files:
+              - "!tests/alltests"
+              - "!tests/cleanup"
+              - "!tests/list_all_tests"
+              - "!tests/normaltests"
+              - "!tests/quicktests"
+              - "!tests/README"
+              - "!tests/runcleanup"
+              - "!tests/runtests"
+              - "!tests/runtestset"
+              - "!tests/test_utils.sh"
 
 quick-test:
   - any:
@@ -72,17 +71,7 @@ no-test:
   - any:
       - changed-files:
           - any-glob-to-all-files:
-              - "**/*.md"
-              - "**/*.pod"
-              - "**/README*"
-              - "site-docs/**"
-              - "charts/**"
-              - "images/**"
-              - "tests/alltests"
-              - "tests/normaltests"
-              - "tests/quicktests"
-              - "tests/runtestset"
-              - "tests/*.py"
+              - "{**/*.md,**/*.pod,**/README*,site-docs/**,charts/**,images/**,tests/alltests,tests/normaltests,tests/quicktests,tests/runtestset,.github/labeler.yml}"
 
 AMS:
   - any:
