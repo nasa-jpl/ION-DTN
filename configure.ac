@@ -1330,6 +1330,118 @@ AC_FUNC_FORK
 #AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname gettimeofday memset mkdir mkfifo rmdir select socket strcasecmp strchr strerror strncasecmp])
 
+AC_CACHE_CHECK([for x86 SSE4.2 CRC-32C acceleration], [ion_cv_x86_crc32c],
+  [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <nmmintrin.h>
+__attribute__((target("sse4.2")))
+static unsigned ion_probe(unsigned c, unsigned char b)
+{
+	return _mm_crc32_u8(c, b);
+}
+]], [[
+	(void) __builtin_cpu_supports("sse4.2");
+	(void) ion_probe(0, 0);
+]])], [ion_cv_x86_crc32c=yes], [ion_cv_x86_crc32c=no])])
+AS_IF([test "x$ion_cv_x86_crc32c" = xyes],
+  [AC_DEFINE([ION_HAVE_X86_CRC32C], [1],
+    [Define to 1 if the compiler supports the x86 SSE4.2 CRC-32C intrinsic, the target function attribute, and __builtin_cpu_supports.])])
+
+AC_CACHE_CHECK([for x86 64-bit CRC-32C intrinsic], [ion_cv_x86_crc32c_u64],
+  [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <nmmintrin.h>
+__attribute__((target("sse4.2")))
+static unsigned long long ion_probe(unsigned long long c, unsigned long long v)
+{
+	return _mm_crc32_u64(c, v);
+}
+]], [[
+	(void) ion_probe(0, 0);
+]])], [ion_cv_x86_crc32c_u64=yes], [ion_cv_x86_crc32c_u64=no])])
+AS_IF([test "x$ion_cv_x86_crc32c_u64" = xyes],
+  [AC_DEFINE([ION_HAVE_X86_CRC32C_U64], [1],
+    [Define to 1 if the x86 64-bit crc32 intrinsic _mm_crc32_u64 is available.])])
+
+AC_CACHE_CHECK([for x86 PCLMULQDQ CRC-16 acceleration], [ion_cv_x86_pclmul],
+  [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <emmintrin.h>
+#include <wmmintrin.h>
+__attribute__((target("sse2,pclmul")))
+static int ion_probe(void)
+{
+	__m128i a = _mm_setzero_si128();
+	return _mm_cvtsi128_si32(_mm_clmulepi64_si128(a, a, 0x00));
+}
+]], [[
+	(void) __builtin_cpu_supports("pclmul");
+	(void) ion_probe();
+]])], [ion_cv_x86_pclmul=yes], [ion_cv_x86_pclmul=no])])
+AS_IF([test "x$ion_cv_x86_pclmul" = xyes],
+  [AC_DEFINE([ION_HAVE_X86_CRC16_CLMUL], [1],
+    [Define to 1 if the compiler supports the x86 SSE2+PCLMULQDQ intrinsics, the target function attribute, and __builtin_cpu_supports.])])
+
+dnl  GCC spells the AArch64 CRC feature "+crc", Clang "crc"; probe both.
+AC_CACHE_CHECK([for AArch64 CRC32 target attribute], [ion_cv_arm_crc_tgt],
+  [ion_cv_arm_crc_tgt=no
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <arm_acle.h>
+__attribute__((target("+crc")))
+static unsigned ion_probe(unsigned c, unsigned long long v)
+{
+	return __crc32cd(c, v);
+}
+]], [[
+	(void) ion_probe(0, 0);
+]])], [ion_cv_arm_crc_tgt='"+crc"'],
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <arm_acle.h>
+__attribute__((target("crc")))
+static unsigned ion_probe(unsigned c, unsigned long long v)
+{
+	return __crc32cd(c, v);
+}
+]], [[
+	(void) ion_probe(0, 0);
+]])], [ion_cv_arm_crc_tgt='"crc"'])])])
+AS_IF([test "x$ion_cv_arm_crc_tgt" != xno],
+  [AC_DEFINE([ION_HAVE_ARM_CRC], [1],
+    [Define to 1 if the compiler supports AArch64 CRC32 intrinsics and the target function attribute.])
+   AC_DEFINE_UNQUOTED([ION_ARM_TGT_CRC], [$ion_cv_arm_crc_tgt],
+    [Target attribute string selecting the AArch64 CRC extension.])])
+
+dnl  GCC spells the AArch64 crypto feature "+crypto", Clang "aes".
+AC_CACHE_CHECK([for AArch64 PMULL target attribute], [ion_cv_arm_pmull_tgt],
+  [ion_cv_arm_pmull_tgt=no
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <arm_neon.h>
+__attribute__((target("+crypto")))
+static unsigned long long ion_probe(void)
+{
+	poly128_t p = vmull_p64((poly64_t) 1, (poly64_t) 1);
+	return vgetq_lane_u64(vreinterpretq_u64_p128(p), 0);
+}
+]], [[
+	(void) ion_probe();
+]])], [ion_cv_arm_pmull_tgt='"+crypto"'],
+   [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <arm_neon.h>
+__attribute__((target("aes")))
+static unsigned long long ion_probe(void)
+{
+	poly128_t p = vmull_p64((poly64_t) 1, (poly64_t) 1);
+	return vgetq_lane_u64(vreinterpretq_u64_p128(p), 0);
+}
+]], [[
+	(void) ion_probe();
+]])], [ion_cv_arm_pmull_tgt='"aes"'])])])
+AS_IF([test "x$ion_cv_arm_pmull_tgt" != xno],
+  [AC_DEFINE([ION_HAVE_ARM_PMULL], [1],
+    [Define to 1 if the compiler supports AArch64 PMULL intrinsics and the target function attribute.])
+   AC_DEFINE_UNQUOTED([ION_ARM_TGT_PMULL], [$ion_cv_arm_pmull_tgt],
+    [Target attribute string selecting the AArch64 PMULL/crypto extension.])])
+
+AC_CHECK_HEADERS([sys/auxv.h asm/hwcap.h sys/sysctl.h])
+AC_CHECK_FUNCS([getauxval sysctlbyname])
+
 #Write AM_* flag variables
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CPPFLAGS])

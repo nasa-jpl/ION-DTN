@@ -17,10 +17,19 @@
 extern "C" {
 #endif
 
+/*
+ * Human-readable report of which CRC fast paths are compiled in and taken at
+ * run time (static storage).  Lets a caller surface in a log whether hardware
+ * acceleration engaged on this host.
+ */
+extern const char *ion_crc_accel_status(void);
+
 extern uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen,
 			uint16_t crc);
-/*	Always available: the CRC16 slice-by-8 kernel is compiled
- *	unconditionally (endian-independent, identical value).		*/
+/*
+ * Always available: the CRC16 slice-by-8 kernel is compiled unconditionally
+ * (endian-independent, identical value).
+ */
 extern uint16_t ion_CRC16_1021_X25_slice(const char *data, uint32_t dLen,
 			uint16_t crc);
 #ifdef ENABLE_HIGH_SPEED
