@@ -33,6 +33,7 @@ RUN apt-get update -y --no-install-recommends \
     automake \
     make \
     autoconf \
+    pkg-config \
     libtool \
     psmisc \
     libssl-dev \

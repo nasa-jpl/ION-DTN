@@ -37,6 +37,7 @@ RUN microdnf install -y oracle-epel-release-el8 \
     automake \
     make \
     autoconf \
+    pkgconf-pkg-config \
     libtool \
     psmisc \
     openssl-devel \

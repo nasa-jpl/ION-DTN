@@ -32,6 +32,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     gcc-c++ \
     ruby \
     autoconf \
+    pkgconf-pkg-config \
     libtool \
     openssl-devel \
     nmap-ncat \

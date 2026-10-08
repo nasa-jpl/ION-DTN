@@ -33,6 +33,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     automake \
     make \
     autoconf \
+    pkgconf-pkg-config \
     libtool \
     psmisc \
     openssl-devel \
