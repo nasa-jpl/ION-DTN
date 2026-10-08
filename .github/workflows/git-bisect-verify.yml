@@ -15,7 +15,7 @@ permissions:
 
 env:
   VM_WORK_DIR: /var/tmp/ion-gh-workspace
-  PYTHON_VERSION: "3.11.15"
+  VENV_BIN_DIR: /home/runner/.venv/bin
 
 jobs:
   validate-commits-linux:
@@ -96,8 +96,8 @@ jobs:
         env:
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
-          cd .github/ansible
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook copy-code.yml \
+          cd .github/ansible && \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook copy-code.yml \
             -i "$VM_IP," \
             -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
             -e "VM_WORK_DIR=${{ env.VM_WORK_DIR }}" \

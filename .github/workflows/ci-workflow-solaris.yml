@@ -107,8 +107,7 @@ on:
 
 env:
   VM_WORK_DIR: /var/tmp/ion-gh-workspace
-  # renovate: datasource=python-version depName=python
-  PYTHON_VERSION: "3.11.15"
+  VENV_BIN_DIR: /home/runner/.venv/bin
 
 jobs:
   generate-matrix:
@@ -189,7 +188,7 @@ jobs:
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         run: |
           cd .github/ansible
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook copy-code.yml \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook copy-code.yml \
             -i "$VM_IP," \
             -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
             -e "VM_WORK_DIR=${{ env.VM_WORK_DIR }}" \
@@ -218,7 +217,7 @@ jobs:
         env:
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
             -e "run_id=${{ github.run_id }}"
 
       - name: Format artifact for caching
@@ -337,7 +336,7 @@ jobs:
         run: |
           cd .github/ansible
 
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook create-zones-parallel.yml \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook create-zones-parallel.yml \
             -i "${{ matrix.vm }}," \
             -e "@zones_matrix.json" \
             -v
@@ -371,7 +370,7 @@ jobs:
 
       - name: Overlay fresh test scripts over cached binaries
         run: |
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook \
             .github/ansible/overlay-fresh-tests.yml \
             -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
             -e "ARTIFACT_PATH=$GITHUB_WORKSPACE/artifacts/ion-build-${{ github.run_id }}.tar.gz" \
@@ -386,7 +385,7 @@ jobs:
           retry_wait_seconds: 10
           command: |
             cd .github/ansible
-            /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
+            ${{ env.VENV_BIN_DIR }}/ansible-playbook distribute-artifacts.yml \
               -i "${{ matrix.test_batch.vm_hostname }}," \
               -e "RUN_ID=${{ github.run_id }}" \
               -e "JOB_INDEX=${{ matrix.test_batch.job_index }}" \
@@ -441,7 +440,7 @@ jobs:
           retry_wait_seconds: 10
           command: |
             cd .github/ansible
-            /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
+            ${{ env.VENV_BIN_DIR }}/ansible-playbook distribute-artifacts.yml \
               -i "${{ matrix.test_batch.vm_hostname }}," \
               -e "RUN_ID=${{ github.run_id }}" \
               -e "JOB_INDEX=${{ matrix.test_batch.job_index }}" \
@@ -587,7 +586,7 @@ jobs:
         run: |
           cd .github/ansible
 
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook destroy-zone.yml \
+          ${{ env.VENV_BIN_DIR }}/ansible-playbook destroy-zone.yml \
             -i "${{ matrix.vm }}," \
             -e "@destroy_vars.json" \
             -v
