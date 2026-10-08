@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ansible==12.3.0",
     "bespokebpv7",
-    "pip==26.1.2",
+    "pip==26.2",
 ]
 
 [tool.uv.sources]
