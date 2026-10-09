@@ -364,7 +364,9 @@ void writeMemoToIonLog(char *text)
 	static pthread_once_t logOnceControl = PTHREAD_ONCE_INIT;
 	static char ionLogFileName[264] = ""; /* Empty string == {0} */
 	static int  ionLogFile = -1;	      /* -1 => not open. */
-	static char msgbuf[256] = { 0 };      /* For the final output line. */
+	static char msgbuf[4096] = { 0 };     /* Final output line; holds a full
+					       * ERRMSGS_BUFSIZE message (long
+					       * diagnostics overran the old 256). */
 
 	if (text == NULL)		      /* No message to log. */
 	{
