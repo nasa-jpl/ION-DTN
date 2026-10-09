@@ -9101,11 +9101,10 @@ static void	noteReceiverBudgetExhausted(LtpVspan *vspan,
 
 	putFqn(nbrBuf, vspan->engineId);
 	isprintf(memoBuf, sizeof memoBuf, "[?] Export session %u to engine %s \
-cancelled by the receiver, retransmit limit exceeded: the peer's reception \
-report budget was exhausted before this engine's checkpoint budget.  The \
-peer's repair-round or segment-loss-rate configuration may be inconsistent \
-with this engine's, or the peer may enforce no repair-round limit.  Further \
-notices for this span are suppressed for %d seconds.", sessionNbr,
+cancelled by the receiver, retransmit limit exceeded: its reception-report \
+budget was exhausted before this engine's checkpoint budget (check \
+repair-round/loss-rate config).  Further notices for this span are \
+suppressed for %d seconds.", sessionNbr,
 			nbrBuf, LTP_PEER_MEMO_INTERVAL);
 	writeMemo(memoBuf);
 }
