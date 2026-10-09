@@ -4,19 +4,19 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "ansible"
-version = "12.3.0"
+version = "14.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansible-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/df/60253bfc1f87e3d5b52a06723cc15270428dab113a878cd162ab3923db4e/ansible-12.3.0.tar.gz", hash = "sha256:02721f6fb432ddd47f1044ac49b04b5e9ae08890bd427def8df3db1607aeec51", size = 52065271, upload-time = "2025-12-09T21:04:42.344Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/58/81/587e26b381e599195f1076d1c987312cd03e5ee14d9a23411ea01ef6e319/ansible-14.4.0.tar.gz", hash = "sha256:f0b3b8871d6f4e4edd7e47763b18144a32c215f735569be44c49a70e04893519", size = 50925367, upload-time = "2026-09-08T19:04:18.135Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/91/ed9ff629465050d4bdbc9da33d348156736b8778733f97a3627daae4f9ce/ansible-12.3.0-py3-none-any.whl", hash = "sha256:cd156f82fa87f7a899212b0efa9f7ca3a24d609212de9f78428a572eb01e5414", size = 54354494, upload-time = "2025-12-09T21:04:36.923Z" },
+    { url = "https://files.pythonhosted.org/packages/01/c7/f1037ff1dc73d00c6d073732d3d523037f20fb784368374e04e2f229f456/ansible-14.4.0-py3-none-any.whl", hash = "sha256:7aedc85a55a9d14933c155101d6ae2d8358e40142b0dba7eb42125a49222b0f4", size = 51039461, upload-time = "2026-09-08T19:04:12.776Z" },
 ]
 
 [[package]]
 name = "ansible-core"
-version = "2.19.11"
+version = "2.21.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -25,9 +25,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "resolvelib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/db/7d3c7be76df6fc3707db05a151b530a298bb37080fc9ecc669dbd7e82b28/ansible_core-2.19.11.tar.gz", hash = "sha256:e8d541720050fc0a7ddb568cde779cce25a9cf470aa489e63ee10d1c94df4248", size = 3430025, upload-time = "2026-06-18T19:37:36.721Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/27/d02c3f75e9f1468b5efbe49667574f68331b17e8a9f2bb99e1d18be70052/ansible_core-2.21.5.tar.gz", hash = "sha256:65bb3148c58ebb843cd5074004c805f404f152114d98476dd823324616c9c6cb", size = 3395026, upload-time = "2026-10-05T15:11:00.15Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/ad/a1b84d6e52ec1573456a6126bc1a127d8d5418b8bc9ef32a4fbf8daaaa78/ansible_core-2.19.11-py3-none-any.whl", hash = "sha256:c39612b1f55a3321445a09eaee43f59ca6c849483792088a4767b97d8fe8580f", size = 2426194, upload-time = "2026-06-18T19:37:35.292Z" },
+    { url = "https://files.pythonhosted.org/packages/57/6f/7321059b2d1a5ea3c7e60807a5269942d93b2c11a2fc89ba8e4a3e827891/ansible_core-2.21.5-py3-none-any.whl", hash = "sha256:08886f9f3e23d129aa98a01271c4a47833516e1cb7c737a246788cb474f41222", size = 2457267, upload-time = "2026-10-05T15:10:58.444Z" },
 ]
 
 [[package]]
@@ -336,7 +336,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ansible", specifier = "==12.3.0" },
+    { name = "ansible", specifier = "==14.4.0" },
     { name = "bespokebpv7", git = "https://github.com/nasa-jpl/bespokebpv7.git?tag=v0.6.0" },
     { name = "pip", specifier = "==26.2" },
 ]

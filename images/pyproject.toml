@@ -3,7 +3,7 @@ name = "ion-runner-images"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "ansible==12.3.0",
+    "ansible==14.4.0",
     "bespokebpv7",
     "pip==26.2",
 ]
