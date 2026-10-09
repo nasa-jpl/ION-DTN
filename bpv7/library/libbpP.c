@@ -2116,6 +2116,7 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	if (bslConfigured)
 	{
 		bslCleanup(&agent);
+		bslConfigured = 0;
 	}
 #else
 	bpsec_instr_cleanup();
@@ -2379,6 +2380,20 @@ void	bpDetach(void)
 {
 	char	*stop = NULL;
 
+#if USING_BSL
+	/*
+	 * bpAttach() runs bslInitialize(). Release allocated context here so a
+	 * transient BP client does not strand its BSL policy context in ION
+	 * working memory every time it exits. Guard with bslConfigured (zeroed
+	 * by bpStop()) so the daemon path (bpStop then bpDetach) cleans up
+	 * once.
+	 */
+	if (bslConfigured)
+	{
+		bslCleanup(&agent);
+		bslConfigured = 0;
+	}
+#endif
 	oK(_bpvdb(&stop));
 	return;
 }

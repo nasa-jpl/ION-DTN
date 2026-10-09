@@ -1541,9 +1541,25 @@ static int	ion_bsl_eid_from_text(BSL_HostEID_t *eidWrapper,
 
 	if (result == 0 || jotEid(eid, &metaEid) < 0)
 	{
+		/*
+		 * parseEidString frees its own metaEid on parse failure
+		 * (result == 0); on parse success but jotEid failure we must
+		 * free it ourselves.
+		 */
+		if (result != 0)
+		{
+			clearMetaEid(&metaEid);
+		}
+
 		return 2;	/*	Failure.			*/
 	}
 
+	/*
+	 * Release the parsed EID copy; jotEid has consumed what it needs.
+	 * Without this, every EID the BSL decodes from text leaks
+	 * metaEid.eidCopy into ION working memory.
+	 */
+	clearMetaEid(&metaEid);
 	return 0;
 }
 #if 0
@@ -2390,6 +2406,18 @@ void	bslCleanup(BslAgent *agent)
 	if (agent->sec_eid.handle)
 	{
 		BSL_HostEID_Deinit(&agent->sec_eid);
+	}
+
+	/*
+	 * Release the per-process key store that key_registry_init populated
+	 * (MockBPA_KeyStore_Init + KeyLoader_LoadFile).  The reference mock
+	 * BPA frees it at teardown; without this, every transient BSL client
+	 * leaks its loaded keys into shared ION working memory on exit.
+	 */
+	if (agent->keystoreReady)
+	{
+		MockBPA_KeyStore_Deinit();
+		agent->keystoreReady = 0;
 	}
 
 	BSL_HostDescriptors_Clear();
