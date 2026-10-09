@@ -1,4 +1,10 @@
 1 300
+# Give this receiver a large reception-report (repair-round) budget so the
+# sender's checkpoint budget is the limit that governs.  With the default 8,
+# a platform-specific loss pattern can make the receiver cancel the session
+# first; the test would then see a false duplicate instead of exercising the
+# intended sender-side superseded-report path.
+m maxrepairrounds 256
 a span 3 2 2 1200 100100 1 'udplso 127.0.0.1:3113'
 a span 2 2 2 1200 100100 1 'udplso 127.0.0.1:3112'
 w 1
