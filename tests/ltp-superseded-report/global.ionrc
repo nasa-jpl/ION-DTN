@@ -1,5 +1,14 @@
 m horizon  +0
-a range    +0 +600		2 3   0
+# Model a non-zero one-way light time on the 2<->3 link.  OWLT only widens
+# LTP's computed timers (it does not actually delay loopback packets), and
+# this test needs it: after the relay spends the sender's checkpoint budget,
+# the sender holds the export session open for roughly maxretries x the
+# checkpoint timer before giving up.  With OWLT 0 that window is ~2s -- too
+# short for the relay to observe exhaustion and deliver the held completing
+# report, so on slower runners the session is cancelled first and BP
+# re-forwards (a false duplicate).  A realistic OWLT makes the window many
+# seconds, so the completing report reliably lands in time on every platform.
+a range    +0 +600		2 3   5
 a contact  +0 +600		2 2   10000
 a contact  +0 +600		3 3   10000
 a contact  +0 +600		2 3   10000
