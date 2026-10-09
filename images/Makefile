@@ -12,7 +12,7 @@ RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
 # renovate: datasource=github-releases depName=moby/moby
 DOCKER_VERSION ?= 29.8.0
 # renovate: datasource=github-releases depName=docker/compose
-DOCKER_COMPOSE_VERSION ?= v2.40.3
+DOCKER_COMPOSE_VERSION ?= v5.5.1
 # renovate: datasource=github-releases depName=Yelp/dumb-init
 DUMB_INIT_VERSION ?= 1.2.5
 # renovate: datasource=github-releases depName=astral-sh/uv
