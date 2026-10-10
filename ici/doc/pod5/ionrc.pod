@@ -401,6 +401,25 @@ For example:
 sets the SDR heap protection threshold to 15% free and the working memory
 protection threshold to 20% free.
 
+=item B<m routing-strategy> { B<shortest-pbat> | B<fair-routing> }
+
+Selects the route-selection strategy used by the CGR-based forwarder
+(I<ipnfw>).  The default B<shortest-pbat> picks the single route with the
+earliest projected bundle arrival time (PBAT).
+B<fair-routing> instead admits all routes whose terminus arrival
+time is within B<m allow-routing-delay> of the best PBAT and stripes
+consecutive bundles across them via smooth weighted round-robin,
+weighted by each route's path bottleneck transmission rate
+(min over all hops).
+
+=item B<m allow-routing-delay> I<msec>
+
+Sets the eligibility window for B<fair-routing>, in milliseconds.  A route
+is eligible iff its terminus-arrival ETA is within I<msec> of the best
+route's ETA.  Default is 1000 ms.  The current PBAT timer resolution is one
+second, so values smaller than 1000 round down to a strict-tie filter.
+Has only effect under B<m routing-strategy fair-routing>.
+
 =item B<m usage>
 
 This management command simply prints ION's current data space occupancy
