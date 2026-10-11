@@ -28,7 +28,13 @@ int main(void)
 	for (size_t i = 0; i < sizeof(data); i++) data[i] = (unsigned char)(i * 37 + i / 7);
 	for (int variant = 0; variant < 2; variant++)
 	{
-		if (functions[variant]("123456789", 9, 0) != known[variant]) return 1;
+		uint32_t vector = functions[variant]("123456789", 9, 0);
+		if (vector != known[variant])
+		{
+			fprintf(stderr, "CRC variant %d, known vector: expected %08x, got %08x\n",
+					variant, known[variant], vector);
+			return 1;
+		}
 		for (unsigned int offset = 0; offset < 4; offset++)
 		{
 			for (unsigned int length = 0; length <= 1024; length++)
