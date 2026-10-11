@@ -3119,7 +3119,7 @@ uint32_t crc32_16bytes(const char* data, uint32_t dLen, uint32_t crc, const uint
 	uint32_t	two;
 	uint32_t	three;
 	uint32_t	four;
-	const uint8_t*	currentChar = (const uint8_t*) current;
+	const uint8_t*	currentChar;
 
 	crc = ~crc; // same as previousCrc32 ^ 0xFFFFFFFF
 
@@ -3175,6 +3175,7 @@ uint32_t crc32_16bytes(const char* data, uint32_t dLen, uint32_t crc, const uint
 		dLen -= bytesAtOnce;
 	}
 
+	currentChar = (const uint8_t*) current;
 	// remaining 1 to 63 bytes (standard algorithm)
 	while (dLen-- != 0)
 		crc = (crc >> 8) ^ crc32Lookup[0][(crc & 0xFF) ^ *currentChar++];
