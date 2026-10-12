@@ -516,6 +516,16 @@ extern int		bp_parse_quality_of_service(const char *token,
 			 *  Returns 1 on success or 0 on parsing failure.
 			 *  On failure, no arguments have been modified.*/
 
+/*	parseEidString preserves eidString and returns 1 on success, 0
+ *	on failure.  A successful parse may allocate an ION working-memory
+ *	copy owned by metaEid; its string fields refer to that copy.
+ *	Call clearMetaEid after the last use, including subsequent error
+ *	exits.  Do not reuse a live MetaEid without clearing it first.
+ *	A parsing failure releases any copy allocated by that call.
+ *	A null EID may succeed without resolving scheme; check nullEndpoint
+ *	before using the scheme outputs.
+ *	clearMetaEid releases the owned copy and resets the structure;
+ *	its string fields must not be used afterward.			*/
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
 extern void		clearMetaEid(MetaEid *metaEid);

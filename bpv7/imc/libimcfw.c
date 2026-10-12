@@ -388,6 +388,7 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 	MetaEid		sourceMetaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	int		result;
 	SdrObject	sourceData;
 	SdrObject	payloadZco;
 	unsigned int	ttl = 604800; /* Seconds; 1 week. */
@@ -398,12 +399,17 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 			getOwnFqnn());
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
-	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_begin_xn(sdr) == 0)
+	{
+		clearMetaEid(&sourceMetaEid);
+		return -1;
+	}
 	sourceData = sdr_malloc(sdr, length);
 	if (sourceData == 0)
 	{
 		putErrmsg("No space for source data.", NULL);
 		sdr_exit_xn(sdr);
+		clearMetaEid(&sourceMetaEid);
 		return -1;
 	}
 
@@ -419,6 +425,7 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 	if (sdr_end_xn(sdr) < 0 || payloadZco == (SdrObject) ERROR ||
 			payloadZco == 0)
 	{
+		clearMetaEid(&sourceMetaEid);
 		putErrmsg("Can't create IMC dispatch payload.", NULL);
 		return -1;
 	}
@@ -452,9 +459,11 @@ puts("Transmitting dispatch.");
 	/*	Note that ttl must be converted from seconds to
 	 *	milliseconds for BP processing.				*/
 
-	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl * 1000,
+	result = bpSend(&sourceMetaEid, destEid, NULL, ttl * 1000,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
-			&ancillary, payloadZco, NULL, 0))
+			&ancillary, payloadZco, NULL, 0);
+	clearMetaEid(&sourceMetaEid);
+	switch (result)
 	{
 	case -1:
 		putErrmsg("Can't send IMC dispatch.", NULL);

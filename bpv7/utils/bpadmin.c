@@ -1411,8 +1411,8 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	MetaEid		metaEid;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
+	VScheme		*vscheme = NULL;
+	PsmAddress	vschemeElt = 0;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
@@ -1428,8 +1428,15 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (metaEid.nullEndpoint || vschemeElt == 0)
+	{
+		printText("[?] Unknown endpoint.");
+		clearMetaEid(&metaEid);
+		return;
+	}
+
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], &metaEid, NULL, &vpoint, &elt);
+	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("[?] Unknown endpoint.");

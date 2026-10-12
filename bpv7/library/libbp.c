@@ -374,7 +374,10 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	unsigned long	nodeNbr;
 
 	/*	parseEidString is a Boolean function, returning 1 if
-	 *	the EID string was successfully parsed.			*/
+	 *	the EID string was successfully parsed.  The input is
+	 *	unchanged.  On success, metaEid owns any allocated copy;
+	 *	call clearMetaEid after the last use, including error
+	 *	exits in the caller.  String fields expire at cleanup.	*/
 
 	CHKZERO(eidString && metaEid && vscheme && vschemeElt);
 	memset((char *) metaEid, 0, sizeof(MetaEid));

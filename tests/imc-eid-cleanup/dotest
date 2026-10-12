@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+source ../eid-parser-regression.sh
+setup_loopback imc
+# Warm pools and drain the first administrative dispatches before measuring.
+cycles
+baseline=$(settled_memory)
+echo "Allocated bytes after warmup: $baseline"
+for batch in 1 2 3; do
+    cycles
+    allocated=$(settled_memory)
+    echo "Allocated bytes after batch $batch: $allocated"
+    # Permit one small allocator/cache fluctuation, well below a leaked
+    # 8-byte EID's 16-byte allocation times 50 cycles (800 bytes).
+    [[ "$allocated" -le "$((baseline + 64))" ]] || fail "IMC cycles retained $((allocated - baseline)) bytes"
+done
+sleep 1
+[[ "$(settled_memory)" -le "$((baseline + 64))" ]] || fail "Allocator usage grew after idle"
+echo 'PASS: IMC parser-copy cleanup'
