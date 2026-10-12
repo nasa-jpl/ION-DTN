@@ -611,6 +611,9 @@ tests/cbr-ct-orange-book/*/*.node/initial_stats.txt
 tests/cbr-ct-orange-book/*/*.node/final_stats.txt
 tests/cbr-ct-orange-book/*/*.node/crs_stats.txt
 tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
+tests/ltp-repair-rounds/loopback.ionconfig
+tests/ltp-span-override-persistence/loopback.ionconfig
+tests/bp_sap_thread_ownership/dotest
 
 # CBR custody test binary
 cbrcustodytest
@@ -641,12 +644,13 @@ secrets.local.yaml
 Chart.lock
 charts/arc/charts/*
 charts/arc/values.yaml
+charts/kind-config.yaml
+charts/storage-static.yaml
 kics-results.*
 
 # AGENTS & CLAUDE
 AGENTS.md
 CLAUDE.md
 !site-docs/docs/AGENTS.md
-tests/ltp-repair-rounds/loopback.ionconfig
-tests/ltp-span-override-persistence/loopback.ionconfig
-tests/bp_sap_thread_ownership/dotest
+
+.worktrees/
