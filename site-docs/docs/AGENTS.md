@@ -220,14 +220,19 @@ To add a test: create `tests/my-test/dotest` executable.
 
 ### Code Style
 
-- Follow [development guide](development-guide.md) for coding guidance
+Read the [development guide](development-guide.md) and [contributing guide](contributing-guide.md) before writing or committing code — they are the source of truth. **Automated contributors (LLMs/agents) must follow them. CI does not enforce most of these rules, so the author carries the burden.** The three most-missed items:
+
+- **Formatting: run clang-format.** C styling is defined by the tracked `.clang-format` at the repo root and is *not* enforced by CI, so format every changed C file with `clang-format` (using the version the `.clang-format` targets) before committing — do not hand-format. See [C code style](development-guide.md#c-code-style). Use `// clang-format off` / `// clang-format on` only for the rare block clang-format mangles.
+- **Comments: follow the house style, do not rewrap.** Write comments as real, filled sentences; keep the block (`/* */`) vs line (`//`) choice consistent within a file; and do not over-comment. clang-format does not reflow comments, so get the wrapping right yourself and avoid gratuitously rewrapping existing comments (it produces noise diffs). See [Comments](development-guide.md#comments).
+- **Commit messages: never a plain issue or PR number.** Do not reference a bare issue/PR number in a commit message (or a code comment); provide a full URL if a reference is genuinely needed — ION uses multiple, sometimes private trackers, so bare numbers are ambiguous and go stale. Keep commits atomic (each must build and pass tests for reliable `git bisect`). Follow the [commit message guidelines](contributing-guide.md#commit-message-guidelines).
+
+Other conventions:
+
 - Function naming: camelCase for public APIs, snake_case less common
 - Error handling: Return -1/NULL on error, putErrmsg() for error messages
 - Logging: writeErrMemo() for critical errors, writeMemo() for info
 - Headers: Public APIs in `include/`, private headers end with `P.h`
 - Man pages: POD format in `doc/pod1/` (commands), `pod3/` (APIs), `pod5/` (file formats)
-- Avoid issue/PR/line number references in commits/comments unless reference has full URL (ION develops in private repos; references become stale)
-- Commits must be atomic - build and pass tests after each commit for reliable `git bisect`
 
 ## Important Notes
 
