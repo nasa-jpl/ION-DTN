@@ -53,35 +53,32 @@
       loop_control:
         label: "Generating profile for zone {{ item.job_index }}"
 
-    - name: Clone zones from template with sysconfig profile (async)
+    - name: Clone zones from template with sysconfig profile
       ansible.builtin.command: >
         zoneadm -z {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
         clone -c {{ zone_mountpoint_base }}/profile-{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}.xml {{ template_zone_name }}
       loop: "{{ zones_list }}"
       loop_control:
         label: "Cloning zone {{ item.job_index }}"
+      async: "{{ zone_clone_timeout }}"
+      poll: 0
       register: zone_clone_jobs
       changed_when: true
-      async: "{{ zone_boot_timeout }}"
-      poll: 0
 
-    - name: Wait for all clones to complete
+    - name: Wait for all clones to finish
       ansible.builtin.async_status:
         jid: "{{ item.ansible_job_id }}"
       loop: "{{ zone_clone_jobs.results }}"
       loop_control:
-        label: "Zone {{ item.item.job_index }}"
-      register: clone_results
-      until: clone_results.finished
+        label: "Waiting for clone of zone {{ item.item.job_index }}"
+      register: clone_status
+      until: clone_status.finished
       retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
       delay: "{{ zone_create_retry_delay }}"
-      when: item.ansible_job_id is defined
 
-    - name: Boot all zones (async)
-      community.general.solaris_zone:
-        name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
-        state: running
-        timeout: "{{ zone_boot_timeout }}"
+    - name: Boot all zones
+      ansible.builtin.command: >
+        zoneadm -z {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }} boot
       loop: "{{ zones_list }}"
       loop_control:
         label: "Booting zone {{ item.job_index }}"
@@ -89,17 +86,16 @@
       poll: 0
       register: zone_boot_jobs
 
-    - name: Wait for all zones to boot
+    - name: Wait for zones to start accepting connections
       ansible.builtin.async_status:
         jid: "{{ item.ansible_job_id }}"
       loop: "{{ zone_boot_jobs.results }}"
       loop_control:
-        label: "Zone {{ item.item.job_index }}"
-      register: boot_results
-      until: boot_results.finished
+        label: "Waiting for zone {{ item.item.job_index }} to respond"
+      register: boot_status
+      until: boot_status.finished
       retries: "{{ (zone_boot_timeout / zone_create_retry_delay) | int }}"
       delay: "{{ zone_create_retry_delay }}"
-      when: item.ansible_job_id is defined
 
     - name: Wait for sysconfig and SMF to finish first-boot configuration
       ansible.builtin.command: >
@@ -142,10 +138,10 @@
       loop: "{{ zones_list }}"
       loop_control:
         label: "Verifying hostname resolution for zone {{ item.job_index }}"
-      register: hostname_verification
-      retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
+      register: host_res
+      retries: "{{ (zone_boot_timeout / zone_create_retry_delay) | int }}"
       delay: "{{ zone_create_retry_delay }}"
-      until: hostname_verification.rc == 0
+      until: host_res.rc == 0
       changed_when: false
 
     - name: Report zone creation success
