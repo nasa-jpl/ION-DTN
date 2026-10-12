@@ -13,7 +13,6 @@
   ansible.builtin.include_vars:
     file: "{{ charts_path }}/arc/secrets.local.yaml"
     name: arc_secrets
-  when: config == 'rtems'
 
 - name: Check Kubernetes cluster accessibility
   kubernetes.core.k8s_info:
@@ -91,6 +90,38 @@
     msg: >-
       ✓ metrics-server deployed successfully to the kube-system namespace.
       Status: {{ 'Created' if metrics_result.status is defined and metrics_result.status == 201 else 'Updated' }}
+
+- name: Create arc-systems namespace
+  kubernetes.core.k8s:
+    name: arc-systems
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create arc-runners namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: arc-runners
+        labels:
+          app.kubernetes.io/managed-by: Helm
+        annotations:
+          meta.helm.sh/release-name: arc
+          meta.helm.sh/release-namespace: arc-systems
+
+- name: Create storage manifests for rootless Podman
+  ansible.builtin.template:
+    src: "templates/storage-static.yaml.j2"
+    dest: "{{ charts_path }}/storage-static.yaml"
+    mode: "0644"
+
+- name: Apply static storage manifests
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', charts_path + '/storage-static.yaml') }}"
 
 - name: Create Headlamp admin ServiceAccount
   kubernetes.core.k8s:
@@ -306,6 +337,43 @@
     msg: "✓ Renovate Operator and RenovateJob deployed successfully to the renovate-operator namespace."
   when: config == 'rtems'
 
+- name: Load rendered values into Ansible
+  ansible.builtin.set_fact:
+    arc_values: "{{ (lookup('file', charts_path + '/arc/values.yaml') | from_yaml) | combine(arc_secrets) }}"
+
+- name: Apply ARC image and URL overrides
+  ansible.builtin.set_fact:
+    arc_values: >-
+      {{
+        arc_values | combine({
+          item.set: {
+            'githubConfigUrl': arc_secrets.github_config_url | default('https://github.com/nasa-jpl/ION-DTN', true),
+            'template': {
+              'spec': {
+                'containers': [
+                  (arc_values[item.set].template.spec.containers[0] | combine({
+                    'image': (
+                      arc_secrets.runner_images | default({}, true)
+                    )[item.image_key] | default(
+                      arc_values[item.set].template.spec.containers[0].image,
+                      true
+                    )
+                  }))
+                ]
+              }
+            }
+          }
+        }, recursive=True)
+      }}
+  loop:
+    - { set: 'gha-runner-scale-set', image_key: 'u22' }
+    - { set: 'gha-runner-scale-set-2', image_key: 'ol8' }
+    - { set: 'gha-runner-scale-set-3', image_key: 'ol9' }
+    - { set: 'gha-runner-scale-set-4', image_key: 'rhel8' }
+    - { set: 'gha-runner-scale-set-5', image_key: 'rhel9' }
+    - { set: 'gha-runner-scale-set-6', image_key: 'u24' }
+    - { set: 'gha-runner-scale-set-rtems', image_key: 'rtems' }
+
 - name: Deploy ARC Helm chart
   kubernetes.core.helm:
     name: arc
@@ -313,8 +381,7 @@
     release_namespace: arc-systems
     create_namespace: true
     wait: true
-    values_files:
-      - "{{ charts_path }}/arc/secrets.local.yaml"
+    values: "{{ arc_values }}"
   register: helm_result
 
 - name: Create PodMonitor for ARC Controller

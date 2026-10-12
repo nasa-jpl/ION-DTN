@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: arc-artifacts-cleanup
+  namespace: arc-runners
+  labels:
+    app.kubernetes.io/name: arc-artifacts-cleanup
+    app.kubernetes.io/component: maintenance
+    app.kubernetes.io/part-of: github-actions-runner
+spec:
+  schedule: "7 * * * *"  # Hourly at :07
+  startingDeadlineSeconds: 120
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            container.apparmor.security.beta.kubernetes.io/cleanup: runtime/default
+          labels:
+            app: arc-artifacts-cleanup
+        spec:
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+            fsGroup: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          containers:
+          - name: cleanup
+            image: busybox@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e  # v1.38.0
+            imagePullPolicy: Always
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== ARC Artifacts Cleanup Job ==="
+              echo "Started at: $(date)"
+              echo "Retention window: 24 hours (1440 minutes)"
+              echo ""
+
+              TOTAL_DELETED=0
+
+              for PVC_MOUNT in /mnt/*; do
+                if [ ! -d "$PVC_MOUNT" ]; then
+                  continue
+                fi
+
+                PVC_NAME=$(basename "$PVC_MOUNT")
+                echo ">>> Processing $PVC_NAME..."
+
+                # Count files before cleanup
+                FILES_BEFORE=$(find "$PVC_MOUNT" -type f 2>/dev/null | wc -l)
+
+                # Delete files older than 1440 minutes (24 hours)
+                DELETED=$(find "$PVC_MOUNT" -type f -mmin +1440 -print -delete | wc -l)
+                TOTAL_DELETED=$((TOTAL_DELETED + DELETED))
+
+                # Clean empty directories (skip mount root)
+                find "$PVC_MOUNT" -mindepth 1 -type d -empty -delete || true
+
+                # Count files after cleanup
+                FILES_AFTER=$(find "$PVC_MOUNT" -type f 2>/dev/null | wc -l)
+
+                # Calculate disk usage
+                DISK_USAGE=$(du -sh "$PVC_MOUNT" 2>/dev/null | cut -f1)
+
+                echo "  Files before: $FILES_BEFORE"
+                echo "  Files deleted: $DELETED"
+                echo "  Files after: $FILES_AFTER"
+                echo "  Disk usage: $DISK_USAGE"
+                echo ""
+              done
+
+              echo "=== Cleanup Summary ==="
+              echo "Total files deleted: $TOTAL_DELETED"
+              echo "Completed at: $(date)"
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 128Mi
+            volumeMounts:
+            {{- range $set_name, $short_id := .Values.runnerPvcMap -}}
+            {{- if (index $.Values $set_name).enabled }}
+            - name: artifacts-{{ $short_id }}
+              mountPath: /mnt/{{ $short_id }}
+            {{- end }}
+            {{- end }}
+          volumes:
+            {{- range $set_name, $short_id := .Values.runnerPvcMap -}}
+            {{- if (index $.Values $set_name).enabled }}
+            - name: artifacts-{{ $short_id }}
+              persistentVolumeClaim:
+                claimName: ion-artifacts-{{ $short_id }}
+            {{- end }}
+            {{- end }}

@@ -21,6 +21,7 @@
     charts_path: "{{ playbook_dir }}/.."
     # renovate: datasource=npm depName=renovate
     renovate_version: "43.239"
+    enable_pvc_storage: true
 
   vars_prompt:
     - name: config
@@ -49,6 +50,12 @@
     - name: Include cluster management tasks
       ansible.builtin.include_tasks:
         file: tasks/manage-cluster.yml
+
+    - name: Include local-path storage setup tasks
+      ansible.builtin.include_tasks:
+        file: tasks/setup-local-path.yml
+      when: enable_pvc_storage | default(true) | bool
+      tags: [storage, infrastructure]
 
     - name: Include Helm deployment tasks
       ansible.builtin.include_tasks:

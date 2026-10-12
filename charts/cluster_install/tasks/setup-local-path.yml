@@ -1,0 +1,21 @@
+---
+- name: Create local-path StorageClass
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: local-path
+      provisioner: rancher.io/local-path
+      volumeBindingMode: WaitForFirstConsumer
+
+- name: Verify local-path StorageClass exists
+  kubernetes.core.k8s_info:
+    kind: StorageClass
+  register: sc_info
+
+- name: Fail if no local-path provisioner is found
+  ansible.builtin.fail:
+    msg: "No StorageClass found using rancher.io/local-path provisioner"
+  when: sc_info.resources | default([]) | selectattr('provisioner', 'equalto', 'rancher.io/local-path') | list | length == 0

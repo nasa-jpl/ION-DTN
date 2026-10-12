@@ -2,6 +2,95 @@
 controller:
   enabled: true
 
+{# ========================================= #}
+{# Macros for DRY configuration             #}
+{# ========================================= #}
+
+{# Mapping of scale set configuration to their short IDs for PVC naming #}
+runnerPvcMap:
+  runnerScaleSet: u22
+  runnerScaleSet2: ol8
+  runnerScaleSet3: ol9
+  runnerScaleSet4: rhel8
+  runnerScaleSet5: rhel9
+  runnerScaleSet6: u24
+  runnerScaleSetRtems: rtems
+
+{# Security context with fsGroup for PVC access #}
+{% macro runner_security_context() -%}
+securityContext:
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  fsGroupChangePolicy: OnRootMismatch
+{%- endmacro %}
+
+{# PVC volumes section with optional container storage volumes #}
+{% macro artifact_pvc_volumes(scale_set_name, enable_container_storage=False) -%}
+{% if enable_pvc_storage or enable_container_storage %}
+volumes:
+  {% if enable_pvc_storage -%}
+  - name: shared-artifacts
+    persistentVolumeClaim:
+      claimName: ion-artifacts-{{ scale_set_name }}
+  {% endif -%}
+  {% if enable_container_storage -%}
+  # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
+  - name: containers-storage
+    emptyDir: {}
+  # EmptyDir for buildah runtime data
+  - name: containers-run
+    emptyDir: {}
+  {% endif -%}
+{% endif %}
+{%- endmacro %}
+
+{# Shared artifact runner volume mount #}
+{% macro shared_artifact_mount() -%}
+{% if enable_pvc_storage %}
+- name: shared-artifacts
+  mountPath: /mnt/shared-artifacts
+{% endif %}
+{% endmacro %}
+
+{# Container building volume mounts (for scale sets 2, 4, & 5) #}
+{% macro container_build_mounts() -%}
+- name: containers-storage
+  mountPath: /var/lib/containers/storage
+- name: containers-run
+  mountPath: /run/containers
+{%- endmacro %}
+
+{# RHEL specific runner volume mounts #}
+{% macro rhel_runner_mounts() -%}
+- name: rhel-repos
+  mountPath: /etc/yum.repos.d
+  readOnly: true
+- name: rhel-entitlement
+  mountPath: /etc/pki/entitlement
+  readOnly: true
+- name: rhel-rhsm
+  mountPath: /etc/rhsm
+  readOnly: true
+{%- endmacro %}
+
+{# RHEL specific runner volumes (matching rhel_runner_mounts) #}
+{% macro rhel_runner_volumes() -%}
+  # RHEL subscription info from host for building RHEL images
+  - name: rhel-repos
+    hostPath:
+      path: /etc/yum.repos.d
+      type: Directory
+  - name: rhel-entitlement
+    hostPath:
+      path: /etc/pki/entitlement
+      type: Directory
+  - name: rhel-rhsm
+    hostPath:
+      path: /etc/rhsm
+      type: Directory
+{%- endmacro %}
+
 runnerScaleSet:
 {% if config == "ol8" %}
   enabled: true
@@ -65,7 +154,6 @@ gha-runner-scale-set:
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-u22
@@ -80,6 +168,7 @@ gha-runner-scale-set:
         - name: listener
   template:
     spec:
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -93,12 +182,7 @@ gha-runner-scale-set:
               cpu: "1000m"
               memory: "1.5Gi"
           volumeMounts:
-            # Mount for storing container images/layers
-            - name: containers-storage
-              mountPath: /var/lib/containers/storage
-            # Mount for buildah runtime data
-            - name: containers-run
-              mountPath: /run/containers
+            {{ shared_artifact_mount() | indent(12) }}
           env:
             - name: ARC_CPU_LIMIT
               valueFrom:
@@ -108,13 +192,13 @@ gha-runner-scale-set:
                   divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
+      {{ artifact_pvc_volumes('u22') | indent(6) }}
 
 gha-runner-scale-set-2:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-ol8
@@ -129,11 +213,7 @@ gha-runner-scale-set-2:
         - name: listener
   template:
     spec:
-      # Pod-level security context - runner must run as non-root
-      securityContext:
-        # GitHub Actions runner requires non-root user
-        runAsUser: 1001
-        runAsGroup: 1001
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -147,12 +227,8 @@ gha-runner-scale-set-2:
               cpu: "1000m"
               memory: "1.5Gi"
           volumeMounts:
-            # Mount for storing container images/layers
-            - name: containers-storage
-              mountPath: /var/lib/containers/storage
-            # Mount for buildah runtime data
-            - name: containers-run
-              mountPath: /run/containers
+            {{ shared_artifact_mount() | indent(12) }}
+            {{ container_build_mounts() | indent(12) }}
           env:
             - name: ARC_CPU_LIMIT
               valueFrom:
@@ -162,20 +238,13 @@ gha-runner-scale-set-2:
                   divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
-      volumes:
-        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
-        - name: containers-storage
-          emptyDir: {}
-        # EmptyDir for buildah runtime data
-        - name: containers-run
-          emptyDir: {}
+      {{ artifact_pvc_volumes('ol8', True) | indent(6) }}
 
 gha-runner-scale-set-3:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-ol9
@@ -190,6 +259,7 @@ gha-runner-scale-set-3:
         - name: listener
   template:
     spec:
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -209,15 +279,17 @@ gha-runner-scale-set-3:
                   containerName: runner
                   resource: limits.cpu
                   divisor: "1"
+          volumeMounts:
+            {{ shared_artifact_mount() | indent(12) }}
       imagePullSecrets:
         - name: kind-cluster-pull-secret
+      {{ artifact_pvc_volumes('ol9') | indent(6) }}
 
 gha-runner-scale-set-4:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-rhel8
@@ -232,11 +304,7 @@ gha-runner-scale-set-4:
         - name: listener
   template:
     spec:
-      # Pod-level security context - runner must run as non-root
-      securityContext:
-        # GitHub Actions runner requires non-root user
-        runAsUser: 1001
-        runAsGroup: 1001
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -250,22 +318,9 @@ gha-runner-scale-set-4:
               cpu: "1000m"
               memory: "1.5Gi"
           volumeMounts:
-            # Mount for storing container images/layers
-            - name: containers-storage
-              mountPath: /var/lib/containers/storage
-            # Mount for buildah runtime data
-            - name: containers-run
-              mountPath: /run/containers
-            # Mount RHEL entitlements for building RHEL images
-            - name: rhel-entitlement
-              mountPath: /etc/pki/entitlement
-              readOnly: true
-            - name: rhel-rhsm
-              mountPath: /etc/rhsm
-              readOnly: true
-            - name: rhel-repos
-              mountPath: /etc/yum.repos.d
-              readOnly: true
+            {{ shared_artifact_mount() | indent(12) }}
+            {{ container_build_mounts() | indent(12) }}
+            {{ rhel_runner_mounts() | indent(12) }}
           env:
             - name: ARC_CPU_LIMIT
               valueFrom:
@@ -275,33 +330,14 @@ gha-runner-scale-set-4:
                   divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
-      volumes:
-        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
-        - name: containers-storage
-          emptyDir: {}
-        # EmptyDir for buildah runtime data
-        - name: containers-run
-          emptyDir: {}
-        # RHEL subscription info from host for building RHEL images
-        - name: rhel-entitlement
-          hostPath:
-            path: /etc/pki/entitlement
-            type: Directory
-        - name: rhel-rhsm
-          hostPath:
-            path: /etc/rhsm
-            type: Directory
-        - name: rhel-repos
-          hostPath:
-            path: /etc/yum.repos.d
-            type: Directory
+      {{ artifact_pvc_volumes('rhel8', True) | indent(6) }}
+      {{ rhel_runner_volumes() | indent(6) }}
 
 gha-runner-scale-set-5:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-rhel9
@@ -316,11 +352,7 @@ gha-runner-scale-set-5:
         - name: listener
   template:
     spec:
-      # Pod-level security context - runner must run as non-root
-      securityContext:
-        # GitHub Actions runner requires non-root user
-        runAsUser: 1001
-        runAsGroup: 1001
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -334,22 +366,9 @@ gha-runner-scale-set-5:
               cpu: "1000m"
               memory: "1.5Gi"
           volumeMounts:
-            # Mount for storing container images/layers
-            - name: containers-storage
-              mountPath: /var/lib/containers/storage
-            # Mount for buildah runtime data
-            - name: containers-run
-              mountPath: /run/containers
-            # Mount RHEL entitlements for building RHEL images
-            - name: rhel-entitlement
-              mountPath: /etc/pki/entitlement
-              readOnly: true
-            - name: rhel-rhsm
-              mountPath: /etc/rhsm
-              readOnly: true
-            - name: rhel-repos
-              mountPath: /etc/yum.repos.d
-              readOnly: true
+            {{ shared_artifact_mount() | indent(12) }}
+            {{ container_build_mounts() | indent(12) }}
+            {{ rhel_runner_mounts() | indent(12) }}
           env:
             - name: ARC_CPU_LIMIT
               valueFrom:
@@ -359,33 +378,14 @@ gha-runner-scale-set-5:
                   divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
-      volumes:
-        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
-        - name: containers-storage
-          emptyDir: {}
-        # EmptyDir for buildah runtime data
-        - name: containers-run
-          emptyDir: {}
-        # RHEL subscription info from host for building RHEL images
-        - name: rhel-entitlement
-          hostPath:
-            path: /etc/pki/entitlement
-            type: Directory
-        - name: rhel-rhsm
-          hostPath:
-            path: /etc/rhsm
-            type: Directory
-        - name: rhel-repos
-          hostPath:
-            path: /etc/yum.repos.d
-            type: Directory
+      {{ artifact_pvc_volumes('rhel9', True) | indent(6) }}
+      {{ rhel_runner_volumes() | indent(6) }}
 
 gha-runner-scale-set-6:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-runner-set-u24
@@ -400,6 +400,7 @@ gha-runner-scale-set-6:
         - name: listener
   template:
     spec:
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -419,15 +420,17 @@ gha-runner-scale-set-6:
                   containerName: runner
                   resource: limits.cpu
                   divisor: "1"
+          volumeMounts:
+            {{ shared_artifact_mount() | indent(12) }}
       imagePullSecrets:
         - name: kind-cluster-pull-secret
+      {{ artifact_pvc_volumes('u24') | indent(6) }}
 
 gha-runner-scale-set-rtems:
   namespaceOverride: arc-runners
   controllerServiceAccount:
     namespace: arc-systems
     name: arc-gha-rs-controller
-  # Public repo placeholder - override with private repo URL in secrets.local.yaml
   githubConfigUrl: "https://github.com/nasa-jpl/ION-DTN"
   githubConfigSecret: gha-runner-token-secret
   runnerScaleSetName: arc-rtems
@@ -451,6 +454,7 @@ gha-runner-scale-set-rtems:
           storage: "10Gi"
   template:
     spec:
+      {{ runner_security_context() | indent(6) }}
       containers:
         - name: runner
           image: ghcr.io/actions/actions-runner:latest
@@ -463,6 +467,8 @@ gha-runner-scale-set-rtems:
             limits:
               cpu: "4000m"
               memory: "8Gi"
+          volumeMounts:
+            {{ shared_artifact_mount() | indent(12) }}
           env:
             - name: ARC_CPU_LIMIT
               valueFrom:
@@ -472,3 +478,4 @@ gha-runner-scale-set-rtems:
                   divisor: "1"
       imagePullSecrets:
         - name: kind-cluster-pull-secret
+      {{ artifact_pvc_volumes('rtems') | indent(6) }}

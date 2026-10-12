@@ -1,0 +1,27 @@
+{% set runner_sets = ['u22', 'ol8', 'ol9', 'rhel8', 'rhel9', 'u24', 'rtems'] %}
+{% for short_id in runner_sets %}
+{% if (config == 'rhel8' and short_id == 'rhel8') or 
+      (config == 'rhel9' and short_id == 'rhel9') or 
+      (config == 'ol8' and short_id in ['ol8', 'ol9', 'u22', 'u24']) or 
+      (config == 'rtems' and short_id == 'rtems') or
+      (config not in ['rhel8', 'rhel9', 'ol8', 'rtems']) %}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ion-artifacts-{{ short_id }}
+  namespace: arc-runners
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: arc
+    meta.helm.sh/release-namespace: arc-systems
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+{% endif %}
+{% endfor %}
