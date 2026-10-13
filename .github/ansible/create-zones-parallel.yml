@@ -105,7 +105,7 @@
       loop_control:
         label: "Waiting for multi-user milestone on {{ item.job_index }}"
       register: smf_readiness
-      retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
+      retries: 100
       delay: "{{ zone_create_retry_delay }}"
       until: smf_readiness.stdout == "online"
       changed_when: false
