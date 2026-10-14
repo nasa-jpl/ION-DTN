@@ -255,7 +255,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	if ((bytesRemaining = zco_length(sdr, *dataObj)) <= 0)
 	{
 		BPSEC_DEBUG_ERR("%s", "Data object has no data.");
-		sdr_cancel_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 	zco_start_transmitting(*dataObj, &dataReader);
@@ -265,7 +265,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	if ((context = csi_ctx_init(suite, sesKey, function)) == NULL)
 	{
 		BPSEC_DEBUG_ERR("%s", "Can't get context.");
-		sdr_cancel_xn(sdr);
+		oK(sdr_end_xn(sdr));
 		BPSEC_DEBUG_PROC("%s", "--> NULL");
 		return -1;
 	}
@@ -280,7 +280,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	{
 		BPSEC_DEBUG_ERR("Predicted bad ciphertext length: %d", cipherBufLen);
 		csi_ctx_free(suite, context);
-		sdr_cancel_xn(sdr);
+		oK(sdr_end_xn(sdr));
 
 		BPSEC_DEBUG_PROC("--> %d", -1);
 		return -1;
@@ -321,7 +321,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 			result = bpsec_util_sdrBlkConvert(suite, context, &blocksize, &dataReader,
 					cipherBufLen, &cipherZco, function);
 
-			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
+			if(result > 0 && csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
 				BPSEC_DEBUG_ERR("%s",
 						"Could not finish context.");
@@ -330,8 +330,9 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 		}
 	}
 
-	/* Step 5.2 - If cipher text is large or the SDR processing failed...*/
-	if (result <= 0)
+	/* Step 5.2 - Fall back to a file ONLY when the SDR had insufficient
+	 * space (result == 0). An auth/conversion error (-1) is terminal. */
+	if (result == 0)
 	{
 		double    siestaBytes = 0;
 		double    siestaUsec = 0;
@@ -357,7 +358,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 			result = bpsec_util_fileBlkConvert(suite, context, &blocksize, &dataReader,
 					cipherBufLen, &cipherZco, BPSEC_BAGSC_FILENAME, function);
 
-			if(csi_crypt_finish(suite, context, function, parms) == ERROR)
+			if(result > 0 && csi_crypt_finish(suite, context, function, parms) == ERROR)
 			{
 				BPSEC_DEBUG_ERR("%s",
 						"Could not finish context.");
@@ -367,8 +368,7 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	}
 
 
-	/* Step 6 - Free resources. */
-	zco_destroy(sdr, *dataObj);
+	/* Step 6 - Free the crypto context; preserve the original until success. */
 	csi_ctx_free(suite, context);
 
 	/* Step 7 - If we could not process, signal error. */
@@ -376,11 +376,16 @@ int bpsec_bagscu_zcoCompute(uint32_t suite, SdrObject *dataObj, csi_val_t sesKey
 	{
 		BPSEC_DEBUG_ERR("Cannot process ciphertext of size " UVAST_FIELDSPEC,
 				(uvast) cipherBufLen);
-		sdr_cancel_xn(sdr);
+		if (cipherZco != 0)
+		{
+			zco_destroy(sdr, cipherZco);
+		}
+		oK(sdr_end_xn(sdr));
 		return -1;
 	}
 
-	/* Step 8 - Copy out cipher ZCO and vlose transaction. */
+	/* Step 8 - Replace the original only after authenticated conversion. */
+	zco_destroy(sdr, *dataObj);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		BPSEC_DEBUG_ERR("%s", "Can't end encrypt txn.");
