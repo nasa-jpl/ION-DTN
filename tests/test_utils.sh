@@ -101,6 +101,40 @@ waitForFileContent() {
     done
 }
 
+# waitForPredicate PREDICATE [TIMEOUT_MS] [POLL_INTERVAL_MS]
+#
+# Block until shell command PREDICATE (a function or command name) exits 0,
+# re-evaluating it every POLL_INTERVAL_MS.  Returns 0 on success, 1 on timeout.
+#
+# Use this for a threshold or count assertion that waitForFileContent cannot
+# express, since that one is a presence (grep -q) check only: a bpstats tally
+# reaching N, a custody count returning to 0, a background process exiting once
+# all its bundles arrive.  Define a small predicate function in the dotest that
+# re-samples the state (e.g. re-runs bpstats, then compares lastBpTally), and
+# poll it here with a generous ceiling: the test exits the moment the condition
+# holds instead of blocking for a fixed worst-case delay.
+waitForPredicate() {
+    _wfp_pred="$1"
+    _wfp_timeout="${2:-30000}"
+    _wfp_interval="${3:-500}"
+    _wfp_sleep_arg=$(printf "%d.%03d" \
+        $((_wfp_interval / 1000)) $((_wfp_interval % 1000)))
+    _wfp_elapsed=0
+
+    while :; do
+        if $_wfp_pred; then
+            return 0
+        fi
+        if [ "$_wfp_elapsed" -ge "$_wfp_timeout" ]; then
+            echo "waitForPredicate: timeout after" \
+                "$((_wfp_timeout / 1000))s waiting for '$_wfp_pred'" >&2
+            return 1
+        fi
+        _tu_sleep "$_wfp_sleep_arg" "$_wfp_interval"
+        _wfp_elapsed=$((_wfp_elapsed + _tu_slept_ms))
+    done
+}
+
 # killAndWaitForPidToDie PID [SIGNAL] [TIMEOUT_MS] [POLL_INTERVAL_MS]
 #
 # Send SIGNAL (default SIGINT) to PID, then wait for it to exit.
