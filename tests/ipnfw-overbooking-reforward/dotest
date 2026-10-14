@@ -70,15 +70,23 @@ echo "Sending Expedited (priority 2) bundle, which overbooks that contact..."
 bpsendfile ipn:2.1 ipn:3.1 exp.file "0.2"
 cd ..
 
+# Poll until the reforward is counted and both bundles are delivered.
+# Re-sample bpstats on both nodes each iteration, then re-read the tallies.
+# Ceiling sits above the contact schedule (+10..+13, +18..+26).
+check_reforward_and_delivery() {
+	( cd 2.ipn.tcp && bpstats ) >/dev/null 2>&1
+	( cd 3.ipn.tcp && bpstats ) >/dev/null 2>&1
+	RFW=$(lastBpTally rfw 2.ipn.tcp/ion.log)
+	DLV=$(lastBpTally dlv 3.ipn.tcp/ion.log)
+	[ "$RFW" -ge 1 ] && [ "$DLV" -ge 2 ]
+}
+
 echo "Waiting for both contacts to open and both bundles to be delivered..."
-sleep 35
+waitForPredicate check_reforward_and_delivery 70000 1000
 
 RETVAL=0
 
 # ---- 1. overbooking reforwarded the lower-priority bundle ----
-( cd 2.ipn.tcp && bpstats )
-sleep 1
-RFW=$(lastBpTally rfw 2.ipn.tcp/ion.log)
 echo "node 2 reforward tally: rfw=$RFW"
 if [ "$RFW" -ge 1 ]; then
 	echo "PASS: overbooking management reforwarded a lower-priority bundle (rfw=$RFW)."
@@ -88,9 +96,6 @@ else
 fi
 
 # ---- 2. both bundles were ultimately delivered ----
-( cd 3.ipn.tcp && bpstats )
-sleep 1
-DLV=$(lastBpTally dlv 3.ipn.tcp/ion.log)
 echo "node 3 delivered tally: dlv=$DLV"
 if [ "$DLV" -ge 2 ]; then
 	echo "PASS: both bundles delivered (dlv=$DLV)."

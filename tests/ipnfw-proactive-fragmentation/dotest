@@ -71,7 +71,17 @@ bpsendfile ipn:2.1 ipn:3.1 my.file
 cd ..
 
 echo "Waiting for contacts to open and fragments to arrive..."
-sleep 40
+# The reassembled ADU is delivered only after every fragment has arrived
+# across the contact schedule (contacts through ~+34s).  Poll node 3's
+# delivered tally -- reset with ion.log each run -- with a ceiling above the
+# schedule, so the wait tracks actual delivery instead of a fixed worst case.
+# Each poll re-runs bpstats so the newest snapshot reflects the once-a-second
+# batched-stats drain.
+node3_delivered() {
+	( cd 3.ipn.tcp && bpstats )
+	[ "$(lastBpTally dlv 3.ipn.tcp/ion.log)" -ge 1 ]
+}
+waitForPredicate node3_delivered 70000 1000
 
 RETVAL=0
 
@@ -87,8 +97,6 @@ fi
 # With TCP (no CL fragmentation), the destination receives one bundle per
 # fragment but delivers a single reassembled ADU: rcv > dlv proves the
 # proactive-fragmentation path ran.
-( cd 3.ipn.tcp && bpstats )
-sleep 1
 RCV=$(lastBpTally rcv 3.ipn.tcp/ion.log)
 DLV=$(lastBpTally dlv 3.ipn.tcp/ion.log)
 echo "node 3 tallies: rcv=$RCV dlv=$DLV"

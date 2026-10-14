@@ -19,6 +19,7 @@
 # instrumented.
 set -u
 cd "$(dirname "$0")"
+command -v waitForLog >/dev/null 2>&1 || . ../test_utils.sh
 
 trap 'killm f' EXIT
 
@@ -73,7 +74,9 @@ sleep 1
 echo "Starting ipnd listener on $LISTEN_ADDR:$LISTEN_PORT ..."
 ipnd listen.ipndrc >listen.log 2>&1 &
 IPNDPID=$!
-sleep 3
+# Wait for the receive thread to come up (logs to ion.log, echo on by default)
+# before sending, so the socket is bound and beacons are not dropped.
+waitForLog "receive-thread: Receive beacons thread started" ion.log 30000
 
 if ! kill -0 "$IPNDPID" 2>/dev/null; then
     echo "FAIL: ipnd did not start."; cat listen.log; exit 1
@@ -84,6 +87,17 @@ echo "Sending crafted beacons..."
 python3 ../send_beacon.py "$LISTEN_ADDR" "$LISTEN_PORT" eid
 sleep 1
 python3 ../send_beacon.py "$LISTEN_ADDR" "$LISTEN_PORT" svc
+
+# Both beacons have reached a conclusion: rejected (logged to ion.log) on the
+# fixed code, or ipnd aborted (asanrep.* or dead pid) on the vulnerable code.
+beaconsSettled() {
+    [ "$(ls asanrep.* 2>/dev/null | wc -l)" -ne 0 ] && return 0
+    kill -0 "$IPNDPID" 2>/dev/null || return 0
+    grep -q "Beacon truncated in mandatory part" ion.log 2>/dev/null || return 1
+    grep -q "Beacon truncated in optional part" ion.log 2>/dev/null || return 1
+    return 0
+}
+waitForPredicate beaconsSettled 30000
 sleep 2
 
 if kill -0 "$IPNDPID" 2>/dev/null && [ "$(ls asanrep.* 2>/dev/null | wc -l)" -eq 0 ]

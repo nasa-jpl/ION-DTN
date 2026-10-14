@@ -95,6 +95,8 @@ echo "All nodes up."
 # Receiver on the destination node.
 (cd 3.ipn.udp && bpsink ipn:3.1 > sink.txt 2>&1) &
 SINKPID=$!
+# bpsink logs no readiness marker; give it a moment to open the endpoint
+# before the one-shot injection (a bundle that arrives first is discarded).
 sleep 3
 
 echo "Injecting control bundle (non-empty payload) into node 2 ..."

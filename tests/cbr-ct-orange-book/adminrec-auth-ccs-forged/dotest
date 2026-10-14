@@ -13,6 +13,8 @@ trap 'killm f' EXIT
 # Requires python3 >= 3.10 and the bespokebpv7 package; SKIPs (exit 2) otherwise.
 #
 
+. ../../test_utils.sh
+
 TESTDIR=$(cd "$(dirname "$0")" && pwd)
 export ION_NODE_LIST_DIR="$TESTDIR"
 
@@ -43,16 +45,25 @@ custody_count() {   # bundles in custody at node 1
         | sed -n 's/.*: \([0-9][0-9]*\) bundle(s) in custody.*/\1/p' | head -1
 }
 
+custody_held() {        # custody_count >= 1
+    _cc=$(custody_count); _cc=${_cc:-0}
+    [ "$_cc" -ge 1 ]
+}
+
+custody_released() {    # custody_count == 0
+    _cc=$(custody_count); _cc=${_cc:-0}
+    [ "$_cc" -eq 0 ]
+}
+
 echo "Starting ION nodes..."
 for node in 1 2; do
     cd "$TESTDIR/${node}.node"; chmod +x ionstart
     ./ionstart > ion_startup.log 2>&1
-    sleep 2
+    waitForLog "udpclo is running" ion.log 30000
 done
 if [ "$(pgrep -x rfxclock | wc -l)" -lt 2 ]; then
     echo "ERROR: nodes did not start."; exit 1
 fi
-sleep 3
 
 # Node 1 enters node-state mode (drop the accept-all "any" sentinel).
 ( cd "$TESTDIR/1.node" && echo 'm adminauth deny any' | bpadmin > deny_any.txt 2>&1 )
@@ -63,7 +74,7 @@ sleep 3
 # cbrcustodytest then blocks polling for release, so run it in the background.
 ( cd "$TESTDIR/1.node" && cbrcustodytest ipn:3.1 > originate.txt 2>&1 ) &
 ORIG_PID=$!
-sleep 4
+waitForPredicate custody_held 30000
 
 LISTING=$( cd "$TESTDIR/1.node" && cbrcustodytest -l 2>/dev/null )
 echo "$LISTING" | grep -E "seqId=|in custody" | head
@@ -88,7 +99,7 @@ echo "--- Test 1: forged CCS from a non-custodian is ignored ---"
 "$PYTHON_CMD" "$TESTDIR/inject_ccs.py" --induct-port 4551 --source ipn:99.0 \
     --dest ipn:1.0 --seq-id "$SEQID" --seq-num "$SEQNUM" --disposition 1 \
     >> "$TESTDIR/1.node/inject.txt" 2>&1
-sleep 5
+waitForLog "custody NOT released" "$TESTDIR/1.node/ion.log" 30000
 CNT1=$(custody_count); CNT1=${CNT1:-0}
 echo "  in custody after forged CCS: $CNT1"
 if [ "$CNT1" -ge 1 ]; then
@@ -107,7 +118,7 @@ echo "--- Test 2: CCS from the real custodian releases custody ---"
 "$PYTHON_CMD" "$TESTDIR/inject_ccs.py" --induct-port 4551 --source ipn:2.0 \
     --dest ipn:1.0 --seq-id "$SEQID" --seq-num "$SEQNUM" --disposition 1 \
     >> "$TESTDIR/1.node/inject.txt" 2>&1
-sleep 5
+waitForPredicate custody_released 30000
 CNT2=$(custody_count); CNT2=${CNT2:-0}
 echo "  in custody after genuine CCS: $CNT2"
 if [ "$CNT2" -eq 0 ]; then

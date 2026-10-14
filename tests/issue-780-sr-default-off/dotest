@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 export ION_NODE_LIST_DIR=$PWD
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # Regression test for issue #780: "Status Report generation from status reports".
 #
@@ -47,7 +49,9 @@ echo
 echo "=== Phase 1: default status report mode (expect NO reports) ==="
 cd 1.ipn.udp
 ./ionstart amroc.bprc > node.stdout 2>&1
-sleep 3
+# Wait for the loopback outduct instead of a fixed settle before tracing.
+waitForLog "udpclo is running" ion.log 30000 || {
+    echo "ERROR: node did not finish starting (phase 1)."; RETVAL=1; }
 
 OUTPUT=`bptrace -qos 0.1 -flags "rcv,fwd,dlv,del" -msg "phase1" -ttl 20 -rtt 8 ipn:1.1 ipn:1.1 ipn:1.2`
 echo "$OUTPUT"
@@ -60,7 +64,7 @@ else
 fi
 
 # The declined-report memo should have been written.
-if grep -q "generation is disabled" ion.log; then
+if waitForLog "generation is disabled" ion.log 5000; then
     echo "OK: found the 'generation is disabled' memo in ion.log."
 else
     echo "WARNING: expected 'generation is disabled' memo not found (non-fatal)."
@@ -83,11 +87,20 @@ echo "=== Phase 2: 'm srmode traditional' (expect a report, no cascade) ==="
 cd 1.ipn.udp
 rm -f ion.log node.stdout
 ./ionstart amroc-traditional.bprc > node.stdout 2>&1
-sleep 3
+waitForLog "udpclo is running" ion.log 30000 || {
+    echo "ERROR: node did not finish starting (phase 2)."; RETVAL=1; }
 
-OUTPUT=`bptrace -qos 0.1 -flags "rcv,fwd,dlv,del" -msg "phase2" -ttl 20 -rtt 10 ipn:1.1 ipn:1.1 ipn:1.2`
+# bptrace blocks for its whole -rtt window and never exits early, so retry the
+# trace and break on the first report that comes back.
+REPORTS=0
+_try=0
+while [ "$_try" -lt 6 ]; do
+    _try=$((_try + 1))
+    OUTPUT=`bptrace -qos 0.1 -flags "rcv,fwd,dlv,del" -msg "phase2" -ttl 20 -rtt 10 ipn:1.1 ipn:1.1 ipn:1.2`
+    REPORTS=`echo "$OUTPUT" | grep -c 'okay'`
+    [ "$REPORTS" -ge 1 ] && break
+done
 echo "$OUTPUT"
-REPORTS=`echo "$OUTPUT" | grep -c 'okay'`
 if [ "$REPORTS" -ge 1 ]; then
     echo "OK: status report(s) generated after enabling ($REPORTS)."
 else

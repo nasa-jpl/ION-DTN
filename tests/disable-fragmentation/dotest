@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # Regression test for the node-level fragmentation controls:
 #   m disable-fragmentation { 0 | 1 }
@@ -98,8 +100,12 @@ RETVAL=0
 echo
 echo "=== Phase A: defaults (fragmentation permitted) ==="
 BEFORE=$(recvcount)
+# True once node 3 has written one new file and it matches the source.
+phaseADelivered() {
+    [ "$(recvcount)" -eq $((BEFORE + 1)) ] && cmp -s sourceFile "$RECVDIR/testfile1"
+}
 bpsendfile ipn:2.1 ipn:3.1 sourceFile
-sleep 6
+waitForPredicate phaseADelivered 30000
 AFTER=$(recvcount)
 if [ "$AFTER" -eq $((BEFORE + 1)) ] \
    && cmp -s sourceFile "$RECVDIR/testfile1"

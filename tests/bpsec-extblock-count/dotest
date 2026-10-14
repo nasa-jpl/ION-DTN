@@ -68,17 +68,30 @@ fi
 export ASAN_OPTIONS="log_path=$PWD/asanrep:halt_on_error=1:abort_on_error=1:detect_leaks=0"
 
 (cd 3.ipn.udp && ./ionstart) >3.ipn.udp/start.log 2>&1
-sleep 4
+
+# Wait for the UDP induct (the target of the injected datagrams) to come up.
+if ! waitForLog "udpcli is running" 3.ipn.udp/ion.log 30000; then
+    echo "FAIL: udpcli induct did not start"
+    exit 1
+fi
 
 (cd 3.ipn.udp && bpsink ipn:3.1 >sink.txt 2>&1) &
 SINK=$!
+# bpsink logs no readiness marker; give it a moment to open the endpoint
+# before injecting (an undeliverable bundle that arrives first is discarded).
 sleep 2
+
+# True once at least $1 payloads have been delivered to the sink.
+deliveredAtLeast() {
+    _dc=$(grep -c "Payload delivered" 3.ipn.udp/sink.txt 2>/dev/null)
+    [ "${_dc:-0}" -ge "$1" ]
+}
 
 echo "Injecting the 40-extension-block bundle, then an ordinary bundle ..."
 python3 send_bundle.py "$FLOOD" 3117
-sleep 3
+waitForPredicate "deliveredAtLeast 1" 30000
 python3 send_bundle.py "$CONTROL" 3117
-sleep 3
+waitForPredicate "deliveredAtLeast 2" 30000
 
 kill "$SINK" 2>/dev/null
 DELIVERED=$(grep -c "Payload delivered" 3.ipn.udp/sink.txt 2>/dev/null)

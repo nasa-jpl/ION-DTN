@@ -131,8 +131,15 @@ do
 done
 
 waitUntil $((LAST_CONTACT_ENDS + SETTLE))
-bpstats
-sleep 1
+
+# Poll the newest bpstats snapshot, exiting the moment the 'fwd' tally
+# crosses the cap instead of fixed-settling for the drain.
+fwdPastCeiling()
+{
+    bpstats
+    [ "$(lastBpTally fwd)" -gt "$CEILING" ]
+}
+waitForPredicate fwdPastCeiling 15000 1000
 FWD=$(lastBpTally fwd)
 
 echo ""

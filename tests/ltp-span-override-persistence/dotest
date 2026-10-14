@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # Regression test for per-span LTP parameter override persistence.
 #
@@ -50,12 +52,15 @@ inactivity () { ltpadmin <<< "l span" 2>/dev/null \
 override ()   { ltpadmin <<< "l span" 2>/dev/null \
 		| sed -n 's/.*hasSpanOverride: \([0-9]*\).*/\1/p' | tail -1; }
 
+# True once ltpadmin can read the span listing back.
+span_ready () { [ -n "$(override)" ]; }
+
 # Issue ltpadmin commands from stdin.
 ltp () { ltpadmin > /dev/null 2>&1; }
 
 restart () {
 	ionrestart
-	sleep 3
+	waitForPredicate span_ready 40000
 }
 
 echo "Killing old ION..."
@@ -71,9 +76,11 @@ ionstart -i "${CONFIGDIR}/loopback.ionrc" \
 	-b "${CONFIGDIR}/loopback.bprc" \
 	-p "${CONFIGDIR}/loopback.ipnrc" \
 	-s "${CONFIGDIR}/loopback.ionsecrc"
-sleep 1
 bpadmin "${CONFIGDIR}/loopbackstart.bprc"
-sleep 3
+
+# Wait for the LTP engine and BP to finish starting before reading config.
+waitForLog "ltpclock is running" ion.log 40000
+waitForLog "ipnfw is running" ion.log 40000
 
 echo ""
 echo "=== Preflight: the span listing must report per-span configuration ==="

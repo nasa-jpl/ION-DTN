@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # bpsec-adminrec-require: administrative-record 'require' tier.
 #
@@ -52,7 +54,7 @@ for node in 1 2 3; do
     cd "$TESTDIR/${node}.node"
     chmod +x ionstart
     ./ionstart > ion_startup.log 2>&1
-    sleep 2
+    waitForLog "udpclo is running" "$TESTDIR/${node}.node/ion.log" 15000
 done
 
 NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
@@ -77,7 +79,8 @@ echo "--- Test 1: BIB-protected admin record (from node 3) is accepted ---"
 R1=$(crs_recv); R1=${R1:-0}
 ( cd "$TESTDIR/1.node" && bptrace -msg "protected" -ttl 60 -flags dlv \
     ipn:1.2 ipn:3.1 ipn:1.0 > trace_protected.txt 2>&1 )
-sleep 10
+crs_above_R1() { local n; n=$(crs_recv); n=${n:-0}; [ "$n" -gt "$R1" ]; }
+waitForPredicate crs_above_R1 40000
 R1b=$(crs_recv); R1b=${R1b:-0}
 echo "  Node 1 CRS Signals Recv: $R1 -> $R1b"
 if [ "$R1b" -gt "$R1" ]; then
@@ -92,7 +95,8 @@ echo "--- Test 2: unprotected admin record (from node 2) is rejected ---"
 R2=$(crs_recv); R2=${R2:-0}
 ( cd "$TESTDIR/1.node" && bptrace -msg "unprotected" -ttl 60 -flags dlv \
     ipn:1.2 ipn:2.1 ipn:1.0 > trace_unprotected.txt 2>&1 )
-sleep 10
+waitForLog "Ignored unauthenticated admin record" "$TESTDIR/1.node/ion.log" 30000
+sleep 2  # brief settle for any erroneous CRS tally before the negative check
 R2b=$(crs_recv); R2b=${R2b:-0}
 echo "  Node 1 CRS Signals Recv: $R2 -> $R2b"
 if [ "$R2b" -eq "$R2" ]; then

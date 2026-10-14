@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 trap 'kill $RELAY_PID 2>/dev/null; killm f' EXIT
+
+# Shared bounded-poll helpers (waitForLog, waitForPredicate, ...).
+. ../test_utils.sh
 #
 # Regression test: an LTP sender must not cancel an export session on the
 # strength of a reception report that a later report has superseded.
@@ -76,7 +79,9 @@ fi
 echo "Starting relays..."
 $PYTHON_CMD runtest.py --duration 90 $RELAY_ARGS > relay.stdout 2>&1 &
 RELAY_PID=$!
-sleep 2
+
+# Wait for both relays to bind and start forwarding.
+waitForLog "relaying:" relay.stdout 20000
 
 if ! kill -0 $RELAY_PID 2>/dev/null; then
 	echo "ERROR: relays did not start."
@@ -109,7 +114,10 @@ fi
 echo "Starting bprecvfile on node 3..."
 cd ../3.ipn.ltp
 bprecvfile ipn:3.1 &
-sleep 2
+
+# Wait for bprecvfile to open the endpoint before sending; node 3's
+# endpoints discard on arrival when no application is receiving.
+waitForLog "bprecvfile is running" ion.log 20000
 
 echo "Sending the file from node 2, reliably..."
 cd ../2.ipn.ltp
@@ -132,8 +140,20 @@ done
 
 grep -E "receiver holds the block|injection |CHECKPOINT BUDGET|completing report delivered" relay.stdout 2>/dev/null
 
-# Let the sender act on the completing report and BP deliver.
-sleep 10
+# The completed red block is delivered once; poll for it and exit the
+# moment testfile1 appears rather than wait a fixed interval.
+testfile1_present() { [ -f 3.ipn.ltp/testfile1 ]; }
+waitForPredicate testfile1_present 40000
+
+# A duplicate delivery (testfile2) is an inherent negative window: only the
+# staged sequence can produce one.  The exhausted-budget condition that
+# triggers it is already observed above; gate on the sender being handed
+# the completing report, then settle briefly for any erroneous re-forward
+# before the testfile2 check.
+if [ $spent -eq 1 ]; then
+	waitForLog "completing report delivered to the sender" relay.stdout 10000
+fi
+sleep 5
 
 echo ""
 echo "What the relays did:"

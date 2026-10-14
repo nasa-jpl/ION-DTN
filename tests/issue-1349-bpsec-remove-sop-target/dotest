@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # Regression test for issue 1349: the native BPSec sender-side target
 # removal policy actions must run without a failed assertion.
@@ -94,19 +96,11 @@ ENDOFBPSECADMINCOMMANDS
 	cd 2.ipn.ltp
 	bptrace ipn:2.1 ipn:3.1 ipn:2.0 30 0.1 "issue-1349-${LABEL}" del
 	cd ..
-	sleep 3
 
-	if grep -q "Assertion failed" 2.ipn.ltp/ion.log
-	then
-		echo "FAIL (${LABEL}): the policy action raised a failed assertion."
-		grep "Assertion failed" 2.ipn.ltp/ion.log | tail -3
-		RETVAL=1
-	else
-		echo "OK (${LABEL}): no failed assertion."
-	fi
-
-	# The node must still forward.  Send an unsecured bundle from a
-	# source with no policy rule and require node 3 to deliver it.
+	# Send an unsecured bundle from a source with no policy rule.  Its
+	# delivery to node 3 shows node 2 dequeued past the bad bundle, so the
+	# sop_misconf_at_src event has fired and is the ordering gate for the
+	# assertion check below.
 	BEFORE=$(delivered 3.ipn.ltp/3_delivered.txt)
 	cd 2.ipn.ltp
 	bptrace ipn:2.2 ipn:3.2 ipn:2.0 30 0.1 "issue-1349-${LABEL}-followup"
@@ -133,6 +127,16 @@ ENDOFBPSECADMINCOMMANDS
 		RETVAL=1
 	fi
 
+	# The event has been handled by now; require no failed assertion.
+	if grep -q "Assertion failed" 2.ipn.ltp/ion.log
+	then
+		echo "FAIL (${LABEL}): the policy action raised a failed assertion."
+		grep "Assertion failed" 2.ipn.ltp/ion.log | tail -3
+		RETVAL=1
+	else
+		echo "OK (${LABEL}): no failed assertion."
+	fi
+
 	cd 2.ipn.ltp
 	bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 d {"policyrule" : {"rule_id" : "${LABEL}"}}
@@ -145,7 +149,9 @@ cd 3.ipn.ltp
 rm -f 3_delivered.txt
 touch 3_delivered.txt
 bpsink ipn:3.2 >> 3_delivered.txt &
+BPSINK_PID=$!
 cd ..
+# bpsink logs no readiness marker; brief settle to open the endpoint.
 sleep 2
 
 # Warm up the LTP path so the first per-case delivery does not pay

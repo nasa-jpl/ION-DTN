@@ -25,6 +25,8 @@ trap 'killm f' EXIT
 #   2. 'm adminauth allow ipn:3.0': node 1 records it again.
 #
 
+. ../../test_utils.sh
+
 TESTDIR=$(cd "$(dirname "$0")" && pwd)
 export ION_NODE_LIST_DIR="$TESTDIR"
 
@@ -52,11 +54,17 @@ crs_recv() {   # $1 = node dir; prints that node's "CRS Signals Recv" tally
         | grep "CRS Signals Recv" | awk '{print $NF}'
 }
 
-# Send one delivery-reporting bundle from node 1 to node 3, wait for the CRS.
-send_and_wait() {   # $1 = message label
+# Send one delivery-reporting bundle from node 1 to node 3.
+send_trace() {   # $1 = message label
     ( cd "$TESTDIR/1.node" && bptrace -msg "$1" -ttl 60 -flags dlv \
         ipn:1.2 ipn:3.1 ipn:1.0 > "trace_$1.txt" 2>&1 )
-    sleep 10
+}
+
+# True once node 1's "CRS Signals Recv" tally exceeds BASE.
+BASE=0
+crs_grew() {
+    _c=$(crs_recv 1.node); _c=${_c:-0}
+    [ "$_c" -gt "$BASE" ]
 }
 
 echo "Starting ION nodes..."
@@ -64,7 +72,7 @@ for node in 1 2 3; do
     cd "$TESTDIR/${node}.node"
     chmod +x ionstart
     ./ionstart > ion_startup.log 2>&1
-    sleep 2
+    waitForLog "udpclo is running" ion.log 30000
 done
 
 NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
@@ -76,17 +84,20 @@ echo "All 3 nodes started."
 echo ""
 
 echo "Waiting for contacts to become active..."
-sleep 3
+# Contacts open at +0; Phase 0's CRS poll (30s ceiling) absorbs activation.
 
 cd "$TESTDIR/3.node"
 bpsink ipn:3.1 > sink_output.txt 2>&1 &
 SINK_PID=$!
+# bpsink logs no readiness marker; brief settle to open the endpoint.
 sleep 2
 
 # ---------------------------------------------------------------
 echo "--- Phase 0: default 'trust' accepts the CRS ---"
 R0=$(crs_recv 1.node); R0=${R0:-0}
-send_and_wait phase0
+BASE=$R0
+send_trace phase0
+waitForPredicate crs_grew 30000
 R0b=$(crs_recv 1.node); R0b=${R0b:-0}
 echo "  Node 1 CRS Signals Recv: $R0 -> $R0b"
 if [ "$R0b" -gt "$R0" ]; then
@@ -100,7 +111,12 @@ echo ""
 echo "--- Phase 1: 'm adminauth deny any' (node state) ignores it ---"
 ( cd "$TESTDIR/1.node" && echo 'm adminauth deny any' | bpadmin > deny_any.txt 2>&1 )
 R1=$(crs_recv 1.node); R1=${R1:-0}
-send_and_wait phase1
+send_trace phase1
+# Gate on the CRS being received and rejected, then settle before asserting
+# the tally did not grow.
+waitForLog "Ignored admin record from unrecognized source" \
+    "$TESTDIR/1.node/ion.log" 30000
+sleep 2
 R1b=$(crs_recv 1.node); R1b=${R1b:-0}
 echo "  Node 1 CRS Signals Recv: $R1 -> $R1b"
 if [ "$R1b" -eq "$R1" ]; then
@@ -120,7 +136,9 @@ echo ""
 echo "--- Phase 2: 'm adminauth allow ipn:3.0' authorizes the reporter ---"
 ( cd "$TESTDIR/1.node" && echo 'm adminauth allow ipn:3.0' | bpadmin > allow.txt 2>&1 )
 R2=$(crs_recv 1.node); R2=${R2:-0}
-send_and_wait phase2
+BASE=$R2
+send_trace phase2
+waitForPredicate crs_grew 30000
 R2b=$(crs_recv 1.node); R2b=${R2b:-0}
 echo "  Node 1 CRS Signals Recv: $R2 -> $R2b"
 if [ "$R2b" -gt "$R2" ]; then

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 trap 'killm f' EXIT
+
+. ../test_utils.sh
 #
 # Integration test for the LTP repair round limit.
 #
@@ -48,8 +50,11 @@ rounds () { ltpadmin <<< "l span" 2>/dev/null \
 checkpoints () { ltpadmin <<< "l span" 2>/dev/null \
 		| sed -n 's/.*maxCheckpoints \([0-9]*\).*/\1/p' | tail -1; }
 
+# True once 'l span' reports a resolved round limit (LTP is responsive).
+spanReady () { [ -n "$(rounds)" ]; }
+
 ltp () { ltpadmin > /dev/null 2>&1; }
-restart () { ionrestart; sleep 3; }
+restart () { ionrestart; waitForPredicate spanReady 15000; }
 
 echo "Killing old ION..."
 killm
@@ -63,9 +68,9 @@ ionstart -i "${CONFIGDIR}/loopback.ionrc" \
 	-b "${CONFIGDIR}/loopback.bprc" \
 	-p "${CONFIGDIR}/loopback.ipnrc" \
 	-s "${CONFIGDIR}/loopback.ionsecrc"
-sleep 1
+waitForLog "ipnfw is running." ion.log 30000
 bpadmin "${CONFIGDIR}/loopbackstart.bprc"
-sleep 3
+waitForPredicate spanReady 15000
 
 echo ""
 echo "=== Preflight ==="

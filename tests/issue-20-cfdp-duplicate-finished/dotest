@@ -15,11 +15,14 @@ trap 'killm f' EXIT
 # a single-node loopback would mix the sender's indication with the
 # receiver's, which are separate transactions and both legitimate.
 
-# set timeouts based on OS type
+# shared polling helpers (waitForLog, waitForPredicate)
+. ../test_utils.sh
+
+# poll ceiling (ms) for node 1's cfdptest to finish; slower platforms get more
 if [ "$1" = "linux" ] || [ "$1" = "mac" ] ; then
-    TIMETOWAIT=50
+    FINISH_CEIL_MS=70000
 else
-    TIMETOWAIT=70
+    FINISH_CEIL_MS=95000
 fi
 
 ./cleanup
@@ -35,7 +38,17 @@ cd ../2.ipn.ltp
 ./ionstart
 cd ..
 
-sleep 12
+echo "Waiting for both nodes to come up..."
+if ! waitForLog "bputa is running" 1.ipn.ltp/ion.log 40000
+then
+    echo "Error: node 1 CFDP did not start."
+    exit 1
+fi
+if ! waitForLog "bputa is running" 2.ipn.ltp/ion.log 40000
+then
+    echo "Error: node 2 CFDP did not start."
+    exit 1
+fi
 
 if [ ! -s ion_nodes ]
 then
@@ -46,11 +59,16 @@ fi
 echo "Starting cfdptest on each node..."
 cd 1.ipn.ltp
 cfdptest < cfdp_cmds > node1.stdout 2>&1 &
+NODE1_CFDP=$!
 cd ../2.ipn.ltp
 cfdptest < cfdp_cmds > node2.stdout 2>&1 &
 cd ..
 
-sleep $TIMETOWAIT
+# Wait for node 1's cfdptest to run its full script -- put, cancel, and the
+# window in which a duplicate Transaction-Finished would surface -- then exit.
+# The indication count is final once the process is gone.
+node1CfdpDone() { ! kill -0 "$NODE1_CFDP" 2>/dev/null; }
+waitForPredicate node1CfdpDone "$FINISH_CEIL_MS"
 
 killall -9 cfdptest >/dev/null 2>&1
 sleep 1

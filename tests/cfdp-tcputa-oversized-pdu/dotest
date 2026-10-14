@@ -40,7 +40,7 @@ rm -f ion_nodes
 echo "Starting node 3 (tcputa on 127.0.0.1:$TCPUTA_PORT) ..."
 (cd 3.ipn.tcp && ./ionstart) >3.ipn.tcp/start.log 2>&1
 
-# Gate on BP being up, then give cfdpadmin/tcputa a moment to bind.
+# Gate on BP being up before probing tcputa.
 ( cd 3.ipn.tcp && "$SYSUP" -i "p 30" -b "p 30" ) >/dev/null 2>&1
 if [ $? -ne 2 ]; then
     echo "FAIL: node did not come up"
@@ -51,13 +51,14 @@ for i in $(seq 1 15); do
     grep -q "tcputa input has started" 3.ipn.tcp/ion.log 2>/dev/null && break
     sleep 1
 done
-sleep 1
 
 echo "Sending an oversized CFDP PDU to tcputa ..."
-python3 send_pdu.py "$TCPUTA_PORT" >/dev/null 2>&1
 
+# Send on each poll iteration (retries a connect that races tcputa's bind)
+# until the discard is logged or tcputa crashes.
 DISCARDED=0
-for i in $(seq 1 15); do
+for i in $(seq 1 30); do
+    python3 send_pdu.py "$TCPUTA_PORT" >/dev/null 2>&1
     DISCARDED=$(grep -c "discarding oversized CFDP" 3.ipn.tcp/ion.log 2>/dev/null)
     [ "${DISCARDED:-0}" -ge 1 ] && break
     pgrep -x tcputa >/dev/null 2>&1 || break   # tcputa gone -> crashed

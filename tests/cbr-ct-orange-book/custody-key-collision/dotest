@@ -26,6 +26,8 @@ trap 'killm f' EXIT
 # Topology: Node 1 (source) -> Node 2 (custodian + source) -> Node 3 (dest)
 #
 
+. ../../test_utils.sh
+
 TESTDIR=$(cd "$(dirname "$0")" && pwd)
 export ION_NODE_LIST_DIR="$TESTDIR"
 
@@ -48,12 +50,26 @@ test_result() {
     fi
 }
 
+# bpcounter (node 3) exits once all expected bundles arrive.
+counterExited() {
+    ! kill -0 "$counter_pid" 2>/dev/null
+}
+
+# cbrcustodytest -l lists once and exits; re-sample the current node's
+# custody count each poll.  Reads the node selected by the caller's CWD.
+custodyReleased() {
+    cbrcustodytest -l > "custody_${phase_label}.txt" 2>&1
+    grep -q "0 bundle(s) in custody" "custody_${phase_label}.txt" 2>/dev/null
+}
+
 # Start all nodes
 echo "Starting ION nodes..."
 for node in 1 2 3; do
     cd "$TESTDIR/${node}.node"
     ./ionstart > ion_startup.log 2>&1
-    sleep 2
+    # udpclo is the last duct bpStart launches; its log line means the
+    # node's BP daemons are up.
+    waitForLog "udpclo is running" ion.log 30000
 done
 
 NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
@@ -85,7 +101,10 @@ run_phase() {
     cd "$TESTDIR/3.node"
     bpcounter ipn:3.1 $((count * 2)) > counter_${phase_label}.txt 2>&1 &
     counter_pid=$!
-    sleep 2
+    # endpoint ipn:3.1 discards (rule 'x') until an app opens it, so wait for
+    # bpcounter to be listening before sending.  Its periodic "Bundles
+    # received" line is printed only after bp_open succeeds.
+    waitForFileContent "Bundles received" "counter_${phase_label}.txt" 20000
 
     # Node 1 originates custody bundles to node 3; node 2 forwards and holds
     # custody (node 3 delays its CCS via cbraggr), so node 2 has live tracked
@@ -112,8 +131,8 @@ run_phase() {
         test_result 1 "$phase_label: $new_warnings custody-tracking collision(s) at node 2"
     fi
 
-    # Wait for CCS flush (cbraggr timeout) and custody release everywhere.
-    sleep 12
+    # Wait for all bundles to reach node 3 (bpcounter exits).
+    waitForPredicate counterExited 30000
 
     if ! kill -0 $counter_pid 2>/dev/null; then
         test_result 0 "$phase_label: all $((count * 2)) bundles delivered to node 3"
@@ -122,8 +141,11 @@ run_phase() {
         test_result 1 "$phase_label: not all bundles delivered (timeout)"
     fi
 
+    # Custody release waits on the cbraggr flush (semantic floor); poll above
+    # the schedule so it early-exits once each node releases.
     for src in 1 2; do
         cd "$TESTDIR/${src}.node"
+        waitForPredicate custodyReleased 30000 1000
         cbrcustodytest -l > custody_${phase_label}.txt 2>&1
         if grep -q "0 bundle(s) in custody" custody_${phase_label}.txt 2>/dev/null
         then
