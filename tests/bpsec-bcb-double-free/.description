@@ -1,0 +1,1 @@
+A rejected payload BCB (tampered ciphertext, wrong tag, or key mismatch) must be discarded without aborting the acceptor node: no double free of the target ZCO and no cancel of a modified non-reversible transaction.

@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# A rejected payload BCB must not abort the acceptor node.
+#
+# bpsec_bagscu_zcoCompute() used to free the caller's target ZCO and then
+# cancel its SDR transaction on a decryption failure.  On a non-reversible SDR
+# (configFlags 1) that aborts the process on a single tampered or key-mismatched
+# bundle: the acquisition cleanup frees the dangling handle a second time, and
+# the cancel of a modified non-reversible transaction is itself unrecoverable.
+#
+# The harness drives bpsec_bagscu_zcoCompute() directly with the RFC 9173
+# Appendix A.3 payload vectors, so it reaches the AES-GCM tag check (a wrapped
+# session key mismatched over the wire would instead fail earlier, at key
+# unwrap, and never exercise this path).  It allocates from ION working memory,
+# so the dotest starts a minimal node for it to attach to.
+#
+# Meaningful only with real crypto: a default (NULL_SUITES) build makes the
+# cipher suite a no-op, so there is no tag to reject and the test skips.
+set -u
+cd "$(dirname "$0")"
+
+if [ -z "${CC:-}" ]; then
+    if command -v gcc >/dev/null 2>&1; then
+        CC=gcc
+    elif command -v clang >/dev/null 2>&1; then
+        CC=clang
+    else
+        CC=cc
+    fi
+fi
+
+echo "########################################"
+echo "NAME: bpsec-bcb-double-free"
+echo "PURPOSE: A rejected payload BCB (tampered ciphertext, wrong tag or wrong"
+echo "         key) must be discarded without aborting the acceptor node."
+echo "########################################"
+
+if ! ION_CFLAGS=$(pkg-config --cflags ion 2>/dev/null); then
+    echo "SKIP: pkg-config could not find ion."
+    exit 2
+fi
+ION_LIBS=$(pkg-config --libs ion 2>/dev/null)
+LIBDIR=$(pkg-config --variable=libdir ion 2>/dev/null)
+
+LIBICI=$(find "$LIBDIR"/* -prune -name "libici.so*" 2>/dev/null | head -n1)
+if [ -z "$LIBICI" ]; then
+    echo "SKIP: libici not found in ${LIBDIR:-<unset>}."
+    exit 2
+fi
+
+# Real crypto only: a NULL_SUITES build does not link libmbedcrypto and its
+# cipher suite is a no-op, so there is no authentication tag to reject.
+if ! ldd "$LIBICI" 2>/dev/null | grep -q "libmbedcrypto"; then
+    echo "SKIP: ION not built with a real cipher suite (--enable-crypto-mbedtls);"
+    echo "      NULL_SUITES crypto has no authentication tag to reject."
+    exit 2
+fi
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes ion.log
+killm f >/dev/null 2>&1
+
+# Minimal non-reversible (configFlags 1) node for the harness to attach to.
+if ! ionadmin node.ionrc >start.log 2>&1; then
+    echo "FAIL: could not start the ION node."
+    cat start.log
+    killm f >/dev/null 2>&1
+    exit 1
+fi
+
+BIN=$(mktemp /tmp/bcb_cleanup_test.XXXXXX)
+# Word-splitting of the pkg-config flag lists is intentional.
+# shellcheck disable=SC2086
+if ! $CC -g -O1 $ION_CFLAGS bcb_cleanup_test.c $ION_LIBS -o "$BIN" 2>compile.log; then
+    echo "FAIL: could not compile the harness."
+    cat compile.log
+    rm -f "$BIN"
+    killm f >/dev/null 2>&1
+    exit 1
+fi
+
+LD_LIBRARY_PATH="$LIBDIR:${LD_LIBRARY_PATH:-}" "$BIN"
+RETVAL=$?
+rm -f "$BIN"
+
+echo
+echo "-- acceptor SDR state after the rejected cases --"
+if grep -nE "Unrecoverable SDR error|Transaction aborted|Can't free arbitrary space|sdr_free invalid" ion.log 2>/dev/null; then
+    echo "   (node aborted -- the defect is present)"
+else
+    echo "   (none: node survived every rejection)"
+fi
+
+killm f >/dev/null 2>&1
+rm -f ion_nodes ion.log
+
+if [ "$RETVAL" -eq 0 ]; then
+    echo "SUCCESS: every rejected payload BCB was discarded without aborting the node."
+    exit 0
+fi
+
+if [ "$RETVAL" -eq 2 ]; then
+    echo "SKIP: harness could not attach to ION."
+    exit 2
+fi
+
+echo "FAIL: the acceptor did not cleanly reject a bad payload BCB (exit $RETVAL)."
+echo "      A signal exit (>128) means the SDR aborted the process."
+exit 1
