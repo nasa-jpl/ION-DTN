@@ -46,13 +46,24 @@ test-mods:
               - "!tests/test_utils.sh"
 
 quick-test:
-  - any:
+  - all:
+      # At least one test-harness file changed...
       - changed-files:
           - any-glob-to-any-file:
               - "tests/cleanup"
               - "tests/runcleanup"
               - "tests/runtests"
               - "tests/test_utils.sh"
+              - "tests/runtestset"
+      # ...and every changed file is a test-harness file, so a PR that also
+      # touches real tests, demos, source, or build files is excluded.
+      - changed-files:
+          - any-glob-to-all-files:
+              - "tests/cleanup"
+              - "tests/runcleanup"
+              - "tests/runtests"
+              - "tests/test_utils.sh"
+              - "tests/runtestset"
 
 documentation:
   - any:
