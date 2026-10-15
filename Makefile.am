@@ -2772,7 +2772,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/bp_receive_concurrent_timer/dotest \
 	tests/bp_sap_thread_ownership/dotest \
 	tests/eid-format-preservation/dotest \
-	tests/ltp-budget-unit/dotest
+	tests/ltp-budget-unit/dotest \
+	tests/crc32-high-speed/dotest
 #	tests/nm-unit/primitives/ari/dotest
 # Note: SPP/EPP loopback tests use shell scripts, not C programs
 
@@ -2825,6 +2826,13 @@ tests_ltp_budget_unit_dotest_SOURCES = tests/ltp-budget-unit/dotest.c
 tests_ltp_budget_unit_dotest_LDADD = libici.la -lm $(ltplib) $(TESTUTILOBJS)
 tests_ltp_budget_unit_dotest_CFLAGS = $(AM_CFLAGS) $(TESTUTILCFLAGS) \
 	 -I$(srcdir)/ltp/library -I$(srcdir)/ltp/include
+
+tests_crc32_high_speed_dotest_SOURCES = tests/crc32-high-speed/crc32_regression.c
+tests_crc32_high_speed_dotest_LDADD = libici.la
+tests_crc32_high_speed_dotest_CFLAGS = $(AM_CFLAGS)
+
+EXTRA_DIST += tests/crc32-high-speed/README.md \
+	tests/crc32-high-speed/.exclude_cbased
 
 tests_bp_sap_thread_ownership_dotest_SOURCES = tests/bp_sap_thread_ownership/dotest.c
 tests_bp_sap_thread_ownership_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
