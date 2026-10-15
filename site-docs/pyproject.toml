@@ -5,3 +5,6 @@ requires-python = ">=3.12"
 dependencies = [
     "zensical>=0.0.68",
 ]
+
+[tool.uv]
+exclude-newer = "7 days"

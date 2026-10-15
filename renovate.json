@@ -204,16 +204,30 @@
       "commitMessagePrefix": "cpanfile:"
     },
     {
+      "description": "Override ARC Helm chart datasource to GitHub Releases to inherit release timestamps",
+      "matchDepPatterns": [
+        "^gha-runner-scale-set"
+      ],
+      "overrideDatasource": "github-releases",
+      "overridePackageName": "actions/actions-runner-controller"
+    },
+    {
+      "description": "Extract semver from GitHub release tag (gha-runner-scale-set-X.Y.Z -> X.Y.Z)",
       "matchDepNames": [
         "actions/actions-runner-controller"
+      ],
+      "matchDepPatterns": [
+        "^gha-runner-scale-set"
       ],
       "extractVersion": "^gha-runner-scale-set-(?<version>\\d+\\.\\d+\\.\\d+)$"
     },
     {
+      "description": "Group appVersion and ARC Helm charts into one PR",
       "matchDepNames": [
-        "actions/actions-runner-controller",
-        "gha-runner-scale-set-controller",
-        "gha-runner-scale-set"
+        "actions/actions-runner-controller"
+      ],
+      "matchDepPatterns": [
+        "^gha-runner-scale-set"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -239,6 +253,12 @@
       ],
       "groupName": "ARC Infrastructure",
       "commitMessagePrefix": "ARC:"
+    },
+    {
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "minimumReleaseAge": null
     }
   ],
   "customManagers": [
