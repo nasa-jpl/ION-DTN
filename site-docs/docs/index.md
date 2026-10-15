@@ -131,7 +131,7 @@ confidentiality — configurable through a policy interface. See
 [BpSec Configuration Examples](./bpsec-configuration-examples.md). ION can
 also be built against the external **BPSec Library (BSL)** from NASA‑AMMOS
 for an alternative security‑block implementation
-([BSL Build & Install Guide](./bsl-build-install-guide.md)).
+([BSL guide](./bsl-guide.md)).
 
 ### Reliable status signaling and custody
 
@@ -220,7 +220,7 @@ available (currently being updated for BPv7).
 - [Bundle Forwarding Architecture](./bundle-forwarding-architecture.md) — routing internals.
 - [Contact Graph Events and LTP Interaction](./contact-graph-events-and-ltp.md) — the contact plan and rate control.
 - [CBR/CT Tutorial](./cbr-ct-tutorial.md) — compressed status reporting and custody transfer.
-- [BpSec Configuration Examples](./bpsec-configuration-examples.md) · [BSL Build & Install Guide](./bsl-build-install-guide.md) — security.
+- [BPSec Configuration Examples](./bpsec-configuration-examples.md) · [BSL guide](./bsl-guide.md) --- security.
 - [CFDP Software Architecture](./cfdp-sw-architecture.md) · [AMS Programmer's Guide](./ams-programmer-guide.md) — file transfer and messaging services.
 - [CLA API](./cla-api.md) · [SPP/EPP/File CLA](./spp-epp-file-cla-description.md) · [LTP Generic Link Service Template](./ltp-generic-link-service-template.md) — convergence layers.
 

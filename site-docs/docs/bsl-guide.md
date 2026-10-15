@@ -1,4 +1,4 @@
-# BSL build and install guide
+# BPSec Library guide
 
 ## What is BSL?
 
