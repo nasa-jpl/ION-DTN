@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "zensical", specifier = ">=0.0.68" }]
+requires-dist = [{ name = "zensical", specifier = ">=0.0.71" }]
 
 [[package]]
 name = "jinja2"
