@@ -1,4 +1,4 @@
-# BSL Build and Install Guide
+# BSL build and install guide
 
 ## What is BSL?
 
@@ -10,7 +10,7 @@ BSL v1.1 uses runtime dynamic memory callbacks instead of compile-time integrati
 
 ## Prerequisites
 
-### Required System Packages
+### Required system packages
 
 **Ubuntu/Debian:**
 ```bash
@@ -26,11 +26,11 @@ sudo dnf install -y gcc gcc-c++ automake autoconf libtool m4 \
 
 See [Appendix A](#appendix-a-detailed-prerequisites) for complete dependency information.
 
-## Build Instructions
+## Build instructions
 
 BSL v1.1 builds as a standalone library (no ION dependency), then ION links against BSL. The automake build system handles this automatically.
 
-### Step 1: Initialize the BSL Submodule
+### Step 1: Initialize the BSL submodule
 
 ```bash
 cd /path/to/ion-ios-dev
@@ -77,7 +77,7 @@ You do **not** need to rebuild BSL when:
 - Reconfiguring ION with different options unrelated to BSL
 - Running tests
 
-### Step 3: Build and Install ION with BSL
+### Step 3: Build and install ION with BSL
 
 ```bash
 # Generate configure script (if not already present)
@@ -100,7 +100,7 @@ The `--enable-bsl` flag:
 - Defaults `BSL_HOME` to `external/BSL/testroot/usr`
 - Adds BSL libraries (`libbsl_front`, `libbsl_crypto`, etc.) to the link
 
-### Verify the Build
+### Verify the build
 
 ```bash
 # Check BSL libraries are linked
@@ -110,7 +110,7 @@ ldd /usr/local/lib/libbp.so | grep bsl
 strings /usr/local/bin/bpadmin | grep "m bsl"
 ```
 
-### Custom BSL_HOME
+### Custom `BSL_HOME`
 
 If BSL is installed somewhere other than the default submodule location:
 
@@ -120,7 +120,7 @@ If BSL is installed somewhere other than the default submodule location:
 
 ## Configuration
 
-### Runtime Setup
+### Runtime setup
 
 BSL uses JSON files for keys and policies. Configure them in your `.bprc` file:
 
@@ -170,11 +170,11 @@ m bsl 'ipn:2.0' '/path/to/keys.json' '/path/to/policy.json'
 }
 ```
 
-### EID Pattern Matching and Wildcards
+### EID pattern matching and wildcards
 
 BSL policy files support wildcard patterns for matching source and destination EIDs. Understanding how 2-part and 3-part IPN formats interact with wildcards is essential for writing correct security policies.
 
-#### IPN Format
+#### ipn format
 
 ION supports two IPN endpoint naming formats:
 
@@ -185,7 +185,7 @@ ION supports two IPN endpoint naming formats:
 
 ION automatically converts 2-part to 3-part internally, so `ipn:2.1` becomes `ipn:0.2.1`. Existing 2-part policies continue to work.
 
-#### Wildcard Behavior
+#### Wildcard behavior
 
 The `*` wildcard matches any value in its position:
 
@@ -199,30 +199,30 @@ The `*` wildcard matches any value in its position:
 
 2-part `ipn:2.*` is automatically expanded to 3-part `ipn:0.2.*` — the `*` applies to the service field only. In 3-part format, each `*` matches exactly the field in its position.
 
-## Supported Cipher Suites
+## Supported cipher suites
 
-### BIB (Block Integrity Block) - Security Context 1
+### BIB (Block Integrity Block) - security context 1
 
 - HMAC-SHA256 (variant 5)
 - HMAC-SHA384 (variant 6)
 - HMAC-SHA512 (variant 7)
 
-### BCB (Block Confidentiality Block) - Security Context 2
+### BCB (Block Confidentiality Block) - security context 2
 
 - AES-128-GCM (variant 1)
 - AES-256-GCM (variant 3)
 
-## BIB and BCB Policy Design (RFC 9172 Guidelines)
+## BIB and BCB policy design (RFC 9172 guidelines)
 
 When writing BSL policy files, the relationship between BIB (integrity) and BCB (confidentiality) blocks must follow RFC 9172 rules.
 
-### Same Source, Same Target: Use a Single BCB
+### Same source, same target: Use a single BCB
 
 Per RFC 9172 Section 4.7, if a single security source applies **both** integrity and confidentiality to the **same target block**, it **must** use a single BCB whose security context provides integrity as an additional result — not separate BIB and BCB blocks.
 
 Applying separate BIB and BCB to the same target from the same node creates an ordering problem: the BIB computes its HMAC over plaintext, then the BCB encrypts the payload. A verifier in transit cannot verify the BIB because the payload is ciphertext.
 
-### Different Targets: BIB on Primary, BCB on Payload
+### Different targets: BIB on primary, BCB on payload
 
 When the same node needs both integrity and confidentiality, apply each to a **different** target block:
 
@@ -266,11 +266,11 @@ When the same node needs both integrity and confidentiality, apply each to a **d
 }
 ```
 
-### Different Sources: BIB and BCB on Same Target Is Allowed
+### Different sources: BIB and BCB on same target is allowed
 
 RFC 9172 permits separate BIB and BCB on the same target when applied by **different nodes** (e.g., Node A adds a BIB, Node B adds a BCB on the same payload). This is valid because the nodes act as independent security sources.
 
-### Security Roles
+### Security roles
 
 | Role | Code | Location | Description |
 |------|------|----------|-------------|
@@ -280,7 +280,7 @@ RFC 9172 permits separate BIB and BCB on the same target when applied by **diffe
 
 A BIB verifier cannot operate at CLIN when a BCB is present on the same target, because the BIB was computed over plaintext but the payload is still encrypted. When BIB and BCB target different blocks (the recommended approach), this does not apply.
 
-### Multinode Policy Example
+### Multinode policy example
 
 ```
 Node 2 (source) → Node 3 (relay) → Node 4 (destination)
@@ -303,7 +303,7 @@ killm
 
 Tests 1-5 cover basic BPSec operations. Check `ion.log` for `BSL initialization succeeded`.
 
-## BSL vs Native BPSec
+## BSL vs native BPSec
 
 | Feature | BSL | Native BPSec |
 |---------|-----|--------------|
@@ -334,7 +334,7 @@ sudo pkg install developer/versioning/git developer/gcc \
     developer/build/ninja runtime/ruby developer/build/pkg-config
 ```
 
-### Environment Setup
+### Environment setup
 
 Solaris requires several environment adjustments before building BSL:
 
@@ -356,7 +356,7 @@ ln -sf /usr/bin/gmake ~/bin/make
 export PATH="$HOME/bin:$PATH"
 ```
 
-### Solaris-Specific Issues Handled by `build-bsl-for-ion.sh`
+### Solaris-specific issues handled by `build-bsl-for-ion.sh`
 
 The following issues are automatically handled when `uname` reports `SunOS`:
 
@@ -367,7 +367,7 @@ The following issues are automatically handled when `uname` reports `SunOS`:
 | `jansson.h` not found | Solaris installs jansson headers under `/usr/include/jansson/` instead of `/usr/include/` | Auto-detected and passed via `-DCMAKE_INCLUDE_PATH` |
 | Valgrind unavailable | Solaris does not ship valgrind | `-DTEST_MEMCHECK=OFF` |
 
-### Solaris-Specific Issues Handled by `configure.ac`
+### Solaris-specific issues handled by `configure.ac`
 
 When running `./configure --enable-bsl` on Solaris, the following adjustments are made automatically:
 
@@ -378,7 +378,7 @@ When running `./configure --enable-bsl` on Solaris, the following adjustments ar
 | Jansson header detection | `AC_CHECK_HEADER` needs the include path | Temporarily adds `AM_CFLAGS` to `CFLAGS` for header checks |
 | `BSL_HOME` must be absolute | Libtool requires absolute paths | Resolved via `cd "$BSL_HOME" && pwd` |
 
-### Build Steps on Solaris
+### Build steps on Solaris
 
 ```bash
 cd /path/to/ion-ios-dev
@@ -402,7 +402,7 @@ sudo gmake install
 sudo ldconfig
 ```
 
-### `pkg-config` Path on Solaris
+### `pkg-config` path on Solaris
 
 Solaris does not include `/usr/local/lib/pkgconfig` in the default `pkg-config` search path. After installing ION, the test runner (`runtests`) will fail to detect BSL mode and skip all `.bsl` tests unless this is set:
 
@@ -412,7 +412,7 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 Add this to `~/.profile` or `~/.bashrc` for persistence. Without it, `pkg-config --cflags ion` will fail to find `ion.pc` and the test runner will treat the build as native BPSec, excluding all BSL-specific tests.
 
-### Note on `localhost` Resolution on Solaris
+### Note on `localhost` resolution on Solaris
 
 ION supports both IPv4 and IPv6. The `.bsl` test configs use `127.0.0.1` instead of `localhost` for clarity, but `localhost` works correctly as long as `/etc/hosts` is properly ordered.
 
@@ -469,7 +469,7 @@ ls external/BSL/testroot/usr/lib/libbsl_*.so
 
 ## Appendices
 
-### Appendix A: Detailed Prerequisites
+### Appendix A: Detailed prerequisites
 
 | Package | Purpose | Version |
 |---------|---------|---------|
@@ -481,7 +481,7 @@ ls external/BSL/testroot/usr/lib/libbsl_*.so
 | `libjansson-dev` / `jansson-devel` | JSON parsing for policy/keys | 2.13+ |
 | `ninja-build` | Fast parallel build for BSL (optional) | 1.10+ |
 
-### Appendix B: Manual BSL Build
+### Appendix B: Manual BSL build
 
 BSL v1.1 builds as a standalone library with no ION dependencies. You can build BSL first, then build ION linking against it.
 
@@ -512,7 +512,7 @@ cd build/default
 cmake --install . --prefix $PWD/../../testroot/usr
 ```
 
-### Appendix C: System-Wide BSL Installation
+### Appendix C: System-wide BSL installation
 
 ```bash
 cd external/BSL
@@ -527,7 +527,7 @@ sudo ldconfig
 
 No `LD_LIBRARY_PATH` configuration needed with a system-wide install.
 
-### Appendix D: Running BSL Unit Tests
+### Appendix D: Running BSL unit tests
 
 BSL unit tests require GCC 13+ to compile.
 
@@ -538,9 +538,9 @@ cd external/BSL
 ./build.sh check
 ```
 
-### Appendix E: Key and Policy File Reference
+### Appendix E: Key and policy file reference
 
-#### Key File Format
+#### Key file format
 
 ```json
 {
@@ -563,7 +563,7 @@ cd external/BSL
 - `kid`: Key identifier (referenced in policy `key_name`)
 - `k`: Base64-encoded key material
 
-#### Policy Parameters
+#### Policy parameters
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
@@ -576,7 +576,7 @@ cd external/BSL
 **BIB parameters:** `key_name`, `sha_variant` (5/6/7), `scope_flags`, `key_wrap` (0/1)
 **BCB parameters:** `key_name`, `aes_variant` (1/3), `scope_flags`, `key_wrap` (0/1)
 
-#### Validating JSON Files
+#### Validating JSON files
 
 ```bash
 python3 -m json.tool keys.json
@@ -598,7 +598,7 @@ sudo rm -rf /usr/local/include/bsl
 sudo ldconfig
 ```
 
-## Additional Resources
+## Additional resources
 
 - **BSL Repository**: https://github.com/NASA-AMMOS/BSL
 - **RFC 9172**: Bundle Protocol Security (BPSec)
