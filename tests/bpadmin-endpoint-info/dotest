@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+source ../eid-parser-regression.sh
+setup_loopback endpoint
+printf 'l endpoint\n' > admin.in
+admin
+cp admin.out endpoint.out
+for eid in ipn:1.1 ipn:1.2 ipn:1.3; do
+    grep -q "$eid" endpoint.out || fail "Endpoint not registered: $eid"
+    printf 'i endpoint %s\n' "$eid" > admin.in
+    admin
+    cat admin.out
+    grep -q "$eid" admin.out || fail "No details for $eid"
+    grep -q 'rule: q' admin.out || fail "No disposition for $eid"
+done
+for eid in ipn:1.999 ipn:0.0 dtn:none; do
+    printf 'i endpoint %s\n' "$eid" > admin.in
+    bpadmin admin.in > admin.out
+    grep -q 'Unknown endpoint' admin.out || fail "Missing endpoint was not rejected: $eid"
+done
+printf 'i endpoint dtn://nowhere/x\n' > admin.in
+bpadmin admin.in > admin.out
+grep -q 'Endpoint ID unintelligible' admin.out || fail "Unknown scheme was not rejected"
+echo 'PASS: endpoint information'

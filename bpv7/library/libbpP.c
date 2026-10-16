@@ -3882,6 +3882,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 		 * the node is automatically a member of the IMC admin multicast
 		 * group.
 		 */
+		clearMetaEid(&metaEid);
 		return 0;
 	}
 

@@ -650,3 +650,12 @@ CLAUDE.md
 tests/ltp-repair-rounds/loopback.ionconfig
 tests/ltp-span-override-persistence/loopback.ionconfig
 tests/bp_sap_thread_ownership/dotest
+
+.ship/
+tests/bpadmin-endpoint-info/test.rc
+tests/imc-eid-cleanup/test.rc
+tests/bpadmin-endpoint-info/admin.in
+tests/bpadmin-endpoint-info/admin.out
+tests/bpadmin-endpoint-info/endpoint.out
+tests/imc-eid-cleanup/admin.in
+tests/imc-eid-cleanup/admin.out

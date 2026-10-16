@@ -2939,3 +2939,9 @@ include $(top_builddir)/cfdp/doc/podman.mk     # am--include-marker
 include $(top_builddir)/bss/doc/podman.mk      # am--include-marker
 include $(top_builddir)/dtpc/doc/podman.mk     # am--include-marker
 include $(top_builddir)/restart/doc/podman.mk  # am--include-marker
+
+EXTRA_DIST += tests/eid-parser-regression.sh \
+	tests/bpadmin-endpoint-info/dotest \
+	tests/bpadmin-endpoint-info/README.md \
+	tests/imc-eid-cleanup/dotest \
+	tests/imc-eid-cleanup/README.md

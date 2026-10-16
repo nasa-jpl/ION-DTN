@@ -148,9 +148,10 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	uvast		ownFqnn = getOwnFqnn();
+	uvast		sourceFqnn;
 	uvast		uvtemp;
 	ImcPetition	petition;
-	MetaEid		metaEid;
+	MetaEid		metaEid = {0};
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	SdrObject	groupAddr;
@@ -184,20 +185,25 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	/*	Determine the node that sent the petition.		*/
 
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
-			&vschemeElt) == 0 || vscheme->codeNumber != ipn)
+			&vschemeElt) == 0 || vscheme == NULL
+	|| vscheme->codeNumber != ipn)
 	{
 		/*	Can't determine sending node number.		*/
 
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Invalid sender of IMC petition",
 				dlv->bundleSourceEid);
 		return 0;
 	}
 
+	sourceFqnn = metaEid.elementNbr;
+	clearMetaEid(&metaEid);
+
 	/*	Now get the multicast group.				*/
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
-UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownFqnn);
+UVAST_FIELDSPEC ".\n", petition.isMember, sourceFqnn, ownFqnn);
 fflush(stdout);
 #endif
 	oK(sdr_begin_xn(sdr));
@@ -230,7 +236,7 @@ puts("Group not found.");
 	/*	The multicast group is known, though possibly empty.	*/
 
 #if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
+printf("Adding node " UVAST_FIELDSPEC " to this group.\n", sourceFqnn);
 #endif
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 	if (petition.isMember)	/*	Source node joining the group.	*/
@@ -239,12 +245,12 @@ printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
 				elt = sdr_list_next(sdr, elt))
 		{
 			fqnn = sdr_list_data(sdr, elt);
-			if (fqnn < metaEid.elementNbr)
+			if (fqnn < sourceFqnn)
 			{
 				continue;
 			}
 
-			if (fqnn == metaEid.elementNbr)
+			if (fqnn == sourceFqnn)
 			{
 #if IMCDEBUG
 puts("Ignoring redundant Join.");
@@ -267,29 +273,29 @@ fflush(stdout);
 
 		/*	Must add new member of group at this point.	*/
 #if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, petition.fqgn);
+printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", sourceFqnn, petition.fqgn);
 fflush(stdout);
 #endif
 		if (elt)
 		{
 			oK(sdr_list_insert_before(sdr, elt,
-					metaEid.elementNbr));
+					sourceFqnn));
 		}
 		else
 		{
 			oK(sdr_list_insert_last(sdr, group.members,
-					metaEid.elementNbr));
+					sourceFqnn));
 		}
 
-		if (metaEid.elementNbr == ownFqnn)
+		if (sourceFqnn == ownFqnn)
 		{
 			group.isMember = 1;
 		}
 
-		if (metaEid.elementNbr != ownFqnn)
+		if (sourceFqnn != ownFqnn)
 		{
 #if IMCDEBUG
-printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", sourceFqnn);
 fflush(stdout);
 #endif
 			/*	This node is subscribing to the IMC
@@ -300,7 +306,7 @@ fflush(stdout);
 			 *	subscriptions.  So we must send this
 			 *	node a briefing.			*/
 
-			if (briefNewNode(metaEid.elementNbr) < 0)
+			if (briefNewNode(sourceFqnn) < 0)
 			{
 				putErrmsg("Failed briefing new node.", NULL);
 				sdr_cancel_xn(sdr);
@@ -319,12 +325,12 @@ fflush(stdout);
 				elt = sdr_list_next(sdr, elt))
 		{
 			fqnn = sdr_list_data(sdr, elt);
-			if (fqnn < metaEid.elementNbr)
+			if (fqnn < sourceFqnn)
 			{
 				continue;
 			}
 
-			if (fqnn > metaEid.elementNbr)
+			if (fqnn > sourceFqnn)
 			{
 #if IMCDEBUG
 puts("Ignoring Leave by non-member.");
@@ -347,13 +353,13 @@ fflush(stdout);
 
 		/*	Must delete this member of the group, if found.	*/
 #if IMCDEBUG
-printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+printf("Deleting member " UVAST_FIELDSPEC ".\n", sourceFqnn);
 fflush(stdout);
 #endif
 		if (elt)	/*	Source node is a member.	*/
 		{
 			sdr_list_delete(sdr, elt, NULL, NULL);
-			if (metaEid.elementNbr == ownFqnn)
+			if (sourceFqnn == ownFqnn)
 			{
 				group.isMember = 0;
 			}
@@ -383,7 +389,7 @@ fflush(stdout);
 		/*	Node is a passageway between its home region
 		 *	and the immediate encompassing region.		*/
 
-		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownFqnn,
+		sourceRegionIdx = ionRegionOf(sourceFqnn, ownFqnn,
 				&sourceRegionNbr);
 		if (sourceRegionIdx < 0)
 		{
