@@ -174,16 +174,30 @@ m bsl 'ipn:2.0' '/path/to/keys.json' '/path/to/policy.json'
 
 BSL policy files support wildcard patterns for matching source and destination EIDs. Understanding how 2-part and 3-part IPN formats interact with wildcards is essential for writing correct security policies.
 
-#### ipn format
+#### ipn URI scheme
 
-ION supports two IPN endpoint naming formats:
+ION supports the 'ipn' scheme URI described in [RFC 9758](https://www.rfc-editor.org/info/rfc9758/)
+to specify EIDs.
 
-- **2-part (legacy)**: `ipn:node.service` (e.g., `ipn:2.1`)
-  - Assumes allocator = 0
-- **3-part (modern)**: `ipn:allocator.node.service` (e.g., `ipn:0.2.1`)
-  - Explicitly specifies allocator
+[TODO: delete this admonition when it's fixed]::
 
-ION automatically converts 2-part to 3-part internally, so `ipn:2.1` becomes `ipn:0.2.1`. Existing 2-part policies continue to work.
+!!! bug
+
+    As of ION 4.2.0,
+    parts of ION do not properly validate
+    if the textual representation of an ipn URI
+    complies with the syntax described in RFC 9758.
+    For example,
+    `bpadmin` allows adding `ipn:1.03` as an endpoint,
+    though such an endpoint does not work properly in ION.
+
+    Stick to valid ipn URIs to avoid things breaking in surprising ways
+    (though LocalNode ipn URIs with the character '`!`'
+    are not supported).
+
+Either textual representation of ipn EIDs using the Default Allocator
+(including or omitting <code><i>allocator-identifier</i>.</code>)
+can be used in policies.
 
 #### Wildcard behavior
 
@@ -195,7 +209,7 @@ The `*` wildcard matches any value in its position:
 | `ipn:0.2.*` | allocator=0, node=2, service=any | Same as above |
 | `ipn:2.*.*` | allocator=2, node=any, service=any | `ipn:2.1.1`, `ipn:2.3.5` |
 | `ipn:0.*.*` | allocator=0, node=any, service=any | All default-allocator EIDs |
-| `ipn:*.*.*` | any | All IPN EIDs |
+| `ipn:*.*.*` | any | All ipn EIDs |
 
 2-part `ipn:2.*` is automatically expanded to 3-part `ipn:0.2.*` — the `*` applies to the service field only. In 3-part format, each `*` matches exactly the field in its position.
 
