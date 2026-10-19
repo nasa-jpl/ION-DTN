@@ -82,6 +82,7 @@ def probe_no_client_cert(host, port):
         return
 
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2  # don't negotiate down to legacy TLS
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE  # we don't check the server...
     handshake_failed = False
