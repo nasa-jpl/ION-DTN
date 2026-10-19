@@ -36,13 +36,13 @@ To verify the installation, run:
 
 to check for proper installation.
 
-**Optional dependency for TCPCLv4 (TLS support):** ION's TCPCLv4 convergence layer adapter requires TLS, which is provided by OpenSSL. To build ION with TCPCLv4 support, install the OpenSSL development headers:
+**Optional dependency for TCPCLv4:** The TCPCLv4 external CLA (demonstration prototype) is not built by default. To enable it, pass `--enable-tcpclv4-external` to `./configure`. This requires OpenSSL development headers:
 
 `sudo apt-get install libssl-dev`
 
 On RHEL/Fedora-based systems: `sudo dnf install openssl-devel`
 
-If OpenSSL is not installed, ION will still build successfully but the TCPCLv4 TLS library will not be compiled.
+See the [TCPCLv4 Guide](TCPCLv4-Guide.md) for full build and usage instructions.
 
 NOTE: Alternative build methods without the `automake` ecosystem are also available. See section [Alternative Build Methods without Automake](#alternative-build-methods-without-automake) for details.
 

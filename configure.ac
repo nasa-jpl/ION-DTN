@@ -851,15 +851,31 @@ else
 fi
 
 #
-# Check for OpenSSL (required for TCPCLv4 TLS library)
+# Allow user to enable TCPCLv4 external CLA (demo prototype)
 #
-PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.1], [
-  AC_DEFINE([HAVE_OPENSSL], [1], [Define if OpenSSL is available])
-  AC_MSG_NOTICE([OpenSSL found: TCPCLv4 TLS support enabled])
-], [
-  AC_MSG_WARN([OpenSSL not found: TCPCLv4 TLS library will not be built])
-  AC_MSG_WARN([Install OpenSSL development libraries (libssl-dev) for TLS support])
-])
+AC_ARG_ENABLE(
+  tcpclv4-external,
+  [AS_HELP_STRING([--enable-tcpclv4-external],
+    [Build TCP4 CLA for external TCPCLv4 agent (demo prototype, requires OpenSSL)])],
+  [ENABLE_TCPCLV4_EXTERNAL=yes],
+  [ENABLE_TCPCLV4_EXTERNAL=no])
+
+AM_CONDITIONAL([ENABLE_TCPCLV4_EXTERNAL], [test "x$ENABLE_TCPCLV4_EXTERNAL" = "xyes"])
+
+if test "x$ENABLE_TCPCLV4_EXTERNAL" = "xyes"; then
+  #
+  # Check for OpenSSL (required for TCPCLv4 TLS library)
+  #
+  PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.1], [
+    AC_DEFINE([HAVE_OPENSSL], [1], [Define if OpenSSL is available])
+    AC_MSG_NOTICE([OpenSSL found: TCPCLv4 TLS support enabled])
+  ], [
+    AC_MSG_WARN([OpenSSL not found: TCPCLv4 TLS library will not be built])
+    AC_MSG_WARN([Install OpenSSL development libraries (libssl-dev) for TLS support])
+  ])
+else
+  echo "TCPCLv4 external CLA: disabled (use --enable-tcpclv4-external to enable)"
+fi
 
 #
 # Control whether AMS debugging info is printed.
@@ -1108,6 +1124,7 @@ AS_IF([test "x$enable_tcpcl_low_cycle" = xyes],
    AC_MSG_NOTICE([Enabling TCPCL_LOW_CYCLE... yes])]
 )
 
+if test "x$ENABLE_TCPCLV4_EXTERNAL" = "xyes"; then
 #
 # TCP4 CLA slot size and slot count configuration
 #
@@ -1147,6 +1164,7 @@ echo "  Slot size:     $tcp4_slot_size MB"
 echo "  Num slots:     $tcp4_num_slots"
 echo "  Memory/pool:   $tcp4_pool_mb MB"
 echo "  Memory/duct:   $tcp4_duct_mb MB (TX + RX)"
+fi # ENABLE_TCPCLV4_EXTERNAL
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"

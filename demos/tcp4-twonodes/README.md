@@ -100,7 +100,7 @@ Tests TCPCLv4 functionality between two ION nodes using the Python bridge adapte
 ## Running the Test
 
 ```bash
-cd tests/tcp4-twonodes
+cd demos/tcp4-twonodes
 ./dotest
 ```
 

@@ -28,12 +28,12 @@ The shared memory slot size determines the fragmentation threshold:
 
 ```bash
 # Recommended for 50MB bundles: 5MB slots
-./configure --with-tcp4-slot-size=5 --with-tcp4-num-slots=8
+./configure --enable-tcpclv4-external --with-tcp4-slot-size=5 --with-tcp4-num-slots=8
 make
 
 # Alternative configurations:
-./configure --with-tcp4-slot-size=10 --with-tcp4-num-slots=4   # 10MB slots
-./configure --with-tcp4-slot-size=50 --with-tcp4-num-slots=8   # 50MB slots
+./configure --enable-tcpclv4-external --with-tcp4-slot-size=10 --with-tcp4-num-slots=4   # 10MB slots
+./configure --enable-tcpclv4-external --with-tcp4-slot-size=50 --with-tcp4-num-slots=8   # 50MB slots
 ```
 
 ### Memory Usage
@@ -133,7 +133,7 @@ grep "TCP4CLA_SLOT_SIZE" Makefile
 
 ```bash
 # Start two-node test
-cd tests/tcp4-twonodes
+cd demos/tcp4-twonodes
 ./dotest
 
 # Send large bundle (adjust size based on slot configuration)
@@ -185,7 +185,7 @@ grep "Auto-set maxPayloadLen" ion.log
 
 **Solution 3**: Rebuild with larger slots if you need larger fragments
 ```bash
-./configure --with-tcp4-slot-size=10   # 10MB slots
+./configure --enable-tcpclv4-external --with-tcp4-slot-size=10   # 10MB slots
 make && sudo make install
 ```
 
@@ -251,6 +251,92 @@ Network (TCP socket)
 - Transparent to ION, handled by bridge
 
 **Both occur independently**: A 5MB fragment can be sent via many 1KB XFER_SEGMENTS.
+
+## Current Status
+
+**Date: 2026-03-25**
+
+### Implementation Notes
+
+This branch (`feature-4.2.x-tcpclv4`) implements TCPCLv4 support for ION
+through a three-layer bridge architecture that delegates actual TCPCLv4
+protocol handling to an external implementation
+([dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent)).
+
+The architecture uses three IPC mechanisms to interface ION with the
+external TCPCLv4 agent:
+
+1. **POSIX Shared Memory Pools (Data Plane)** -- Named regions in
+   `/dev/shm/` with lock-free atomic slot state machines
+   (`FREE -> WRITING -> READY -> READING -> FREE`). Bundle data is
+   copied once from SDR into shared memory via `zco_transmit()`. The
+   Python bridge attaches to these pools via ctypes calls into
+   `libici.so`, ensuring correct atomic operations without
+   reimplementing lock-free logic in Python.
+
+2. **Unix Domain Socket Control Channel (Control Plane)** -- TLV-framed
+   protocol (14-byte header + 0-256 byte payload, network byte order)
+   at `/tmp/ion_tcp4/`. Carries only slot indices, transfer IDs, and
+   disposition codes. Bundle data never traverses this channel.
+
+3. **Control Message Protocol** -- Defines the vocabulary between ION
+   CLAs and the external agent:
+
+   | Type | Code | Direction | Purpose |
+   |------|------|-----------|---------|
+   | `CTRL_SLOT_READY` | 0x01 | ION -> Agent | Slot has bundle data to transmit |
+   | `CTRL_BUNDLE_RECV` | 0x02 | Agent -> ION | Bundle placed in RX slot |
+   | `CTRL_XFER_SUCCESS` | 0x03 | Agent -> ION | Transfer completed OK |
+   | `CTRL_XFER_FAILURE` | 0x04 | Agent -> ION | Transfer failed |
+   | `CTRL_XFER_REFUSED` | 0x05 | Agent -> ION | Transfer refused by peer |
+   | `CTRL_SLOT_RELEASE` | 0x06 | ION -> Agent | RX slot consumed, now free |
+   | `CTRL_SESSION_UP` | 0x10 | Agent -> ION | TCPCL session established |
+   | `CTRL_SESSION_DOWN` | 0x11 | Agent -> ION | TCPCL session ended |
+   | `CTRL_KEEPALIVE` | 0xFF | Bidirectional | Liveness check (15s interval / 45s timeout) |
+
+**Key design properties of this prototype:**
+
+- **Asynchronous disposition**: `tcp4clo` uses `bpDequeue()` with
+  `stewardship=1` and reports xmit success/failure asynchronously from a
+  dedicated response thread when the external agent confirms transfer
+  outcome.
+- **Agent crash recovery**: Both `tcp4cli` and `tcp4clo` detect agent
+  disconnection via keepalive timeouts and control socket errors, fail
+  all in-flight transfers, reset pool slots, and wait for agent
+  reconnect.
+- **BP fragmentation for large bundles**: `tcp4clo` auto-sets
+  `maxPayloadLen` so bpclm fragments at the BP layer before the CLA
+  sees them, avoiding slot-size limits.
+
+### Phase 2 C Libraries (Built, Not Yet Deployed)
+
+Two C libraries implement TCPCLv4 wire format and TLS natively:
+
+- **`tcpclv4_msg.c/h`** (`libtcpclv4_msg.so`) -- Stateless encode/decode
+  for all RFC 9174 message types (contact header, SESS_INIT, SESS_TERM,
+  XFER_SEGMENT, XFER_ACK, XFER_REFUSE, KEEPALIVE, MSG_REJECT).
+- **`tcpclv4_tls.c/h`** (`libtcpclv4_tls.so`) -- OpenSSL-based TLS
+  session management (connect, accept, message-framed send/recv,
+  non-blocking mode).
+
+These libraries are compiled and have unit tests (`tests/test_msg_roundtrip`,
+`tests/test_tls_loopback`) but are **not yet integrated** into the bridge
+path. The current prototype still uses the Python/dtn-demo-agent path for
+all TCPCLv4 protocol operations.
+
+### Project Direction
+
+This prototype may represent the end-state architecture for demonstrating
+ION interfacing with an external TCPCLv4 implementation. The shared-memory
+pool and control-channel IPC boundary cleanly separates ION's bundle
+processing from TCPCLv4 session management, allowing the external agent to
+be developed, tested, and updated independently.
+
+A potential follow-on phase would convert the Python bridge layer to C
+(leveraging the Phase 2 `libtcpclv4_msg` and `libtcpclv4_tls` libraries)
+for improved performance, while retaining TCPCLv4 as an external module
+that communicates with ION through the same shared-memory / control-channel
+interface.
 
 ## Files
 

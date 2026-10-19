@@ -1,19 +1,19 @@
 # TCPCLv4 Guide
 
-> **Status:** The TCPCLv4 CLA is currently a **demonstration prototype** (Phase 1 implementation, February 2026). It is functional and tested for evaluation purposes but should not be used in production deployments without further validation.
+> **Status:** This is a **demonstration prototype** for interfacing ION with an external TCPCLv4 implementation. It delegates RFC 9174 protocol handling to the [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent) Python package via a shared-memory bridge. An integrated, pure-C TCPCLv4 convergence layer is planned for a future ION release.
 
 ## Overview
 
-TCPCLv4 (TCP Convergence Layer version 4) implements the IETF RFC 9174 standard for reliable bundle transfer over TCP connections. This prototype demonstrates ION's ability to interoperate with standards-compliant TCPCLv4 implementations.
+TCPCLv4 (TCP Convergence Layer version 4) implements the IETF RFC 9174 standard for reliable bundle transfer over TCP connections. This prototype demonstrates ION's ability to interoperate with an external standards-compliant TCPCLv4 implementation.
 
 **Key Features:**
-- RFC 9174 compliant TCPCLv4 protocol
+- RFC 9174 compliant TCPCLv4 protocol (via external agent)
 - TLS 1.3 encryption support
 - Automatic BP-layer fragmentation for large bundles
 - Handles bundles of arbitrary size (tested up to 50MB+)
 - Default configuration works without manual tuning
 
-**Architecture:** The current implementation uses a Python bridge that connects ION's C convergence layer daemons to an external TCPCLv4 protocol handler. Future phases will migrate to a pure C implementation for production use.
+**Architecture:** The current implementation uses a Python bridge that connects ION's C convergence layer daemons to an external TCPCLv4 protocol handler ([dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent)). An integrated pure-C TCPCLv4 convergence layer is planned for a future ION release.
 
 ```
 ION Node A                                           ION Node B
@@ -26,6 +26,26 @@ ION Node A                                           ION Node B
 │   (ION CLA) │         (Python bridge)             │  (ION CLA)  │
 └─────────────┘                                     └─────────────┘
 ```
+
+## Building ION with TCPCLv4 External CLA Support
+
+The TCPCLv4 external CLA (demonstration prototype) is **not built by default**. To enable it, pass the `--enable-tcpclv4-external` flag to `./configure`:
+
+```bash
+autoreconf -fi   # if configure is not present
+./configure --enable-tcpclv4-external
+make
+sudo make install
+sudo ldconfig
+```
+
+This flag enables:
+- The `tcp4cli` and `tcp4clo` convergence layer daemons
+- The shared-memory IPC code (`ion_transfer_pool`, `ion_ctrl_channel`) in `libici`
+- The `libtcp4cla`, `libtcpclv4_msg`, and `libtcpclv4_tls` libraries
+- OpenSSL detection for TLS support
+
+**Requires:** OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on RHEL/Fedora).
 
 ## Dependencies
 
@@ -108,7 +128,7 @@ Verify the installation with the basic two-node test:
 
 ```bash
 source ~/.default-venv/bin/activate
-cd tests/tcp4-twonodes
+cd demos/tcp4-twonodes
 ./dotest
 ```
 
@@ -124,14 +144,14 @@ Test TCPCLv4 with TLS encryption:
 
 ```bash
 source ~/.default-venv/bin/activate
-cd tests/tcp4-twonodes-tls
+cd demos/tcp4-twonodes-tls
 ./dotest
 ```
 
 This test:
 1. Generates test PKI certificates automatically
 2. Establishes TLS-encrypted TCPCLv4 sessions (TLS 1.3)
-3. Transfers both small and large bundles (up to 50MB)
+3. Transfers both small and large bundles (6MB with BP fragmentation)
 4. Verifies TLS negotiation and bundle integrity
 
 ## Basic Configuration
@@ -194,7 +214,7 @@ tls_cert_file: "/path/to/node-chain.pem"
 tls_key_file: "/path/to/node.key"
 ```
 
-See `tests/tcp4-twonodes-tls/gen_test_pki.sh` for an example certificate generation script.
+See `demos/tcp4-twonodes-tls/gen_test_pki.sh` for an example certificate generation script.
 
 ## Bundle Size Handling
 
@@ -226,7 +246,7 @@ For specialized deployments, you can configure larger slot sizes at compile time
 
 ```bash
 # For frequent large bundles (reduces fragmentation overhead)
-./configure --with-tcp4-slot-size=5 --with-tcp4-num-slots=8
+./configure --enable-tcpclv4-external --with-tcp4-slot-size=5 --with-tcp4-num-slots=8
 make && sudo make install
 ```
 
@@ -295,22 +315,22 @@ rm -f /dev/shm/ion_tcp4_*          # Remove shared memory
 ### Getting Help
 
 For issues or questions:
-- Review test scripts in `tests/tcp4-twonodes/` and `tests/tcp4-twonodes-tls/`
+- Review demo scripts in `demos/tcp4-twonodes/` and `demos/tcp4-twonodes-tls/`
 - Check ION logs for detailed error messages
 - Consult the design document: `dev-docs/ION_TCPCLv4_Integration_Design.md`
 
 ## Development Status and Future Work
 
-**Current Status (February 2026)**: Phase 1 implementation complete and tested. This prototype demonstrates RFC 9174 compliance and provides a foundation for future optimization.
+**Current Status (February 2026)**: This is a demonstration prototype for interfacing ION with an external TCPCLv4 implementation. It is functional and tested for evaluation purposes, but is not a production-integrated convergence layer.
 
 **Limitations**:
+- Requires external Python runtime and dtn-demo-agent package
 - Python bridge introduces latency compared to native C convergence layers
 - Not recommended for production use without further validation
-- Performance optimization phases (Phase 3/4) deferred to future work
+- Must be explicitly enabled at build time (`--enable-tcpclv4-external`)
 
-**Future Enhancements**:
-- Phase 3: Python+C hybrid for 3-5× performance improvement
-- Phase 4: Pure C implementation for production deployments
+**Future Work**:
+- An integrated, pure-C TCPCLv4 convergence layer is planned for a future ION release, which would not require the external Python bridge or separate build flag
 
 ## Related Documentation
 

@@ -35,8 +35,8 @@ extern "C" {
  *	TCP4CLA_SLOT_SIZE and TCP4CLA_NUM_SLOTS can be overridden at
  *	compile time via -D flags or by configure options:
  *
- *	  ./configure --with-tcp4-slot-size=5    # 5MB slots
- *	  ./configure --with-tcp4-num-slots=8    # 8 slots per pool
+ *	  ./configure --enable-tcpclv4-external --with-tcp4-slot-size=5    # 5MB slots
+ *	  ./configure --enable-tcpclv4-external --with-tcp4-num-slots=8    # 8 slots per pool
  *
  *	Memory usage per duct (TX + RX pools):
  *	  1MB × 8:     16 MB  (default)

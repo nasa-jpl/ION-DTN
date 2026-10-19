@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
-# TCP4 Two-Node End-to-End Test
+# TCP4 Two-Node TLS End-to-End Test
 #
-# Tests that bundles flow between two ION nodes over TCPCLv4 sessions
-# via the Python bridge adapter:
-#
-#   Node 2 (sender) -> tcp4clo -> Bridge1 -> TCPCLv4 -> Bridge2 -> tcp4cli -> Node 3 (receiver)
+# Tests that bundles flow between two ION nodes over TLS-secured TCPCLv4
+# sessions via the Python bridge adapter. Verifies:
+#   1. Bundle delivery over TLS (small text bundle)
+#   2. BP fragmentation over TLS (6MB file)
+#   3. Source SDR cleanup (XFER_SUCCESS feedback)
+#   4. TLS was actually negotiated (not plaintext fallback)
 #
 # Copyright (c) 2026, California Institute of Technology.
 # ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
@@ -29,9 +31,9 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: Testing TCP4 CLA with two ION nodes over TCPCLv4."
+echo "PURPOSE: Testing TCP4 CLA with two ION nodes over TLS-secured TCPCLv4."
 echo
-echo "CONFIG: Two-node configuration: "
+echo "CONFIG: Two-node TLS configuration: "
 echo
 for N in $CONFIGFILES
 do
@@ -40,14 +42,14 @@ do
     echo "# EOF"
     echo
 done
-echo "OUTPUT: Two test cases:"
+echo "OUTPUT: Two test cases with TLS encryption:"
 echo "  1. Small bundle: Text message via bpsource/bpsink"
-echo "  2. Large bundle: 6MB file via bpsendfile/bprecvfile to verify BP fragmentation"
+echo "  2. Large bundle: 6MB file to verify BP fragmentation over TLS"
 echo
 echo "VERIFICATION:"
-echo "  - Bundles received correctly at destination"
+echo "  - Bundles received correctly via encrypted TLS session"
 echo "  - SDR cleaned up (XFER_SUCCESS feedback)"
-echo "  - BP fragmentation occurred for 50MB bundle"
+echo "  - BP fragmentation occurred for 6MB bundle"
 echo "  - No slot capacity errors"
 echo
 echo "########################################"
@@ -59,6 +61,12 @@ FAIL=0
 # Python 3
 if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 not found. Skipping test."
+    exit 2
+fi
+
+# OpenSSL CLI (needed by gen_test_pki.sh)
+if ! command -v openssl >/dev/null 2>&1; then
+    echo "openssl not found. Skipping test."
     exit 2
 fi
 
@@ -99,6 +107,31 @@ sleep 2
 # Clean up stale shared memory and sockets
 rm -f /tmp/ion_tcp4/*.sock
 rm -f /dev/shm/ion_tcp4_*
+
+# Wait for port 4556 to be released (may be held by previous test)
+echo "Checking port 4556 availability..."
+for i in $(seq 1 15); do
+    if ! ss -tlnH sport = :4556 2>/dev/null | grep -q 4556; then
+        echo "Port 4556 is available."
+        break
+    fi
+    echo "  Port 4556 still in use, waiting... ($i)"
+    sleep 2
+done
+
+if ss -tlnH sport = :4556 2>/dev/null | grep -q 4556; then
+    echo "ERROR: Port 4556 still in use after 30s. Aborting test."
+    ss -tlnp sport = :4556
+    exit 1
+fi
+
+# Generate test PKI (fresh certs every run)
+echo "Generating test PKI..."
+./gen_test_pki.sh ./pki
+if [ $? -ne 0 ]; then
+    echo "ERROR: PKI generation failed."
+    exit 1
+fi
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -151,9 +184,9 @@ for i in $(seq 1 15); do
 done
 sleep 1
 
-# Start Bridge2 (passive, listens) from Node 3's directory
+# Start Bridge2 (passive, listens with TLS) from Node 3's directory
 cd ../3.ipn.tcp4
-echo "Starting Bridge2 (passive) for Node 3..."
+echo "Starting Bridge2 (passive+TLS) for Node 3..."
 PYTHONPATH="${BRIDGE_PYTHONPATH}" python3 -m bridge.bridge_adapter \
     --config bridge.yaml --log-level DEBUG > bridge.log 2>&1 &
 BRIDGE2_PID=$!
@@ -168,9 +201,9 @@ if ! kill -0 $BRIDGE2_PID 2>/dev/null; then
 fi
 
 if [ $FAIL -eq 0 ]; then
-    # Start Bridge1 (active, connects) from Node 2's directory
+    # Start Bridge1 (active, connects with TLS) from Node 2's directory
     cd ../2.ipn.tcp4
-    echo "Starting Bridge1 (active) for Node 2..."
+    echo "Starting Bridge1 (active+TLS) for Node 2..."
     PYTHONPATH="${BRIDGE_PYTHONPATH}" python3 -m bridge.bridge_adapter \
         --config bridge.yaml --log-level DEBUG > bridge.log 2>&1 &
     BRIDGE1_PID=$!
@@ -186,6 +219,30 @@ if [ $FAIL -eq 0 ]; then
 fi
 
 if [ $FAIL -eq 0 ]; then
+    # Verify TLS was actually negotiated (not plaintext fallback)
+    echo "Checking TLS negotiation..."
+    if grep -q "TLS secured" ../2.ipn.tcp4/bridge.log; then
+        CIPHER=$(grep "TLS secured" ../2.ipn.tcp4/bridge.log | head -1)
+        echo "SUCCESS: Bridge1 TLS session established: $CIPHER"
+    else
+        echo "ERROR: Bridge1 did not establish TLS session."
+        echo "--- Bridge1 log ---"
+        cat ../2.ipn.tcp4/bridge.log
+        FAIL=1
+    fi
+
+    if grep -q "TLS secured" ../3.ipn.tcp4/bridge.log; then
+        CIPHER=$(grep "TLS secured" ../3.ipn.tcp4/bridge.log | head -1)
+        echo "SUCCESS: Bridge2 TLS session established: $CIPHER"
+    else
+        echo "ERROR: Bridge2 did not establish TLS session."
+        echo "--- Bridge2 log ---"
+        cat ../3.ipn.tcp4/bridge.log
+        FAIL=1
+    fi
+fi
+
+if [ $FAIL -eq 0 ]; then
     # Start bpsink on Node 3
     cd ../3.ipn.tcp4
     echo "Starting bpsink on Node 3..."
@@ -195,18 +252,18 @@ if [ $FAIL -eq 0 ]; then
 
     # Send bundle from Node 2
     cd ../2.ipn.tcp4
-    echo "Sending bundle from Node 2 to Node 3 via TCPCLv4..."
-    bpsource ipn:3.1 "Hello from Node 2 via TCPCLv4"
+    echo "Sending bundle from Node 2 to Node 3 via TCPCLv4+TLS..."
+    bpsource ipn:3.1 "Hello from Node 2 via TCPCLv4 TLS"
     sleep 5
 
     # Check results: bundle received at destination
     cd ../3.ipn.tcp4
     echo "Checking received data..."
-    if grep -q "Hello from Node 2 via TCPCLv4" testfile1; then
-        echo "SUCCESS: Bundle received correctly via TCP4+TCPCLv4!"
+    if grep -q "Hello from Node 2 via TCPCLv4 TLS" testfile1; then
+        echo "SUCCESS: Bundle received correctly via TCP4+TCPCLv4+TLS!"
     else
         echo "ERROR: Bundle not received or content mismatch."
-        echo "Expected payload containing: Hello from Node 2 via TCPCLv4"
+        echo "Expected payload containing: Hello from Node 2 via TCPCLv4 TLS"
         echo "Received:"
         cat testfile1
         echo ""
@@ -222,8 +279,6 @@ if [ $FAIL -eq 0 ]; then
     fi
 
     # Check results: bundle removed from source SDR
-    # This confirms the full feedback loop: TCPCLv4 success ->
-    # bridge XFER_SUCCESS -> bpHandleXmitSuccess -> SDR release
     cd ../2.ipn.tcp4
     echo "Checking source node SDR is clear..."
     BPLIST_COUNT=$(bplist count | grep "Report count" | awk '{gsub(/[^0-9]/,"",$NF); print $NF}')
@@ -240,14 +295,14 @@ if [ $FAIL -eq 0 ]; then
     wait $BPSINK_PID 2>/dev/null
 fi
 
-# --- Test Case 2: 6MB Bundle with BP Fragmentation ---
+# --- Test Case 2: 6MB Bundle with BP Fragmentation over TLS ---
 if [ $FAIL -eq 0 ]; then
     echo ""
     echo "=========================================="
-    echo "Test Case 2: 6MB Bundle (BP Fragmentation)"
+    echo "Test Case 2: 6MB Bundle over TLS (BP Fragmentation)"
     echo "=========================================="
 
-    # Create 6MB test file (should fragment into 2 pieces with 5MB slots)
+    # Create 6MB test file (produces ~6 fragments with default 1MB slots)
     cd ../2.ipn.tcp4
     echo "Creating 6MB test file..."
     dd if=/dev/urandom of=testfile_6mb bs=1M count=6 2>/dev/null
@@ -255,7 +310,7 @@ if [ $FAIL -eq 0 ]; then
     SENT_MD5=$(md5sum testfile_6mb | awk '{print $1}')
     echo "Test file created: $SENT_SIZE bytes, MD5=$SENT_MD5"
 
-    # Reset bpstats on both nodes to track new bundles
+    # Reset bpstats on both nodes
     cd ../2.ipn.tcp4
     bpstats 2>/dev/null
     sleep 1
@@ -263,45 +318,26 @@ if [ $FAIL -eq 0 ]; then
     bpstats 2>/dev/null
     sleep 1
 
-    # Start bprecvfile on Node 3 for large bundle
+    # Start bprecvfile on Node 3
     cd ../3.ipn.tcp4
     echo "Starting bprecvfile on Node 3..."
-    # Remove any old test files
-    rm -f testfile[0-9]*
     bprecvfile ipn:3.1 1 &
     BPRECVFILE_PID=$!
     sleep 2
 
-    # Check configuration before sending
+    # Send 6MB bundle from Node 2 over TLS
     cd ../2.ipn.tcp4
-    echo ""
-    echo "Checking tcp4clo configuration..."
-    echo "Looking for slot size and maxPayloadLen in ion.log:"
-    grep -E "(slot|maxPayload|Auto-set)" ion.log | tail -5 || echo "  (not found yet)"
-
-    echo ""
-    echo "Checking outduct configuration via bpadmin:"
-    echo "i outduct tcp4 peer3" | bpadmin 2>/dev/null | grep -E "(max payload|Outduct)" || echo "  (bpadmin query failed)"
-
-    # Send 6MB bundle from Node 2 using bpsendfile
-    echo ""
-    echo "Sending 6MB bundle from Node 2 to Node 3..."
-    echo "Expected: 2 fragments with 5MB slot size (5MB + 1MB)"
+    echo "Sending 6MB bundle from Node 2 to Node 3 over TLS..."
+    echo "This should trigger BP fragmentation if slot size < 6MB..."
     bpsendfile ipn:2.1 ipn:3.1 testfile_6mb
 
-    # Wait for transmission (allow time for fragmentation and reassembly)
+    # Wait for transmission
     echo "Waiting for bundle transmission and reassembly..."
-    echo "  (Allowing extra time for both fragments to be transmitted)"
     sleep 30
 
     # Check if bundle was received
     cd ../3.ipn.tcp4
     echo "Checking received 6MB bundle..."
-
-    # bprecvfile writes received bundles to testfile1, testfile2, etc.
-    # With BP fragmentation, each fragment arrives as a separate bundle
-    # ION should reassemble fragments, so we expect one file with complete data
-    # OR multiple files if fragments arrive as separate bundles
 
     sleep 2  # Allow time for file to be fully written
 
@@ -313,7 +349,7 @@ if [ $FAIL -eq 0 ]; then
         FRAG_FILES=$(ls -1 testfile[0-9]* 2>/dev/null | wc -l)
 
         if [ "$RECV_SIZE" -eq "$SENT_SIZE" ] && [ "$RECV_MD5" = "$SENT_MD5" ]; then
-            echo "SUCCESS: 6MB bundle received correctly!"
+            echo "SUCCESS: 6MB bundle received correctly over TLS!"
             echo "  Sent:     $SENT_SIZE bytes, MD5=$SENT_MD5"
             echo "  Received: $RECV_SIZE bytes, MD5=$RECV_MD5"
             echo "  Files:    $FRAG_FILES (fragments reassembled by ION)"
@@ -355,74 +391,47 @@ if [ $FAIL -eq 0 ]; then
     echo ""
     echo "Verifying BP fragmentation..."
     cd ../2.ipn.tcp4
+    bpstats 2>/dev/null
+    sleep 1
+    SRC_COUNT=$(grep "\[x\] src " ion.log | tail -1 | sed -n 's/.*(\+) \([0-9]*\) .*/\1/p')
 
-    # Check what maxPayloadLen was configured
-    echo "Configuration verification:"
-    echo "  Configured maxPayloadLen: 5241856 bytes (5MB - 1KB overhead)"
-    echo "  Expected fragments for 6MB: 2 (5MB + 1MB)"
-    EXPECTED_FRAGS=2
-
-    # Count SLOT_READY messages in bridge log to see how many fragments were transmitted
-    # (Subtract 1 for the small test bundle)
-    if [ -f bridge.log ]; then
-        XFER_COUNT=$(grep "SLOT_READY" bridge.log | wc -l)
-        FRAG_COUNT=$((XFER_COUNT - 1))  # Subtract the small test bundle
-
-        echo ""
-        echo "BP fragmentation analysis:"
-        echo "  Fragments transmitted: $FRAG_COUNT"
-        echo "  Fragments reassembled: $FRAG_FILES file(s)"
-        echo "  Expected fragments: $EXPECTED_FRAGS"
-
-        if [ "$FRAG_COUNT" -eq "$EXPECTED_FRAGS" ]; then
-            echo "SUCCESS: Fragmentation count matches expected!"
-        elif [ "$FRAG_COUNT" -gt 0 ]; then
-            echo "INFO: Transmitted $FRAG_COUNT fragments (expected $EXPECTED_FRAGS)"
-        else
-            echo "WARNING: Could not determine fragment count"
-        fi
+    if [ -n "$SRC_COUNT" ] && [ "$SRC_COUNT" -gt 1 ]; then
+        echo "SUCCESS: BP fragmentation occurred - $SRC_COUNT fragments sourced"
     else
-        echo "WARNING: bridge.log not found, cannot verify fragment count"
+        echo "WARNING: Could not verify fragmentation count."
+        echo "  Fragments sourced: ${SRC_COUNT:-unknown}"
     fi
 
-    # Verify SDR cleanup on source node
+    # Verify SDR cleanup
     echo ""
     echo "Checking source node SDR cleanup..."
     cd ../2.ipn.tcp4
     sleep 2
     BPLIST_COUNT=$(bplist count | grep "Report count" | awk '{gsub(/[^0-9]/,"",$NF); print $NF}')
     if [ "$BPLIST_COUNT" -eq 0 ] 2>/dev/null; then
-        echo "SUCCESS: Source SDR is clear after 6MB bundle transmission."
+        echo "SUCCESS: Source SDR is clear after 6MB TLS bundle transmission."
     else
-        echo "ERROR: Source SDR still has ${BPLIST_COUNT} bundle(s) after 6MB transmission."
-        bplist count
+        echo "ERROR: Source SDR still has ${BPLIST_COUNT} bundle(s)."
         FAIL=1
     fi
 
-    # Check for "exceeds slot capacity" errors
+    # Check for slot capacity errors
     echo ""
     echo "Checking for slot capacity errors..."
     cd ../2.ipn.tcp4
     if grep -q "exceeds slot capacity" ion.log; then
         echo "ERROR: Bundle rejected due to slot capacity:"
         grep "exceeds slot capacity" ion.log
-        echo ""
-        echo "This indicates maxPayloadLen was not set correctly."
-        echo "Check for auto-configuration message:"
-        grep "Auto-set maxPayloadLen" ion.log || echo "  (not found)"
         FAIL=1
     else
-        echo "SUCCESS: No slot capacity errors (BP fragmentation working correctly)"
-
-        # Show auto-configuration message if present
+        echo "SUCCESS: No slot capacity errors (BP fragmentation + TLS working correctly)"
         if grep -q "Auto-set maxPayloadLen" ion.log; then
-            echo "Auto-configuration message:"
             grep "Auto-set maxPayloadLen" ion.log
         fi
     fi
 
-    kill $BPRECVFILE_PID 2>/dev/null
-    wait $BPRECVFILE_PID 2>/dev/null
+    kill $BPSINK_PID 2>/dev/null
+    wait $BPSINK_PID 2>/dev/null
 
     echo ""
     echo "=========================================="
@@ -436,25 +445,17 @@ kill $BRIDGE1_PID 2>/dev/null
 kill $BRIDGE2_PID 2>/dev/null
 wait $BRIDGE1_PID 2>/dev/null
 wait $BRIDGE2_PID 2>/dev/null
-pkill -9 -f "bridge.bridge_adapter" 2>/dev/null
+pkill -f "bridge.bridge_adapter" 2>/dev/null
+
+pkill -f "tcp4cli" 2>/dev/null
+pkill -f "tcp4clo" 2>/dev/null
 sleep 1
 
-pkill -9 -f "tcp4cli" 2>/dev/null
-pkill -9 -f "tcp4clo" 2>/dev/null
-sleep 2
-
 killm
-
-# Ensure port is released
-sleep 2
-if netstat -tuln 2>/dev/null | grep -q ":4556 "; then
-    echo "WARNING: Port 4556 still in use, waiting..."
-    sleep 3
-fi
 
 # Clean up shared memory and sockets
 rm -f /tmp/ion_tcp4/*.sock
 rm -f /dev/shm/ion_tcp4_*
 
-echo "TCP4 two-node test completed."
+echo "TCP4 two-node TLS test completed."
 exit $FAIL

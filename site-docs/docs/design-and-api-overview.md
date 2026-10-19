@@ -32,7 +32,7 @@ ION provides BP services based on Bundle Protocol v7 (BPv6 was removed in ION 4.
 
 1. **LTP**: Licklider Transmission Protocol
 2. **TCPCL**: TCP Convergence Layer version 3
-3. **[TCPCLv4](./TCPCLv4-Guide.md)**: TCP Convergence Layer version 4 (RFC 9174) via dtn-demo-agent bridge (demonstration prototype)
+3. **[TCPCLv4](./TCPCLv4-Guide.md)**: TCP Convergence Layer version 4 (RFC 9174) via external dtn-demo-agent bridge (demonstration prototype, opt-in via `--enable-tcpclv4-external`; integrated pure-C TCPCLv4 planned for future release)
 4. **UDPCL**: UDP Convergence Layer
 5. **STCP**: Simplified TCP Convergence Layer
 6. **DGR**: Datagram Retransmission Convergence Layer

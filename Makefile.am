@@ -546,9 +546,13 @@ iciinclude = \
 	ici/include/crc.h \
 	ici/include/bulk.h \
 	ici/include/csi.h \
-	ici/include/ion_network.h \
+	ici/include/ion_network.h
+
+if ENABLE_TCPCLV4_EXTERNAL
+include_HEADERS += \
 	ici/include/ion_transfer_pool.h \
 	ici/include/ion_ctrl_channel.h
+endif
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -686,9 +690,13 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrtable.c \
 	ici/sdr/sdrxn.c \
 	ici/sdr/sdr_perf.c \
-	ici/crypto/entropy_src.c \
+	ici/crypto/entropy_src.c
+
+if ENABLE_TCPCLV4_EXTERNAL
+libici_la_SOURCES += \
 	ici/library/ion_transfer_pool.c \
 	ici/library/ion_ctrl_channel.c
+endif
 
 # Always compile ion_atomic.c.  Its internal #if !ION_HAVE_C11_ATOMICS guard
 # compiles the function bodies to nothing on C11 builds, so this is safe.
@@ -1200,8 +1208,6 @@ bpbin = \
 	sppclo \
 	eppcli \
 	eppclo \
-	tcp4cli \
-	tcp4clo \
 	filecli \
 	fileclo \
 	stcpcli \
@@ -1226,24 +1232,38 @@ bpbin += \
 	dgrclo
 endif # end ENABLE_DGR
 
+
+if ENABLE_TCPCLV4_EXTERNAL
+bpbin += \
+	tcp4cli \
+	tcp4clo
+endif # end ENABLE_TCPCLV4_EXTERNAL
+
 bplib = \
 	libbp.la \
 	libcgr.la \
 	libsppcla.la \
 	libeppcla.la \
-	libtcp4cla.la \
-	libtcpclv4_msg.la \
 	libstcpcla.la \
 	libudpcla.la
 
-# libtcpclv4_tls.la is built but not linked until TCPCLv4 TLS is used
+if ENABLE_TCPCLV4_EXTERNAL
+bplib += \
+	libtcp4cla.la \
+	libtcpclv4_msg.la \
+	libtcpclv4_tls.la
+endif
 
 bpinclude = \
 	bpv7/include/bp.h \
 	bpv7/include/bp_admin.h \
-	bpv7/include/eureka.h \
+	bpv7/include/eureka.h
+
+if ENABLE_TCPCLV4_EXTERNAL
+include_HEADERS += \
 	bpv7/tcp4/tcpclv4_msg.h \
 	bpv7/tcp4/tcpclv4_tls.h
+endif
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
@@ -1256,9 +1276,13 @@ bpnoinst = \
 	bpv7/saga/saga.h \
 	bpv7/spp/sppcla.h \
 	bpv7/epp/eppcla.h \
-	bpv7/tcp4/tcp4cla.h \
 	bpv7/stcp/stcpcla.h \
 	bpv7/udp/udpcla.h
+
+if ENABLE_TCPCLV4_EXTERNAL
+noinst_HEADERS += \
+	bpv7/tcp4/tcp4cla.h
+endif
 
 bpextra = \
 	bpv7/README.txt \
@@ -1568,6 +1592,7 @@ libeppcla_la_SOURCES = bpv7/epp/libeppcla.c
 libeppcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libeppcla_la_LIBADD = libbp.la libici.la
 
+if ENABLE_TCPCLV4_EXTERNAL
 libtcp4cla_la_SOURCES = bpv7/tcp4/libtcp4cla.c
 libtcp4cla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libtcp4cla_la_LIBADD = libbp.la libici.la
@@ -1582,6 +1607,7 @@ libtcpclv4_tls_la_SOURCES = bpv7/tcp4/tcpclv4_tls.c
 libtcpclv4_tls_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 libtcpclv4_tls_la_LDFLAGS = -version-info 1:0:0
 libtcpclv4_tls_la_LIBADD = libtcpclv4_msg.la $(OPENSSL_LIBS)
+endif # ENABLE_TCPCLV4_EXTERNAL
 
 # --- libmetadata --- #
 
@@ -1760,6 +1786,7 @@ eppclo_SOURCES = bpv7/epp/eppclo.c
 eppclo_LDADD = libici.la $(bplib) $(LIBS)
 eppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+if ENABLE_TCPCLV4_EXTERNAL
 # --- TCP4 CLA Executables --- #
 
 tcp4cli_SOURCES = bpv7/tcp4/tcp4cli.c
@@ -1769,6 +1796,7 @@ tcp4cli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 tcp4clo_SOURCES = bpv7/tcp4/tcp4clo.c
 tcp4clo_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
 tcp4clo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # ENABLE_TCPCLV4_EXTERNAL
 
 # --- File CLA Executables --- #
 
@@ -2930,11 +2958,13 @@ tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_publ
 tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
 tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
+if ENABLE_TCPCLV4_EXTERNAL
 # TCP4 CLA loopback bridge for testing
 check_PROGRAMS += tcp4_loopback
 tcp4_loopback_SOURCES = bpv7/tcp4/tcp4_loopback.c
 tcp4_loopback_LDADD = libici.la $(PTHREAD_LIBS) $(LIBS)
 tcp4_loopback_CFLAGS = $(icicflags) $(AM_CFLAGS)
+endif # ENABLE_TCPCLV4_EXTERNAL
 
 # Helper program tcp_single_node for tcp_2nodes test.
 # Must be noinst_PROGRAMS (not check_PROGRAMS) so it's built by default
