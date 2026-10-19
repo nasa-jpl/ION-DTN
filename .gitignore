@@ -29,6 +29,8 @@ settings.local-backup.json
 
 # Keep empty m4/ macro dir but ignore temp files inside it
 m4/*
+!m4/dccp_macro.m4
+!m4/pkg.m4
 !m4/.gitkeep
 
 # Temp mod directory (Podman)
@@ -260,10 +262,6 @@ progress
 
 # External dependencies directory
 external/
-
-# Platform-specific build directories
-**/i86_64-fedora/
-**/tcp4/
 
 # Test convergence layer binaries (root level)
 tcp4_loopback

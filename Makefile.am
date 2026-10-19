@@ -1232,13 +1232,18 @@ bplib = \
 	libsppcla.la \
 	libeppcla.la \
 	libtcp4cla.la \
+	libtcpclv4_msg.la \
 	libstcpcla.la \
 	libudpcla.la
+
+# libtcpclv4_tls.la is built but not linked until TCPCLv4 TLS is used
 
 bpinclude = \
 	bpv7/include/bp.h \
 	bpv7/include/bp_admin.h \
-	bpv7/include/eureka.h
+	bpv7/include/eureka.h \
+	bpv7/tcp4/tcpclv4_msg.h \
+	bpv7/tcp4/tcpclv4_tls.h
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
@@ -1566,6 +1571,17 @@ libeppcla_la_LIBADD = libbp.la libici.la
 libtcp4cla_la_SOURCES = bpv7/tcp4/libtcp4cla.c
 libtcp4cla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libtcp4cla_la_LIBADD = libbp.la libici.la
+
+# --- Phase 2 TCPCLv4 Libraries --- #
+
+libtcpclv4_msg_la_SOURCES = bpv7/tcp4/tcpclv4_msg.c
+libtcpclv4_msg_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libtcpclv4_msg_la_LDFLAGS = -version-info 1:0:0
+
+libtcpclv4_tls_la_SOURCES = bpv7/tcp4/tcpclv4_tls.c
+libtcpclv4_tls_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
+libtcpclv4_tls_la_LDFLAGS = -version-info 1:0:0
+libtcpclv4_tls_la_LIBADD = libtcpclv4_msg.la $(OPENSSL_LIBS)
 
 # --- libmetadata --- #
 

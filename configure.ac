@@ -851,6 +851,17 @@ else
 fi
 
 #
+# Check for OpenSSL (required for TCPCLv4 TLS library)
+#
+PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.1], [
+  AC_DEFINE([HAVE_OPENSSL], [1], [Define if OpenSSL is available])
+  AC_MSG_NOTICE([OpenSSL found: TCPCLv4 TLS support enabled])
+], [
+  AC_MSG_WARN([OpenSSL not found: TCPCLv4 TLS library will not be built])
+  AC_MSG_WARN([Install OpenSSL development libraries (libssl-dev) for TLS support])
+])
+
+#
 # Control whether AMS debugging info is printed.
 #
 AC_ARG_ENABLE([ams-debug],

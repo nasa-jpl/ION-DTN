@@ -1,30 +1,29 @@
 # TCPCLv4 Guide
 
-> **Note:** The TCPCLv4 CLA is currently a **demonstration prototype**. It is intended for testing and evaluation purposes and may not be suitable for production deployments.
+> **Status:** The TCPCLv4 CLA is currently a **demonstration prototype** (Phase 1 implementation, February 2026). It is functional and tested for evaluation purposes but should not be used in production deployments without further validation.
 
 ## Overview
 
-TCPCLv4 (TCP Convergence Layer version 4) is ION's implementation of the IETF RFC 9174 standard for bundle transfer over TCP connections. Unlike the older TCPCLv3 implementation (`tcpcli`/`tcpclo`), TCPCLv4 uses a bridge architecture that connects ION's internal shared-memory interface to an external Python-based TCPCLv4 protocol handler.
+TCPCLv4 (TCP Convergence Layer version 4) implements the IETF RFC 9174 standard for reliable bundle transfer over TCP connections. This prototype demonstrates ION's ability to interoperate with standards-compliant TCPCLv4 implementations.
 
-The architecture consists of:
+**Key Features:**
+- RFC 9174 compliant TCPCLv4 protocol
+- TLS 1.3 encryption support
+- Automatic BP-layer fragmentation for large bundles
+- Handles bundles of arbitrary size (tested up to 50MB+)
+- Default configuration works without manual tuning
 
-1. **tcp4cli/tcp4clo**: ION CLA daemons that communicate via shared memory pools
-2. **Bridge Adapter**: Python module that bridges the shared-memory interface to TCPCLv4 sessions
-3. **dtn-demo-agent**: External Python package providing the TCPCLv4 protocol implementation
+**Architecture:** The current implementation uses a Python bridge that connects ION's C convergence layer daemons to an external TCPCLv4 protocol handler. Future phases will migrate to a pure C implementation for production use.
 
 ```
 ION Node A                                           ION Node B
 ┌─────────────┐                                     ┌─────────────┐
-│   bpsource  │                                     │   bpsink    │
+│  Application│                                     │ Application │
 └──────┬──────┘                                     └──────▲──────┘
        │                                                   │
 ┌──────▼──────┐                                     ┌──────┴──────┐
-│   tcp4clo   │                                     │   tcp4cli   │
-└──────┬──────┘                                     └──────▲──────┘
-       │ (shared memory)                                   │ (shared memory)
-┌──────▼──────┐                                     ┌──────┴──────┐
-│   Bridge    │◄────────── TCPCLv4 Session ────────►│   Bridge    │
-│  (Python)   │                                     │  (Python)   │
+│   tcp4clo   │◄────────── TCPCLv4 over TCP ───────►│   tcp4cli   │
+│   (ION CLA) │         (Python bridge)             │  (ION CLA)  │
 └─────────────┘                                     └─────────────┘
 ```
 
@@ -101,9 +100,11 @@ python3 -c "import tcpcl; print('tcpcl: OK')"
 
 All four checks should print "OK".
 
-## Running the Two-Node Test
+## Quick Start
 
-The `tcp4-twonodes` test demonstrates basic TCPCLv4 operation between two ION nodes:
+### Running the Two-Node Test
+
+Verify the installation with the basic two-node test:
 
 ```bash
 source ~/.default-venv/bin/activate
@@ -111,260 +112,211 @@ cd tests/tcp4-twonodes
 ./dotest
 ```
 
-### What the Test Does
+This test:
+1. Starts two ION nodes communicating via TCPCLv4
+2. Sends a 6MB bundle from Node 2 to Node 3
+3. Verifies successful delivery and cleanup
+4. Expected result: "SUCCESS" messages and exit code 0
 
-1. Starts two ION nodes (Node 2 and Node 3)
-2. Launches `tcp4cli` and `tcp4clo` daemons on each node
-3. Starts Bridge adapters connecting the nodes via TCPCLv4
-4. Sends a bundle from Node 2 to Node 3 using `bpsource`
-5. Verifies receipt at Node 3 using `bpsink`
-6. Confirms the source SDR is cleared (XFER_SUCCESS feedback)
+### Running the TLS Test
 
-## Configuration
+Test TCPCLv4 with TLS encryption:
+
+```bash
+source ~/.default-venv/bin/activate
+cd tests/tcp4-twonodes-tls
+./dotest
+```
+
+This test:
+1. Generates test PKI certificates automatically
+2. Establishes TLS-encrypted TCPCLv4 sessions (TLS 1.3)
+3. Transfers both small and large bundles (up to 50MB)
+4. Verifies TLS negotiation and bundle integrity
+
+## Basic Configuration
+
+### Overview
+
+TCPCLv4 configuration requires:
+1. **bridge.yaml** - TCPCLv4 connection settings (per node)
+2. **BP configuration** - Standard ION BP setup with TCP4 protocol
 
 ### Bridge Configuration (bridge.yaml)
 
-Each node requires a `bridge.yaml` file to configure the TCPCLv4 bridge:
+Create a `bridge.yaml` file for each node:
 
-**Active node (initiates connection):**
+**Node that initiates connections:**
 ```yaml
-duct_name: "peer3"
-node_id: "ipn:2.0"
-peer_address: "127.0.0.1"
-peer_port: 4556
-tls_enable: false
+duct_name: "peer3"           # Must match BP outduct/induct name
+node_id: "ipn:2.0"           # This node's ID
+peer_address: "10.0.1.3"     # Remote node's IP
+peer_port: 4556              # Remote node's port
+tls_enable: false            # Set to true for TLS
 ```
 
-**Passive node (listens for connections):**
+**Node that accepts connections:**
 ```yaml
-duct_name: "peer2"
-node_id: "ipn:3.0"
-listen_address: "127.0.0.1"
-listen_port: 4556
-tls_enable: false
+duct_name: "peer2"           # Must match BP outduct/induct name
+node_id: "ipn:3.0"           # This node's ID
+listen_address: "0.0.0.0"    # Listen on all interfaces
+listen_port: 4556            # Port to listen on
+tls_enable: false            # Set to true for TLS
 ```
 
-### BP Configuration (amroc.bprc)
+### ION BP Configuration
 
-Configure TCP4 inducts and outducts in the BP configuration:
+Add TCP4 protocol and ducts to your `.bprc` file:
 
 ```
-# Add TCP4 protocol
+# Add TCP4 protocol (required once)
 a protocol tcp4 1400 100
 
-# Add induct (receiver)
+# Add TCP4 induct for receiving
 a induct tcp4 peer2 tcp4cli
 
-# Add outduct (sender)
+# Add TCP4 outduct for sending
 a outduct tcp4 peer3 tcp4clo
+
+# Route traffic to remote node via TCP4
+# In .ipnrc:
+a plan 3 tcp4/peer3
 ```
 
-### Plan Configuration
+### TLS Configuration (Optional)
 
-Configure the egress plan to use TCP4:
+To enable TLS, set `tls_enable: true` and add certificate paths to `bridge.yaml`:
 
+```yaml
+tls_enable: true
+tls_ca_file: "/path/to/ca.crt"
+tls_cert_file: "/path/to/node-chain.pem"
+tls_key_file: "/path/to/node.key"
 ```
-a plan ipn:3.0 tcp4/peer3
-```
+
+See `tests/tcp4-twonodes-tls/gen_test_pki.sh` for an example certificate generation script.
 
 ## Bundle Size Handling
 
-### Understanding TCPCLv4 Bundle Sizes
+### Default Configuration
 
-Unlike UDP-based CLAs which are constrained by the UDP MTU (~65KB), **TCPCLv4 supports arbitrarily large bundles**:
+The TCP4 CLA is configured to handle bundles of any size automatically:
 
-- TCPCLv4 operates above TCP, which is a stream protocol
-- RFC 9174 defines transfer segmentation (XFER_SEGMENT messages)
-- Bundle size is limited only by available memory, not network MTU
-- MTU (1500 bytes for Ethernet, 9000 for jumbo frames) only affects TCP socket efficiency
+- **Default slot size**: 1 MB (configurable at compile time)
+- **Automatic fragmentation**: Enabled by default
+- **Maximum bundle size**: Limited only by available memory
+- **Tested range**: Up to 50MB+ bundles
 
-### Shared Memory Slot Size
+**No manual configuration is required** - the system automatically fragments large bundles into slot-sized pieces for transmission.
 
-The TCP4 CLA uses shared memory pools with a default slot size of **1MB** (configurable). This is NOT a bundle size limit - it's a design parameter that determines how BP-layer fragmentation works.
+### How It Works
 
-### Large Bundle Support
+When you send a bundle larger than the slot size:
 
-For bundles larger than the slot size, ION uses **BP-layer fragmentation**:
+1. ION's Bundle Protocol automatically fragments the bundle
+2. Each fragment is transmitted independently via TCPCLv4
+3. The receiver reassembles fragments at the final destination
+4. The process is transparent to applications
 
-#### Automatic Fragmentation (Enabled by Default)
+**Example**: With default 1MB slots, a 50MB bundle is automatically split into ~50 fragments and transmitted successfully.
 
-The TCP4 CLA automatically configures `maxPayloadLen` to match the slot size, triggering BP fragmentation. When a bundle exceeds the slot size:
+### Custom Slot Sizes (Optional)
 
-1. **bpclm** daemon fragments the bundle into slot-sized pieces
-2. Each fragment is a complete BP bundle with its own header
-3. Each fragment is transmitted independently via TCP4
-4. Receiver reassembles at the final destination
-
-**Example**: With 5MB slots, a 50MB bundle is automatically split into 10 fragments of 5MB each.
-
-#### Configuration
-
-The fragmentation threshold is auto-configured to match the slot size, but can be overridden in `.bprc`:
+For specialized deployments, you can configure larger slot sizes at compile time:
 
 ```bash
-# Default: Auto-set to match slot size (recommended)
-a outduct tcp4 peer3 'tcp4clo peer3'
-
-# Custom threshold (e.g., 10MB fragments)
-a outduct tcp4 peer3 'tcp4clo peer3' 10000000
-
-# Disable fragmentation (0 = unlimited, not recommended)
-a outduct tcp4 peer3 'tcp4clo peer3' 0
-```
-
-#### Compile-Time Slot Size Configuration
-
-The slot size can be configured at compile time for different deployment scenarios:
-
-```bash
-# Recommended for 50MB bundles: 5MB slots
+# For frequent large bundles (reduces fragmentation overhead)
 ./configure --with-tcp4-slot-size=5 --with-tcp4-num-slots=8
-make
-
-# Alternative: 10MB slots with fewer slots
-./configure --with-tcp4-slot-size=10 --with-tcp4-num-slots=4
-make
-
-# High throughput: 50MB slots (high memory usage)
-./configure --with-tcp4-slot-size=50 --with-tcp4-num-slots=8
-make
-```
-
-**Memory Impact:**
-
-| Configuration | Slot Size | Slots | Memory Per Duct (TX+RX) | Use Case |
-|---------------|-----------|-------|-------------------------|----------|
-| Default | 1 MB | 8 | 16 MB | Standard traffic |
-| Recommended | 5 MB | 8 | 80 MB | 50MB bundles |
-| Bulk | 10 MB | 4 | 80 MB | Bulk transfer |
-| High-Throughput | 50 MB | 8 | 800 MB | Dedicated links |
-
-### BP Fragmentation vs CL Segmentation
-
-It's important to distinguish between two types of fragmentation:
-
-**BP-Layer Fragmentation** (RFC 9171):
-- Splits ONE bundle into MULTIPLE bundles
-- Each fragment is a complete bundle with its own headers
-- Handled by `bpclm` daemon based on `maxPayloadLen`
-- Configurable via `.bprc`
-- Reassembled at final destination
-
-**CL-Layer Segmentation** (RFC 9174):
-- Splits ONE bundle's transmission into segments
-- NOT new bundles - same bundle, chunked on the wire
-- Handled automatically by TCPCLv4 agent
-- Transparent to ION
-- Reassembled immediately by TCPCLv4 receiver
-
-**Example**:
-- 50MB bundle with 5MB `maxPayloadLen`:
-  - BP layer: Creates 10 fragment bundles (5MB each)
-  - CL layer: Each 5MB fragment sent via multiple XFER_SEGMENT messages
-  - Total: 10 bundles, each transmitted via ~5000 XFER_SEGMENTs (1KB each)
-
-### Performance Considerations
-
-**5MB Slots vs 1MB Slots:**
-- 50MB bundle: 10 fragments vs 50 fragments (80% reduction)
-- Less BP overhead, fewer SDR operations
-- Memory copy time negligible (0.3ms difference per fragment)
-- Network transmission time dominates (same for both)
-- **Recommended: 5MB slots** for bundles up to 50MB
-
-**When to use smaller `maxPayloadLen`:**
-- Network with frequent disruptions (fragments can take different paths)
-- Memory-constrained receivers
-- Need for incremental progress tracking
-
-**When to use larger slots:**
-- Reliable, dedicated links
-- Bulk file transfer deployments
-- Minimize BP fragmentation overhead
-
-### Troubleshooting
-
-#### Bundle Rejected: Exceeds Slot Capacity
-
-If you see:
-```
-[w] tcp4clo: bundle 50000000 bytes exceeds slot capacity 1048576 (1 MB).
-```
-
-This should not occur if auto-configuration is working. If it does:
-
-**Solution 1**: Verify auto-configuration (check ion.log for auto-set message):
-```bash
-grep "Auto-set maxPayloadLen" ion.log
-```
-
-**Solution 2**: Manually configure BP fragmentation:
-```bash
-# In .bprc
-c outduct tcp4 peer3 'tcp4clo peer3' 1048576   # Match slot size
-```
-
-**Solution 3**: Increase slot size (requires recompilation):
-```bash
-./configure --with-tcp4-slot-size=5
 make && sudo make install
 ```
 
-#### System Shared Memory Limits
+**Memory usage**: Each duct (send/receive pair) uses `slot_size × num_slots × 2` of shared memory.
 
-For large slot sizes (50MB+), check system limits:
+| Slot Size | Num Slots | Memory Per Duct | Use Case |
+|-----------|-----------|-----------------|----------|
+| 1 MB (default) | 8 | 16 MB | General purpose |
+| 5 MB | 8 | 80 MB | Large bundles (10-100 MB) |
+| 10 MB | 4 | 80 MB | Bulk transfers |
 
-```bash
-# Check current limits
-cat /proc/sys/kernel/shmmax  # Max segment size
-cat /proc/sys/kernel/shmall  # Total shared memory
+### Troubleshooting
 
-# Increase if needed (requires root)
-sudo sysctl -w kernel.shmmax=2147483648   # 2GB
-sudo sysctl -w kernel.shmall=2097152      # 8GB in 4KB pages
+**Issue**: Bundles rejected with "exceeds slot capacity" error
+
+**Solution**: The tcp4clo daemon should auto-configure fragmentation. Check `ion.log` for:
+```
+[i] tcp4clo: Auto-set maxPayloadLen=1047552 (1 MB - 1024 B margin)
 ```
 
-For production deployments with large slots, add these to `/etc/sysctl.conf`.
-
-## TLS Support
-
-For TLS-enabled connections, use the `tcp4-twonodes-tls` test as a reference. TLS configuration requires:
-
-1. Generate test PKI certificates using `gen_test_pki.sh`
-2. Set `tls_enable: true` in bridge.yaml
-3. Configure certificate paths in the bridge configuration
+If this message is missing, manually set fragmentation in `.bprc`:
+```
+# Match the slot capacity (e.g., 1 MB)
+a outduct tcp4 peer3 'tcp4clo peer3' 1048576
+```
 
 ## Troubleshooting
 
-### Bridge fails to start
+### Check System Status
 
-Check the bridge log file:
+Verify all components are running:
+
 ```bash
-cat bridge.log
+# Check ION is running
+pgrep ionadmin
+
+# Check TCP4 CLA daemons
+pgrep tcp4cli && pgrep tcp4clo
+
+# Check bridge adapter
+pgrep -f bridge_adapter
+
+# Check logs
+tail -f ion.log
 ```
 
-Common issues:
-- Missing Python dependencies
-- Incorrect PYTHONPATH
-- Port already in use
+### Common Issues
 
-### Bundles not received
+**Bridge fails to start:**
+- Check `bridge.log` in the node directory
+- Verify Python dependencies are installed (`python3 -c "import tcpcl"`)
+- Ensure port is not already in use
 
-1. Verify both bridges are running: `pgrep -f bridge_adapter`
-2. Check ION logs: `tail -f ion.log`
-3. Verify TCP4 CLAs are running: `pgrep -f tcp4cli && pgrep -f tcp4clo`
+**Bundles not received:**
+1. Verify contact plan is loaded: `ionadmin` → `l contact`
+2. Check TCPCLv4 session: Look for "TLS secured" or "session up" in `bridge.log`
+3. Verify routing plan: `ipnadmin` → `l plan`
 
-### Shared memory issues
-
-Clean up stale shared memory and sockets:
+**Clean up after failed test:**
 ```bash
-rm -f /tmp/ion_tcp4/*.sock
-rm -f /dev/shm/ion_tcp4_*
+killm                              # Stop ION and clean IPC
+rm -f /tmp/ion_tcp4/*.sock         # Remove sockets
+rm -f /dev/shm/ion_tcp4_*          # Remove shared memory
 ```
+
+### Getting Help
+
+For issues or questions:
+- Review test scripts in `tests/tcp4-twonodes/` and `tests/tcp4-twonodes-tls/`
+- Check ION logs for detailed error messages
+- Consult the design document: `dev-docs/ION_TCPCLv4_Integration_Design.md`
+
+## Development Status and Future Work
+
+**Current Status (February 2026)**: Phase 1 implementation complete and tested. This prototype demonstrates RFC 9174 compliance and provides a foundation for future optimization.
+
+**Limitations**:
+- Python bridge introduces latency compared to native C convergence layers
+- Not recommended for production use without further validation
+- Performance optimization phases (Phase 3/4) deferred to future work
+
+**Future Enhancements**:
+- Phase 3: Python+C hybrid for 3-5× performance improvement
+- Phase 4: Pure C implementation for production deployments
 
 ## Related Documentation
 
-- [ION Quick Start Guide](./ION-Quick-Start-Guide.md) - Basic ION setup
+- [ION Quick Start Guide](./ION-Quick-Start-Guide.md) - Basic ION configuration and operation
 - [CLA API](./CLA-API.md) - Convergence Layer Adapter API reference
-- [ION Design and API Overview](./ION-Design-and-API-Overview.md) - Architecture overview
-- [dtn-demo-agent Repository](https://github.com/BrianSipos/dtn-demo-agent) - TCPCLv4 implementation
+- [ION Design and API Overview](./ION-Design-and-API-Overview.md) - ION architecture overview
+- Technical design: `dev-docs/ION_TCPCLv4_Integration_Design.md`
+- [RFC 9174](https://www.rfc-editor.org/rfc/rfc9174.html) - TCPCLv4 specification
+- [dtn-demo-agent Repository](https://github.com/BrianSipos/dtn-demo-agent) - Reference TCPCLv4 implementation
