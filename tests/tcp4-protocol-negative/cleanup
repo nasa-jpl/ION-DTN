@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Clean up old ION state and test artifacts.
+# Invoked by runtests before each run (and after a pass); must stop any
+# lingering ION daemons and TCPCLv4 agents, then remove artifacts.
+echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# The tcpclv4_agent is a standalone process, not managed by ionadmin,
+# so killm alone will not stop it; sweep it (and the CLA daemons) first.
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+
+killm f
+
+rm -f ion_nodes
+rm -f ion.log ion-system.log
+rm -f 2.ipn.tcp4/ion.log 2.ipn.tcp4/agent.log 2.ipn.tcp4/testfile*
+rm -f 3.ipn.tcp4/ion.log 3.ipn.tcp4/agent.log 3.ipn.tcp4/testfile*
+rm -f 2.ipn.tcp4/*.sdr 3.ipn.tcp4/*.sdr
+rm -f 3.ipn.tcp4/probe_out.txt
+rm -f /tmp/ion_tcp4/*.sock
+rm -rf /tmp/ion_tcp4
+rm -f /dev/shm/ion_tcp4_*

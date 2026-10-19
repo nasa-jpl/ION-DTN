@@ -1,0 +1,11 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:5.0 x
+a endpoint ipn:5.1 x
+a endpoint ipn:5.2 x
+a protocol tcp4 1400 100
+a induct tcp4 cfromb 'tcp4cli cfromb'
+a outduct tcp4 cfromb 'tcp4clo cfromb'
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

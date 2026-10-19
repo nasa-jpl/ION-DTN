@@ -1,6 +1,0 @@
-# Node 3 bridge: passive mode (listens for Node 2's connection)
-duct_name: "peer2"
-node_id: "ipn:3.0"
-listen_address: "127.0.0.1"
-listen_port: 4556
-tls_enable: false

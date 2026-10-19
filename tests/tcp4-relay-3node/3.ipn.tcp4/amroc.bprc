@@ -1,0 +1,13 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a protocol tcp4 1400 100
+a induct tcp4 bfroma 'tcp4cli bfroma'
+a outduct tcp4 bfroma 'tcp4clo bfroma'
+a induct tcp4 btoc 'tcp4cli btoc'
+a outduct tcp4 btoc 'tcp4clo btoc'
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

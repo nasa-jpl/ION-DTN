@@ -1,9 +1,12 @@
 /*
-	tcpclv4_msg.c:	TCPCLv4 message encode/decode implementation.
+	tcpclv4_msg.c:	TCPCLv4 message encode/decode library (RFC 9174).
 
-			Implements RFC 9174 wire format parsing.
-			All multi-byte integers use network byte order
-			(big-endian) as specified in the RFC.
+			Stateless pure functions for parsing and
+			serializing TCPCLv4 protocol messages.
+			No I/O, no state - just wire format conversion.
+
+			All multi-byte fields are network byte order
+			(big-endian) per RFC 9174.
 
 	Author: iondev33
 
@@ -13,94 +16,49 @@
 								*/
 
 #include "tcpclv4_msg.h"
-#include <string.h>
+
 #include <stdlib.h>
-#include <arpa/inet.h>  /* htons, htonl, ntohs, ntohl */
+#include <string.h>
 
-/*	Network byte order conversion helpers for 64-bit values		*/
-
-/*	Some platforms (Solaris) define htonll/ntohll as macros.
- *	Only define our own if they don't already exist.		*/
-
-#ifndef htonll
-static uint64_t htonll(uint64_t hostval)
-{
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-	return ((uint64_t)htonl((uint32_t)(hostval & 0xFFFFFFFF)) << 32)
-		| htonl((uint32_t)(hostval >> 32));
-#else
-	return hostval;
-#endif
-}
-#endif
-
-#ifndef ntohll
-static uint64_t ntohll(uint64_t netval)
-{
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-	return ((uint64_t)ntohl((uint32_t)(netval & 0xFFFFFFFF)) << 32)
-		| ntohl((uint32_t)(netval >> 32));
-#else
-	return netval;
-#endif
-}
-#endif
-
-/*	Helper: read big-endian uint16 from buffer			*/
+/*	==============================================================
+ *	BYTE ORDER HELPERS
+ *	==============================================================
+ */
 
 static uint16_t read_u16(const uint8_t *buf)
 {
-	uint16_t val;
-
-	memcpy(&val, buf, 2);
-	return ntohs(val);
+	return ((uint16_t) buf[0] << 8) | (uint16_t) buf[1];
 }
-
-/*	Helper: read big-endian uint32 from buffer			*/
 
 static uint32_t read_u32(const uint8_t *buf)
 {
-	uint32_t val;
-
-	memcpy(&val, buf, 4);
-	return ntohl(val);
+	return ((uint32_t) buf[0] << 24) | ((uint32_t) buf[1] << 16)
+		| ((uint32_t) buf[2] << 8) | (uint32_t) buf[3];
 }
-
-/*	Helper: read big-endian uint64 from buffer			*/
 
 static uint64_t read_u64(const uint8_t *buf)
 {
-	uint64_t val;
-
-	memcpy(&val, buf, 8);
-	return ntohll(val);
+	return ((uint64_t) read_u32(buf) << 32) | (uint64_t) read_u32(buf + 4);
 }
-
-/*	Helper: write big-endian uint16 to buffer			*/
 
 static void write_u16(uint8_t *buf, uint16_t val)
 {
-	uint16_t netval = htons(val);
-
-	memcpy(buf, &netval, 2);
+	buf[0] = (uint8_t) (val >> 8);
+	buf[1] = (uint8_t) val;
 }
-
-/*	Helper: write big-endian uint32 to buffer			*/
 
 static void write_u32(uint8_t *buf, uint32_t val)
 {
-	uint32_t netval = htonl(val);
-
-	memcpy(buf, &netval, 4);
+	buf[0] = (uint8_t) (val >> 24);
+	buf[1] = (uint8_t) (val >> 16);
+	buf[2] = (uint8_t) (val >> 8);
+	buf[3] = (uint8_t) val;
 }
-
-/*	Helper: write big-endian uint64 to buffer			*/
 
 static void write_u64(uint8_t *buf, uint64_t val)
 {
-	uint64_t netval = htonll(val);
-
-	memcpy(buf, &netval, 8);
+	write_u32(buf, (uint32_t) (val >> 32));
+	write_u32(buf + 4, (uint32_t) val);
 }
 
 /*	==============================================================
@@ -108,37 +66,50 @@ static void write_u64(uint8_t *buf, uint64_t val)
  *	==============================================================
  */
 
-/*	Contact Header: magic(4) [no flags in header, flags elsewhere]	*/
+/*	Contact Header (§4.2): magic(4) + version(1) + flags(1)	*/
 
 int tcpclv4_decode_contact_header(const uint8_t *buf, size_t len,
 				   tcpclv4_contact_header_t *out)
 {
-	if (len < 4)
+	if (buf == NULL || out == NULL
+	|| len < TCPCLV4_CONTACT_HEADER_LEN)
 	{
 		return -1;	/* Insufficient data */
 	}
 
-	out->magic = read_u32(buf);
-	out->flags = 0;		/* Flags come from subsequent negotiation */
-
-	if (out->magic != TCPCLV4_CONTACT_MAGIC)
+	if (read_u32(buf) != TCPCLV4_CONTACT_MAGIC)
 	{
 		return -1;	/* Invalid magic */
+	}
+
+	out->version = buf[4];
+	out->flags = buf[5];
+
+	if (out->version != TCPCLV4_PROTOCOL_VERSION)
+	{
+		return -1;	/* Unsupported protocol version */
 	}
 
 	return 0;
 }
 
-/*	SESS_INIT: type(1) + keepalive(2) + seg_mru(8) + xfer_mru(8)
- *		   + node_id_len(2) + node_id + extensions		*/
+/*	SESS_INIT (§4.7): type(1) + keepalive(2) + seg_mru(8)
+ *	+ xfer_mru(8) + node_id_len(2) + node_id
+ *	+ ext_items_len(4) + ext_items				*/
 
 int tcpclv4_decode_sess_init(const uint8_t *buf, size_t len,
 			      tcpclv4_sess_init_t *out)
 {
 	const uint8_t	*p;
 	size_t		remaining;
+	uint32_t	ext_items_len;
 
-	if (len < 22)	/* 1 + 2 + 8 + 8 + 2 + 1 (min node_id) */
+	if (buf == NULL || out == NULL)
+	{
+		return -1;
+	}
+
+	if (len < 25)	/* 1 + 2 + 8 + 8 + 2 + 0 (node_id) + 4 */
 	{
 		return -1;
 	}
@@ -146,7 +117,6 @@ int tcpclv4_decode_sess_init(const uint8_t *buf, size_t len,
 	p = buf;
 	remaining = len;
 
-	/* Skip message type byte (already parsed by caller) */
 	if (*p != TCPCLV4_MSG_SESS_INIT)
 	{
 		return -1;
@@ -176,12 +146,12 @@ int tcpclv4_decode_sess_init(const uint8_t *buf, size_t len,
 	remaining -= 2;
 
 	/* Node ID string */
-	if (remaining < out->node_id_len)
+	if (remaining < (size_t) out->node_id_len + 4)
 	{
 		return -1;	/* Insufficient data */
 	}
 
-	out->node_id = malloc(out->node_id_len + 1);
+	out->node_id = malloc((size_t) out->node_id_len + 1);
 	if (out->node_id == NULL)
 	{
 		return -1;
@@ -192,18 +162,30 @@ int tcpclv4_decode_sess_init(const uint8_t *buf, size_t len,
 	p += out->node_id_len;
 	remaining -= out->node_id_len;
 
-	/* Session extension items (remaining bytes, optional) */
-	out->extensions_len = remaining;
-	if (remaining > 0)
+	/* Session extension items length (4 bytes) */
+	ext_items_len = read_u32(p);
+	p += 4;
+	remaining -= 4;
+
+	if (remaining != ext_items_len)
 	{
-		out->extensions = malloc(remaining);
+		free(out->node_id);
+		out->node_id = NULL;
+		return -1;	/* Length mismatch */
+	}
+
+	out->extensions_len = ext_items_len;
+	if (ext_items_len > 0)
+	{
+		out->extensions = malloc(ext_items_len);
 		if (out->extensions == NULL)
 		{
 			free(out->node_id);
+			out->node_id = NULL;
 			return -1;
 		}
 
-		memcpy(out->extensions, p, remaining);
+		memcpy(out->extensions, p, ext_items_len);
 	}
 	else
 	{
@@ -213,12 +195,12 @@ int tcpclv4_decode_sess_init(const uint8_t *buf, size_t len,
 	return 0;
 }
 
-/*	SESS_TERM: type(1) + flags(1) + reason(1)			*/
+/*	SESS_TERM (§6.1): type(1) + flags(1) + reason(1)		*/
 
 int tcpclv4_decode_sess_term(const uint8_t *buf, size_t len,
 			      tcpclv4_sess_term_t *out)
 {
-	if (len < 3)
+	if (buf == NULL || out == NULL || len < 3)
 	{
 		return -1;
 	}
@@ -234,8 +216,8 @@ int tcpclv4_decode_sess_term(const uint8_t *buf, size_t len,
 	return 0;
 }
 
-/*	XFER_SEGMENT: type(1) + flags(1) + xfer_id(8) + [extensions]
- *		      + [data_offset(8) if !START] + data		*/
+/*	XFER_SEGMENT (§5.2.2): type(1) + flags(1) + xfer_id(8)
+ *	+ [ext_len(4) + ext, START only] + data_len(8) + data	*/
 
 int tcpclv4_decode_xfer_segment(const uint8_t *buf, size_t len,
 				 tcpclv4_xfer_segment_t *out)
@@ -243,8 +225,14 @@ int tcpclv4_decode_xfer_segment(const uint8_t *buf, size_t len,
 	const uint8_t	*p;
 	size_t		remaining;
 	uint32_t	ext_items_len;
+	uint64_t	data_len;
 
-	if (len < 10)	/* Minimum: type(1) + flags(1) + xfer_id(8) */
+	if (buf == NULL || out == NULL)
+	{
+		return -1;
+	}
+
+	if (len < 18)	/* type(1) + flags(1) + xfer_id(8) + data_len(8) */
 	{
 		return -1;
 	}
@@ -270,72 +258,72 @@ int tcpclv4_decode_xfer_segment(const uint8_t *buf, size_t len,
 	p += 8;
 	remaining -= 8;
 
-	/* Transfer extension items length (4 bytes) */
-	if (remaining < 4)
+	/* Transfer extension items (present on START segments only) */
+	out->extensions = NULL;
+	out->extensions_len = 0;
+	if (out->flags & TCPCLV4_XFER_FLAG_START)
 	{
+		if (remaining < 4)
+		{
+			return -1;
+		}
+
+		ext_items_len = read_u32(p);
+		p += 4;
+		remaining -= 4;
+
+		if (ext_items_len > 0)
+		{
+			if (remaining < ext_items_len)
+			{
+				return -1;
+			}
+
+			out->extensions = malloc(ext_items_len);
+			if (out->extensions == NULL)
+			{
+				return -1;
+			}
+
+			memcpy(out->extensions, p, ext_items_len);
+			out->extensions_len = ext_items_len;
+			p += ext_items_len;
+			remaining -= ext_items_len;
+		}
+	}
+
+	/* Data length (8 bytes) */
+	if (remaining < 8)
+	{
+		free(out->extensions);
+		out->extensions = NULL;
 		return -1;
 	}
 
-	ext_items_len = read_u32(p);
-	p += 4;
-	remaining -= 4;
+	data_len = read_u64(p);
+	p += 8;
+	remaining -= 8;
 
-	/* Transfer extension items (optional) */
-	if (ext_items_len > 0)
+	if (remaining != data_len)
 	{
-		if (remaining < ext_items_len)
-		{
-			return -1;
-		}
-
-		out->extensions = malloc(ext_items_len);
-		if (out->extensions == NULL)
-		{
-			return -1;
-		}
-
-		memcpy(out->extensions, p, ext_items_len);
-		out->extensions_len = ext_items_len;
-		p += ext_items_len;
-		remaining -= ext_items_len;
-	}
-	else
-	{
+		free(out->extensions);
 		out->extensions = NULL;
-		out->extensions_len = 0;
+		return -1;	/* Length mismatch */
 	}
 
-	/* Data offset (8 bytes, only if NOT a START segment) */
-	if ((out->flags & TCPCLV4_XFER_FLAG_START) == 0)
-	{
-		if (remaining < 8)
-		{
-			free(out->extensions);
-			return -1;
-		}
-
-		out->data_offset = read_u64(p);
-		p += 8;
-		remaining -= 8;
-	}
-	else
-	{
-		out->data_offset = 0;
-	}
-
-	/* Payload data (remainder of message) */
+	/* Payload data (points into original buffer) */
 	out->data = p;
-	out->data_len = remaining;
+	out->data_len = data_len;
 
 	return 0;
 }
 
-/*	XFER_ACK: type(1) + flags(1) + xfer_id(8) + ack_len(8)		*/
+/*	XFER_ACK (§5.2.3): type(1) + flags(1) + xfer_id(8) + ack_len(8)	*/
 
 int tcpclv4_decode_xfer_ack(const uint8_t *buf, size_t len,
 			     tcpclv4_xfer_ack_t *out)
 {
-	if (len < 18)	/* 1 + 1 + 8 + 8 */
+	if (buf == NULL || out == NULL || len < 18)
 	{
 		return -1;
 	}
@@ -352,12 +340,12 @@ int tcpclv4_decode_xfer_ack(const uint8_t *buf, size_t len,
 	return 0;
 }
 
-/*	XFER_REFUSE: type(1) + reason(1) + xfer_id(8)			*/
+/*	XFER_REFUSE (§5.2.3): type(1) + reason(1) + xfer_id(8)		*/
 
 int tcpclv4_decode_xfer_refuse(const uint8_t *buf, size_t len,
 				tcpclv4_xfer_refuse_t *out)
 {
-	if (len < 10)	/* 1 + 1 + 8 */
+	if (buf == NULL || out == NULL || len < 10)
 	{
 		return -1;
 	}
@@ -373,12 +361,12 @@ int tcpclv4_decode_xfer_refuse(const uint8_t *buf, size_t len,
 	return 0;
 }
 
-/*	MSG_REJECT: type(1) + reason(1) + rejected_header(1)		*/
+/*	MSG_REJECT (§5.1.1): type(1) + reason(1) + rejected_hdr(1)	*/
 
 int tcpclv4_decode_msg_reject(const uint8_t *buf, size_t len,
 			       tcpclv4_msg_reject_t *out)
 {
-	if (len < 3)
+	if (buf == NULL || out == NULL || len < 3)
 	{
 		return -1;
 	}
@@ -399,27 +387,27 @@ int tcpclv4_decode_msg_reject(const uint8_t *buf, size_t len,
  *	==============================================================
  */
 
-/*	Contact Header: magic(4)					*/
+/*	Contact Header (§4.2): magic(4) + version(1) + flags(1)	*/
 
 int tcpclv4_encode_contact_header(const tcpclv4_contact_header_t *msg,
 				   uint8_t *buf, size_t buf_cap,
 				   size_t *out_len)
 {
-	(void)msg;	/* Contact header only contains magic constant */
-
-	if (buf_cap < 4)
+	if (msg == NULL || buf == NULL || out_len == NULL
+	|| buf_cap < TCPCLV4_CONTACT_HEADER_LEN)
 	{
 		return -1;
 	}
 
 	write_u32(buf, TCPCLV4_CONTACT_MAGIC);
-	*out_len = 4;
+	buf[4] = TCPCLV4_PROTOCOL_VERSION;
+	buf[5] = msg->flags;
+	*out_len = TCPCLV4_CONTACT_HEADER_LEN;
 
 	return 0;
 }
 
-/*	SESS_INIT: type(1) + keepalive(2) + seg_mru(8) + xfer_mru(8)
- *		   + node_id_len(2) + node_id + extensions		*/
+/*	SESS_INIT (§4.7)						*/
 
 int tcpclv4_encode_sess_init(const tcpclv4_sess_init_t *msg,
 			      uint8_t *buf, size_t buf_cap,
@@ -428,8 +416,13 @@ int tcpclv4_encode_sess_init(const tcpclv4_sess_init_t *msg,
 	uint8_t	*p;
 	size_t	required;
 
+	if (msg == NULL || buf == NULL || out_len == NULL)
+	{
+		return -1;
+	}
+
 	required = 1 + 2 + 8 + 8 + 2 + msg->node_id_len
-		   + msg->extensions_len;
+		   + 4 + msg->extensions_len;
 
 	if (buf_cap < required)
 	{
@@ -451,6 +444,9 @@ int tcpclv4_encode_sess_init(const tcpclv4_sess_init_t *msg,
 	memcpy(p, msg->node_id, msg->node_id_len);
 	p += msg->node_id_len;
 
+	write_u32(p, msg->extensions_len);
+	p += 4;
+
 	if (msg->extensions_len > 0)
 	{
 		memcpy(p, msg->extensions, msg->extensions_len);
@@ -462,13 +458,13 @@ int tcpclv4_encode_sess_init(const tcpclv4_sess_init_t *msg,
 	return 0;
 }
 
-/*	SESS_TERM: type(1) + flags(1) + reason(1)			*/
+/*	SESS_TERM (§6.1): type(1) + flags(1) + reason(1)		*/
 
 int tcpclv4_encode_sess_term(const tcpclv4_sess_term_t *msg,
 			      uint8_t *buf, size_t buf_cap,
 			      size_t *out_len)
 {
-	if (buf_cap < 3)
+	if (msg == NULL || buf == NULL || out_len == NULL || buf_cap < 3)
 	{
 		return -1;
 	}
@@ -482,8 +478,7 @@ int tcpclv4_encode_sess_term(const tcpclv4_sess_term_t *msg,
 	return 0;
 }
 
-/*	XFER_SEGMENT: type(1) + flags(1) + xfer_id(8) + ext_len(4)
- *		      + [extensions] + [data_offset(8)] + data		*/
+/*	XFER_SEGMENT (§5.2.2)						*/
 
 int tcpclv4_encode_xfer_segment(const tcpclv4_xfer_segment_t *msg,
 				 uint8_t *buf, size_t buf_cap,
@@ -492,14 +487,27 @@ int tcpclv4_encode_xfer_segment(const tcpclv4_xfer_segment_t *msg,
 	uint8_t	*p;
 	size_t	required;
 
-	required = 1 + 1 + 8 + 4 + msg->extensions_len;
-
-	if ((msg->flags & TCPCLV4_XFER_FLAG_START) == 0)
+	if (msg == NULL || buf == NULL || out_len == NULL)
 	{
-		required += 8;	/* data_offset */
+		return -1;
 	}
 
-	required += msg->data_len;
+	/*	Extension items may only accompany a START segment.	*/
+
+	if (msg->extensions_len > 0
+	&& (msg->flags & TCPCLV4_XFER_FLAG_START) == 0)
+	{
+		return -1;
+	}
+
+	required = 1 + 1 + 8;
+
+	if (msg->flags & TCPCLV4_XFER_FLAG_START)
+	{
+		required += 4 + msg->extensions_len;
+	}
+
+	required += 8 + msg->data_len;
 
 	if (buf_cap < required)
 	{
@@ -513,39 +521,39 @@ int tcpclv4_encode_xfer_segment(const tcpclv4_xfer_segment_t *msg,
 	write_u64(p, msg->transfer_id);
 	p += 8;
 
-	/* Transfer extension items length */
-	write_u32(p, msg->extensions_len);
-	p += 4;
-
-	if (msg->extensions_len > 0)
+	if (msg->flags & TCPCLV4_XFER_FLAG_START)
 	{
-		memcpy(p, msg->extensions, msg->extensions_len);
-		p += msg->extensions_len;
+		write_u32(p, msg->extensions_len);
+		p += 4;
+
+		if (msg->extensions_len > 0)
+		{
+			memcpy(p, msg->extensions, msg->extensions_len);
+			p += msg->extensions_len;
+		}
 	}
 
-	/* Data offset (only if NOT a START segment) */
-	if ((msg->flags & TCPCLV4_XFER_FLAG_START) == 0)
-	{
-		write_u64(p, msg->data_offset);
-		p += 8;
-	}
+	write_u64(p, msg->data_len);
+	p += 8;
 
-	/* Payload data */
-	memcpy(p, msg->data, msg->data_len);
-	p += msg->data_len;
+	if (msg->data_len > 0)
+	{
+		memcpy(p, msg->data, msg->data_len);
+		p += msg->data_len;
+	}
 
 	*out_len = p - buf;
 
 	return 0;
 }
 
-/*	XFER_ACK: type(1) + flags(1) + xfer_id(8) + ack_len(8)		*/
+/*	XFER_ACK (§5.2.3): type(1) + flags(1) + xfer_id(8) + ack_len(8)	*/
 
 int tcpclv4_encode_xfer_ack(const tcpclv4_xfer_ack_t *msg,
 			     uint8_t *buf, size_t buf_cap,
 			     size_t *out_len)
 {
-	if (buf_cap < 18)
+	if (msg == NULL || buf == NULL || out_len == NULL || buf_cap < 18)
 	{
 		return -1;
 	}
@@ -560,13 +568,13 @@ int tcpclv4_encode_xfer_ack(const tcpclv4_xfer_ack_t *msg,
 	return 0;
 }
 
-/*	XFER_REFUSE: type(1) + reason(1) + xfer_id(8)			*/
+/*	XFER_REFUSE (§5.2.3): type(1) + reason(1) + xfer_id(8)		*/
 
 int tcpclv4_encode_xfer_refuse(const tcpclv4_xfer_refuse_t *msg,
 				uint8_t *buf, size_t buf_cap,
 				size_t *out_len)
 {
-	if (buf_cap < 10)
+	if (msg == NULL || buf == NULL || out_len == NULL || buf_cap < 10)
 	{
 		return -1;
 	}
@@ -580,12 +588,12 @@ int tcpclv4_encode_xfer_refuse(const tcpclv4_xfer_refuse_t *msg,
 	return 0;
 }
 
-/*	KEEPALIVE: type(1) only, no payload				*/
+/*	KEEPALIVE (§5.1.2): type(1) only, no payload			*/
 
 int tcpclv4_encode_keepalive(uint8_t *buf, size_t buf_cap,
 			      size_t *out_len)
 {
-	if (buf_cap < 1)
+	if (buf == NULL || out_len == NULL || buf_cap < 1)
 	{
 		return -1;
 	}
@@ -596,13 +604,13 @@ int tcpclv4_encode_keepalive(uint8_t *buf, size_t buf_cap,
 	return 0;
 }
 
-/*	MSG_REJECT: type(1) + reason(1) + rejected_header(1)		*/
+/*	MSG_REJECT (§5.1.1): type(1) + reason(1) + rejected_hdr(1)	*/
 
 int tcpclv4_encode_msg_reject(const tcpclv4_msg_reject_t *msg,
 			       uint8_t *buf, size_t buf_cap,
 			       size_t *out_len)
 {
-	if (buf_cap < 3)
+	if (msg == NULL || buf == NULL || out_len == NULL || buf_cap < 3)
 	{
 		return -1;
 	}
@@ -617,35 +625,164 @@ int tcpclv4_encode_msg_reject(const tcpclv4_msg_reject_t *msg,
 }
 
 /*	==============================================================
+ *	STREAM FRAMING
+ *	==============================================================
+ */
+
+int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
+			   uint64_t max_msg_len, size_t *msg_len)
+{
+	uint64_t	total;
+	uint64_t	varpart;
+	size_t		offset;
+
+	if (buf == NULL || msg_len == NULL)
+	{
+		return -1;
+	}
+
+	*msg_len = 0;
+
+	if (len < 1)
+	{
+		return 0;	/* Need at least the type byte */
+	}
+
+	switch (buf[0])
+	{
+	case TCPCLV4_MSG_KEEPALIVE:
+		total = 1;
+		break;
+
+	case TCPCLV4_MSG_SESS_TERM:
+	case TCPCLV4_MSG_MSG_REJECT:
+		total = 3;
+		break;
+
+	case TCPCLV4_MSG_XFER_REFUSE:
+		total = 10;
+		break;
+
+	case TCPCLV4_MSG_XFER_ACK:
+		total = 18;
+		break;
+
+	case TCPCLV4_MSG_XFER_SEGMENT:
+
+		/*	type(1) + flags(1) + xfer_id(8)
+		 *	+ [ext_len(4) + ext, START only]
+		 *	+ data_len(8) + data			*/
+
+		if (len < 2)
+		{
+			return 0;
+		}
+
+		offset = 10;
+		if (buf[1] & TCPCLV4_XFER_FLAG_START)
+		{
+			if (len < offset + 4)
+			{
+				return 0;
+			}
+
+			varpart = read_u32(buf + offset);
+			if (max_msg_len && varpart > max_msg_len)
+			{
+				return -1;
+			}
+
+			offset += 4 + (size_t) varpart;
+		}
+
+		if (len < offset + 8)
+		{
+			return 0;
+		}
+
+		varpart = read_u64(buf + offset);
+		if (max_msg_len && varpart > max_msg_len)
+		{
+			return -1;
+		}
+
+		total = offset + 8 + varpart;
+		break;
+
+	case TCPCLV4_MSG_SESS_INIT:
+
+		/*	type(1) + keepalive(2) + seg_mru(8) + xfer_mru(8)
+		 *	+ node_id_len(2) + node_id
+		 *	+ ext_len(4) + ext			*/
+
+		if (len < 21)
+		{
+			return 0;
+		}
+
+		varpart = read_u16(buf + 19);	/* node_id_len */
+		offset = 21 + (size_t) varpart;
+		if (len < offset + 4)
+		{
+			if (max_msg_len && offset + 4 > max_msg_len)
+			{
+				return -1;
+			}
+
+			return 0;
+		}
+
+		varpart = read_u32(buf + offset);	/* ext_len */
+		if (max_msg_len && varpart > max_msg_len)
+		{
+			return -1;
+		}
+
+		total = offset + 4 + varpart;
+		break;
+
+	default:
+		return -1;	/* Unknown message type */
+	}
+
+	if (max_msg_len && total > max_msg_len)
+	{
+		return -1;
+	}
+
+	*msg_len = (size_t) total;
+	return (len >= total) ? 1 : 0;
+}
+
+/*	==============================================================
  *	MEMORY MANAGEMENT
  *	==============================================================
  */
 
 void tcpclv4_sess_init_free(tcpclv4_sess_init_t *msg)
 {
-	if (msg->node_id != NULL)
+	if (msg == NULL)
 	{
-		free(msg->node_id);
-		msg->node_id = NULL;
+		return;
 	}
 
-	if (msg->extensions != NULL)
-	{
-		free(msg->extensions);
-		msg->extensions = NULL;
-	}
+	free(msg->node_id);
+	msg->node_id = NULL;
+	free(msg->extensions);
+	msg->extensions = NULL;
 }
 
 void tcpclv4_xfer_segment_free(tcpclv4_xfer_segment_t *msg)
 {
-	if (msg->extensions != NULL)
+	if (msg == NULL)
 	{
-		free(msg->extensions);
-		msg->extensions = NULL;
+		return;
 	}
 
-	/* Note: msg->data is not freed - it points into the original
-	 * buffer passed to decode. Caller owns that buffer. */
+	free(msg->extensions);
+	msg->extensions = NULL;
+
+	/*	msg->data points into the caller's buffer; not freed.	*/
 }
 
 /*	==============================================================
@@ -655,7 +792,7 @@ void tcpclv4_xfer_segment_free(tcpclv4_xfer_segment_t *msg)
 
 int tcpclv4_get_msg_type(const uint8_t *buf, size_t len)
 {
-	if (len < 1)
+	if (buf == NULL || len < 1)
 	{
 		return -1;
 	}
@@ -667,21 +804,13 @@ const char* tcpclv4_msg_type_name(uint8_t msg_type)
 {
 	switch (msg_type)
 	{
-	case TCPCLV4_MSG_XFER_SEGMENT:
-		return "XFER_SEGMENT";
-	case TCPCLV4_MSG_XFER_ACK:
-		return "XFER_ACK";
-	case TCPCLV4_MSG_XFER_REFUSE:
-		return "XFER_REFUSE";
-	case TCPCLV4_MSG_KEEPALIVE:
-		return "KEEPALIVE";
-	case TCPCLV4_MSG_SESS_TERM:
-		return "SESS_TERM";
-	case TCPCLV4_MSG_MSG_REJECT:
-		return "MSG_REJECT";
-	case TCPCLV4_MSG_SESS_INIT:
-		return "SESS_INIT";
-	default:
-		return "UNKNOWN";
+	case TCPCLV4_MSG_SESS_INIT:	return "SESS_INIT";
+	case TCPCLV4_MSG_SESS_TERM:	return "SESS_TERM";
+	case TCPCLV4_MSG_XFER_SEGMENT:	return "XFER_SEGMENT";
+	case TCPCLV4_MSG_XFER_ACK:	return "XFER_ACK";
+	case TCPCLV4_MSG_XFER_REFUSE:	return "XFER_REFUSE";
+	case TCPCLV4_MSG_KEEPALIVE:	return "KEEPALIVE";
+	case TCPCLV4_MSG_MSG_REJECT:	return "MSG_REJECT";
+	default:			return "UNKNOWN";
 	}
 }

@@ -1,2 +1,0 @@
-TCPCLv4 external demo prototype. Requires --enable-tcpclv4-external build
-and dtn-demo-agent. Run manually from demos/ directory.

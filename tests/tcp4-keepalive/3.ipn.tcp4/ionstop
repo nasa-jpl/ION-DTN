@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Stop ION node 3
+bpadmin		.
+sleep 1
+ionadmin	.

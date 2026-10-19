@@ -2,10 +2,11 @@
 
 ## Overview
 
-The TCP4 CLA provides TCPCLv4 (RFC 9174) support for ION through a bridge architecture:
+The TCP4 CLA provides TCPCLv4 (RFC 9174) support for ION through an
+external-agent architecture, implemented entirely in C:
 - **tcp4cli/tcp4clo**: ION daemons using shared memory for IPC
-- **Python bridge**: Connects shared memory to external TCPCLv4 agent
-- **dtn-demo-agent**: Python implementation of TCPCLv4 protocol
+- **tcpclv4_agent**: Standalone C agent implementing the TCPCLv4 protocol
+  (session state machine, wire format, and optional TLS 1.3)
 
 ## Bundle Size Support
 
@@ -203,16 +204,16 @@ ipcrm -M <key>
 # Increase system limits (see above)
 ```
 
-### Bridge Connection Issues
+### Agent Connection Issues
 
 If tcp4clo reports "waiting for agent":
 
 ```bash
-# Verify bridge process
-pgrep -f bridge_adapter
+# Verify agent process
+pgrep -f tcpclv4_agent
 
-# Check bridge log
-cat bridge.log
+# Check agent log (wherever its stderr was redirected)
+cat agent.log
 
 # Verify shared memory pools exist
 ls -lh /dev/shm/ion_tcp4_*
@@ -231,11 +232,9 @@ tcp4clo (extracts each fragment to shared memory)
     ↓
 Shared Memory Pool (5MB slots)
     ↓
-Python Bridge (reads from pool)
+tcpclv4_agent (reads from pool, emits TCPCLv4 XFER_SEGMENT messages)
     ↓
-dtn-demo-agent (TCPCLv4 XFER_SEGMENT messages)
-    ↓
-Network (TCP socket)
+Network (TCP socket, optionally TLS 1.3)
 ```
 
 ### Fragmentation vs Segmentation
@@ -248,31 +247,50 @@ Network (TCP socket)
 **CL Segmentation** (TCPCLv4):
 - Splits one bundle's transmission
 - XFER_SEGMENT messages on wire
-- Transparent to ION, handled by bridge
+- Transparent to ION, handled by the agent
 
 **Both occur independently**: A 5MB fragment can be sent via many 1KB XFER_SEGMENTS.
 
 ## Current Status
 
-**Date: 2026-03-25**
+**Date: 2026-07-02**
 
 ### Implementation Notes
 
-This branch (`feature-4.2.x-tcpclv4`) implements TCPCLv4 support for ION
-through a three-layer bridge architecture that delegates actual TCPCLv4
-protocol handling to an external implementation
-([dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent)).
+The TCPCLv4 protocol stack is implemented natively in C as three layered
+libraries plus a standalone agent executable:
+
+- **`tcpclv4_msg.c/h`** (`libtcpclv4_msg.so`) -- Stateless RFC 9174 wire
+  format encode/decode for all message types, plus incremental stream
+  framing (`tcpclv4_msg_frame_len`).  Unit-tested against hand-computed
+  RFC byte vectors.
+- **`tcpclv4_tls.c/h`** (`libtcpclv4_tls.so`) -- Transport layer:
+  TCP connect/accept, plaintext contact-header exchange, CAN_TLS
+  negotiation, optional TLS 1.3 via OpenSSL, and message-framed recv.
+  Follows the RFC 9174 establishment order (contact headers first, in
+  plaintext; TLS only if both sides set CAN_TLS).
+- **`tcpclv4_session.c/h`** (`libtcpclv4_session.so`) -- RFC 9174 session
+  state machine: SESS_INIT negotiation (keepalive = min of proposals,
+  MRU exchange), keepalive timers and idle timeout, transfer
+  segmentation/reassembly, XFER_ACK completion tracking, XFER_REFUSE,
+  and graceful SESS_TERM exchange.  Event-driven and callback-based;
+  multiple sessions can share one poll loop.
+- **`tcpclv4_agent.c`** (`tcpclv4_agent`) -- Standalone agent binding one
+  ION duct's shared-memory pools and control channels to one TCPCL
+  session (active `--connect` or passive `--listen` mode, TLS optional).
+  No Python and no external protocol implementation required.
 
 The architecture uses three IPC mechanisms to interface ION with the
-external TCPCLv4 agent:
+agent:
 
 1. **POSIX Shared Memory Pools (Data Plane)** -- Named regions in
    `/dev/shm/` with lock-free atomic slot state machines
    (`FREE -> WRITING -> READY -> READING -> FREE`). Bundle data is
-   copied once from SDR into shared memory via `zco_transmit()`. The
-   Python bridge attaches to these pools via ctypes calls into
-   `libici.so`, ensuring correct atomic operations without
-   reimplementing lock-free logic in Python.
+   copied once from SDR into shared memory via `zco_transmit()`.
+   Slot state transitions have a single owner per direction: the
+   producer publishes (`FREE->WRITING->READY`), the consumer releases
+   (`READY->READING->FREE`); disposition messages carry no slot
+   authority.
 
 2. **Unix Domain Socket Control Channel (Control Plane)** -- TLV-framed
    protocol (14-byte header + 0-256 byte payload, network byte order)
@@ -289,17 +307,16 @@ external TCPCLv4 agent:
    | `CTRL_XFER_SUCCESS` | 0x03 | Agent -> ION | Transfer completed OK |
    | `CTRL_XFER_FAILURE` | 0x04 | Agent -> ION | Transfer failed |
    | `CTRL_XFER_REFUSED` | 0x05 | Agent -> ION | Transfer refused by peer |
-   | `CTRL_SLOT_RELEASE` | 0x06 | ION -> Agent | RX slot consumed, now free |
+   | `CTRL_SLOT_RELEASE` | 0x06 | ION -> Agent | RX slot consumed (informational) |
    | `CTRL_SESSION_UP` | 0x10 | Agent -> ION | TCPCL session established |
    | `CTRL_SESSION_DOWN` | 0x11 | Agent -> ION | TCPCL session ended |
    | `CTRL_KEEPALIVE` | 0xFF | Bidirectional | Liveness check (15s interval / 45s timeout) |
 
-**Key design properties of this prototype:**
+**Key design properties:**
 
 - **Asynchronous disposition**: `tcp4clo` uses `bpDequeue()` with
   `stewardship=1` and reports xmit success/failure asynchronously from a
-  dedicated response thread when the external agent confirms transfer
-  outcome.
+  dedicated response thread when the agent confirms transfer outcome.
 - **Agent crash recovery**: Both `tcp4cli` and `tcp4clo` detect agent
   disconnection via keepalive timeouts and control socket errors, fail
   all in-flight transfers, reset pool slots, and wait for agent
@@ -307,36 +324,37 @@ external TCPCLv4 agent:
 - **BP fragmentation for large bundles**: `tcp4clo` auto-sets
   `maxPayloadLen` so bpclm fragments at the BP layer before the CLA
   sees them, avoiding slot-size limits.
+- **Interoperability**: verified bidirectionally against
+  [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent), an
+  independent TCPCLv4 implementation.
 
-### Phase 2 C Libraries (Built, Not Yet Deployed)
+### Running the agent
 
-Two C libraries implement TCPCLv4 wire format and TLS natively:
+```bash
+# Active (connecting) side:
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 --connect 10.0.0.3:4556
 
-- **`tcpclv4_msg.c/h`** (`libtcpclv4_msg.so`) -- Stateless encode/decode
-  for all RFC 9174 message types (contact header, SESS_INIT, SESS_TERM,
-  XFER_SEGMENT, XFER_ACK, XFER_REFUSE, KEEPALIVE, MSG_REJECT).
-- **`tcpclv4_tls.c/h`** (`libtcpclv4_tls.so`) -- OpenSSL-based TLS
-  session management (connect, accept, message-framed send/recv,
-  non-blocking mode).
+# Passive (listening) side:
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen 0.0.0.0:4556
 
-These libraries are compiled and have unit tests (`tests/test_msg_roundtrip`,
-`tests/test_tls_loopback`) but are **not yet integrated** into the bridge
-path. The current prototype still uses the Python/dtn-demo-agent path for
-all TCPCLv4 protocol operations.
+# With TLS 1.3:
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen 0.0.0.0:4556 \
+    --tls-ca ca.crt --tls-cert node3-chain.pem --tls-key node3.key
+```
 
-### Project Direction
+The agent waits up to 30 seconds for the ION daemons' pools and control
+sockets to appear, so start order is flexible.  An active-side agent
+retries the peer connection every 5 seconds until it succeeds.
 
-This prototype may represent the end-state architecture for demonstrating
-ION interfacing with an external TCPCLv4 implementation. The shared-memory
-pool and control-channel IPC boundary cleanly separates ION's bundle
-processing from TCPCLv4 session management, allowing the external agent to
-be developed, tested, and updated independently.
+### Tests
 
-A potential follow-on phase would convert the Python bridge layer to C
-(leveraging the Phase 2 `libtcpclv4_msg` and `libtcpclv4_tls` libraries)
-for improved performance, while retaining TCPCLv4 as an external module
-that communicates with ION through the same shared-memory / control-channel
-interface.
+- `tcpclv4_test_msg`, `tcpclv4_test_tls`, `tcpclv4_test_session` --
+  library unit tests, built by `make check` when configured with
+  `--enable-tcpclv4-external`.
+- `tests/tcp4-twonodes` and `tests/tcp4-twonodes-tls` -- two-node
+  system tests (plain TCP and TLS 1.3), each covering a small bundle
+  and a 6MB bundle that exercises BP fragmentation.  They skip
+  themselves when `tcpclv4_agent` is not installed.
 
 ## Files
 
@@ -346,11 +364,15 @@ interface.
 | tcp4cli.c | Induct daemon (RX) |
 | tcp4clo.c | Outduct daemon (TX) |
 | libtcp4cla.c | Shared functions |
-| bridge/ | Python bridge adapter |
+| tcpclv4_msg.c/h | RFC 9174 wire format + framing |
+| tcpclv4_tls.c/h | Transport: contact exchange, TLS |
+| tcpclv4_session.c/h | RFC 9174 session state machine |
+| tcpclv4_agent.c | Standalone C agent executable |
 
 ## References
 
 - [RFC 9174](https://www.rfc-editor.org/rfc/rfc9174.html) - TCPCLv4 specification
 - [RFC 9171](https://www.rfc-editor.org/rfc/rfc9171.html) - Bundle Protocol v7
 - [TCPCLv4 Guide](../../gh-pages/docs/TCPCLv4-Guide.md) - User documentation
+- [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent) - Independent TCPCLv4 implementation used for interop testing
 - [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent) - TCPCLv4 implementation

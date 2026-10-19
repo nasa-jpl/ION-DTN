@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Protocol-Negative (Robustness) Test
+#
+# Throws malformed and hostile connections at a live passive
+# tcpclv4_agent while it carries an established session:
+#   - wrong contact-header magic
+#   - unsupported TCPCL version
+#   - well-formed second connection (must get SESS_TERM reason BUSY)
+#   - valid contact header followed by garbage bytes
+#   - a silent peer (connects, sends nothing; the agent's 10s
+#     establishment timeout must release it)
+#
+# After every probe the agent must be alive and the primary session
+# must still deliver bundles.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the TCPCLv4 agent survives malformed handshakes,"
+echo "    hostile input, and silent peers without disturbing its"
+echo "    established session."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not found (needed for the probe script). Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ] && break
+    sleep 1
+done
+
+# Agents: passive on node 3, active on node 2
+cd ../3.ipn.tcp4
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 \
+    --listen 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT3_PID=$!
+sleep 2
+
+cd ../2.ipn.tcp4
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
+    --connect 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT2_PID=$!
+
+for i in $(seq 1 20); do
+    grep -q "session established" agent.log 2>/dev/null && break
+    sleep 1
+done
+
+if ! grep -q "session established" agent.log; then
+    echo "ERROR: TCPCL session did not establish."
+    cat agent.log
+    exit 1
+fi
+
+echo "TCPCL session up.  Running adversarial probes..."
+
+cd ..
+python3 probe.py 127.0.0.1 4556
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: all probes behaved as expected."
+else
+    echo "ERROR: one or more probes misbehaved."
+    FAIL=1
+fi
+
+# The passive agent must still be alive
+if kill -0 $AGENT3_PID 2>/dev/null; then
+    echo "SUCCESS: passive agent survived all probes."
+else
+    echo "ERROR: passive agent died."
+    echo "--- agent log:"
+    tail -15 3.ipn.tcp4/agent.log
+    FAIL=1
+fi
+
+# And the primary session must still deliver bundles
+cd 3.ipn.tcp4
+rm -f probe_out.txt
+bpsink ipn:3.1 > probe_out.txt &
+SINK_PID=$!
+sleep 1
+cd ../2.ipn.tcp4
+bpsource ipn:3.1 "still alive after adversarial probes"
+sleep 5
+cd ../3.ipn.tcp4
+if grep -q "still alive after adversarial probes" probe_out.txt; then
+    echo "SUCCESS: primary session unaffected by probes."
+else
+    echo "ERROR: primary session broken after probes."
+    echo "--- node 3 agent log:"
+    tail -15 agent.log
+    echo "--- node 2 agent log:"
+    tail -15 ../2.ipn.tcp4/agent.log
+    FAIL=1
+fi
+
+kill -2 $SINK_PID 2>/dev/null
+sleep 1
+kill -9 $SINK_PID 2>/dev/null
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: Protocol-negative test passed!"
+else
+    echo "FAIL: Protocol-negative test failed."
+fi
+exit $FAIL

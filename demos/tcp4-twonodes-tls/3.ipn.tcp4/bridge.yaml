@@ -1,9 +1,0 @@
-# Node 3 bridge: passive mode with TLS (listens for Node 2's connection)
-duct_name: "peer2"
-node_id: "ipn:3.0"
-listen_address: "127.0.0.1"
-listen_port: 4556
-tls_enable: true
-tls_ca_file: "../pki/ca.crt"
-tls_cert_file: "../pki/node3-chain.pem"
-tls_key_file: "../pki/node3.key"

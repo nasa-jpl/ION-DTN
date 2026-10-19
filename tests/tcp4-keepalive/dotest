@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Keepalive and Idle-Timeout Test
+#
+# Runs the session with a short negotiated keepalive interval (5s) and
+# verifies both halves of the liveness design:
+#
+#   Phase A (keepalives sustain an idle session): leave the session
+#   completely idle for 3x the keepalive interval, then transfer a
+#   bundle.  If keepalives were not flowing, the 2x-interval idle
+#   timeout would have torn the session down.
+#
+#   Phase B (idle timeout detects a dead peer): SIGSTOP the passive
+#   agent so it goes silent without closing its socket -- the only
+#   failure mode that exercises the timeout rather than a socket
+#   error.  The active agent must terminate the session with the
+#   IDLE_TIMEOUT reason, then reconnect after the peer is resumed,
+#   and traffic must flow again.
+
+KEEPALIVE=5
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify TCPCLv4 keepalives sustain idle sessions and the"
+echo "    idle timeout detects an unresponsive peer, with recovery."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ] && break
+    sleep 1
+done
+
+# Agents with a short keepalive proposal
+cd ../3.ipn.tcp4
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --keepalive $KEEPALIVE \
+    --listen 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT3_PID=$!
+sleep 2
+
+cd ../2.ipn.tcp4
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 --keepalive $KEEPALIVE \
+    --connect 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT2_PID=$!
+
+for i in $(seq 1 20); do
+    grep -q "session established" agent.log 2>/dev/null && break
+    sleep 1
+done
+
+if ! grep -q "session established" agent.log; then
+    echo "ERROR: TCPCL session did not establish."
+    cat agent.log
+    exit 1
+fi
+
+echo "TCPCL session up (keepalive ${KEEPALIVE}s)."
+
+# --- Phase A: keepalives sustain an idle session ---
+
+IDLE=$((KEEPALIVE * 3))
+echo ""
+echo "Phase A: idling the session for ${IDLE}s (3x keepalive interval)..."
+sleep $IDLE
+
+if grep -q "session terminated" agent.log; then
+    echo "ERROR: session died during idle period (keepalives not working)."
+    tail -5 agent.log
+    FAIL=1
+else
+    echo "SUCCESS: session survived the idle period."
+fi
+
+cd ../3.ipn.tcp4
+rm -f ka_out.txt
+bpsink ipn:3.1 > ka_out.txt &
+SINK_PID=$!
+sleep 1
+cd ../2.ipn.tcp4
+bpsource ipn:3.1 "bundle after idle period"
+sleep 5
+cd ../3.ipn.tcp4
+if grep -q "bundle after idle period" ka_out.txt; then
+    echo "SUCCESS: transfer works after sustained idle."
+else
+    echo "ERROR: transfer failed after idle period."
+    FAIL=1
+fi
+kill -2 $SINK_PID 2>/dev/null
+sleep 1
+kill -9 $SINK_PID 2>/dev/null
+
+# --- Phase B: idle timeout detects an unresponsive peer ---
+
+echo ""
+echo "Phase B: SIGSTOP the passive agent (silent, socket stays open)..."
+kill -STOP $AGENT3_PID
+
+# The active agent must declare idle timeout within ~2x keepalive
+# (plus scheduling slack)
+TIMEOUT_WINDOW=$((KEEPALIVE * 2 + 10))
+cd ../2.ipn.tcp4
+DETECTED=0
+for i in $(seq 1 $TIMEOUT_WINDOW); do
+    if grep -q "session terminated (reason 1)" agent.log; then
+        DETECTED=1
+        break
+    fi
+    sleep 1
+done
+
+if [ $DETECTED -eq 1 ]; then
+    echo "SUCCESS: active agent detected the dead peer via idle timeout."
+else
+    echo "ERROR: no idle-timeout termination within ${TIMEOUT_WINDOW}s."
+    tail -5 agent.log
+    FAIL=1
+fi
+
+echo "Resuming the passive agent..."
+kill -CONT $AGENT3_PID
+sleep 2
+
+# The active agent reconnects (5s retry cadence); the resumed passive
+# agent must shed its dead session and accept the new one.
+RECONNECTED=0
+for i in $(seq 1 30); do
+    if [ "$(grep -c 'session established' agent.log)" -ge 2 ]; then
+        RECONNECTED=1
+        break
+    fi
+    sleep 1
+done
+
+if [ $RECONNECTED -eq 1 ]; then
+    echo "SUCCESS: session re-established after peer resumed."
+else
+    echo "ERROR: session did not re-establish."
+    tail -8 agent.log
+    echo "--- passive agent log:"
+    tail -8 ../3.ipn.tcp4/agent.log
+    FAIL=1
+fi
+
+# And traffic must flow again
+cd ../3.ipn.tcp4
+rm -f ka_out2.txt
+bpsink ipn:3.1 > ka_out2.txt &
+SINK_PID=$!
+sleep 1
+cd ../2.ipn.tcp4
+bpsource ipn:3.1 "bundle after timeout recovery"
+sleep 6
+cd ../3.ipn.tcp4
+if grep -q "bundle after timeout recovery" ka_out2.txt; then
+    echo "SUCCESS: transfer works after timeout recovery."
+else
+    echo "ERROR: transfer failed after timeout recovery."
+    FAIL=1
+fi
+kill -2 $SINK_PID 2>/dev/null
+sleep 1
+kill -9 $SINK_PID 2>/dev/null
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: Keepalive/idle-timeout test passed!"
+else
+    echo "FAIL: Keepalive/idle-timeout test failed."
+fi
+exit $FAIL

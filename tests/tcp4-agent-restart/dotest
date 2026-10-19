@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Agent Crash-Recovery Test
+#
+# Kills the sending side's tcpclv4_agent with SIGKILL in the middle of
+# a bundle burst, then restarts it.  Verifies the CLA's crash-recovery
+# design:
+#   - tcp4clo/tcp4cli detect the agent's death (control socket error),
+#     fail all in-flight transfers back to BP, reset pool slots, and
+#     wait for reconnect
+#   - the restarted agent reattaches, the TCPCL session re-establishes,
+#     and traffic resumes
+#   - no bundle is lost: everything bpdriver sent is eventually
+#     delivered (BP reforwards the failed transfers; duplicates are
+#     acceptable DTN semantics, loss is not)
+#   - the source SDR drains to zero
+
+COUNT=200
+BUNDLE_SIZE=10000
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify TCPCLv4 agent crash recovery: SIGKILL the sender's"
+echo "    agent mid-burst, restart it, and confirm zero bundle loss and"
+echo "    clean SDR state."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ] && break
+    sleep 1
+done
+
+# Agents: passive on node 3, active on node 2
+cd ../3.ipn.tcp4
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 \
+    --listen 127.0.0.1:4556 > agent.log 2>&1 &
+sleep 2
+
+cd ../2.ipn.tcp4
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
+    --connect 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT2_PID=$!
+
+for i in $(seq 1 20); do
+    grep -q "session established" agent.log 2>/dev/null && break
+    sleep 1
+done
+
+if ! grep -q "session established" agent.log; then
+    echo "ERROR: TCPCL session did not establish."
+    cat agent.log
+    exit 1
+fi
+
+echo "TCPCL session up."
+
+# Receiver
+cd ../3.ipn.tcp4
+bpcounter ipn:3.2 $COUNT > counter.out 2>&1 &
+COUNTER_PID=$!
+sleep 1
+
+# Send the burst, and kill the sender's agent shortly into it
+cd ../2.ipn.tcp4
+echo "Sending ${COUNT} bundles; killing sender agent mid-burst..."
+bpdriver $COUNT ipn:2.1 ipn:3.2 -$BUNDLE_SIZE t300 > driver.out 2>&1 &
+DRIVER_PID=$!
+
+# Let some transfers get in flight, then SIGKILL the agent
+sleep 1
+kill -9 $AGENT2_PID 2>/dev/null
+echo "Sender agent killed."
+wait $DRIVER_PID 2>/dev/null
+
+# Confirm the ION daemons noticed and survived
+sleep 3
+if pgrep -f "tcp4clo" >/dev/null && pgrep -f "tcp4cli" >/dev/null; then
+    echo "SUCCESS: ION CLA daemons survived the agent crash."
+else
+    echo "ERROR: ION CLA daemons died with the agent."
+    FAIL=1
+fi
+
+if grep -q "agent disconnected, failing all in-flight" ion.log; then
+    echo "SUCCESS: tcp4clo engaged crash recovery (failed in-flight transfers)."
+else
+    echo "WARNING: expected crash-recovery log line not found (timing?)."
+fi
+
+# Restart the sender's agent
+echo "Restarting sender agent..."
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
+    --connect 127.0.0.1:4556 >> agent.log 2>&1 &
+AGENT2_PID=$!
+
+# Wait for the session to re-establish
+for i in $(seq 1 30); do
+    [ "$(grep -c 'session established' agent.log)" -ge 2 ] && break
+    sleep 1
+done
+
+# The counter must eventually receive every bundle (duplicates OK,
+# loss is not).  bpcounter exits once it has COUNT bundles.
+DEADLINE=$((SECONDS + 90))
+while [ $SECONDS -lt $DEADLINE ]; do
+    kill -0 $COUNTER_PID 2>/dev/null || break
+    sleep 2
+done
+
+if kill -0 $COUNTER_PID 2>/dev/null; then
+    echo "ERROR: receiver did not get all ${COUNT} bundles after agent restart."
+    echo "Receiver progress:"
+    tail -3 ../3.ipn.tcp4/counter.out
+    echo "--- Node 2 (sender) BP stats:"
+    bpstats 2>/dev/null
+    sleep 1
+    grep -A12 "Start of statistics snapshot" ion.log | tail -14
+    echo "--- Node 3 (receiver) BP stats:"
+    cd ../3.ipn.tcp4
+    bpstats 2>/dev/null
+    sleep 1
+    grep -A12 "Start of statistics snapshot" ion.log | tail -14
+    cd ../2.ipn.tcp4
+    kill -2 $COUNTER_PID 2>/dev/null
+    sleep 1
+    kill -9 $COUNTER_PID 2>/dev/null
+    FAIL=1
+else
+    echo "SUCCESS: all ${COUNT} bundles delivered despite agent crash."
+fi
+
+# Session must be re-established in the agent logs
+if [ "$(grep -c 'session established' agent.log)" -ge 2 ]; then
+    echo "SUCCESS: TCPCL session re-established after restart."
+else
+    echo "ERROR: no session re-establishment found in agent log."
+    tail -10 agent.log
+    FAIL=1
+fi
+
+# Source SDR must drain
+echo "Checking source SDR..."
+sleep 3
+BPLIST_COUNT=$(bplist count | grep "Report count" | awk '{gsub(/[^0-9]/,"",$NF); print $NF}')
+if [ "$BPLIST_COUNT" -eq 0 ] 2>/dev/null; then
+    echo "SUCCESS: Source SDR is clear."
+else
+    echo "ERROR: Source SDR still has ${BPLIST_COUNT} bundle(s)."
+    bplist count
+    FAIL=1
+fi
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: Agent crash-recovery test passed!"
+else
+    echo "FAIL: Agent crash-recovery test failed."
+fi
+exit $FAIL

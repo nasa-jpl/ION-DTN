@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Bidirectional Stress Test
+#
+# Drives sustained bundle traffic in BOTH directions simultaneously over
+# a single TCPCLv4 session, then exchanges 3MB files (BP fragmentation)
+# concurrently in both directions.  Verifies:
+#   - Interleaved TX/RX transfers on one session do not lose or corrupt
+#     bundles (regression guard for slot-reuse and transfer-tracking
+#     races, which only surface under back-to-back traffic)
+#   - Both nodes' source SDRs drain to zero (XFER_SUCCESS feedback)
+#
+# Topology: Node 2 <-> Node 3, one duct pair each, one TCPCL session.
+# Node 3's agent listens; node 2's agent connects.
+
+COUNT=300           # bundles per direction in phase 1
+BUNDLE_SIZE=10000   # bytes
+FILE_MB=3           # per-direction file size in phase 2
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Stress the TCPCLv4 CLA with simultaneous bidirectional"
+echo "    traffic: ${COUNT} x ${BUNDLE_SIZE}B bundles each way, then"
+echo "    concurrent ${FILE_MB}MB file transfers each way (BP fragmentation)."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+# The C TCPCLv4 agent must be installed (built with
+# --enable-tcpclv4-external)
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+echo "Waiting for TCP4 CLAs to start..."
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    if [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ]; then
+        break
+    fi
+    sleep 1
+done
+
+# Start agents: passive on node 3, active on node 2
+cd ../3.ipn.tcp4
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 \
+    --listen 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT3_PID=$!
+sleep 2
+
+cd ../2.ipn.tcp4
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
+    --connect 127.0.0.1:4556 > agent.log 2>&1 &
+AGENT2_PID=$!
+
+# Wait for the session to establish
+for i in $(seq 1 20); do
+    if grep -q "session established" agent.log 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
+
+if ! grep -q "session established" agent.log; then
+    echo "ERROR: TCPCL session did not establish."
+    cat agent.log
+    exit 1
+fi
+
+echo "TCPCL session up."
+
+# --- Phase 1: simultaneous bidirectional bpdriver/bpcounter ---
+
+echo ""
+echo "=========================================="
+echo "Phase 1: ${COUNT} x ${BUNDLE_SIZE}B bundles, both directions at once"
+echo "=========================================="
+
+cd ../3.ipn.tcp4
+bpcounter ipn:3.2 $COUNT > counter.out 2>&1 &
+COUNTER3_PID=$!
+cd ../2.ipn.tcp4
+bpcounter ipn:2.2 $COUNT > counter.out 2>&1 &
+COUNTER2_PID=$!
+sleep 1
+
+# Launch both drivers concurrently
+cd ../2.ipn.tcp4
+bpdriver $COUNT ipn:2.1 ipn:3.2 -$BUNDLE_SIZE t300 > driver.out 2>&1 &
+DRIVER2_PID=$!
+cd ../3.ipn.tcp4
+bpdriver $COUNT ipn:3.1 ipn:2.2 -$BUNDLE_SIZE t300 > driver.out 2>&1 &
+DRIVER3_PID=$!
+
+wait $DRIVER2_PID
+wait $DRIVER3_PID
+echo "Both drivers finished sending."
+
+# bpcounter exits on its own once it has received COUNT bundles.
+DEADLINE=$((SECONDS + 60))
+while [ $SECONDS -lt $DEADLINE ]; do
+    kill -0 $COUNTER2_PID 2>/dev/null || kill -0 $COUNTER3_PID 2>/dev/null || break
+    sleep 2
+done
+
+for PAIR in "2 $COUNTER2_PID" "3 $COUNTER3_PID"; do
+    NODE=${PAIR%% *}
+    PID=${PAIR##* }
+    if kill -0 $PID 2>/dev/null; then
+        echo "ERROR: Node ${NODE} bpcounter did not receive all ${COUNT} bundles in time."
+        kill -2 $PID 2>/dev/null
+        sleep 1
+        kill -9 $PID 2>/dev/null
+        FAIL=1
+    else
+        echo "SUCCESS: Node ${NODE} received all ${COUNT} bundles."
+    fi
+done
+
+cat ../2.ipn.tcp4/counter.out | grep -i "bundles" | head -2
+cat ../3.ipn.tcp4/counter.out | grep -i "bundles" | head -2
+
+# --- Phase 2: concurrent file transfers with BP fragmentation ---
+
+if [ $FAIL -eq 0 ]; then
+    echo ""
+    echo "=========================================="
+    echo "Phase 2: ${FILE_MB}MB file each way, concurrently"
+    echo "=========================================="
+
+    cd ../2.ipn.tcp4
+    dd if=/dev/urandom of=testfile_n2 bs=1M count=$FILE_MB 2>/dev/null
+    MD5_N2=$(md5sum testfile_n2 | awk '{print $1}')
+    rm -f testfile1
+    bprecvfile ipn:2.1 1 &
+    RECV2_PID=$!
+
+    cd ../3.ipn.tcp4
+    dd if=/dev/urandom of=testfile_n3 bs=1M count=$FILE_MB 2>/dev/null
+    MD5_N3=$(md5sum testfile_n3 | awk '{print $1}')
+    rm -f testfile1
+    bprecvfile ipn:3.1 1 &
+    RECV3_PID=$!
+    sleep 1
+
+    # Send both files at the same time.  Own EIDs must differ from
+    # the bprecvfile endpoints on the same node (an ION endpoint can
+    # only be opened by one application at a time).
+    cd ../2.ipn.tcp4
+    bpsendfile ipn:2.2 ipn:3.1 testfile_n2 &
+    SEND2_PID=$!
+    cd ../3.ipn.tcp4
+    bpsendfile ipn:3.2 ipn:2.1 testfile_n3 &
+    SEND3_PID=$!
+    wait $SEND2_PID $SEND3_PID
+
+    # Wait for both receivers to produce complete files
+    DEADLINE=$((SECONDS + 60))
+    while [ $SECONDS -lt $DEADLINE ]; do
+        OK2=0; OK3=0
+        [ -f ../2.ipn.tcp4/testfile1 ] \
+            && [ "$(md5sum ../2.ipn.tcp4/testfile1 | awk '{print $1}')" = "$MD5_N3" ] && OK2=1
+        [ -f ../3.ipn.tcp4/testfile1 ] \
+            && [ "$(md5sum ../3.ipn.tcp4/testfile1 | awk '{print $1}')" = "$MD5_N2" ] && OK3=1
+        [ $OK2 -eq 1 ] && [ $OK3 -eq 1 ] && break
+        sleep 2
+    done
+
+    if [ $OK2 -eq 1 ]; then
+        echo "SUCCESS: Node 2 received node 3's ${FILE_MB}MB file intact."
+    else
+        echo "ERROR: Node 2 did not receive node 3's file (or checksum mismatch)."
+        FAIL=1
+    fi
+
+    if [ $OK3 -eq 1 ]; then
+        echo "SUCCESS: Node 3 received node 2's ${FILE_MB}MB file intact."
+    else
+        echo "ERROR: Node 3 did not receive node 2's file (or checksum mismatch)."
+        FAIL=1
+    fi
+
+    kill $RECV2_PID $RECV3_PID 2>/dev/null
+fi
+
+# --- Verify SDR cleanup on both nodes ---
+
+echo ""
+echo "Checking source SDRs are clear..."
+sleep 3
+for NODE in 2 3; do
+    cd ../${NODE}.ipn.tcp4
+    BPLIST_COUNT=$(bplist count | grep "Report count" | awk '{gsub(/[^0-9]/,"",$NF); print $NF}')
+    if [ "$BPLIST_COUNT" -eq 0 ] 2>/dev/null; then
+        echo "SUCCESS: Node ${NODE} SDR is clear."
+    else
+        echo "ERROR: Node ${NODE} SDR still has ${BPLIST_COUNT} bundle(s)."
+        FAIL=1
+    fi
+done
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: Bidirectional stress test passed!"
+else
+    echo "FAIL: Bidirectional stress test failed."
+fi
+exit $FAIL

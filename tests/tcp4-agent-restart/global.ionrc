@@ -1,0 +1,9 @@
+## global.ionrc: contacts and ranges for the agent-restart test.
+## The 2->3 contact is rate-limited to 200KB/s so the test's bundle
+## burst (2MB) spans ~10 seconds, guaranteeing the agent SIGKILL at
+## t+1s lands while transfers are genuinely in flight.
+a range  +0 +3600  2 3  1
+a contact +0 +3600  2 2  10000000
+a contact +0 +3600  2 3  200000
+a contact +0 +3600  3 2  10000000
+a contact +0 +3600  3 3  10000000

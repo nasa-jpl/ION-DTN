@@ -263,7 +263,7 @@ static int test_message_exchange(void)
 			.segment_mru = 1048576,
 			.transfer_mru = 10485760,
 			.node_id = "ipn:2.0",
-			.node_id_len = 8,
+			.node_id_len = 7,
 			.extensions = NULL,
 			.extensions_len = 0
 		},
@@ -376,6 +376,213 @@ static int test_nonblocking(void)
 	return 0;
 }
 
+/*	Test: stream framing under adversarial chunking.
+ *
+ *	A raw-socket server dribbles three back-to-back messages
+ *	(KEEPALIVE + XFER_ACK + XFER_SEGMENT) onto the stream in
+ *	awkward chunk boundaries; recv_msg must deliver exactly
+ *	three complete messages.					*/
+
+static void* raw_server_thread(void *arg)
+{
+	server_args_t	*args = (server_args_t *)arg;
+	int		listen_fd;
+	int		client_fd;
+	uint8_t		contact[TCPCLV4_CONTACT_HEADER_LEN];
+	uint8_t		stream[4096];
+	size_t		total = 0;
+	size_t		len;
+	size_t		sent;
+	size_t		chunk;
+	ssize_t		n;
+	tcpclv4_xfer_ack_t	ack = { 0, 9, 100 };
+	tcpclv4_xfer_segment_t	seg;
+
+	listen_fd = create_listen_socket(args->port);
+	if (listen_fd < 0)
+	{
+		args->result = -1;
+		return NULL;
+	}
+
+	args->ready = 1;
+
+	client_fd = accept(listen_fd, NULL, NULL);
+	close(listen_fd);
+	if (client_fd < 0)
+	{
+		args->result = -1;
+		return NULL;
+	}
+
+	/*	Plaintext contact header exchange, by hand.		*/
+
+	if (read(client_fd, contact, sizeof(contact))
+			!= (ssize_t) sizeof(contact))
+	{
+		close(client_fd);
+		args->result = -1;
+		return NULL;
+	}
+
+	contact[0] = 0x64; contact[1] = 0x74; contact[2] = 0x6E;
+	contact[3] = 0x21; contact[4] = 4; contact[5] = 0;
+	if (write(client_fd, contact, sizeof(contact))
+			!= (ssize_t) sizeof(contact))
+	{
+		close(client_fd);
+		args->result = -1;
+		return NULL;
+	}
+
+	/*	Three messages in one contiguous stream.		*/
+
+	tcpclv4_encode_keepalive(stream, sizeof(stream), &len);
+	total += len;
+	tcpclv4_encode_xfer_ack(&ack, stream + total,
+			sizeof(stream) - total, &len);
+	total += len;
+
+	memset(&seg, 0, sizeof(seg));
+	seg.flags = TCPCLV4_XFER_FLAG_START | TCPCLV4_XFER_FLAG_END;
+	seg.transfer_id = 9;
+	seg.data = (const uint8_t *) "framing stress payload";
+	seg.data_len = 22;
+	tcpclv4_encode_xfer_segment(&seg, stream + total,
+			sizeof(stream) - total, &len);
+	total += len;
+
+	/*	Dribble it out in 7-byte chunks.			*/
+
+	for (sent = 0; sent < total; sent += chunk)
+	{
+		chunk = (total - sent) < 7 ? (total - sent) : 7;
+		n = write(client_fd, stream + sent, chunk);
+		if (n != (ssize_t) chunk)
+		{
+			close(client_fd);
+			args->result = -1;
+			return NULL;
+		}
+
+		usleep(2000);
+	}
+
+	/*	Hold the socket open until the client is done.		*/
+
+	(void) read(client_fd, contact, 1);
+	close(client_fd);
+	args->result = 0;
+	return NULL;
+}
+
+static int test_stream_framing(void)
+{
+	tcpclv4_tls_session_t	*sess;
+	server_args_t		server_args;
+	pthread_t		server_tid;
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	size_t			len;
+	int			ret;
+	int			i;
+	int			expected[3] = { TCPCLV4_MSG_KEEPALIVE,
+					TCPCLV4_MSG_XFER_ACK,
+					TCPCLV4_MSG_XFER_SEGMENT };
+	int			got;
+
+	TEST("Stream framing (split/coalesced)");
+
+	memset(&server_args, 0, sizeof(server_args));
+	server_args.port = TEST_PORT + 3;
+
+	if (pthread_create(&server_tid, NULL, raw_server_thread,
+			   &server_args) != 0)
+	{
+		FAIL("Failed to create server thread");
+	}
+
+	for (i = 0; i < 50; i++)
+	{
+		if (server_args.ready)
+		{
+			break;
+		}
+
+		usleep(10000);
+	}
+
+	if (!server_args.ready)
+	{
+		FAIL("Server not ready");
+	}
+
+	sess = tcpclv4_tls_connect("127.0.0.1", TEST_PORT + 3,
+				    "ipn:2.0", NULL);
+	if (sess == NULL)
+	{
+		pthread_join(server_tid, NULL);
+		FAIL("Failed to connect");
+	}
+
+	for (got = 0; got < 3; )
+	{
+		ret = tcpclv4_tls_recv_msg(sess, buf, sizeof(buf), &len);
+		if (ret < 0)
+		{
+			tcpclv4_tls_close(sess);
+			pthread_join(server_tid, NULL);
+			FAIL("recv_msg error mid-stream");
+		}
+
+		if (ret == 0)
+		{
+			continue;	/* Blocking read; more to come. */
+		}
+
+		if (tcpclv4_get_msg_type(buf, len) != expected[got])
+		{
+			tcpclv4_tls_close(sess);
+			pthread_join(server_tid, NULL);
+			FAIL("Messages misframed or out of order");
+		}
+
+		got++;
+	}
+
+	/*	Verify the segment payload survived reassembly.		*/
+
+	{
+		tcpclv4_xfer_segment_t	seg;
+
+		if (tcpclv4_decode_xfer_segment(buf, len, &seg) < 0
+		|| seg.transfer_id != 9 || seg.data_len != 22
+		|| memcmp(seg.data, "framing stress payload", 22) != 0)
+		{
+			tcpclv4_tls_close(sess);
+			pthread_join(server_tid, NULL);
+			FAIL("Segment payload corrupted");
+		}
+
+		tcpclv4_xfer_segment_free(&seg);
+	}
+
+	/*	Unblock the server's final read.			*/
+
+	buf[0] = TCPCLV4_MSG_KEEPALIVE;
+	tcpclv4_tls_send_msg(sess, buf, 1);
+
+	tcpclv4_tls_close(sess);
+	pthread_join(server_tid, NULL);
+
+	if (server_args.result != 0)
+	{
+		FAIL("Server thread failed");
+	}
+
+	PASS();
+	return 0;
+}
+
 /*	Main test runner						*/
 
 int main(int argc, char *argv[])
@@ -391,6 +598,7 @@ int main(int argc, char *argv[])
 	test_initialization();
 	test_message_exchange();
 	test_nonblocking();
+	test_stream_framing();
 
 	tcpclv4_tls_cleanup();
 

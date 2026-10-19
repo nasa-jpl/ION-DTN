@@ -40,6 +40,7 @@ static void	shutDownClo(int signum)
 typedef struct
 {
 	int		*running;
+	int		*agent_connected;
 	CtrlChannel	*ctrl_ch;
 	IonTransferPool	*tx_pool;
 	Tcp4InFlight	*inflight;
@@ -68,6 +69,7 @@ static void	*handleResponses(void *parm)
 				writeMemo("[w] tcp4clo: agent keepalive "
 						"timeout, failing all "
 						"in-flight.");
+				*(rtp->agent_connected) = 0;
 				pthread_mutex_lock(rtp->inflight_mutex);
 				tcp4_inflight_fail_all(rtp->inflight,
 						rtp->inflight_size);
@@ -87,6 +89,7 @@ static void	*handleResponses(void *parm)
 				{
 					writeMemo("[i] tcp4clo: agent "
 							"reconnected.");
+					*(rtp->agent_connected) = 1;
 				}
 			}
 
@@ -106,6 +109,7 @@ static void	*handleResponses(void *parm)
 
 			writeMemo("[w] tcp4clo: agent disconnected, "
 					"failing all in-flight.");
+			*(rtp->agent_connected) = 0;
 			pthread_mutex_lock(rtp->inflight_mutex);
 			tcp4_inflight_fail_all(rtp->inflight,
 					rtp->inflight_size);
@@ -122,6 +126,7 @@ static void	*handleResponses(void *parm)
 			else
 			{
 				writeMemo("[i] tcp4clo: agent reconnected.");
+				*(rtp->agent_connected) = 1;
 			}
 
 			continue;
@@ -146,10 +151,13 @@ static void	*handleResponses(void *parm)
 				}
 			}
 
-			/*	Release the TX slot.			*/
+			/*	The TX slot is NOT released here: the
+			 *	agent (consumer) already released it
+			 *	after copying the data out, and the
+			 *	main thread may have reused it for a
+			 *	newer transfer.  Forcing it free here
+			 *	would destroy that transfer's data.	*/
 
-			pool_slot_force_free(rtp->tx_pool,
-					msg.slot_index);
 			break;
 
 		case CTRL_XFER_FAILURE:
@@ -168,8 +176,9 @@ static void	*handleResponses(void *parm)
 				}
 			}
 
-			pool_slot_force_free(rtp->tx_pool,
-					msg.slot_index);
+			/*	Slot release is the agent's job; see
+			 *	the XFER_SUCCESS case above.		*/
+
 			break;
 
 		case CTRL_SESSION_UP:
@@ -238,12 +247,14 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		inflight_mutex;
 	uint64_t		xfer_id_counter = 1;
 	int			running = 1;
+	int			agent_connected = 1;
 	ResponseThreadParms	rtp;
 	pthread_t		responseThread;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			slot;
+	int			slot_added;
 	int			bytesExtracted;
 	CtrlMsg			ctrlMsg;
 
@@ -390,6 +401,7 @@ int	main(int argc, char *argv[])
 	/*	Start the response thread.				*/
 
 	rtp.running = &running;
+	rtp.agent_connected = &agent_connected;
 	rtp.ctrl_ch = &tx_ctrl;
 	rtp.tx_pool = &tx_pool;
 	rtp.inflight = inflight;
@@ -418,12 +430,31 @@ int	main(int argc, char *argv[])
 
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		/*	stewardship=1: we will call bpHandleXmitSuccess
-		 *	or bpHandleXmitFailure asynchronously from the
-		 *	response thread when the agent reports the
-		 *	transfer disposition.				*/
+		/*	Never consume bundles while the agent is down:
+		 *	a transfer started now could not be announced
+		 *	to any agent, stranding the bundle.  Leaving
+		 *	the bundles queued in BP costs nothing and
+		 *	they flow normally on reconnect.		*/
 
-		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 1) < 0)
+		if (!agent_connected)
+		{
+			microsnooze(100000);	/*  100ms.		*/
+			continue;
+		}
+
+		/*	timeoutInterval -1 marks this as a reliable
+		 *	CLA (like stcpclo/tcpcli), so bpDequeue
+		 *	accepts stewardship: ION retains the bundle
+		 *	until we report its disposition via
+		 *	bpHandleXmitSuccess or bpHandleXmitFailure
+		 *	(called asynchronously from the response
+		 *	thread when the agent reports the transfer
+		 *	outcome), enabling reforwarding of failed
+		 *	transfers.  Any non-negative value here would
+		 *	silently disable stewardship and turn every
+		 *	transmission failure into bundle loss.		*/
+
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("tcp4clo: can't dequeue bundle.", NULL);
 			break;
@@ -505,26 +536,75 @@ int	main(int argc, char *argv[])
 				(uint64_t) bytesExtracted,
 				xfer_id_counter);
 
-		pthread_mutex_lock(&inflight_mutex);
-		if (tcp4_inflight_add(inflight, TCP4CLA_MAX_INFLIGHT,
-				bundleZco, xfer_id_counter) < 0)
+		/*	A full in-flight table is backpressure, not a
+		 *	transmission failure: the agent's dispositions
+		 *	(processed by the response thread) drain it.
+		 *	Wait for space; failing the bundle here would
+		 *	take it out of the data flow even though the
+		 *	session is healthy.				*/
+
+		for (;;)
 		{
+			pthread_mutex_lock(&inflight_mutex);
+			if (tcp4_inflight_add(inflight,
+					TCP4CLA_MAX_INFLIGHT, bundleZco,
+					xfer_id_counter) == 0)
+			{
+				pthread_mutex_unlock(&inflight_mutex);
+				slot_added = 1;
+				break;
+			}
+
 			pthread_mutex_unlock(&inflight_mutex);
-			putErrmsg("tcp4clo: inflight table full.", NULL);
+			if (sm_SemEnded(vduct->semaphore))
+			{
+				slot_added = 0;
+				break;
+			}
+
+			microsnooze(10000);	/*  10ms backoff.	*/
+		}
+
+		if (!slot_added)
+		{
+			/*	Shutting down; fail this bundle.	*/
+
 			pool_slot_force_free(&tx_pool, slot);
 			oK(bpHandleXmitFailure(bundleZco));
-			continue;
+			break;
 		}
-		pthread_mutex_unlock(&inflight_mutex);
 
 		ctrl_msg_init(&ctrlMsg, CTRL_SLOT_READY, (uint16_t) slot,
 				xfer_id_counter, NULL, 0);
 		if (ctrl_send(&tx_ctrl, &ctrlMsg) < 0)
 		{
-			putErrmsg("tcp4clo: can't send SLOT_READY.", NULL);
+			/*	Agent died between the connectivity
+			 *	check and the send: no agent will ever
+			 *	learn of this transfer, so unwind it
+			 *	and let BP reforward the bundle once
+			 *	the agent is back.  The bundle is
+			 *	failed only if we win the race to
+			 *	remove it from the in-flight table;
+			 *	if the response thread's fail_all got
+			 *	there first, it has already handled
+			 *	the failure, and failing the same ZCO
+			 *	twice would corrupt the requeued
+			 *	bundle.					*/
 
-			/*	Agent connection lost.  The response
-			 *	thread will handle cleanup.		*/
+			Object	unwound;
+
+			writeMemo("[w] tcp4clo: can't send SLOT_READY; "
+					"unwinding transfer.");
+			pthread_mutex_lock(&inflight_mutex);
+			unwound = tcp4_inflight_remove(inflight,
+					TCP4CLA_MAX_INFLIGHT,
+					xfer_id_counter);
+			pthread_mutex_unlock(&inflight_mutex);
+			pool_slot_force_free(&tx_pool, slot);
+			if (unwound != 0)
+			{
+				oK(bpHandleXmitFailure(unwound));
+			}
 		}
 
 		xfer_id_counter++;

@@ -45,12 +45,15 @@ typedef struct
 
 /*	Create TLS session in client mode (active open).
  *
- *	Steps:
- *	  1. Create TCP socket
- *	  2. Connect to host:port
- *	  3. Perform TLS handshake
- *	  4. Send/receive contact headers
- *	  5. Return established session
+ *	Steps (RFC 9174 §4.1 ordering):
+ *	  1. Create TCP socket, connect to host:port
+ *	  2. Exchange contact headers in plaintext, offering
+ *	     CAN_TLS iff tls_config is non-NULL
+ *	  3. Perform TLS handshake, only if both sides set CAN_TLS
+ *	     (if tls_config is given but the peer cannot do TLS,
+ *	     establishment fails: configured TLS is required TLS)
+ *	  4. Return established session (caller then exchanges
+ *	     SESS_INIT over it)
  *
  *	:param host: Hostname or IP address
  *	:param port: TCP port number
@@ -65,10 +68,10 @@ tcpclv4_tls_session_t* tcpclv4_tls_connect(
 
 /*	Create TLS session in server mode (passive open).
  *
- *	Steps:
- *	  1. Accept connection on listen_fd (caller must call accept())
- *	  2. Perform TLS handshake
- *	  3. Send/receive contact headers
+ *	Steps (RFC 9174 §4.1 ordering):
+ *	  1. Take connected socket from caller's accept()
+ *	  2. Exchange contact headers in plaintext
+ *	  3. Perform TLS handshake if both sides set CAN_TLS
  *	  4. Return established session
  *
  *	:param client_fd: Connected socket from accept()
@@ -99,10 +102,14 @@ tcpclv4_tls_session_t* tcpclv4_tls_accept(
 int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
 			  const uint8_t *msg_buf, size_t msg_len);
 
-/*	Receive a TCPCLv4 message from TLS.
+/*	Receive one complete TCPCLv4 message.
  *
- *	Reads and decrypts data from SSL socket. Handles message framing
- *	(reads complete TCPCLv4 messages based on type byte and expected length).
+ *	Accumulates stream bytes internally and returns exactly one
+ *	complete message per successful call, framed per RFC 9174
+ *	message layouts.  A single socket read may buffer several
+ *	messages, so callers must invoke this repeatedly until it
+ *	returns 0 before polling the socket again (see also
+ *	tcpclv4_tls_pending()).
  *
  *	:param sess: Session handle
  *	:param buf: Output buffer
@@ -112,6 +119,38 @@ int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
  */
 int tcpclv4_tls_recv_msg(tcpclv4_tls_session_t *sess,
 			  uint8_t *buf, size_t buf_cap, size_t *out_len);
+
+/*	Non-blocking raw write.  Writes as many bytes as the transport
+ *	will take without blocking (the socket should be in
+ *	non-blocking mode; see tcpclv4_tls_set_nonblocking).
+ *
+ *	:param sess: Session handle
+ *	:param buf: Bytes to write
+ *	:param len: Number of bytes offered
+ *	:return: Bytes written (>= 0; 0 = would block), -1 on error
+ */
+int tcpclv4_tls_write(tcpclv4_tls_session_t *sess,
+		const uint8_t *buf, size_t len);
+
+/*	Check whether a complete message is already buffered (or TLS
+ *	has decrypted bytes pending) so that recv_msg would succeed
+ *	without waiting for socket readability.
+ *
+ *	:param sess: Session handle
+ *	:return: 1 if a recv_msg call should be made now, 0 otherwise
+ */
+int tcpclv4_tls_pending(tcpclv4_tls_session_t *sess);
+
+/*	Set the maximum acceptable single-message size, used as a
+ *	framing sanity limit (e.g., after SESS_INIT negotiation, set
+ *	to segment MRU plus header overhead).  Default is 64MB.
+ *
+ *	:param sess: Session handle
+ *	:param max_msg_len: Limit in bytes (0 = unlimited)
+ *	:return: 0 on success, -1 on error
+ */
+int tcpclv4_tls_set_max_msg_len(tcpclv4_tls_session_t *sess,
+		uint64_t max_msg_len);
 
 /*	==============================================================
  *	SESSION CONTROL

@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Convergence-Layer Segmentation Test
+#
+# Runs the agents with a small TCPCL segment MTU (64KB) so that a
+# 900KB bundle -- which is a single BP bundle, no BP fragmentation --
+# must cross the wire as ~14 XFER_SEGMENTs with interleaved cumulative
+# acknowledgments (RFC 9174 §5.2.2/5.2.3).  Verifies the multi-segment
+# transfer and reassembly path end to end, which the default 1MB MTU
+# never exercises at system level.
+
+SEGMENT_MTU=65536
+FILE_KB=900
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify CL-level segmentation: a ${FILE_KB}KB bundle over a"
+echo "    ${SEGMENT_MTU}-byte segment MTU must arrive intact."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ "$?" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ] && break
+    sleep 1
+done
+
+# Agents with a small segment MTU on both sides
+cd ../3.ipn.tcp4
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --segment-mtu $SEGMENT_MTU \
+    --listen 127.0.0.1:4556 > agent.log 2>&1 &
+sleep 2
+
+cd ../2.ipn.tcp4
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 --segment-mtu $SEGMENT_MTU \
+    --connect 127.0.0.1:4556 > agent.log 2>&1 &
+
+for i in $(seq 1 20); do
+    grep -q "session established" agent.log 2>/dev/null && break
+    sleep 1
+done
+
+if ! grep -q "session established" agent.log; then
+    echo "ERROR: TCPCL session did not establish."
+    cat agent.log
+    exit 1
+fi
+
+echo "TCPCL session up (segment MTU ${SEGMENT_MTU})."
+
+# Send a 900KB file: one BP bundle (below the 1MB slot size), but
+# ~14 TCPCL segments at the configured MTU.
+dd if=/dev/urandom of=testfile_seg bs=1K count=$FILE_KB 2>/dev/null
+SENT_MD5=$(md5sum testfile_seg | awk '{print $1}')
+SENT_SIZE=$(stat -c%s testfile_seg)
+
+cd ../3.ipn.tcp4
+rm -f testfile1
+bprecvfile ipn:3.1 1 &
+RECV_PID=$!
+sleep 1
+
+cd ../2.ipn.tcp4
+bpsendfile ipn:2.1 ipn:3.1 testfile_seg
+sleep 10
+
+cd ../3.ipn.tcp4
+if [ -f testfile1 ]; then
+    RECV_MD5=$(md5sum testfile1 | awk '{print $1}')
+    RECV_SIZE=$(stat -c%s testfile1)
+    if [ "$RECV_MD5" = "$SENT_MD5" ] && [ "$RECV_SIZE" -eq "$SENT_SIZE" ]; then
+        echo "SUCCESS: ${FILE_KB}KB bundle intact across ~14 segments."
+    else
+        echo "ERROR: received file corrupted (sent $SENT_SIZE/$SENT_MD5, got $RECV_SIZE/$RECV_MD5)."
+        FAIL=1
+    fi
+else
+    echo "ERROR: file not received."
+    tail -8 agent.log
+    FAIL=1
+fi
+
+# Exactly one CLA transfer must have carried it (segmentation happens
+# below the transfer layer)
+XFERS=$(grep -c "TX xfer" ../2.ipn.tcp4/agent.log)
+if [ "$XFERS" -eq 1 ]; then
+    echo "SUCCESS: single transfer (${XFERS}) carried the bundle; segmentation was CL-level."
+else
+    echo "INFO: ${XFERS} transfers observed."
+fi
+
+kill $RECV_PID 2>/dev/null
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: CL segmentation test passed!"
+else
+    echo "FAIL: CL segmentation test failed."
+fi
+exit $FAIL

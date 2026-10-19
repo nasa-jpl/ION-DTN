@@ -1,19 +1,34 @@
 # TCPCLv4 Guide
 
-> **Status:** This is a **demonstration prototype** for interfacing ION with an external TCPCLv4 implementation. It delegates RFC 9174 protocol handling to the [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent) Python package via a shared-memory bridge. An integrated, pure-C TCPCLv4 convergence layer is planned for a future ION release.
+> **Status:** ION's TCPCLv4 convergence layer adapter is implemented
+> entirely in C: the `tcp4cli`/`tcp4clo` ION daemons plus a standalone
+> `tcpclv4_agent` process that implements the RFC 9174 protocol,
+> including optional TLS 1.3. No Python runtime or external protocol
+> package is required. Wire interoperability has been verified in both
+> directions against
+> [dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent), an
+> independent TCPCLv4 implementation. The CLA remains gated behind a
+> configure flag while it matures toward a fully integrated convergence
+> layer.
 
 ## Overview
 
-TCPCLv4 (TCP Convergence Layer version 4) implements the IETF RFC 9174 standard for reliable bundle transfer over TCP connections. This prototype demonstrates ION's ability to interoperate with an external standards-compliant TCPCLv4 implementation.
+TCPCLv4 (TCP Convergence Layer version 4) implements the IETF RFC 9174
+standard for reliable bundle transfer over TCP connections.
 
 **Key Features:**
-- RFC 9174 compliant TCPCLv4 protocol (via external agent)
-- TLS 1.3 encryption support
+- RFC 9174 compliant TCPCLv4 protocol, implemented in C
+- TLS 1.3 encryption support (contact-header CAN_TLS negotiation per
+  RFC 9174 §4)
 - Automatic BP-layer fragmentation for large bundles
 - Handles bundles of arbitrary size (tested up to 50MB+)
 - Default configuration works without manual tuning
 
-**Architecture:** The current implementation uses a Python bridge that connects ION's C convergence layer daemons to an external TCPCLv4 protocol handler ([dtn-demo-agent](https://github.com/BrianSipos/dtn-demo-agent)). An integrated pure-C TCPCLv4 convergence layer is planned for a future ION release.
+**Architecture:** ION's `tcp4clo` (outduct) and `tcp4cli` (induct)
+daemons exchange bundle data with the external `tcpclv4_agent` process
+through lock-free shared-memory pools, coordinated over Unix-socket
+control channels. The agent owns the TCP/TLS connection and the
+RFC 9174 session state machine. One agent serves one duct.
 
 ```
 ION Node A                                           ION Node B
@@ -21,15 +36,20 @@ ION Node A                                           ION Node B
 │  Application│                                     │ Application │
 └──────┬──────┘                                     └──────▲──────┘
        │                                                   │
-┌──────▼──────┐                                     ┌──────┴──────┐
-│   tcp4clo   │◄────────── TCPCLv4 over TCP ───────►│   tcp4cli   │
-│   (ION CLA) │         (Python bridge)             │  (ION CLA)  │
-└─────────────┘                                     └─────────────┘
+┌──────▼──────┐      ┌───────────────┐   ┌───────────────┐│
+│   tcp4clo   │─shm─►│ tcpclv4_agent │──►│ tcpclv4_agent ├┤
+│   (ION CLA) │      │  (TCPCLv4/TLS)│TCP│  (TCPCLv4/TLS)││
+└─────────────┘      └───────────────┘   └───────┬───────┘│
+                                                 │  shm ┌─┴──────────┐
+                                                 └─────►│  tcp4cli   │
+                                                        │  (ION CLA) │
+                                                        └────────────┘
 ```
 
-## Building ION with TCPCLv4 External CLA Support
+## Building ION with TCPCLv4 Support
 
-The TCPCLv4 external CLA (demonstration prototype) is **not built by default**. To enable it, pass the `--enable-tcpclv4-external` flag to `./configure`:
+The TCPCLv4 CLA is **not built by default**. To enable it, pass the
+`--enable-tcpclv4-external` flag to `./configure`:
 
 ```bash
 autoreconf -fi   # if configure is not present
@@ -41,84 +61,15 @@ sudo ldconfig
 
 This flag enables:
 - The `tcp4cli` and `tcp4clo` convergence layer daemons
+- The `tcpclv4_agent` executable
 - The shared-memory IPC code (`ion_transfer_pool`, `ion_ctrl_channel`) in `libici`
-- The `libtcp4cla`, `libtcpclv4_msg`, and `libtcpclv4_tls` libraries
+- The `libtcp4cla`, `libtcpclv4_msg`, `libtcpclv4_tls`, and
+  `libtcpclv4_session` libraries
 - OpenSSL detection for TLS support
 
-**Requires:** OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on RHEL/Fedora).
-
-## Dependencies
-
-### System Packages (Ubuntu/Debian)
-
-The following system packages are required for building the Python dependencies:
-
-```bash
-sudo apt-get install -y \
-    python3-dev \
-    libdbus-1-dev \
-    libdbus-glib-1-dev \
-    libgirepository1.0-dev \
-    libgirepository-2.0-dev \
-    libcairo2-dev \
-    pkg-config \
-    gir1.2-glib-2.0
-```
-
-### Python Virtual Environment
-
-It is recommended to use a Python virtual environment:
-
-```bash
-python3 -m venv ~/.default-venv
-source ~/.default-venv/bin/activate
-```
-
-### dtn-demo-agent Package
-
-The `dtn-demo-agent` package provides the TCPCLv4 protocol implementation. Install it from the repository:
-
-```bash
-# Clone the repository (if not already present)
-git clone https://github.com/BrianSipos/dtn-demo-agent.git ~/dtn-demo-agent
-
-# Install in editable mode
-pip install -e ~/dtn-demo-agent
-```
-
-Alternatively, if `dtn-demo-agent` is available via pip:
-
-```bash
-pip install ietf-dtn-demo-agent
-```
-
-### Python Package Dependencies
-
-The `dtn-demo-agent` package installs the following key dependencies:
-
-| Package | Purpose |
-|---------|---------|
-| `PyYAML` | Configuration file parsing |
-| `dbus-python` | D-Bus integration for system services |
-| `PyGObject` | GLib main loop integration |
-| `cbor2` | CBOR encoding for bundle serialization |
-| `cryptography` | TLS support |
-| `scapy` | Network packet handling |
-| `zeroconf` | Service discovery |
-
-## Verifying the Installation
-
-After installation, verify all dependencies are available:
-
-```bash
-source ~/.default-venv/bin/activate
-python3 -c "import yaml; print('yaml: OK')"
-python3 -c "import dbus; print('dbus: OK')"
-python3 -c "import gi; print('gi: OK')"
-python3 -c "import tcpcl; print('tcpcl: OK')"
-```
-
-All four checks should print "OK".
+**Requires:** OpenSSL development headers (`libssl-dev` on
+Debian/Ubuntu, `openssl-devel` on RHEL/Fedora). This is the only
+dependency beyond a standard ION build.
 
 ## Quick Start
 
@@ -127,15 +78,14 @@ All four checks should print "OK".
 Verify the installation with the basic two-node test:
 
 ```bash
-source ~/.default-venv/bin/activate
-cd demos/tcp4-twonodes
+cd tests/tcp4-twonodes
 ./dotest
 ```
 
 This test:
 1. Starts two ION nodes communicating via TCPCLv4
-2. Sends a 6MB bundle from Node 2 to Node 3
-3. Verifies successful delivery and cleanup
+2. Sends a small bundle, then a 6MB bundle (exercising BP fragmentation)
+3. Verifies successful delivery, XFER_SUCCESS feedback, and SDR cleanup
 4. Expected result: "SUCCESS" messages and exit code 0
 
 ### Running the TLS Test
@@ -143,8 +93,7 @@ This test:
 Test TCPCLv4 with TLS encryption:
 
 ```bash
-source ~/.default-venv/bin/activate
-cd demos/tcp4-twonodes-tls
+cd tests/tcp4-twonodes-tls
 ./dotest
 ```
 
@@ -159,30 +108,8 @@ This test:
 ### Overview
 
 TCPCLv4 configuration requires:
-1. **bridge.yaml** - TCPCLv4 connection settings (per node)
-2. **BP configuration** - Standard ION BP setup with TCP4 protocol
-
-### Bridge Configuration (bridge.yaml)
-
-Create a `bridge.yaml` file for each node:
-
-**Node that initiates connections:**
-```yaml
-duct_name: "peer3"           # Must match BP outduct/induct name
-node_id: "ipn:2.0"           # This node's ID
-peer_address: "10.0.1.3"     # Remote node's IP
-peer_port: 4556              # Remote node's port
-tls_enable: false            # Set to true for TLS
-```
-
-**Node that accepts connections:**
-```yaml
-duct_name: "peer2"           # Must match BP outduct/induct name
-node_id: "ipn:3.0"           # This node's ID
-listen_address: "0.0.0.0"    # Listen on all interfaces
-listen_port: 4556            # Port to listen on
-tls_enable: false            # Set to true for TLS
-```
+1. **BP configuration** - Standard ION BP setup with the TCP4 protocol
+2. **One `tcpclv4_agent` per duct** - launched with command-line options
 
 ### ION BP Configuration
 
@@ -203,18 +130,53 @@ a outduct tcp4 peer3 tcp4clo
 a plan 3 tcp4/peer3
 ```
 
-### TLS Configuration (Optional)
+### Starting the Agent
 
-To enable TLS, set `tls_enable: true` and add certificate paths to `bridge.yaml`:
+Start one agent per duct after (or before — the agent waits) the ION
+node is up:
 
-```yaml
-tls_enable: true
-tls_ca_file: "/path/to/ca.crt"
-tls_cert_file: "/path/to/node-chain.pem"
-tls_key_file: "/path/to/node.key"
+**Node that initiates connections (active):**
+```bash
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 --connect 10.0.1.3:4556 \
+    > agent.log 2>&1 &
 ```
 
-See `demos/tcp4-twonodes-tls/gen_test_pki.sh` for an example certificate generation script.
+**Node that accepts connections (passive):**
+```bash
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen 0.0.0.0:4556 \
+    > agent.log 2>&1 &
+```
+
+The `--duct` name must match the BP induct/outduct name; the agent
+derives the shared-memory pool names (`/ion_tcp4_tx_<duct>`,
+`/ion_tcp4_rx_<duct>`) and control socket paths
+(`/tmp/ion_tcp4/tx_<duct>.sock`, `rx_<duct>.sock`) from it. The agent
+waits up to 30 seconds for the ION daemons to create these, so start
+order is flexible; an active-side agent retries its peer connection
+every 5 seconds.
+
+Additional options: `--keepalive <seconds>` proposes a session
+keepalive interval (RFC 9174 negotiates the minimum of both proposals).
+
+### TLS Configuration (Optional)
+
+To enable TLS, pass certificate paths on the agent command line:
+
+```bash
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen 0.0.0.0:4556 \
+    --tls-ca /path/to/ca.crt \
+    --tls-cert /path/to/node-chain.pem \
+    --tls-key /path/to/node.key
+```
+
+Per RFC 9174, contact headers are exchanged in plaintext first; the TLS
+handshake occurs only when both sides advertise CAN_TLS. If TLS is
+configured locally but the peer cannot do TLS, the session is refused
+(configured TLS is required TLS). `--tls-noverify` disables peer
+certificate verification for testing.
+
+See `tests/tcp4-twonodes-tls/gen_test_pki.sh` for an example
+certificate generation script.
 
 ## Bundle Size Handling
 
@@ -227,7 +189,8 @@ The TCP4 CLA is configured to handle bundles of any size automatically:
 - **Maximum bundle size**: Limited only by available memory
 - **Tested range**: Up to 50MB+ bundles
 
-**No manual configuration is required** - the system automatically fragments large bundles into slot-sized pieces for transmission.
+**No manual configuration is required** - the system automatically
+fragments large bundles into slot-sized pieces for transmission.
 
 ### How It Works
 
@@ -238,11 +201,13 @@ When you send a bundle larger than the slot size:
 3. The receiver reassembles fragments at the final destination
 4. The process is transparent to applications
 
-**Example**: With default 1MB slots, a 50MB bundle is automatically split into ~50 fragments and transmitted successfully.
+**Example**: With default 1MB slots, a 50MB bundle is automatically
+split into ~50 fragments and transmitted successfully.
 
 ### Custom Slot Sizes (Optional)
 
-For specialized deployments, you can configure larger slot sizes at compile time:
+For specialized deployments, you can configure larger slot sizes at
+compile time:
 
 ```bash
 # For frequent large bundles (reduces fragmentation overhead)
@@ -250,7 +215,8 @@ For specialized deployments, you can configure larger slot sizes at compile time
 make && sudo make install
 ```
 
-**Memory usage**: Each duct (send/receive pair) uses `slot_size × num_slots × 2` of shared memory.
+**Memory usage**: Each duct (send/receive pair) uses
+`slot_size × num_slots × 2` of shared memory.
 
 | Slot Size | Num Slots | Memory Per Duct | Use Case |
 |-----------|-----------|-----------------|----------|
@@ -262,7 +228,8 @@ make && sudo make install
 
 **Issue**: Bundles rejected with "exceeds slot capacity" error
 
-**Solution**: The tcp4clo daemon should auto-configure fragmentation. Check `ion.log` for:
+**Solution**: The tcp4clo daemon should auto-configure fragmentation.
+Check `ion.log` for:
 ```
 [i] tcp4clo: Auto-set maxPayloadLen=1047552 (1 MB - 1024 B margin)
 ```
@@ -286,23 +253,26 @@ pgrep ionadmin
 # Check TCP4 CLA daemons
 pgrep tcp4cli && pgrep tcp4clo
 
-# Check bridge adapter
-pgrep -f bridge_adapter
+# Check the agent
+pgrep -f tcpclv4_agent
 
 # Check logs
 tail -f ion.log
+tail -f agent.log
 ```
 
 ### Common Issues
 
-**Bridge fails to start:**
-- Check `bridge.log` in the node directory
-- Verify Python dependencies are installed (`python3 -c "import tcpcl"`)
-- Ensure port is not already in use
+**Agent fails to start:**
+- Check the agent's log (wherever its stderr was redirected)
+- "timed out waiting for pool/socket": the ION node's tcp4cli/tcp4clo
+  daemons are not running for that duct name
+- "bind: Address already in use": another listener owns the port
 
 **Bundles not received:**
 1. Verify contact plan is loaded: `ionadmin` → `l contact`
-2. Check TCPCLv4 session: Look for "TLS secured" or "session up" in `bridge.log`
+2. Check TCPCLv4 session: look for "session established" in the agent
+   log ("(TLS)" suffix confirms an encrypted session)
 3. Verify routing plan: `ipnadmin` → `l plan`
 
 **Clean up after failed test:**
@@ -315,22 +285,33 @@ rm -f /dev/shm/ion_tcp4_*          # Remove shared memory
 ### Getting Help
 
 For issues or questions:
-- Review demo scripts in `demos/tcp4-twonodes/` and `demos/tcp4-twonodes-tls/`
-- Check ION logs for detailed error messages
+- Review the system tests in `tests/tcp4-twonodes/` and
+  `tests/tcp4-twonodes-tls/`
+- Check ION logs and the agent log for detailed error messages
 - Consult the design document: `dev-docs/ION_TCPCLv4_Integration_Design.md`
 
 ## Development Status and Future Work
 
-**Current Status (February 2026)**: This is a demonstration prototype for interfacing ION with an external TCPCLv4 implementation. It is functional and tested for evaluation purposes, but is not a production-integrated convergence layer.
+**Current Status (July 2026)**: The TCPCLv4 protocol stack — wire
+format, transport with TLS, session state machine, and agent — is
+implemented in C with no external runtime dependencies beyond OpenSSL.
+Library unit tests build under `make check`; two-node system tests
+(plain and TLS) run under `tests/`. RFC 9174 wire interoperability has
+been verified bidirectionally against dtn-demo-agent.
 
 **Limitations**:
-- Requires external Python runtime and dtn-demo-agent package
-- Python bridge introduces latency compared to native C convergence layers
-- Not recommended for production use without further validation
+- One TCPCL session per duct (one peer per agent process); additional
+  inbound connections are refused gracefully with SESS_TERM reason BUSY
+- Session-layer transfer retransmission (XFER_REFUSE retry policies)
+  is minimal: refused/failed transfers are reported to BP, which owns
+  retransmission policy
 - Must be explicitly enabled at build time (`--enable-tcpclv4-external`)
 
 **Future Work**:
-- An integrated, pure-C TCPCLv4 convergence layer is planned for a future ION release, which would not require the external Python bridge or separate build flag
+- Folding the agent into an ION daemon (removing the separate process
+  and build flag) once the external architecture has seen more field
+  use
+- Multiple concurrent sessions per agent
 
 ## Related Documentation
 
@@ -339,4 +320,4 @@ For issues or questions:
 - [ION Design and API Overview](./ION-Design-and-API-Overview.md) - ION architecture overview
 - Technical design: `dev-docs/ION_TCPCLv4_Integration_Design.md`
 - [RFC 9174](https://www.rfc-editor.org/rfc/rfc9174.html) - TCPCLv4 specification
-- [dtn-demo-agent Repository](https://github.com/BrianSipos/dtn-demo-agent) - Reference TCPCLv4 implementation
+- [dtn-demo-agent Repository](https://github.com/BrianSipos/dtn-demo-agent) - Independent TCPCLv4 implementation used for interoperability testing

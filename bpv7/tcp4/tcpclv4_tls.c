@@ -4,6 +4,14 @@
 			Uses OpenSSL for TLS, handles contact header
 			exchange, message framing over TLS/TCP.
 
+			Per RFC 9174 §4.1, session establishment is:
+			  1. TCP connection
+			  2. Contact header exchange (ALWAYS plaintext)
+			  3. TLS negotiation, only if both sides set
+			     CAN_TLS in their contact headers
+			  4. SESS_INIT exchange (caller's job, over
+			     the now-secured channel)
+
 	Author: iondev33
 
 	Copyright (c) 2026, California Institute of Technology.
@@ -30,6 +38,13 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+/*	Ceiling on a single message accepted from the peer before
+ *	SESS_INIT negotiation gives the caller a chance to impose
+ *	its own segment MRU.  Guards recv-buffer growth against a
+ *	hostile length field.						*/
+
+#define TCPCLV4_DEFAULT_MAX_MSG	(64ULL * 1024 * 1024)
+
 /*	Session structure							*/
 
 struct tcpclv4_tls_session_s
@@ -38,11 +53,13 @@ struct tcpclv4_tls_session_s
 	SSL		*ssl;			/* OpenSSL handle (NULL if no TLS) */
 	SSL_CTX		*ssl_ctx;		/* SSL context (NULL if no TLS) */
 
-	char		*peer_nodeid;		/* Peer node ID from contact header */
+	char		*peer_nodeid;		/* Peer node ID from SESS_INIT */
 	char		*local_nodeid;		/* Our node ID */
 
 	char		error_msg[512];		/* Last error message */
 	int		tls_enabled;		/* 1 if TLS, 0 if plain TCP */
+	uint8_t		peer_contact_flags;	/* Peer's contact header flags */
+	uint64_t	max_msg_len;		/* Framing sanity limit */
 
 	/* Receive buffer for message framing */
 	uint8_t		*recv_buf;
@@ -146,84 +163,257 @@ static int tcp_connect(const char *host, int port, char *error_buf,
 	return sfd;
 }
 
-/*	Perform TLS handshake						*/
+/*	Plaintext exact-length read/write on the raw socket, used
+ *	only for the contact header exchange (which precedes any
+ *	TLS negotiation per RFC 9174 §4.1).				*/
 
-static int do_tls_handshake(tcpclv4_tls_session_t *sess)
+static int read_exact(int fd, uint8_t *buf, size_t len)
 {
-	int	ret;
+	size_t	got = 0;
+	ssize_t	n;
 
-	ret = SSL_connect(sess->ssl);
-	if (ret != 1)
+	while (got < len)
 	{
-		set_error_ssl(sess, "TLS handshake failed");
-		return -1;
+		n = read(fd, buf + got, len - got);
+		if (n <= 0)
+		{
+			if (n < 0 && errno == EINTR)
+			{
+				continue;
+			}
+
+			return -1;
+		}
+
+		got += n;
 	}
 
 	return 0;
 }
 
-/*	Exchange contact headers (after TLS handshake or on plain TCP)	*/
-
-static int exchange_contact_headers(tcpclv4_tls_session_t *sess)
+static int write_exact(int fd, const uint8_t *buf, size_t len)
 {
-	uint8_t				buf[256];
+	size_t	sent = 0;
+	ssize_t	n;
+
+	while (sent < len)
+	{
+		n = write(fd, buf + sent, len - sent);
+		if (n <= 0)
+		{
+			if (n < 0 && errno == EINTR)
+			{
+				continue;
+			}
+
+			return -1;
+		}
+
+		sent += n;
+	}
+
+	return 0;
+}
+
+/*	Exchange contact headers in plaintext (RFC 9174 §4.2).
+ *
+ *	offer_tls:	1 if we set CAN_TLS in our header.
+ *
+ *	On success, sess->peer_contact_flags holds the peer's flags.	*/
+
+static int exchange_contact_headers(tcpclv4_tls_session_t *sess,
+		int offer_tls)
+{
+	uint8_t				buf[TCPCLV4_CONTACT_HEADER_LEN];
 	size_t				len;
 	tcpclv4_contact_header_t	hdr;
-	int				ret;
-	ssize_t				n;
 
-	/* Send our contact header */
-	hdr.magic = TCPCLV4_CONTACT_MAGIC;
-	hdr.flags = sess->tls_enabled ? TCPCLV4_CONTACT_FLAG_CAN_TLS : 0;
+	hdr.version = TCPCLV4_PROTOCOL_VERSION;
+	hdr.flags = offer_tls ? TCPCLV4_CONTACT_FLAG_CAN_TLS : 0;
 
-	ret = tcpclv4_encode_contact_header(&hdr, buf, sizeof(buf), &len);
-	if (ret < 0)
+	if (tcpclv4_encode_contact_header(&hdr, buf, sizeof(buf), &len) < 0)
 	{
 		set_error(sess, "Failed to encode contact header");
 		return -1;
 	}
 
-	if (sess->tls_enabled)
-	{
-		ret = SSL_write(sess->ssl, buf, len);
-	}
-	else
-	{
-		ret = write(sess->fd, buf, len);
-	}
-
-	if (ret != (int)len)
+	if (write_exact(sess->fd, buf, len) < 0)
 	{
 		set_error(sess, "Failed to send contact header");
 		return -1;
 	}
 
-	/* Receive peer's contact header */
-	if (sess->tls_enabled)
-	{
-		n = SSL_read(sess->ssl, buf, 4);
-	}
-	else
-	{
-		n = read(sess->fd, buf, 4);
-	}
-
-	if (n != 4)
+	if (read_exact(sess->fd, buf, TCPCLV4_CONTACT_HEADER_LEN) < 0)
 	{
 		set_error(sess, "Failed to receive contact header");
 		return -1;
 	}
 
-	ret = tcpclv4_decode_contact_header(buf, n, &hdr);
-	if (ret < 0)
+	if (tcpclv4_decode_contact_header(buf, TCPCLV4_CONTACT_HEADER_LEN,
+			&hdr) < 0)
 	{
 		set_error(sess, "Invalid contact header from peer");
 		return -1;
 	}
 
+	sess->peer_contact_flags = hdr.flags;
+
 	/* Note: peer_nodeid comes from SESS_INIT, not contact header */
 
 	return 0;
+}
+
+/*	Create the SSL context and object and run the handshake.
+ *	Called only after contact headers agreed on TLS.		*/
+
+static int setup_tls(tcpclv4_tls_session_t *sess,
+		const tcpclv4_tls_config_t *tls_config, int is_server)
+{
+	int	ret;
+
+	sess->ssl_ctx = SSL_CTX_new(is_server ? TLS_server_method()
+			: TLS_client_method());
+	if (sess->ssl_ctx == NULL)
+	{
+		set_error_ssl(sess, "SSL_CTX_new failed");
+		return -1;
+	}
+
+	if (tls_config->tls_cert_file)
+	{
+		if (SSL_CTX_use_certificate_file(sess->ssl_ctx,
+				tls_config->tls_cert_file,
+				SSL_FILETYPE_PEM) <= 0)
+		{
+			set_error_ssl(sess, "Failed to load cert");
+			return -1;
+		}
+	}
+
+	if (tls_config->tls_key_file)
+	{
+		if (SSL_CTX_use_PrivateKey_file(sess->ssl_ctx,
+				tls_config->tls_key_file,
+				SSL_FILETYPE_PEM) <= 0)
+		{
+			set_error_ssl(sess, "Failed to load key");
+			return -1;
+		}
+	}
+
+	if (tls_config->tls_ca_file)
+	{
+		if (SSL_CTX_load_verify_locations(sess->ssl_ctx,
+				tls_config->tls_ca_file, NULL) <= 0)
+		{
+			set_error_ssl(sess, "Failed to load CA");
+			return -1;
+		}
+	}
+
+	if (tls_config->tls_verify_peer)
+	{
+		SSL_CTX_set_verify(sess->ssl_ctx, is_server
+				? (SSL_VERIFY_PEER
+					| SSL_VERIFY_FAIL_IF_NO_PEER_CERT)
+				: SSL_VERIFY_PEER, NULL);
+	}
+
+	/*	Partial-write modes let SSL_write consume what fits
+	 *	on a non-blocking socket and be resumed with a moved
+	 *	buffer (the session layer's output queue compacts).	*/
+
+	SSL_CTX_set_mode(sess->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE
+			| SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
+	sess->ssl = SSL_new(sess->ssl_ctx);
+	if (sess->ssl == NULL)
+	{
+		set_error_ssl(sess, "SSL_new failed");
+		return -1;
+	}
+
+	SSL_set_fd(sess->ssl, sess->fd);
+
+	ret = is_server ? SSL_accept(sess->ssl) : SSL_connect(sess->ssl);
+	if (ret != 1)
+	{
+		set_error_ssl(sess, is_server ? "TLS accept failed"
+				: "TLS handshake failed");
+		return -1;
+	}
+
+	sess->tls_enabled = 1;
+	return 0;
+}
+
+/*	Allocate and initialize a bare session object.			*/
+
+static tcpclv4_tls_session_t *session_alloc(const char *local_node_id)
+{
+	tcpclv4_tls_session_t	*sess;
+
+	if (!g_openssl_initialized)
+	{
+		tcpclv4_tls_init();
+	}
+
+	sess = calloc(1, sizeof(*sess));
+	if (sess == NULL)
+	{
+		return NULL;
+	}
+
+	sess->fd = -1;
+	sess->max_msg_len = TCPCLV4_DEFAULT_MAX_MSG;
+	sess->local_nodeid = strdup(local_node_id);
+	if (sess->local_nodeid == NULL)
+	{
+		free(sess);
+		return NULL;
+	}
+
+	sess->recv_buf_cap = 65536;
+	sess->recv_buf = malloc(sess->recv_buf_cap);
+	if (sess->recv_buf == NULL)
+	{
+		free(sess->local_nodeid);
+		free(sess);
+		return NULL;
+	}
+
+	return sess;
+}
+
+/*	Common post-connect establishment: contact headers, then
+ *	TLS if negotiated.  RFC 9174 §4.3: TLS is used only when
+ *	BOTH contact headers set CAN_TLS.  If we were given a TLS
+ *	config but the peer cannot do TLS, the session is refused
+ *	(policy: configured TLS is required TLS).			*/
+
+static int establish(tcpclv4_tls_session_t *sess,
+		const tcpclv4_tls_config_t *tls_config, int is_server)
+{
+	int	offer_tls = (tls_config != NULL);
+
+	if (exchange_contact_headers(sess, offer_tls) < 0)
+	{
+		return -1;
+	}
+
+	if (!offer_tls)
+	{
+		return 0;	/* Plain TCP session */
+	}
+
+	if ((sess->peer_contact_flags & TCPCLV4_CONTACT_FLAG_CAN_TLS) == 0)
+	{
+		set_error(sess, "TLS configured but peer did not offer "
+				"CAN_TLS");
+		return -1;
+	}
+
+	return setup_tls(sess, tls_config, is_server);
 }
 
 /*	==============================================================
@@ -265,119 +455,23 @@ tcpclv4_tls_session_t* tcpclv4_tls_connect(
 	tcpclv4_tls_session_t	*sess;
 	int			fd;
 
-	if (!g_openssl_initialized)
-	{
-		tcpclv4_tls_init();
-	}
-
-	/* Allocate session */
-	sess = calloc(1, sizeof(*sess));
+	sess = session_alloc(local_node_id);
 	if (sess == NULL)
 	{
 		return NULL;
 	}
 
-	sess->fd = -1;
-	sess->local_nodeid = strdup(local_node_id);
-	sess->tls_enabled = (tls_config != NULL);
-
-	/* Allocate receive buffer */
-	sess->recv_buf_cap = 65536;
-	sess->recv_buf = malloc(sess->recv_buf_cap);
-	if (sess->recv_buf == NULL)
-	{
-		free(sess->local_nodeid);
-		free(sess);
-		return NULL;
-	}
-
-	/* Connect TCP socket */
 	fd = tcp_connect(host, port, sess->error_msg,
 			 sizeof(sess->error_msg));
 	if (fd < 0)
 	{
-		free(sess->recv_buf);
-		free(sess->local_nodeid);
-		free(sess);
+		tcpclv4_tls_close(sess);
 		return NULL;
 	}
 
 	sess->fd = fd;
 
-	/* TLS setup */
-	if (sess->tls_enabled)
-	{
-		sess->ssl_ctx = SSL_CTX_new(TLS_client_method());
-		if (sess->ssl_ctx == NULL)
-		{
-			set_error_ssl(sess, "SSL_CTX_new failed");
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-
-		/* Load certificates */
-		if (tls_config->tls_cert_file)
-		{
-			if (SSL_CTX_use_certificate_file(sess->ssl_ctx,
-					tls_config->tls_cert_file,
-					SSL_FILETYPE_PEM) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load cert");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_key_file)
-		{
-			if (SSL_CTX_use_PrivateKey_file(sess->ssl_ctx,
-					tls_config->tls_key_file,
-					SSL_FILETYPE_PEM) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load key");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_ca_file)
-		{
-			if (SSL_CTX_load_verify_locations(sess->ssl_ctx,
-					tls_config->tls_ca_file, NULL) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load CA");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_verify_peer)
-		{
-			SSL_CTX_set_verify(sess->ssl_ctx,
-					   SSL_VERIFY_PEER, NULL);
-		}
-
-		/* Create SSL object */
-		sess->ssl = SSL_new(sess->ssl_ctx);
-		if (sess->ssl == NULL)
-		{
-			set_error_ssl(sess, "SSL_new failed");
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-
-		SSL_set_fd(sess->ssl, sess->fd);
-
-		/* TLS handshake */
-		if (do_tls_handshake(sess) < 0)
-		{
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-	}
-
-	/* Exchange contact headers */
-	if (exchange_contact_headers(sess) < 0)
+	if (establish(sess, tls_config, 0) < 0)
 	{
 		tcpclv4_tls_close(sess);
 		return NULL;
@@ -392,114 +486,21 @@ tcpclv4_tls_session_t* tcpclv4_tls_accept(
 	const tcpclv4_tls_config_t *tls_config)
 {
 	tcpclv4_tls_session_t	*sess;
+	int			flag = 1;
 
-	if (!g_openssl_initialized)
-	{
-		tcpclv4_tls_init();
-	}
-
-	/* Allocate session */
-	sess = calloc(1, sizeof(*sess));
+	sess = session_alloc(local_node_id);
 	if (sess == NULL)
 	{
+		close(client_fd);	/* Accept always owns the fd. */
 		return NULL;
 	}
 
 	sess->fd = client_fd;
-	sess->local_nodeid = strdup(local_node_id);
-	sess->tls_enabled = (tls_config != NULL);
-
-	/* Allocate receive buffer */
-	sess->recv_buf_cap = 65536;
-	sess->recv_buf = malloc(sess->recv_buf_cap);
-	if (sess->recv_buf == NULL)
-	{
-		free(sess->local_nodeid);
-		free(sess);
-		return NULL;
-	}
 
 	/* Disable Nagle's algorithm */
-	int flag = 1;
 	setsockopt(sess->fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
 
-	/* TLS setup (server mode) */
-	if (sess->tls_enabled)
-	{
-		sess->ssl_ctx = SSL_CTX_new(TLS_server_method());
-		if (sess->ssl_ctx == NULL)
-		{
-			set_error_ssl(sess, "SSL_CTX_new failed");
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-
-		/* Load server certificates */
-		if (tls_config->tls_cert_file)
-		{
-			if (SSL_CTX_use_certificate_file(sess->ssl_ctx,
-					tls_config->tls_cert_file,
-					SSL_FILETYPE_PEM) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load cert");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_key_file)
-		{
-			if (SSL_CTX_use_PrivateKey_file(sess->ssl_ctx,
-					tls_config->tls_key_file,
-					SSL_FILETYPE_PEM) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load key");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_ca_file)
-		{
-			if (SSL_CTX_load_verify_locations(sess->ssl_ctx,
-					tls_config->tls_ca_file, NULL) <= 0)
-			{
-				set_error_ssl(sess, "Failed to load CA");
-				tcpclv4_tls_close(sess);
-				return NULL;
-			}
-		}
-
-		if (tls_config->tls_verify_peer)
-		{
-			SSL_CTX_set_verify(sess->ssl_ctx,
-					   SSL_VERIFY_PEER |
-					   SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-					   NULL);
-		}
-
-		/* Create SSL object */
-		sess->ssl = SSL_new(sess->ssl_ctx);
-		if (sess->ssl == NULL)
-		{
-			set_error_ssl(sess, "SSL_new failed");
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-
-		SSL_set_fd(sess->ssl, sess->fd);
-
-		/* TLS handshake (server side) */
-		if (SSL_accept(sess->ssl) != 1)
-		{
-			set_error_ssl(sess, "TLS accept failed");
-			tcpclv4_tls_close(sess);
-			return NULL;
-		}
-	}
-
-	/* Exchange contact headers */
-	if (exchange_contact_headers(sess) < 0)
+	if (establish(sess, tls_config, 1) < 0)
 	{
 		tcpclv4_tls_close(sess);
 		return NULL;
@@ -539,7 +540,8 @@ int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
 
 				if (ssl_err == SSL_ERROR_WANT_WRITE)
 				{
-					return 0;	/* Would block */
+					continue;	/* Blocking socket:
+							 * retry the write. */
 				}
 
 				set_error_ssl(sess, "SSL_write failed");
@@ -551,9 +553,9 @@ int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
 			ret = write(sess->fd, p, msg_len - total_sent);
 			if (ret < 0)
 			{
-				if (errno == EAGAIN || errno == EWOULDBLOCK)
+				if (errno == EINTR)
 				{
-					return 0;	/* Would block */
+					continue;
 				}
 
 				snprintf(sess->error_msg,
@@ -570,17 +572,177 @@ int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
 	return total_sent;
 }
 
-int tcpclv4_tls_recv_msg(tcpclv4_tls_session_t *sess,
-			  uint8_t *buf, size_t buf_cap, size_t *out_len)
+int tcpclv4_tls_write(tcpclv4_tls_session_t *sess,
+		const uint8_t *buf, size_t len)
 {
-	ssize_t	n;
+	int	n;
 
-	if (sess == NULL || sess->fd < 0)
+	if (sess == NULL || sess->fd < 0 || buf == NULL)
 	{
 		return -1;
 	}
 
-	/* Try to read data into receive buffer */
+	if (len == 0)
+	{
+		return 0;
+	}
+
+	if (sess->tls_enabled)
+	{
+		n = SSL_write(sess->ssl, buf, len);
+		if (n <= 0)
+		{
+			int	ssl_err = SSL_get_error(sess->ssl, n);
+
+			if (ssl_err == SSL_ERROR_WANT_WRITE
+			|| ssl_err == SSL_ERROR_WANT_READ)
+			{
+				return 0;	/* Would block */
+			}
+
+			set_error_ssl(sess, "SSL_write failed");
+			return -1;
+		}
+
+		return n;
+	}
+
+	n = write(sess->fd, buf, len);
+	if (n < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK
+		|| errno == EINTR)
+		{
+			return 0;	/* Would block */
+		}
+
+		snprintf(sess->error_msg, sizeof(sess->error_msg),
+			 "write failed: %s", strerror(errno));
+		return -1;
+	}
+
+	return n;
+}
+
+/*	Ensure the receive buffer can hold at least `needed` bytes.	*/
+
+static int recv_buf_reserve(tcpclv4_tls_session_t *sess, size_t needed)
+{
+	uint8_t	*newbuf;
+	size_t	newcap;
+
+	if (needed <= sess->recv_buf_cap)
+	{
+		return 0;
+	}
+
+	newcap = sess->recv_buf_cap;
+	while (newcap < needed)
+	{
+		newcap *= 2;
+	}
+
+	newbuf = realloc(sess->recv_buf, newcap);
+	if (newbuf == NULL)
+	{
+		set_error(sess, "Receive buffer allocation failed");
+		return -1;
+	}
+
+	sess->recv_buf = newbuf;
+	sess->recv_buf_cap = newcap;
+	return 0;
+}
+
+/*	Extract the first complete message from the receive buffer,
+ *	if one is present.
+ *
+ *	Returns 1 and copies the message out if complete,
+ *	0 if more stream bytes are needed (never touches the socket),
+ *	-1 on malformed stream or undersized caller buffer.		*/
+
+static int extract_message(tcpclv4_tls_session_t *sess,
+		uint8_t *buf, size_t buf_cap, size_t *out_len)
+{
+	size_t	frame;
+	int	ret;
+
+	if (sess->recv_buf_len == 0)
+	{
+		return 0;
+	}
+
+	ret = tcpclv4_msg_frame_len(sess->recv_buf, sess->recv_buf_len,
+			sess->max_msg_len, &frame);
+	if (ret < 0)
+	{
+		set_error(sess, "Malformed or oversized message from peer");
+		return -1;
+	}
+
+	if (ret == 0)
+	{
+		/*	Incomplete.  If the total frame length is known,
+		 *	pre-grow the buffer so subsequent reads fit.	*/
+
+		if (frame > 0 && recv_buf_reserve(sess, frame) < 0)
+		{
+			return -1;
+		}
+
+		return 0;
+	}
+
+	if (frame > buf_cap)
+	{
+		set_error(sess, "Message too large for caller buffer");
+		return -1;
+	}
+
+	memcpy(buf, sess->recv_buf, frame);
+	*out_len = frame;
+
+	/*	Retain any bytes of the next message.			*/
+
+	sess->recv_buf_len -= frame;
+	if (sess->recv_buf_len > 0)
+	{
+		memmove(sess->recv_buf, sess->recv_buf + frame,
+				sess->recv_buf_len);
+	}
+
+	return 1;
+}
+
+int tcpclv4_tls_recv_msg(tcpclv4_tls_session_t *sess,
+			  uint8_t *buf, size_t buf_cap, size_t *out_len)
+{
+	ssize_t	n;
+	int	ret;
+
+	if (sess == NULL || sess->fd < 0 || buf == NULL || out_len == NULL)
+	{
+		return -1;
+	}
+
+	/*	A complete message may already be buffered from a
+	 *	previous read; callers should invoke this function
+	 *	repeatedly until it returns 0.				*/
+
+	ret = extract_message(sess, buf, buf_cap, out_len);
+	if (ret != 0)
+	{
+		return ret;
+	}
+
+	/*	Need more stream bytes: read once from the socket.	*/
+
+	if (sess->recv_buf_len == sess->recv_buf_cap
+	&& recv_buf_reserve(sess, sess->recv_buf_cap * 2) < 0)
+	{
+		return -1;
+	}
+
 	if (sess->tls_enabled)
 	{
 		n = SSL_read(sess->ssl,
@@ -631,28 +793,7 @@ int tcpclv4_tls_recv_msg(tcpclv4_tls_session_t *sess,
 
 	sess->recv_buf_len += n;
 
-	/* Simple framing: check if we have at least the message type byte */
-	if (sess->recv_buf_len < 1)
-	{
-		return 0;	/* Need more data */
-	}
-
-	/* For simplicity, we extract one complete message.
-	 * Real implementation would parse message length from headers. */
-	if (sess->recv_buf_len > buf_cap)
-	{
-		set_error(sess, "Message too large for buffer");
-		return -1;
-	}
-
-	/* Copy message to output buffer */
-	memcpy(buf, sess->recv_buf, sess->recv_buf_len);
-	*out_len = sess->recv_buf_len;
-
-	/* Clear receive buffer */
-	sess->recv_buf_len = 0;
-
-	return 1;	/* Success */
+	return extract_message(sess, buf, buf_cap, out_len);
 }
 
 /*	==============================================================
@@ -668,6 +809,43 @@ int tcpclv4_tls_get_fd(tcpclv4_tls_session_t *sess)
 	}
 
 	return sess->fd;
+}
+
+int tcpclv4_tls_pending(tcpclv4_tls_session_t *sess)
+{
+	size_t	frame;
+
+	if (sess == NULL)
+	{
+		return 0;
+	}
+
+	if (sess->recv_buf_len > 0
+	&& tcpclv4_msg_frame_len(sess->recv_buf, sess->recv_buf_len,
+			sess->max_msg_len, &frame) == 1)
+	{
+		return 1;
+	}
+
+	if (sess->tls_enabled && sess->ssl != NULL
+	&& SSL_pending(sess->ssl) > 0)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+int tcpclv4_tls_set_max_msg_len(tcpclv4_tls_session_t *sess,
+		uint64_t max_msg_len)
+{
+	if (sess == NULL)
+	{
+		return -1;
+	}
+
+	sess->max_msg_len = max_msg_len;
+	return 0;
 }
 
 int tcpclv4_tls_set_nonblocking(tcpclv4_tls_session_t *sess, int nonblock)

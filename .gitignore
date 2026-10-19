@@ -267,9 +267,33 @@ external/
 tcp4_loopback
 tcp4cli
 tcp4clo
+tcpclv4_agent
+tcpclv4_test_msg
+tcpclv4_test_tls
+tcpclv4_test_session
 
 # Test artifacts and directories
 tests/issue-325-329-fragmentation/**/testfile*
+tests/tcp4-twonodes/**/agent.log
+tests/tcp4-twonodes/**/testfile*
+tests/tcp4-twonodes-tls/**/agent.log
+tests/tcp4-twonodes-tls/**/testfile*
+tests/tcp4-twonodes-tls/pki/
+tests/tcp4-bidirectional-stress/**/agent.log
+tests/tcp4-bidirectional-stress/**/testfile*
+tests/tcp4-bidirectional-stress/**/counter.out
+tests/tcp4-bidirectional-stress/**/driver.out
+tests/tcp4-agent-restart/**/agent.log
+tests/tcp4-agent-restart/**/counter.out
+tests/tcp4-agent-restart/**/driver.out
+tests/tcp4-protocol-negative/**/agent.log
+tests/tcp4-protocol-negative/**/probe_out.txt
+tests/tcp4-keepalive/**/agent.log
+tests/tcp4-keepalive/**/ka_out*.txt
+tests/tcp4-cl-segmentation/**/agent.log
+tests/tcp4-cl-segmentation/**/testfile*
+tests/tcp4-*/**/ion.log
+tests/tcp4-*/ion_nodes
 
 # Produced test support
 tests/retest

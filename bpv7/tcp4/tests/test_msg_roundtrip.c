@@ -1,8 +1,10 @@
 /*
 	test_msg_roundtrip.c: Unit tests for TCPCLv4 message encode/decode.
 
-			Tests round-trip encode/decode for all message
-			types to verify wire format compatibility.
+			Verifies the wire format against hand-computed
+			RFC 9174 byte vectors (not just encode/decode
+			round-trips, which cannot catch systematic
+			deviations from the spec), plus stream framing.
 
 	Author: iondev33
 
@@ -39,7 +41,7 @@ static int tests_passed = 0;
 		return -1; \
 	} while (0)
 
-/*	Test Contact Header						*/
+/*	Test Contact Header (RFC 9174 §4.2)				*/
 
 static int test_contact_header(void)
 {
@@ -48,10 +50,14 @@ static int test_contact_header(void)
 	tcpclv4_contact_header_t decoded;
 	size_t			len;
 
+	/*	"dtn!" + version 4 + CAN_TLS				*/
+	static const uint8_t	expected[6] =
+		{ 0x64, 0x74, 0x6E, 0x21, 0x04, 0x01 };
+	uint8_t			bad[6];
+
 	TEST("Contact Header");
 
-	/* Encode */
-	msg.magic = TCPCLV4_CONTACT_MAGIC;
+	msg.version = TCPCLV4_PROTOCOL_VERSION;
 	msg.flags = TCPCLV4_CONTACT_FLAG_CAN_TLS;
 
 	if (tcpclv4_encode_contact_header(&msg, buf, sizeof(buf), &len) < 0)
@@ -59,27 +65,51 @@ static int test_contact_header(void)
 		FAIL("Encode failed");
 	}
 
-	if (len != 4)
+	if (len != 6 || memcmp(buf, expected, 6) != 0)
 	{
-		FAIL("Wrong encoded length");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
-	/* Decode */
 	if (tcpclv4_decode_contact_header(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	if (decoded.magic != TCPCLV4_CONTACT_MAGIC)
+	if (decoded.version != 4 || decoded.flags != 1)
 	{
-		FAIL("Magic mismatch");
+		FAIL("Field mismatch");
+	}
+
+	/*	Wrong magic must be rejected.				*/
+
+	memcpy(bad, expected, 6);
+	bad[0] = 'x';
+	if (tcpclv4_decode_contact_header(bad, 6, &decoded) == 0)
+	{
+		FAIL("Accepted bad magic");
+	}
+
+	/*	Wrong version must be rejected.				*/
+
+	memcpy(bad, expected, 6);
+	bad[4] = 3;
+	if (tcpclv4_decode_contact_header(bad, 6, &decoded) == 0)
+	{
+		FAIL("Accepted bad version");
+	}
+
+	/*	Truncated header must be rejected.			*/
+
+	if (tcpclv4_decode_contact_header(expected, 5, &decoded) == 0)
+	{
+		FAIL("Accepted truncated header");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test SESS_INIT							*/
+/*	Test SESS_INIT (RFC 9174 §4.7)					*/
 
 static int test_sess_init(void)
 {
@@ -87,65 +117,74 @@ static int test_sess_init(void)
 	tcpclv4_sess_init_t	msg;
 	tcpclv4_sess_init_t	decoded;
 	size_t			len;
-	const char		*node_id = "ipn:2.0";
+
+	/*	keepalive=60, seg MRU=1MB, xfer MRU=100MB,
+	 *	node "ipn:2.0", no extensions.				*/
+	static const uint8_t	expected[32] = {
+		0x07,				/* type */
+		0x00, 0x3C,			/* keepalive 60 */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
+						/* seg MRU 1048576 */
+		0x00, 0x00, 0x00, 0x00, 0x06, 0x40, 0x00, 0x00,
+						/* xfer MRU 104857600 */
+		0x00, 0x07,			/* node ID len 7 */
+		0x69, 0x70, 0x6E, 0x3A, 0x32, 0x2E, 0x30,
+						/* "ipn:2.0" */
+		0x00, 0x00, 0x00, 0x00		/* ext items len 0 */
+	};
 
 	TEST("SESS_INIT");
 
-	/* Encode */
 	memset(&msg, 0, sizeof(msg));
-	msg.keepalive_interval = 30;
-	msg.segment_mru = 1048576;	/* 1 MB */
-	msg.transfer_mru = 10485760;	/* 10 MB */
-	msg.node_id = (char *)node_id;
-	msg.node_id_len = strlen(node_id);
-	msg.extensions = NULL;
-	msg.extensions_len = 0;
+	msg.keepalive_interval = 60;
+	msg.segment_mru = 1048576;
+	msg.transfer_mru = 104857600;
+	msg.node_id = "ipn:2.0";
+	msg.node_id_len = 7;
 
 	if (tcpclv4_encode_sess_init(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	/* Decode */
+	if (len != sizeof(expected) || memcmp(buf, expected, len) != 0)
+	{
+		FAIL("Wire bytes do not match RFC 9174 vector");
+	}
+
 	memset(&decoded, 0, sizeof(decoded));
 	if (tcpclv4_decode_sess_init(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	/* Verify */
-	if (decoded.keepalive_interval != msg.keepalive_interval)
+	if (decoded.keepalive_interval != 60
+	|| decoded.segment_mru != 1048576
+	|| decoded.transfer_mru != 104857600
+	|| decoded.node_id_len != 7
+	|| strcmp(decoded.node_id, "ipn:2.0") != 0
+	|| decoded.extensions_len != 0)
 	{
-		FAIL("keepalive_interval mismatch");
-	}
-
-	if (decoded.segment_mru != msg.segment_mru)
-	{
-		FAIL("segment_mru mismatch");
-	}
-
-	if (decoded.transfer_mru != msg.transfer_mru)
-	{
-		FAIL("transfer_mru mismatch");
-	}
-
-	if (decoded.node_id_len != msg.node_id_len)
-	{
-		FAIL("node_id_len mismatch");
-	}
-
-	if (strcmp(decoded.node_id, msg.node_id) != 0)
-	{
-		FAIL("node_id mismatch");
+		tcpclv4_sess_init_free(&decoded);
+		FAIL("Field mismatch");
 	}
 
 	tcpclv4_sess_init_free(&decoded);
+
+	/*	Truncated message must be rejected.			*/
+
+	if (tcpclv4_decode_sess_init(expected, sizeof(expected) - 1,
+			&decoded) == 0)
+	{
+		tcpclv4_sess_init_free(&decoded);
+		FAIL("Accepted truncated message");
+	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test SESS_TERM							*/
+/*	Test SESS_TERM (RFC 9174 §6.1)					*/
 
 static int test_sess_term(void)
 {
@@ -154,150 +193,170 @@ static int test_sess_term(void)
 	tcpclv4_sess_term_t	decoded;
 	size_t			len;
 
+	static const uint8_t	expected[3] = { 0x05, 0x00, 0x03 };
+
 	TEST("SESS_TERM");
 
-	/* Encode */
 	msg.flags = 0;
-	msg.reason_code = TCPCLV4_TERM_IDLE_TIMEOUT;
+	msg.reason_code = TCPCLV4_TERM_BUSY;
 
 	if (tcpclv4_encode_sess_term(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	if (len != 3)
+	if (len != 3 || memcmp(buf, expected, 3) != 0)
 	{
-		FAIL("Wrong encoded length");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
-	/* Decode */
 	if (tcpclv4_decode_sess_term(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	if (decoded.reason_code != msg.reason_code)
+	if (decoded.flags != 0 || decoded.reason_code != TCPCLV4_TERM_BUSY)
 	{
-		FAIL("reason_code mismatch");
+		FAIL("Field mismatch");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test XFER_SEGMENT (START)					*/
+/*	Test XFER_SEGMENT START (RFC 9174 §5.2.2)			*/
 
 static int test_xfer_segment_start(void)
 {
-	uint8_t				buf[TEST_BUFFER_SIZE];
-	tcpclv4_xfer_segment_t		msg;
-	tcpclv4_xfer_segment_t		decoded;
-	size_t				len;
-	const uint8_t			payload[] = "Test payload data";
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	tcpclv4_xfer_segment_t	msg;
+	tcpclv4_xfer_segment_t	decoded;
+	size_t			len;
+
+	/*	START|END, id 1, no extensions, data "hello".		*/
+	static const uint8_t	expected[27] = {
+		0x01,				/* type */
+		0x03,				/* flags START|END */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+						/* transfer id 1 */
+		0x00, 0x00, 0x00, 0x00,		/* ext items len 0 */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+						/* data len 5 */
+		'h', 'e', 'l', 'l', 'o'
+	};
 
 	TEST("XFER_SEGMENT (START)");
 
-	/* Encode */
 	memset(&msg, 0, sizeof(msg));
-	msg.flags = TCPCLV4_XFER_FLAG_START;
-	msg.transfer_id = 12345;
-	msg.data_offset = 0;
-	msg.extensions = NULL;
-	msg.extensions_len = 0;
-	msg.data = payload;
-	msg.data_len = sizeof(payload);
+	msg.flags = TCPCLV4_XFER_FLAG_START | TCPCLV4_XFER_FLAG_END;
+	msg.transfer_id = 1;
+	msg.data = (const uint8_t *) "hello";
+	msg.data_len = 5;
 
 	if (tcpclv4_encode_xfer_segment(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	/* Decode */
+	if (len != sizeof(expected) || memcmp(buf, expected, len) != 0)
+	{
+		FAIL("Wire bytes do not match RFC 9174 vector");
+	}
+
 	memset(&decoded, 0, sizeof(decoded));
 	if (tcpclv4_decode_xfer_segment(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	/* Verify */
-	if (decoded.flags != msg.flags)
+	if (decoded.flags != 0x03 || decoded.transfer_id != 1
+	|| decoded.extensions_len != 0 || decoded.data_len != 5
+	|| memcmp(decoded.data, "hello", 5) != 0)
 	{
-		FAIL("flags mismatch");
-	}
-
-	if (decoded.transfer_id != msg.transfer_id)
-	{
-		FAIL("transfer_id mismatch");
-	}
-
-	if (decoded.data_len != msg.data_len)
-	{
-		FAIL("data_len mismatch");
-	}
-
-	if (memcmp(decoded.data, msg.data, msg.data_len) != 0)
-	{
-		FAIL("data mismatch");
+		tcpclv4_xfer_segment_free(&decoded);
+		FAIL("Field mismatch");
 	}
 
 	tcpclv4_xfer_segment_free(&decoded);
-
 	PASS();
 	return 0;
 }
 
-/*	Test XFER_SEGMENT (non-START with data_offset)			*/
+/*	Test XFER_SEGMENT continuation (no ext field, no START flag)	*/
 
 static int test_xfer_segment_continuation(void)
 {
-	uint8_t				buf[TEST_BUFFER_SIZE];
-	tcpclv4_xfer_segment_t		msg;
-	tcpclv4_xfer_segment_t		decoded;
-	size_t				len;
-	const uint8_t			payload[] = "More data";
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	tcpclv4_xfer_segment_t	msg;
+	tcpclv4_xfer_segment_t	decoded;
+	size_t			len;
+
+	/*	END only, id 1, data "world".  Continuation segments
+	 *	carry NO extension item length field.			*/
+	static const uint8_t	expected[23] = {
+		0x01,				/* type */
+		0x01,				/* flags END */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+						/* transfer id 1 */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+						/* data len 5 */
+		'w', 'o', 'r', 'l', 'd'
+	};
 
 	TEST("XFER_SEGMENT (continuation)");
 
-	/* Encode */
 	memset(&msg, 0, sizeof(msg));
-	msg.flags = 0;			/* Not START, not END */
-	msg.transfer_id = 12345;
-	msg.data_offset = 1024;		/* Continuation at offset 1024 */
-	msg.extensions = NULL;
-	msg.extensions_len = 0;
-	msg.data = payload;
-	msg.data_len = sizeof(payload);
+	msg.flags = TCPCLV4_XFER_FLAG_END;
+	msg.transfer_id = 1;
+	msg.data = (const uint8_t *) "world";
+	msg.data_len = 5;
 
 	if (tcpclv4_encode_xfer_segment(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	/* Decode */
+	if (len != sizeof(expected) || memcmp(buf, expected, len) != 0)
+	{
+		FAIL("Wire bytes do not match RFC 9174 vector");
+	}
+
 	memset(&decoded, 0, sizeof(decoded));
 	if (tcpclv4_decode_xfer_segment(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	/* Verify */
-	if (decoded.data_offset != msg.data_offset)
+	if (decoded.flags != 0x01 || decoded.transfer_id != 1
+	|| decoded.data_len != 5
+	|| memcmp(decoded.data, "world", 5) != 0)
 	{
-		FAIL("data_offset mismatch");
-	}
-
-	if (decoded.transfer_id != msg.transfer_id)
-	{
-		FAIL("transfer_id mismatch");
+		tcpclv4_xfer_segment_free(&decoded);
+		FAIL("Field mismatch");
 	}
 
 	tcpclv4_xfer_segment_free(&decoded);
+
+	/*	Extensions on a non-START segment must be rejected.	*/
+
+	memset(&msg, 0, sizeof(msg));
+	msg.flags = TCPCLV4_XFER_FLAG_END;
+	msg.transfer_id = 1;
+	msg.extensions = (uint8_t *) "x";
+	msg.extensions_len = 1;
+	msg.data = (const uint8_t *) "world";
+	msg.data_len = 5;
+
+	if (tcpclv4_encode_xfer_segment(&msg, buf, sizeof(buf), &len) == 0)
+	{
+		FAIL("Accepted extensions on non-START segment");
+	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test XFER_ACK							*/
+/*	Test XFER_ACK (RFC 9174 §5.2.3)				*/
 
 static int test_xfer_ack(void)
 {
@@ -306,159 +365,274 @@ static int test_xfer_ack(void)
 	tcpclv4_xfer_ack_t	decoded;
 	size_t			len;
 
+	/*	Flags echo the acked segment's flags (§5.2.3).		*/
+	static const uint8_t	expected[18] = {
+		0x02,				/* type */
+		0x03,				/* flags START|END */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+						/* transfer id 1 */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05
+						/* ack len 5 */
+	};
+
 	TEST("XFER_ACK");
 
-	/* Encode */
-	msg.flags = 0;
-	msg.transfer_id = 12345;
-	msg.ack_len = 1024;
+	msg.flags = 0x03;
+	msg.transfer_id = 1;
+	msg.ack_len = 5;
 
 	if (tcpclv4_encode_xfer_ack(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	if (len != 18)
+	if (len != 18 || memcmp(buf, expected, 18) != 0)
 	{
-		FAIL("Wrong encoded length");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
-	/* Decode */
 	if (tcpclv4_decode_xfer_ack(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	if (decoded.transfer_id != msg.transfer_id)
+	if (decoded.flags != 0x03 || decoded.transfer_id != 1
+	|| decoded.ack_len != 5)
 	{
-		FAIL("transfer_id mismatch");
-	}
-
-	if (decoded.ack_len != msg.ack_len)
-	{
-		FAIL("ack_len mismatch");
+		FAIL("Field mismatch");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test XFER_REFUSE						*/
+/*	Test XFER_REFUSE (RFC 9174 §5.2.3)				*/
 
 static int test_xfer_refuse(void)
 {
-	uint8_t				buf[TEST_BUFFER_SIZE];
-	tcpclv4_xfer_refuse_t		msg;
-	tcpclv4_xfer_refuse_t		decoded;
-	size_t				len;
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	tcpclv4_xfer_refuse_t	msg;
+	tcpclv4_xfer_refuse_t	decoded;
+	size_t			len;
+
+	static const uint8_t	expected[10] = {
+		0x03,				/* type */
+		0x01,				/* reason COMPLETED */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07
+						/* transfer id 7 */
+	};
 
 	TEST("XFER_REFUSE");
 
-	/* Encode */
-	msg.reason_code = TCPCLV4_REFUSE_NO_RESOURCES;
-	msg.transfer_id = 12345;
+	msg.reason_code = TCPCLV4_REFUSE_COMPLETED;
+	msg.transfer_id = 7;
 
 	if (tcpclv4_encode_xfer_refuse(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	if (len != 10)
+	if (len != 10 || memcmp(buf, expected, 10) != 0)
 	{
-		FAIL("Wrong encoded length");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
-	/* Decode */
 	if (tcpclv4_decode_xfer_refuse(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	if (decoded.reason_code != msg.reason_code)
+	if (decoded.reason_code != TCPCLV4_REFUSE_COMPLETED
+	|| decoded.transfer_id != 7)
 	{
-		FAIL("reason_code mismatch");
-	}
-
-	if (decoded.transfer_id != msg.transfer_id)
-	{
-		FAIL("transfer_id mismatch");
+		FAIL("Field mismatch");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test KEEPALIVE							*/
+/*	Test KEEPALIVE (RFC 9174 §5.1.2)				*/
 
 static int test_keepalive(void)
 {
-	uint8_t	buf[TEST_BUFFER_SIZE];
-	size_t	len;
-	int	msg_type;
+	uint8_t		buf[TEST_BUFFER_SIZE];
+	size_t		len;
 
 	TEST("KEEPALIVE");
 
-	/* Encode */
 	if (tcpclv4_encode_keepalive(buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	if (len != 1)
+	if (len != 1 || buf[0] != 0x04)
 	{
-		FAIL("Wrong encoded length");
-	}
-
-	/* Verify message type */
-	msg_type = tcpclv4_get_msg_type(buf, len);
-	if (msg_type != TCPCLV4_MSG_KEEPALIVE)
-	{
-		FAIL("Message type mismatch");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Test MSG_REJECT							*/
+/*	Test MSG_REJECT (RFC 9174 §5.1.1)				*/
 
 static int test_msg_reject(void)
 {
-	uint8_t				buf[TEST_BUFFER_SIZE];
-	tcpclv4_msg_reject_t		msg;
-	tcpclv4_msg_reject_t		decoded;
-	size_t				len;
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	tcpclv4_msg_reject_t	msg;
+	tcpclv4_msg_reject_t	decoded;
+	size_t			len;
+
+	static const uint8_t	expected[3] = { 0x06, 0x02, 0x99 };
 
 	TEST("MSG_REJECT");
 
-	/* Encode */
-	msg.reason_code = TCPCLV4_REJECT_VERSION_MISMATCH;
-	msg.rejected_msg_header = 0xFF;
+	msg.reason_code = TCPCLV4_REJECT_UNSUPPORTED;
+	msg.rejected_msg_header = 0x99;
 
 	if (tcpclv4_encode_msg_reject(&msg, buf, sizeof(buf), &len) < 0)
 	{
 		FAIL("Encode failed");
 	}
 
-	if (len != 3)
+	if (len != 3 || memcmp(buf, expected, 3) != 0)
 	{
-		FAIL("Wrong encoded length");
+		FAIL("Wire bytes do not match RFC 9174 vector");
 	}
 
-	/* Decode */
 	if (tcpclv4_decode_msg_reject(buf, len, &decoded) < 0)
 	{
 		FAIL("Decode failed");
 	}
 
-	if (decoded.reason_code != msg.reason_code)
+	if (decoded.reason_code != TCPCLV4_REJECT_UNSUPPORTED
+	|| decoded.rejected_msg_header != 0x99)
 	{
-		FAIL("reason_code mismatch");
+		FAIL("Field mismatch");
 	}
 
-	if (decoded.rejected_msg_header != msg.rejected_msg_header)
+	PASS();
+	return 0;
+}
+
+/*	Test stream framing						*/
+
+static int test_frame_len(void)
+{
+	uint8_t			buf[TEST_BUFFER_SIZE];
+	tcpclv4_xfer_segment_t	seg;
+	tcpclv4_sess_init_t	init;
+	size_t			msg_total;
+	size_t			frame;
+	size_t			i;
+	int			ret;
+
+	TEST("Stream framing");
+
+	/*	Fixed-size messages.					*/
+
+	buf[0] = TCPCLV4_MSG_KEEPALIVE;
+	if (tcpclv4_msg_frame_len(buf, 1, 0, &frame) != 1 || frame != 1)
 	{
-		FAIL("rejected_msg_header mismatch");
+		FAIL("KEEPALIVE framing");
+	}
+
+	buf[0] = TCPCLV4_MSG_XFER_ACK;
+	if (tcpclv4_msg_frame_len(buf, 1, 0, &frame) != 0)
+	{
+		FAIL("Partial XFER_ACK not detected");
+	}
+
+	memset(buf + 1, 0, 17);
+	if (tcpclv4_msg_frame_len(buf, 18, 0, &frame) != 1 || frame != 18)
+	{
+		FAIL("XFER_ACK framing");
+	}
+
+	/*	Unknown message type.					*/
+
+	buf[0] = 0xAA;
+	if (tcpclv4_msg_frame_len(buf, 1, 0, &frame) != -1)
+	{
+		FAIL("Unknown type not rejected");
+	}
+
+	/*	XFER_SEGMENT: every prefix must report incomplete,
+	 *	the full message must report complete.			*/
+
+	memset(&seg, 0, sizeof(seg));
+	seg.flags = TCPCLV4_XFER_FLAG_START | TCPCLV4_XFER_FLAG_END;
+	seg.transfer_id = 42;
+	seg.data = (const uint8_t *) "some payload bytes";
+	seg.data_len = 18;
+
+	if (tcpclv4_encode_xfer_segment(&seg, buf, sizeof(buf),
+			&msg_total) < 0)
+	{
+		FAIL("Segment encode failed");
+	}
+
+	for (i = 1; i < msg_total; i++)
+	{
+		ret = tcpclv4_msg_frame_len(buf, i, 0, &frame);
+		if (ret != 0)
+		{
+			FAIL("Partial segment misframed");
+		}
+	}
+
+	if (tcpclv4_msg_frame_len(buf, msg_total, 0, &frame) != 1
+	|| frame != msg_total)
+	{
+		FAIL("Complete segment misframed");
+	}
+
+	/*	Oversize guard: data_len larger than max_msg_len.	*/
+
+	if (tcpclv4_msg_frame_len(buf, msg_total, 10, &frame) != -1)
+	{
+		FAIL("Oversize segment not rejected");
+	}
+
+	/*	SESS_INIT framing across every prefix.			*/
+
+	memset(&init, 0, sizeof(init));
+	init.keepalive_interval = 60;
+	init.segment_mru = 1048576;
+	init.transfer_mru = 104857600;
+	init.node_id = "ipn:2.0";
+	init.node_id_len = 7;
+
+	if (tcpclv4_encode_sess_init(&init, buf, sizeof(buf),
+			&msg_total) < 0)
+	{
+		FAIL("SESS_INIT encode failed");
+	}
+
+	for (i = 1; i < msg_total; i++)
+	{
+		ret = tcpclv4_msg_frame_len(buf, i, 0, &frame);
+		if (ret != 0)
+		{
+			FAIL("Partial SESS_INIT misframed");
+		}
+	}
+
+	if (tcpclv4_msg_frame_len(buf, msg_total, 0, &frame) != 1
+	|| frame != msg_total)
+	{
+		FAIL("Complete SESS_INIT misframed");
+	}
+
+	/*	Two messages back to back: frame length must cover
+	 *	only the first.						*/
+
+	buf[msg_total] = TCPCLV4_MSG_KEEPALIVE;
+	if (tcpclv4_msg_frame_len(buf, msg_total + 1, 0, &frame) != 1
+	|| frame != msg_total)
+	{
+		FAIL("Back-to-back messages misframed");
 	}
 
 	PASS();
@@ -469,41 +643,41 @@ static int test_msg_reject(void)
 
 static int test_utilities(void)
 {
-	const char	*name;
+	uint8_t		buf[4];
 
 	TEST("Utility functions");
 
-	name = tcpclv4_msg_type_name(TCPCLV4_MSG_SESS_INIT);
-	if (strcmp(name, "SESS_INIT") != 0)
+	buf[0] = TCPCLV4_MSG_XFER_SEGMENT;
+	if (tcpclv4_get_msg_type(buf, 1) != TCPCLV4_MSG_XFER_SEGMENT)
 	{
-		FAIL("msg_type_name failed for SESS_INIT");
+		FAIL("get_msg_type failed");
 	}
 
-	name = tcpclv4_msg_type_name(TCPCLV4_MSG_XFER_SEGMENT);
-	if (strcmp(name, "XFER_SEGMENT") != 0)
+	if (tcpclv4_get_msg_type(buf, 0) != -1)
 	{
-		FAIL("msg_type_name failed for XFER_SEGMENT");
+		FAIL("get_msg_type accepted empty buffer");
 	}
 
-	name = tcpclv4_msg_type_name(0xFF);
-	if (strcmp(name, "UNKNOWN") != 0)
+	if (strcmp(tcpclv4_msg_type_name(TCPCLV4_MSG_SESS_INIT),
+			"SESS_INIT") != 0
+	|| strcmp(tcpclv4_msg_type_name(TCPCLV4_MSG_XFER_SEGMENT),
+			"XFER_SEGMENT") != 0
+	|| strcmp(tcpclv4_msg_type_name(0xEE), "UNKNOWN") != 0)
 	{
-		FAIL("msg_type_name failed for unknown type");
+		FAIL("msg_type_name failed");
 	}
 
 	PASS();
 	return 0;
 }
 
-/*	Main test runner						*/
-
 int main(int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
+	(void) argc;
+	(void) argv;
 
-	printf("TCPCLv4 Message Encode/Decode Round-trip Tests\n");
-	printf("==============================================\n\n");
+	printf("TCPCLv4 Message Library Unit Tests (RFC 9174)\n");
+	printf("==============================================\n");
 
 	test_contact_header();
 	test_sess_init();
@@ -514,6 +688,7 @@ int main(int argc, char *argv[])
 	test_xfer_refuse();
 	test_keepalive();
 	test_msg_reject();
+	test_frame_len();
 	test_utilities();
 
 	printf("\n==============================================\n");
@@ -524,9 +699,7 @@ int main(int argc, char *argv[])
 		printf("ALL TESTS PASSED\n");
 		return 0;
 	}
-	else
-	{
-		printf("SOME TESTS FAILED\n");
-		return 1;
-	}
+
+	printf("SOME TESTS FAILED\n");
+	return 1;
 }

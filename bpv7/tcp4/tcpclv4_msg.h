@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-/*	RFC 9174 Message Type Codes (Table 1)				*/
+/*	RFC 9174 Message Type Codes (Table 2)				*/
 
 #define TCPCLV4_MSG_SESS_INIT		0x07
 #define TCPCLV4_MSG_SESS_TERM		0x05
@@ -34,16 +34,24 @@ extern "C" {
 #define TCPCLV4_MSG_KEEPALIVE		0x04
 #define TCPCLV4_MSG_MSG_REJECT		0x06
 
-/*	Contact Header Flags (§4.3)					*/
+/*	Protocol version carried in the contact header (§4.2)		*/
+
+#define TCPCLV4_PROTOCOL_VERSION	4
+
+/*	Contact Header Flags (§4.2)					*/
 
 #define TCPCLV4_CONTACT_FLAG_CAN_TLS	0x01
 
-/*	XFER_SEGMENT Flags (§5.2.1)					*/
+/*	XFER_SEGMENT Flags (§5.2.2)					*/
 
 #define TCPCLV4_XFER_FLAG_END		0x01
 #define TCPCLV4_XFER_FLAG_START		0x02
 
-/*	SESS_TERM Reason Codes (§6.1, Table 3)				*/
+/*	SESS_TERM Flags (§6.1)						*/
+
+#define TCPCLV4_TERM_FLAG_REPLY		0x01
+
+/*	SESS_TERM Reason Codes (§6.1, Table 5)				*/
 
 #define TCPCLV4_TERM_UNKNOWN		0x00
 #define TCPCLV4_TERM_IDLE_TIMEOUT	0x01
@@ -52,7 +60,7 @@ extern "C" {
 #define TCPCLV4_TERM_CONTACT_FAILURE	0x04
 #define TCPCLV4_TERM_RESOURCE_EXHAUSTION 0x05
 
-/*	XFER_REFUSE Reason Codes (§5.2.4, Table 2)			*/
+/*	XFER_REFUSE Reason Codes (§5.2.3, Table 4)			*/
 
 #define TCPCLV4_REFUSE_UNKNOWN		0x00
 #define TCPCLV4_REFUSE_COMPLETED	0x01
@@ -60,25 +68,28 @@ extern "C" {
 #define TCPCLV4_REFUSE_RETRANSMIT	0x03
 #define TCPCLV4_REFUSE_NOT_ACCEPTABLE	0x04
 #define TCPCLV4_REFUSE_EXTENSION_FAILURE 0x05
+#define TCPCLV4_REFUSE_SESSION_TERMINATING 0x06
 
-/*	MSG_REJECT Reason Codes (§5.4, Table 4)			*/
+/*	MSG_REJECT Reason Codes (§5.1.1, Table 3)			*/
 
 #define TCPCLV4_REJECT_UNKNOWN		0x01
-#define TCPCLV4_REJECT_VERSION_MISMATCH	0x02
-#define TCPCLV4_REJECT_INCONSISTENT	0x03
+#define TCPCLV4_REJECT_UNSUPPORTED	0x02
+#define TCPCLV4_REJECT_UNEXPECTED	0x03
 
-/*	Contact Header (§4.3) - Magic "dtn!" + flags			*/
+/*	Contact Header (§4.2): magic "dtn!" + version + flags.
+ *	Exchanged in plaintext immediately after TCP connection
+ *	establishment, BEFORE any TLS negotiation.			*/
 
 #define TCPCLV4_CONTACT_MAGIC		0x64746E21	/* "dtn!" */
-#define TCPCLV4_CONTACT_HEADER_LEN	4
+#define TCPCLV4_CONTACT_HEADER_LEN	6
 
 typedef struct
 {
-	uint32_t	magic;		/* Always TCPCLV4_CONTACT_MAGIC */
+	uint8_t		version;	/* TCPCLV4_PROTOCOL_VERSION */
 	uint8_t		flags;		/* CAN_TLS, etc. */
 } tcpclv4_contact_header_t;
 
-/*	SESS_INIT Message (§5.1)					*/
+/*	SESS_INIT Message (§4.7)					*/
 
 typedef struct
 {
@@ -88,48 +99,49 @@ typedef struct
 	char		*node_id;		/* Peer node ID (caller owns) */
 	uint16_t	node_id_len;		/* Length of node_id string */
 
-	/* Session extension items (optional, not yet implemented) */
+	/* Session extension items (opaque, caller owns) */
 	uint8_t		*extensions;		/* Raw extension data */
-	uint16_t	extensions_len;
+	uint32_t	extensions_len;
 } tcpclv4_sess_init_t;
 
 /*	SESS_TERM Message (§6.1)					*/
 
 typedef struct
 {
-	uint8_t		flags;			/* Reserved, must be 0 */
+	uint8_t		flags;			/* TCPCLV4_TERM_FLAG_REPLY */
 	uint8_t		reason_code;		/* TCPCLV4_TERM_* */
 } tcpclv4_sess_term_t;
 
-/*	XFER_SEGMENT Message (§5.2.1)					*/
+/*	XFER_SEGMENT Message (§5.2.2)
+ *
+ *	Wire layout: type(1) + flags(1) + transfer_id(8)
+ *	+ [ext_len(4) + ext, only when START flag set]
+ *	+ data_len(8) + data					*/
 
 typedef struct
 {
 	uint8_t		flags;			/* START, END bits */
 	uint64_t	transfer_id;
 
-	/* For non-START segments: */
-	uint64_t	data_offset;		/* 0 for START segments */
-
-	/* Transfer extension items (optional, not yet implemented) */
+	/* Transfer extension items (present on START segments only) */
 	uint8_t		*extensions;		/* Raw extension data */
-	uint16_t	extensions_len;
+	uint32_t	extensions_len;
 
 	/* Payload data (not copied, points into original buffer) */
 	const uint8_t	*data;
 	uint64_t	data_len;
 } tcpclv4_xfer_segment_t;
 
-/*	XFER_ACK Message (§5.2.2)					*/
+/*	XFER_ACK Message (§5.2.3)					*/
 
 typedef struct
 {
-	uint8_t		flags;			/* Reserved, must be 0 */
+	uint8_t		flags;			/* Echoes acked segment flags */
 	uint64_t	transfer_id;
 	uint64_t	ack_len;		/* Total bytes acknowledged */
 } tcpclv4_xfer_ack_t;
 
-/*	XFER_REFUSE Message (§5.2.4)					*/
+/*	XFER_REFUSE Message (§5.2.3)					*/
 
 typedef struct
 {
@@ -137,8 +149,8 @@ typedef struct
 	uint64_t	transfer_id;
 } tcpclv4_xfer_refuse_t;
 
-/*	KEEPALIVE Message (§5.3) - No payload, just message type byte	*/
-/*	MSG_REJECT Message (§5.4)					*/
+/*	KEEPALIVE Message (§5.1.2) - No payload, just message type byte	*/
+/*	MSG_REJECT Message (§5.1.1)					*/
 
 typedef struct
 {
@@ -222,6 +234,29 @@ int tcpclv4_encode_keepalive(uint8_t *buf, size_t buf_cap,
 int tcpclv4_encode_msg_reject(const tcpclv4_msg_reject_t *msg,
 			       uint8_t *buf, size_t buf_cap,
 			       size_t *out_len);
+
+/*	==============================================================
+ *	STREAM FRAMING
+ *	==============================================================
+ *
+ *	Determine the total wire length of the first message in a
+ *	byte stream, so a caller accumulating stream data can tell
+ *	when a complete message has arrived.
+ *
+ *	buf/len:	Accumulated (possibly partial) stream bytes.
+ *	max_msg_len:	Upper bound on acceptable message size (guards
+ *			against absurd data_len/ext_len values from a
+ *			hostile or corrupt peer).  0 = no limit.
+ *	msg_len:	Output: total length of the first message.
+ *
+ *	Returns  1 if a complete message is present (*msg_len set),
+ *		 0 if more bytes are needed (*msg_len set to the
+ *		   total length if already computable, else 0),
+ *		-1 if the stream is malformed (unknown message type
+ *		   or a length field exceeding max_msg_len).		*/
+
+int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
+			   uint64_t max_msg_len, size_t *msg_len);
 
 /*	==============================================================
  *	MEMORY MANAGEMENT

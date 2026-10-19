@@ -1236,7 +1236,8 @@ endif # end ENABLE_DGR
 if ENABLE_TCPCLV4_EXTERNAL
 bpbin += \
 	tcp4cli \
-	tcp4clo
+	tcp4clo \
+	tcpclv4_agent
 endif # end ENABLE_TCPCLV4_EXTERNAL
 
 bplib = \
@@ -1251,7 +1252,8 @@ if ENABLE_TCPCLV4_EXTERNAL
 bplib += \
 	libtcp4cla.la \
 	libtcpclv4_msg.la \
-	libtcpclv4_tls.la
+	libtcpclv4_tls.la \
+	libtcpclv4_session.la
 endif
 
 bpinclude = \
@@ -1262,7 +1264,8 @@ bpinclude = \
 if ENABLE_TCPCLV4_EXTERNAL
 include_HEADERS += \
 	bpv7/tcp4/tcpclv4_msg.h \
-	bpv7/tcp4/tcpclv4_tls.h
+	bpv7/tcp4/tcpclv4_tls.h \
+	bpv7/tcp4/tcpclv4_session.h
 endif
 
 bpnoinst = \
@@ -1607,6 +1610,11 @@ libtcpclv4_tls_la_SOURCES = bpv7/tcp4/tcpclv4_tls.c
 libtcpclv4_tls_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 libtcpclv4_tls_la_LDFLAGS = -version-info 1:0:0
 libtcpclv4_tls_la_LIBADD = libtcpclv4_msg.la $(OPENSSL_LIBS)
+
+libtcpclv4_session_la_SOURCES = bpv7/tcp4/tcpclv4_session.c
+libtcpclv4_session_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
+libtcpclv4_session_la_LDFLAGS = -version-info 1:0:0
+libtcpclv4_session_la_LIBADD = libtcpclv4_tls.la libtcpclv4_msg.la
 endif # ENABLE_TCPCLV4_EXTERNAL
 
 # --- libmetadata --- #
@@ -1796,6 +1804,11 @@ tcp4cli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 tcp4clo_SOURCES = bpv7/tcp4/tcp4clo.c
 tcp4clo_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
 tcp4clo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+tcpclv4_agent_SOURCES = bpv7/tcp4/tcpclv4_agent.c
+tcpclv4_agent_LDADD = libici.la libtcpclv4_session.la libtcpclv4_tls.la \
+	libtcpclv4_msg.la $(OPENSSL_LIBS) $(PTHREAD_LIBS) $(LIBS)
+tcpclv4_agent_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 endif # ENABLE_TCPCLV4_EXTERNAL
 
 # --- File CLA Executables --- #
@@ -2964,6 +2977,20 @@ check_PROGRAMS += tcp4_loopback
 tcp4_loopback_SOURCES = bpv7/tcp4/tcp4_loopback.c
 tcp4_loopback_LDADD = libici.la $(PTHREAD_LIBS) $(LIBS)
 tcp4_loopback_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+# TCPCLv4 library unit tests (wire format, TLS transport, session FSM)
+check_PROGRAMS += tcpclv4_test_msg tcpclv4_test_tls tcpclv4_test_session
+tcpclv4_test_msg_SOURCES = bpv7/tcp4/tests/test_msg_roundtrip.c
+tcpclv4_test_msg_LDADD = libtcpclv4_msg.la $(LIBS)
+tcpclv4_test_msg_CFLAGS = $(icicflags) $(AM_CFLAGS)
+tcpclv4_test_tls_SOURCES = bpv7/tcp4/tests/test_tls_loopback.c
+tcpclv4_test_tls_LDADD = libtcpclv4_tls.la libtcpclv4_msg.la \
+	$(OPENSSL_LIBS) $(PTHREAD_LIBS) $(LIBS)
+tcpclv4_test_tls_CFLAGS = $(icicflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
+tcpclv4_test_session_SOURCES = bpv7/tcp4/tests/test_session_loopback.c
+tcpclv4_test_session_LDADD = libtcpclv4_session.la libtcpclv4_tls.la \
+	libtcpclv4_msg.la $(OPENSSL_LIBS) $(PTHREAD_LIBS) $(LIBS)
+tcpclv4_test_session_CFLAGS = $(icicflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 endif # ENABLE_TCPCLV4_EXTERNAL
 
 # Helper program tcp_single_node for tcp_2nodes test.
