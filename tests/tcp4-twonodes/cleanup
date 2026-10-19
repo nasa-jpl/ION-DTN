@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Clean up old ION state and test artifacts
+echo "Cleaning up old ION..."
+rm -f ion_nodes
+rm -f 2.ipn.tcp4/ion.log 2.ipn.tcp4/testfile* 2.ipn.tcp4/bridge.log
+rm -f 3.ipn.tcp4/ion.log 3.ipn.tcp4/testfile* 3.ipn.tcp4/bridge.log
+rm -f 2.ipn.tcp4/*.sdr 3.ipn.tcp4/*.sdr
+rm -rf /tmp/ion_tcp4
+rm -f /dev/shm/ion_tcp4_*

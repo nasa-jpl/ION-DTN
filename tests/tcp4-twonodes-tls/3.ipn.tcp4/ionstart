@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Start ION node 3 (receiver)
+ionadmin	amroc.ionrc
+sleep 1
+ionsecadmin	amroc.ionsecrc
+sleep 1
+bpadmin		amroc.bprc
+sleep 1

@@ -1,0 +1,26 @@
+# ION TCP4 Bridge Adapter Configuration
+#
+# This file configures the Python bridge that connects ION's TCP4 CLA
+# daemons (tcp4clo/tcp4cli) to the dtn-demo-agent TCPCLv4 implementation.
+#
+# The duct_name must match the duct name configured in ION's bprc file.
+# For example, if bprc contains:
+#   a induct tcp4 myduct 'tcp4cli myduct'
+#   a outduct tcp4 myduct 'tcp4clo myduct'
+# then duct_name should be "myduct".
+
+# ION duct name (derives pool and socket names)
+duct_name: "loopback"
+
+# This node's DTN URI (sent during TCPCLv4 session negotiation)
+node_id: "ipn:1.0"
+
+# Peer TCPCLv4 endpoint (active connection mode)
+peer_address: "127.0.0.1"
+peer_port: 4556
+
+# TLS configuration (optional)
+tls_enable: false
+# tls_ca_file: /path/to/ca.pem
+# tls_cert_file: /path/to/cert.pem
+# tls_key_file: /path/to/key.pem

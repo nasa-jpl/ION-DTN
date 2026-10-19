@@ -1,0 +1,6 @@
+# Node 2 bridge: active mode (connects to Node 3's listener)
+duct_name: "peer3"
+node_id: "ipn:2.0"
+peer_address: "127.0.0.1"
+peer_port: 4556
+tls_enable: false

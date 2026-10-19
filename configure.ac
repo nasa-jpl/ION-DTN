@@ -1097,6 +1097,46 @@ AS_IF([test "x$enable_tcpcl_low_cycle" = xyes],
    AC_MSG_NOTICE([Enabling TCPCL_LOW_CYCLE... yes])]
 )
 
+#
+# TCP4 CLA slot size and slot count configuration
+#
+AC_ARG_WITH([tcp4-slot-size],
+  [AS_HELP_STRING([--with-tcp4-slot-size=SIZE],
+    [TCP4 CLA slot size in MB (default: 1, recommended: 5 for 50MB bundles)])],
+  [tcp4_slot_size=$withval],
+  [tcp4_slot_size=1])
+
+AC_ARG_WITH([tcp4-num-slots],
+  [AS_HELP_STRING([--with-tcp4-num-slots=COUNT],
+    [TCP4 CLA number of slots per pool (default: 8)])],
+  [tcp4_num_slots=$withval],
+  [tcp4_num_slots=8])
+
+# Convert MB to bytes and validate
+tcp4_slot_bytes=$((tcp4_slot_size * 1024 * 1024))
+tcp4_pool_mb=$((tcp4_slot_size * tcp4_num_slots))
+tcp4_duct_mb=$((tcp4_pool_mb * 2))
+
+if test "$tcp4_slot_bytes" -lt 65536 ; then
+  AC_MSG_ERROR([TCP4 slot size must be at least 0.0625 MB (64KB)])
+fi
+
+if test "$tcp4_num_slots" -lt 2 ; then
+  AC_MSG_ERROR([TCP4 number of slots must be at least 2])
+fi
+
+# Add to CFLAGS
+AM_CFLAGS="$AM_CFLAGS -DTCP4CLA_SLOT_SIZE=$tcp4_slot_bytes"
+AM_CFLAGS="$AM_CFLAGS -DTCP4CLA_NUM_SLOTS=$tcp4_num_slots"
+PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DTCP4CLA_SLOT_SIZE=$tcp4_slot_bytes"
+PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DTCP4CLA_NUM_SLOTS=$tcp4_num_slots"
+
+echo "TCP4 CLA configuration:"
+echo "  Slot size:     $tcp4_slot_size MB"
+echo "  Num slots:     $tcp4_num_slots"
+echo "  Memory/pool:   $tcp4_pool_mb MB"
+echo "  Memory/duct:   $tcp4_duct_mb MB (TX + RX)"
+
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"

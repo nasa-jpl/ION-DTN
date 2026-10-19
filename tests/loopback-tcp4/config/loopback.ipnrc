@@ -1,0 +1,6 @@
+# ipnrc configuration file for the TCP4 CLA loopback test.
+# Command: % ipnadmin loopback.ipnrc
+
+# Add an egress plan.
+# Bundles to node 1 go via tcp4/loopback outduct
+a plan 1 tcp4/loopback

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Cleanup script for TCP4 CLA loopback test
+killm
+pkill -9 -f "tcp4_loopback" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*

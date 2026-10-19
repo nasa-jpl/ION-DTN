@@ -546,7 +546,9 @@ iciinclude = \
 	ici/include/crc.h \
 	ici/include/bulk.h \
 	ici/include/csi.h \
-	ici/include/ion_network.h
+	ici/include/ion_network.h \
+	ici/include/ion_transfer_pool.h \
+	ici/include/ion_ctrl_channel.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -684,7 +686,9 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrtable.c \
 	ici/sdr/sdrxn.c \
 	ici/sdr/sdr_perf.c \
-	ici/crypto/entropy_src.c
+	ici/crypto/entropy_src.c \
+	ici/library/ion_transfer_pool.c \
+	ici/library/ion_ctrl_channel.c
 
 # Always compile ion_atomic.c.  Its internal #if !ION_HAVE_C11_ATOMICS guard
 # compiles the function bodies to nothing on C11 builds, so this is safe.
@@ -694,7 +698,7 @@ libici_la_SOURCES =	\
 libici_la_SOURCES += ici/library/ion_atomic.c
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LIBADD = $(CRYPTO_LIBS) -lm
+libici_la_LIBADD = $(CRYPTO_LIBS) -lm -lrt
 
 # --- Utility Programs --- #
 
@@ -1196,6 +1200,8 @@ bpbin = \
 	sppclo \
 	eppcli \
 	eppclo \
+	tcp4cli \
+	tcp4clo \
 	filecli \
 	fileclo \
 	stcpcli \
@@ -1225,6 +1231,7 @@ bplib = \
 	libcgr.la \
 	libsppcla.la \
 	libeppcla.la \
+	libtcp4cla.la \
 	libstcpcla.la \
 	libudpcla.la
 
@@ -1244,6 +1251,7 @@ bpnoinst = \
 	bpv7/saga/saga.h \
 	bpv7/spp/sppcla.h \
 	bpv7/epp/eppcla.h \
+	bpv7/tcp4/tcp4cla.h \
 	bpv7/stcp/stcpcla.h \
 	bpv7/udp/udpcla.h
 
@@ -1555,6 +1563,10 @@ libeppcla_la_SOURCES = bpv7/epp/libeppcla.c
 libeppcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libeppcla_la_LIBADD = libbp.la libici.la
 
+libtcp4cla_la_SOURCES = bpv7/tcp4/libtcp4cla.c
+libtcp4cla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libtcp4cla_la_LIBADD = libbp.la libici.la
+
 # --- libmetadata --- #
 
 metadatalib = libmetadata.la
@@ -1731,6 +1743,16 @@ eppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 eppclo_SOURCES = bpv7/epp/eppclo.c
 eppclo_LDADD = libici.la $(bplib) $(LIBS)
 eppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- TCP4 CLA Executables --- #
+
+tcp4cli_SOURCES = bpv7/tcp4/tcp4cli.c
+tcp4cli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
+tcp4cli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+tcp4clo_SOURCES = bpv7/tcp4/tcp4clo.c
+tcp4clo_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
+tcp4clo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- File CLA Executables --- #
 
@@ -2891,6 +2913,12 @@ tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpc
 tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
 tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
 tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+
+# TCP4 CLA loopback bridge for testing
+check_PROGRAMS += tcp4_loopback
+tcp4_loopback_SOURCES = bpv7/tcp4/tcp4_loopback.c
+tcp4_loopback_LDADD = libici.la $(PTHREAD_LIBS) $(LIBS)
+tcp4_loopback_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # Helper program tcp_single_node for tcp_2nodes test.
 # Must be noinst_PROGRAMS (not check_PROGRAMS) so it's built by default

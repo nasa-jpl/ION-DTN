@@ -151,6 +151,10 @@ file2dgr
 lt-file2dgr
 file2sdr
 lt-file2sdr
+tcp4cli
+lt-tcp4cli
+tcp4clo
+lt-tcp4clo
 filecli
 lt-filecli
 fileclo
@@ -305,3 +309,4 @@ xlsi
 lt-xlsi
 xlso
 lt-xlso
+bridge.bridge_adapter

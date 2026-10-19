@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Loopback Test
+#
+# Tests that bundles can be sent and received via the TCP4 CLA using
+# the C loopback bridge (tcp4_loopback) which relays bundles from the
+# TX shared memory pool to the RX shared memory pool.
+#
+# Copyright (c) 2026, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./config/loopback.ionrc \
+./config/loopback.bprc \
+./config/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the TCP4 CLA with a C loopback bridge."
+echo
+echo "CONFIG: Custom loopback configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Uses bpsource and bpsink to send and receive a bundle via TCP4."
+echo
+echo "########################################"
+
+FAIL=0
+
+# Find tcp4_loopback - check common locations
+BUILDDIR="${BUILDDIR:-../..}"
+
+if [ -f "${BUILDDIR}/tcp4_loopback" ]; then
+    LOOPBACK="${BUILDDIR}/tcp4_loopback"
+elif [ -f "${BUILDDIR}/.libs/tcp4_loopback" ]; then
+    LOOPBACK="${BUILDDIR}/.libs/tcp4_loopback"
+elif command -v tcp4_loopback > /dev/null 2>&1; then
+    LOOPBACK="tcp4_loopback"
+else
+    echo "ERROR: Cannot find tcp4_loopback program."
+    echo "Make sure to run 'make buildcheck' first."
+    exit 1
+fi
+
+echo "Using loopback bridge: ${LOOPBACK}"
+LOOPBACK=$(cd "$(dirname "$LOOPBACK")" && pwd)/$(basename "$LOOPBACK")
+echo "Absolute path: ${LOOPBACK}"
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcp4_loopback" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 1
+
+# Clean up any stale shared memory and sockets
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+rm -f ion.log testfile1 testfile2
+
+echo "Starting ION..."
+ionadmin config/loopback.ionrc
+sleep 1
+bpadmin config/loopback.bprc
+sleep 2
+
+# Wait for TCP4 CLAs to be running
+echo "Waiting for TCP4 CLAs to start..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "tcp4cli.*loopback" > /dev/null && pgrep -f "tcp4clo.*loopback" > /dev/null; then
+        echo "TCP4 CLAs are running."
+        break
+    fi
+    echo "  Waiting... ($i)"
+    sleep 1
+done
+sleep 1
+
+# Start the loopback bridge (it connects as a client to both
+# control sockets and relays bundles between the TX and RX pools)
+echo "Starting TCP4 loopback bridge..."
+${LOOPBACK} loopback &
+LOOPBACK_PID=$!
+sleep 2
+
+# Verify the loopback bridge is running
+if ! kill -0 $LOOPBACK_PID 2>/dev/null; then
+    echo "ERROR: tcp4_loopback failed to start."
+    echo "Check ion.log for details."
+    cat ion.log 2>/dev/null | tail -20
+    FAIL=1
+fi
+
+if [ $FAIL -eq 0 ]; then
+    echo "Starting bpsink..."
+    bpsink ipn:1.1 > testfile2 &
+    BPSINK_PID=$!
+    sleep 1
+
+    echo "Sending bundle via bpsource..."
+    bpsource ipn:1.1 "This is a test message for TCP4 loopback"
+    sleep 3
+
+    echo "Checking received data..."
+    if grep -q "This is a test message for TCP4 loopback" testfile2; then
+        echo "SUCCESS: Bundle received correctly via TCP4 loopback!"
+    else
+        echo "ERROR: Bundle not received or content mismatch."
+        echo "Expected: This is a test message for TCP4 loopback"
+        echo "Received:"
+        cat testfile2
+        FAIL=1
+    fi
+
+    kill $BPSINK_PID 2>/dev/null
+    wait $BPSINK_PID 2>/dev/null
+fi
+
+echo "Cleaning up..."
+kill $LOOPBACK_PID 2>/dev/null
+wait $LOOPBACK_PID 2>/dev/null
+
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+sleep 1
+
+ionstop
+sleep 1
+killm
+
+# Clean up
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+rm -f testfile1 testfile2
+
+exit $FAIL

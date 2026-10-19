@@ -1,0 +1,27 @@
+# bprc configuration file for the TCP4 CLA loopback test.
+# Command: % bpadmin loopback.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the tcp4 protocol.
+a protocol tcp4 1400 100
+
+# Add an induct. (receive from loopback)
+a induct tcp4 loopback 'tcp4cli loopback'
+
+# Add an outduct. (send to loopback)
+a outduct tcp4 loopback 'tcp4clo loopback'
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/loopback.ipnrc'
+
+# Start the daemons
+s
