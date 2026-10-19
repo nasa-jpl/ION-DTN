@@ -13,6 +13,9 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 
 int	tcp4_parse_config(const char *ductName, Tcp4Config *cfg)
 {
@@ -46,6 +49,66 @@ int	tcp4_parse_config(const char *ductName, Tcp4Config *cfg)
 	return 0;
 }
 
+int	tcp4_apply_pool_overrides(Tcp4Config *cfg, const char *numSlotsStr,
+		const char *slotSizeStr)
+{
+	char	*end;
+	char	errbuf[128];
+
+	if (cfg == NULL)
+	{
+		return -1;
+	}
+
+	/*	Optional runtime override of the shared-memory pool
+	 *	geometry.  Both arguments may be NULL (keep the
+	 *	compile-time default).  The pool is a single fixed
+	 *	allocation made once, at daemon start; these values only
+	 *	choose its size.  The floors match the compile-time
+	 *	guards in tcp4cla.h so the pool cannot be misconfigured
+	 *	smaller than a viable transfer slot.			*/
+
+	if (numSlotsStr != NULL)
+	{
+		unsigned long	v;
+
+		errno = 0;
+		v = strtoul(numSlotsStr, &end, 10);
+		if (end == numSlotsStr || *end != '\0' || errno != 0
+				|| v < 2 || v > UINT32_MAX)
+		{
+			isprintf(errbuf, sizeof errbuf, "[?] tcp4: num_slots "
+					"must be an integer >= 2: %s",
+					numSlotsStr);
+			writeMemo(errbuf);
+			return -1;
+		}
+
+		cfg->num_slots = (uint32_t) v;
+	}
+
+	if (slotSizeStr != NULL)
+	{
+		unsigned long long	v;
+
+		errno = 0;
+		v = strtoull(slotSizeStr, &end, 10);
+		if (end == slotSizeStr || *end != '\0' || errno != 0
+				|| v < (64 * 1024) || v > UINT32_MAX)
+		{
+			isprintf(errbuf, sizeof errbuf, "[?] tcp4: slot size "
+					"(bytes) must be an integer >= 65536: %s",
+					slotSizeStr);
+			writeMemo(errbuf);
+			return -1;
+		}
+
+		cfg->slot_data_capacity = (uint32_t) v;
+	}
+
+	return 0;
+}
+
 /*	*	*	In-flight table functions	*	*	*/
 
 void	tcp4_inflight_init(Tcp4InFlight *table, int size)
@@ -54,7 +117,7 @@ void	tcp4_inflight_init(Tcp4InFlight *table, int size)
 }
 
 int	tcp4_inflight_add(Tcp4InFlight *table, int size,
-		Object bundleZco, uint64_t xfer_id)
+		SdrObject bundleZco, uint64_t xfer_id)
 {
 	int	i;
 
@@ -72,7 +135,7 @@ int	tcp4_inflight_add(Tcp4InFlight *table, int size,
 	return -1;	/*	Table full.				*/
 }
 
-Object	tcp4_inflight_remove(Tcp4InFlight *table, int size,
+SdrObject tcp4_inflight_remove(Tcp4InFlight *table, int size,
 		uint64_t xfer_id)
 {
 	int	i;
@@ -81,7 +144,7 @@ Object	tcp4_inflight_remove(Tcp4InFlight *table, int size,
 	{
 		if (table[i].in_use && table[i].xfer_id == xfer_id)
 		{
-			Object	zco = table[i].bundleZco;
+			SdrObject zco = table[i].bundleZco;
 
 			table[i].in_use = 0;
 			table[i].bundleZco = 0;
@@ -113,7 +176,7 @@ void	tcp4_inflight_fail_all(Tcp4InFlight *table, int size)
 
 /*	*	*	Bundle extraction	*	*	*	*/
 
-int	tcp4_extract_bundle(Sdr sdr, Object bundleZco,
+int	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
 		IonTransferPool *pool, int slot_idx)
 {
 	ZcoReader	reader;

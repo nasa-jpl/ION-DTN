@@ -40,6 +40,13 @@
 
 #define OUT_QUEUE_WATERMARK	(1UL << 20)	/* 1MB */
 
+/*	Headroom added to the preallocated output queue above the
+ *	maximum single outbound bundle: covers per-segment header
+ *	overhead plus control messages (acks/keepalives) that may
+ *	queue behind a bundle while the socket is briefly stalled.	*/
+
+#define OUT_QUEUE_HEADROOM	(128UL * 1024)	/* 128KB */
+
 /*	Outbound transfer awaiting acknowledgment.			*/
 
 typedef struct
@@ -172,7 +179,9 @@ static int send_raw(tcpclv4_session_t *s, const uint8_t *buf, size_t len)
 {
 	if (s->out_head + s->out_len + len > s->out_cap)
 	{
-		/*	Compact, then grow if still needed.		*/
+		/*	Compact.  The output queue is preallocated (see
+		 *	session_create) and never grown on the data path,
+		 *	so after compaction the append must fit.		*/
 
 		if (s->out_head > 0)
 		{
@@ -183,25 +192,14 @@ static int send_raw(tcpclv4_session_t *s, const uint8_t *buf, size_t len)
 
 		if (s->out_len + len > s->out_cap)
 		{
-			size_t	need = s->out_len + len;
-			size_t	newcap = s->out_cap ? s->out_cap : 65536;
-			uint8_t	*newbuf;
+			/*	Bound violation (bundle larger than the
+			 *	configured maximum, or excessive control
+			 *	backlog behind a stalled socket): fail the
+			 *	session rather than allocate.			*/
 
-			while (newcap < need)
-			{
-				newcap *= 2;
-			}
-
-			newbuf = realloc(s->out_buf, newcap);
-			if (newbuf == NULL)
-			{
-				set_error(s, "Output queue allocation "
-						"failed");
-				return -1;
-			}
-
-			s->out_buf = newbuf;
-			s->out_cap = newcap;
+			set_error(s, "Output queue overflow (exceeds "
+					"preallocated capacity)");
+			return -1;
 		}
 	}
 
@@ -424,23 +422,13 @@ static int handle_xfer_segment(tcpclv4_session_t *s, const uint8_t *buf,
 
 	if (s->rx_len + seg.data_len > s->rx_cap)
 	{
-		uint64_t	newcap = s->rx_cap ? s->rx_cap : 65536;
-		uint8_t		*newbuf;
+		/*	Cannot happen: the reassembly buffer is
+		 *	preallocated to transfer_mru and the MRU check
+		 *	above already refused anything larger.  Defensive
+		 *	only -- never grown on the data path.		*/
 
-		while (newcap < s->rx_len + seg.data_len)
-		{
-			newcap *= 2;
-		}
-
-		newbuf = realloc(s->rx_buf, newcap);
-		if (newbuf == NULL)
-		{
-			set_error(s, "Reassembly buffer allocation failed");
-			return -1;
-		}
-
-		s->rx_buf = newbuf;
-		s->rx_cap = newcap;
+		set_error(s, "Reassembly buffer overflow");
+		return -1;
 	}
 
 	if (seg.data_len > 0)
@@ -635,6 +623,41 @@ static tcpclv4_session_t *session_create(
 	s->last_recv_time = time(NULL);
 	s->last_send_time = time(NULL);
 
+	/*	Preallocate every data-path buffer to its maximum, so the
+	 *	session performs no heap allocation while forwarding
+	 *	bundles (flight memory discipline).  Bounds:
+	 *	  rx_buf     : one full inbound transfer  (transfer_mru)
+	 *	  rx_msg_buf : one inbound message        (segment_mru + hdr)
+	 *	  tx_msg_buf : one outbound segment       (segment_mtu + hdr)
+	 *	  out_buf    : one outbound bundle + control headroom
+	 *	max_tx_transfer (the sender's slot capacity) bounds the
+	 *	output queue; it defaults to transfer_mru when unset.	*/
+
+	{
+		uint64_t	tx_bound = cfg->max_tx_transfer
+					? cfg->max_tx_transfer : s->transfer_mru;
+
+		s->rx_cap = s->transfer_mru;
+		s->rx_msg_cap = s->segment_mru + SEGMENT_HDR_OVERHEAD + 1024;
+		s->tx_msg_cap = s->segment_mtu + SEGMENT_HDR_OVERHEAD;
+		s->out_cap = tx_bound + OUT_QUEUE_HEADROOM;
+
+		s->rx_buf = malloc(s->rx_cap);
+		s->rx_msg_buf = malloc(s->rx_msg_cap);
+		s->tx_msg_buf = malloc(s->tx_msg_cap);
+		s->out_buf = malloc(s->out_cap);
+		if (s->rx_buf == NULL || s->rx_msg_buf == NULL
+				|| s->tx_msg_buf == NULL || s->out_buf == NULL)
+		{
+			free(s->rx_buf);
+			free(s->rx_msg_buf);
+			free(s->tx_msg_buf);
+			free(s->out_buf);
+			free(s);
+			return NULL;
+		}
+	}
+
 	return s;
 }
 
@@ -743,18 +766,12 @@ int	tcpclv4_session_handle_io(tcpclv4_session_t *s)
 
 	if (s->rx_msg_cap < s->segment_mru + SEGMENT_HDR_OVERHEAD + 1024)
 	{
-		size_t	cap = s->segment_mru + SEGMENT_HDR_OVERHEAD + 1024;
-		uint8_t	*buf = realloc(s->rx_msg_buf, cap);
+		/*	Cannot happen: rx_msg_buf is preallocated to this
+		 *	size in session_create.  Defensive only.	*/
 
-		if (buf == NULL)
-		{
-			set_error(s, "Message buffer allocation failed");
-			terminate_session(s, TCPCLV4_TERM_RESOURCE_EXHAUSTION);
-			return -1;
-		}
-
-		s->rx_msg_buf = buf;
-		s->rx_msg_cap = cap;
+		set_error(s, "Message buffer under-provisioned");
+		terminate_session(s, TCPCLV4_TERM_RESOURCE_EXHAUSTION);
+		return -1;
 	}
 
 	/*	Drain every complete message currently available.	*/
@@ -963,17 +980,12 @@ int	tcpclv4_session_send_bundle(tcpclv4_session_t *s,
 
 	if (s->tx_msg_cap < seg_limit + SEGMENT_HDR_OVERHEAD)
 	{
-		size_t	cap = seg_limit + SEGMENT_HDR_OVERHEAD;
-		uint8_t	*buf = realloc(s->tx_msg_buf, cap);
+		/*	Cannot happen: tx_msg_buf is preallocated to
+		 *	segment_mtu + header, and seg_limit is capped at
+		 *	segment_mtu.  Defensive only.			*/
 
-		if (buf == NULL)
-		{
-			set_error(s, "Segment buffer allocation failed");
-			return -1;
-		}
-
-		s->tx_msg_buf = buf;
-		s->tx_msg_cap = cap;
+		set_error(s, "Segment buffer under-provisioned");
+		return -1;
 	}
 
 	slot->xfer_id = xfer_id;

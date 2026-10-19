@@ -112,6 +112,12 @@ extern int	pool_slot_acquire(IonTransferPool *pool);
 
 extern char	*pool_slot_data(IonTransferPool *pool, int slot_idx);
 
+/*	Return the per-slot data capacity (bytes) of an attached or
+ *	created pool -- the same for every slot.  Returns 0 if pool
+ *	is NULL or uninitialized.					*/
+
+extern uint32_t	pool_slot_capacity(const IonTransferPool *pool);
+
 /*	Return a pointer to the slot header.				*/
 
 extern IonPoolSlotHdr	*pool_slot_hdr(IonTransferPool *pool, int slot_idx);

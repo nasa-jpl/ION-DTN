@@ -1,0 +1,13 @@
+## global.ionrc: contacts and ranges for the 3-node TCP4 relay
+## (A=ipn:2 -> B=ipn:3 -> C=ipn:5).  Static ipn plans do the actual
+## next-hop selection; these contacts provide rate limiting and keep
+## congestion forecasting satisfied.
+a range +0 +3600  2 3  1
+a range +0 +3600  3 5  1
+a contact +0 +3600  2 2  10000000
+a contact +0 +3600  2 3  10000000
+a contact +0 +3600  3 3  10000000
+a contact +0 +3600  3 2  10000000
+a contact +0 +3600  3 5  10000000
+a contact +0 +3600  5 3  10000000
+a contact +0 +3600  5 5  10000000

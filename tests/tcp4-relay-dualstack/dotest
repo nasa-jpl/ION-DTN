@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+#
+# TCP4 CLA Dual-Stack Relay Test  (A -> B -> C, IPv6 then IPv4)
+#
+#   Node A (ipn:2)  --tcp4/IPv6-->  Node B (ipn:3)  --tcp4/IPv4-->  Node C (ipn:5)
+#
+# Relay node B is dual-stacked: it accepts an IPv6 session from A on one
+# duct while dialing C over IPv4 on another, in the same process group
+# and against the same SDR.  The address family is chosen entirely by
+# each agent's endpoint argument -- the ION configuration here is
+# byte-identical to the IPv4 relay test, because a duct name is an
+# opaque IPC key that carries no address.
+#
+# This regresses the mixed-family topology directly: a bundle sourced at
+# A crosses an IPv6 hop, transits B, and crosses an IPv4 hop to C.
+#
+# Ports: A->B on 4556 (B listens, IPv6), B->C on 4557 (C listens, IPv4).
+
+FILE_KB=800
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify a TCPCLv4 relay whose two links use different"
+echo "    address families: A<->B over IPv6, B<->C over IPv4."
+echo
+echo "########################################"
+echo
+
+FAIL=0
+
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+# The A<->B hop needs a usable IPv6 loopback; some CI hosts are IPv4-only.
+if ! python3 -c "
+import socket, sys
+try:
+    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    s.bind(('::1', 0))
+    s.close()
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
+    echo "IPv6 loopback not available on this host. Skipping test."
+    exit 2
+fi
+
+echo "Cleaning up..."
+./cleanup >/dev/null 2>&1
+sleep 2
+rm -f /tmp/ion_tcp4/*.sock /dev/shm/ion_tcp4_*
+
+echo "Starting ION on all three nodes..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start destination first, then relay, then source (receiver-first).
+for NODE in 5 3 2; do
+    cd $NODE.ipn.tcp4
+    ./ionstart
+    ../../../system_up -i "p 30" -b "p 30"
+    if [ "$?" -ne 2 ]; then
+        echo "Node ${NODE} not started: Aborting Test"
+        exit 1
+    fi
+    cd ..
+done
+
+# Apply the shared contact/range plan to every node.
+for NODE in 2 3 5; do
+    cd $NODE.ipn.tcp4
+    ionadmin ../global.ionrc
+    cd ..
+done
+sleep 1
+
+# Wait for all CLA daemons: A has 1 duct, B has 2, C has 1 => 4 cli + 4 clo.
+echo "Waiting for TCP4 CLAs (expect 4 cli, 4 clo)..."
+for i in $(seq 1 20); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    if [ "$CLI_COUNT" -ge 4 ] && [ "$CLO_COUNT" -ge 4 ]; then
+        echo "All TCP4 CLAs are running (${CLI_COUNT} cli, ${CLO_COUNT} clo)."
+        break
+    fi
+    sleep 1
+done
+
+# --- Start agents ---
+# C: passive agent, C-facing link, listens on IPv4 4557
+cd 5.ipn.tcp4
+tcpclv4_agent --duct cfromb --node-id ipn:5.0 \
+    --listen 127.0.0.1:4557 > agent.log 2>&1 &
+AGENT_C_PID=$!
+cd ..
+sleep 1
+
+# B: TWO agents, one per family.
+#   passive toward A on IPv6 4556 (duct bfroma)
+#   active  toward C on IPv4 4557 (duct btoc)
+cd 3.ipn.tcp4
+tcpclv4_agent --duct bfroma --node-id ipn:3.0 \
+    --listen "[::]:4556" > agent_fromA.log 2>&1 &
+AGENT_B_IN_PID=$!
+sleep 1
+tcpclv4_agent --duct btoc --node-id ipn:3.0 \
+    --connect 127.0.0.1:4557 > agent_toC.log 2>&1 &
+AGENT_B_OUT_PID=$!
+cd ..
+sleep 2
+
+# A: active agent toward B over IPv6 4556 (duct atob)
+cd 2.ipn.tcp4
+tcpclv4_agent --duct atob --node-id ipn:2.0 \
+    --connect "[::1]:4556" > agent.log 2>&1 &
+AGENT_A_PID=$!
+cd ..
+
+# --- Verify every session established ---
+echo "Waiting for all TCPCL sessions to establish..."
+for i in $(seq 1 25); do
+    A_UP=$(grep -c "session established" 2.ipn.tcp4/agent.log 2>/dev/null)
+    BIN_UP=$(grep -c "session established" 3.ipn.tcp4/agent_fromA.log 2>/dev/null)
+    BOUT_UP=$(grep -c "session established" 3.ipn.tcp4/agent_toC.log 2>/dev/null)
+    C_UP=$(grep -c "session established" 5.ipn.tcp4/agent.log 2>/dev/null)
+    if [ "$A_UP" -ge 1 ] && [ "$BIN_UP" -ge 1 ] \
+        && [ "$BOUT_UP" -ge 1 ] && [ "$C_UP" -ge 1 ]; then
+        break
+    fi
+    sleep 1
+done
+
+for PAIR in "A:2.ipn.tcp4/agent.log" "B-fromA:3.ipn.tcp4/agent_fromA.log" \
+            "B-toC:3.ipn.tcp4/agent_toC.log" "C:5.ipn.tcp4/agent.log"; do
+    NAME=${PAIR%%:*}
+    LOG=${PAIR##*:}
+    if grep -q "session established" "$LOG"; then
+        echo "SUCCESS: ${NAME} agent session established."
+    else
+        echo "ERROR: ${NAME} agent session did NOT establish."
+        tail -8 "$LOG"
+        FAIL=1
+    fi
+done
+
+# --- Verify the two links really are on different families ---
+# This is the point of the test: B serves IPv6 inbound while dialing
+# IPv4 outbound, so neither link's family leaked into the other.
+if grep -q "listening on \[::\]:4556 (IPv6)" 3.ipn.tcp4/agent_fromA.log; then
+    echo "SUCCESS: node B's A-facing agent bound an IPv6 listener."
+else
+    echo "ERROR: node B's A-facing agent did not bind IPv6."
+    grep -E "listening on|getaddrinfo|can't listen" 3.ipn.tcp4/agent_fromA.log
+    FAIL=1
+fi
+
+# B must NOT have bound IPv4 on the A-facing link: "[::]" is V6ONLY, so
+# an IPv4 peer cannot reach 4556 at all.
+if grep -q "listening on 0.0.0.0:4556 (IPv4)" 3.ipn.tcp4/agent_fromA.log; then
+    echo "ERROR: node B bound IPv4 on an explicit [::] listener."
+    FAIL=1
+else
+    echo "SUCCESS: explicit [::] listener stayed IPv6-only (V6ONLY)."
+fi
+
+if grep -q "listening on 127.0.0.1:4557 (IPv4)" 5.ipn.tcp4/agent.log; then
+    echo "SUCCESS: node C's agent bound an IPv4 listener."
+else
+    echo "ERROR: node C's agent did not bind IPv4."
+    grep -E "listening on|getaddrinfo|can't listen" 5.ipn.tcp4/agent.log
+    FAIL=1
+fi
+
+# --- Verify node B's two agents are genuinely distinct instances ---
+BCOUNT=$(( $(pgrep -fc "tcpclv4_agent --duct bfroma") \
+    + $(pgrep -fc "tcpclv4_agent --duct btoc") ))
+if [ "$BCOUNT" -ge 2 ]; then
+    echo "SUCCESS: node B is running 2 distinct agents (bfroma + btoc)."
+else
+    echo "ERROR: expected 2 agents on node B, found ${BCOUNT}."
+    FAIL=1
+fi
+
+# Distinct shared-memory pools per duct on the shared host
+POOLS=$(ls /dev/shm/ | grep -c "ion_tcp4_.*_\(atob\|bfroma\|btoc\|cfromb\)")
+if [ "$POOLS" -ge 8 ]; then
+    echo "SUCCESS: ${POOLS} distinct pools (4 ducts x tx/rx), no name collision."
+else
+    echo "ERROR: expected >=8 distinct pools, found ${POOLS}."
+    ls /dev/shm/ | grep ion_tcp4
+    FAIL=1
+fi
+
+# --- Test 1: small bundle A -> C across the IPv6 and IPv4 hops ---
+if [ $FAIL -eq 0 ]; then
+    echo ""
+    echo "Test 1: small bundle A(ipn:2) -> C(ipn:5) via relay B..."
+    cd 5.ipn.tcp4
+    rm -f relay_out.txt
+    bpsink ipn:5.1 > relay_out.txt &
+    SINK_PID=$!
+    cd ..
+    sleep 1
+    cd 2.ipn.tcp4
+    bpsource ipn:5.1 "relayed A to C over IPv6 then IPv4"
+    cd ..
+    sleep 6
+
+    if grep -q "relayed A to C over IPv6 then IPv4" 5.ipn.tcp4/relay_out.txt; then
+        echo "SUCCESS: small bundle delivered across both address families."
+    else
+        echo "ERROR: small bundle not delivered at C."
+        echo "--- B receives (tcp4cli) / forwards (tcp4clo)?"
+        grep -E "RX xfer|TX xfer" 3.ipn.tcp4/agent_fromA.log 3.ipn.tcp4/agent_toC.log | tail -6
+        FAIL=1
+    fi
+    kill -2 $SINK_PID 2>/dev/null
+    sleep 1
+    kill -9 $SINK_PID 2>/dev/null
+fi
+
+# --- Test 2: file transits intact across both hops ---
+if [ $FAIL -eq 0 ]; then
+    echo ""
+    echo "Test 2: ${FILE_KB}KB file A -> C through the relay..."
+    cd 2.ipn.tcp4
+    dd if=/dev/urandom of=testfile_relay bs=1K count=$FILE_KB 2>/dev/null
+    SENT_MD5=$(md5sum testfile_relay | awk '{print $1}')
+    SENT_SIZE=$(stat -c%s testfile_relay)
+    cd ..
+
+    cd 5.ipn.tcp4
+    rm -f testfile1
+    bprecvfile ipn:5.1 1 &
+    RECV_PID=$!
+    cd ..
+    sleep 1
+
+    cd 2.ipn.tcp4
+    bpsendfile ipn:2.1 ipn:5.1 testfile_relay
+    cd ..
+    sleep 12
+
+    if [ -f 5.ipn.tcp4/testfile1 ]; then
+        RECV_MD5=$(md5sum 5.ipn.tcp4/testfile1 | awk '{print $1}')
+        RECV_SIZE=$(stat -c%s 5.ipn.tcp4/testfile1)
+        if [ "$RECV_MD5" = "$SENT_MD5" ] && [ "$RECV_SIZE" -eq "$SENT_SIZE" ]; then
+            echo "SUCCESS: ${FILE_KB}KB file transited both families intact."
+        else
+            echo "ERROR: relayed file corrupted (sent $SENT_SIZE/$SENT_MD5, got $RECV_SIZE/$RECV_MD5)."
+            FAIL=1
+        fi
+    else
+        echo "ERROR: relayed file not received at C."
+        FAIL=1
+    fi
+    kill $RECV_PID 2>/dev/null
+fi
+
+# --- Verify all source SDRs drain (stewardship on every hop) ---
+echo ""
+echo "Checking every node's SDR is clear..."
+sleep 3
+for NODE in 2 3 5; do
+    cd $NODE.ipn.tcp4
+    BPLIST_COUNT=$(bplist count | grep "Report count" | awk '{gsub(/[^0-9]/,"",$NF); print $NF}')
+    if [ "$BPLIST_COUNT" -eq 0 ] 2>/dev/null; then
+        echo "SUCCESS: node ${NODE} SDR is clear."
+    else
+        echo "ERROR: node ${NODE} SDR still has ${BPLIST_COUNT} bundle(s)."
+        FAIL=1
+    fi
+    cd ..
+done
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+if [ $FAIL -eq 0 ]; then
+    echo "SUCCESS: Dual-stack relay test passed!"
+else
+    echo "FAIL: Dual-stack relay test failed."
+fi
+exit $FAIL

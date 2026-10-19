@@ -224,6 +224,48 @@ make && sudo make install
 | 5 MB | 8 | 80 MB | Large bundles (10-100 MB) |
 | 10 MB | 4 | 80 MB | Bulk transfers |
 
+### Runtime slot configuration (without rebuilding)
+
+The compile-time defaults can be overridden at run time — per node,
+without recompiling — with two environment variables read by `tcp4clo`
+and `tcp4cli` when they start:
+
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `TCP4_POOL_SLOTS` | number of slots per pool (min 2) | compile-time `--with-tcp4-num-slots` (8) |
+| `TCP4_POOL_SLOT_BYTES` | data bytes per slot (min 65536) | compile-time `--with-tcp4-slot-size` (1 MB) |
+
+Set them in the environment that launches ION, e.g.:
+
+```bash
+export TCP4_POOL_SLOTS=4
+export TCP4_POOL_SLOT_BYTES=524288   # 512 KB slots
+```
+
+The daemons log the resulting geometry (`tcp4clo TX pool ...: N slots x M
+bytes`), and the auto-configured `maxPayloadLen` tracks the *runtime*
+slot size, so BP fragments to fit. Environment variables are used rather
+than CLA command-line arguments because ION appends the duct name to a
+CLA's argument list. (These are process-wide, so all `tcp4` ducts on a
+node share the same geometry.)
+
+### Memory discipline
+
+The convergence layer is designed for the flight-software memory model —
+fixed, up-front allocation rather than a churning heap:
+
+- **Shared-memory pool**: a single `mmap`'d region per pool, sized once
+  at daemon start (`num_slots × slot_size`); no per-bundle allocation and
+  no runtime growth. It is a POSIX shared-memory region, separate from
+  ION's SDR/PSM budget, so account for it separately.
+- **Agent session buffers**: the external `tcpclv4_agent` bounds its
+  session transfer/segment MRUs to the attached pool's slot capacity
+  (rather than a large default) and **preallocates** its reassembly,
+  segment, receive, and output-queue buffers to those maxima when a
+  session opens. The data path performs no `realloc`; a transfer that
+  would exceed a bound is refused, not grown. Per-session agent memory is
+  therefore fixed and derivable from the pool geometry.
+
 ### Troubleshooting
 
 **Issue**: Bundles rejected with "exceeds slot capacity" error

@@ -240,6 +240,16 @@ IonPoolSlotHdr	*pool_slot_hdr(IonTransferPool *pool, int slot_idx)
 	return slotHdr(pool, slot_idx);
 }
 
+uint32_t	pool_slot_capacity(const IonTransferPool *pool)
+{
+	if (pool == NULL || pool->slot_size <= sizeof(IonPoolSlotHdr))
+	{
+		return 0;
+	}
+
+	return pool->slot_size - (uint32_t) sizeof(IonPoolSlotHdr);
+}
+
 void	pool_slot_publish(IonTransferPool *pool, int slot_idx,
 		uint64_t data_len, uint64_t xfer_id)
 {

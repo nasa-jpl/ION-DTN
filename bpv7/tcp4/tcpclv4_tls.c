@@ -628,30 +628,20 @@ int tcpclv4_tls_write(tcpclv4_tls_session_t *sess,
 
 static int recv_buf_reserve(tcpclv4_tls_session_t *sess, size_t needed)
 {
-	uint8_t	*newbuf;
-	size_t	newcap;
-
 	if (needed <= sess->recv_buf_cap)
 	{
 		return 0;
 	}
 
-	newcap = sess->recv_buf_cap;
-	while (newcap < needed)
-	{
-		newcap *= 2;
-	}
+	/*	The receive buffer is preallocated to max_msg_len (see
+	 *	tcpclv4_tls_set_max_msg_len), and frames larger than that
+	 *	are refused during framing, so the data path never needs
+	 *	to grow it.  A shortfall here is a bound/framing error,
+	 *	not an allocation trigger.				*/
 
-	newbuf = realloc(sess->recv_buf, newcap);
-	if (newbuf == NULL)
-	{
-		set_error(sess, "Receive buffer allocation failed");
-		return -1;
-	}
-
-	sess->recv_buf = newbuf;
-	sess->recv_buf_cap = newcap;
-	return 0;
+	set_error(sess, "Receive buffer request exceeds maximum "
+			"message length");
+	return -1;
 }
 
 /*	Extract the first complete message from the receive buffer,
@@ -845,6 +835,27 @@ int tcpclv4_tls_set_max_msg_len(tcpclv4_tls_session_t *sess,
 	}
 
 	sess->max_msg_len = max_msg_len;
+
+	/*	Preallocate the receive buffer to the largest legal
+	 *	message.  This is a one-time, per-session allocation at
+	 *	establishment; thereafter the data path never grows it
+	 *	(a frame exceeding max_msg_len is refused during
+	 *	framing).						*/
+
+	if (sess->recv_buf_cap < max_msg_len)
+	{
+		uint8_t	*buf = realloc(sess->recv_buf, max_msg_len);
+
+		if (buf == NULL)
+		{
+			set_error(sess, "Receive buffer allocation failed");
+			return -1;
+		}
+
+		sess->recv_buf = buf;
+		sess->recv_buf_cap = max_msg_len;
+	}
+
 	return 0;
 }
 

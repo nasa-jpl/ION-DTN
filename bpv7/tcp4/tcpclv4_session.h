@@ -55,6 +55,9 @@ typedef struct
 	uint64_t	transfer_mru;	/* Max rx transfer we accept */
 	uint64_t	segment_mtu;	/* Max tx segment we send (also
 					 * capped by peer's segment MRU) */
+	uint64_t	max_tx_transfer;	/* Max outbound bundle size;
+					 * bounds the preallocated output
+					 * queue.  0 => use transfer_mru. */
 
 	const tcpclv4_tls_config_t *tls;	/* NULL = plain TCP */
 } tcpclv4_session_config_t;

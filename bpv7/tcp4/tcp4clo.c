@@ -52,7 +52,7 @@ static void	*handleResponses(void *parm)
 {
 	ResponseThreadParms	*rtp = (ResponseThreadParms *) parm;
 	CtrlMsg			msg;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	int			ret;
 
 	iblock(SIGTERM);	/*	Only main thread handles.	*/
@@ -237,8 +237,8 @@ int	main(int argc, char *argv[])
 	PsmAddress		vductElt;
 	Sdr			sdr;
 	Outduct			outduct;
-	Object			planDuctList;
-	Object			planObj = 0;
+	SdrObject		planDuctList;
+	SdrObject		planObj = 0;
 	BpPlan			plan;
 	Tcp4Config		cfg;
 	IonTransferPool		tx_pool;
@@ -250,7 +250,7 @@ int	main(int argc, char *argv[])
 	int			agent_connected = 1;
 	ResponseThreadParms	rtp;
 	pthread_t		responseThread;
-	Object			bundleZco;
+	SdrObject		bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			slot;
@@ -305,10 +305,28 @@ int	main(int argc, char *argv[])
 
 	sdr_exit_xn(sdr);
 
+	/*	Parse config and set up IPC.  This must precede the
+	 *	maxPayloadLen auto-configuration below, which depends on
+	 *	the (possibly environment-overridden) slot capacity.	*/
+
+	if (tcp4_parse_config(ductName, &cfg) < 0)
+	{
+		putErrmsg("tcp4clo: can't parse config.", ductName);
+		return -1;
+	}
+
+	if (tcp4_apply_pool_overrides(&cfg, getenv("TCP4_POOL_SLOTS"),
+			getenv("TCP4_POOL_SLOT_BYTES")) < 0)
+	{
+		putErrmsg("tcp4clo: invalid pool geometry override.",
+				ductName);
+		return -1;
+	}
+
 	/*	Auto-configure maxPayloadLen to enable BP fragmentation.
-	 *	If maxPayloadLen is 0 (unlimited), set it to slot capacity
-	 *	minus BP header margin so that bpclm will automatically
-	 *	fragment bundles larger than the slot size.
+	 *	If maxPayloadLen is 0 (unlimited), set it to the runtime
+	 *	slot capacity minus BP header margin so that bpclm will
+	 *	automatically fragment bundles larger than the slot size.
 	 *
 	 *	Note: We must subtract TCP4CLA_BP_HEADER_MARGIN because
 	 *	BP bundle headers (primary block, payload headers) add
@@ -320,7 +338,8 @@ int	main(int argc, char *argv[])
 		char	txt[256];
 		unsigned int safeMaxPayload;
 
-		safeMaxPayload = TCP4CLA_SLOT_SIZE - TCP4CLA_BP_HEADER_MARGIN;
+		safeMaxPayload = cfg.slot_data_capacity
+				- TCP4CLA_BP_HEADER_MARGIN;
 
 		CHKZERO(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &outduct,
@@ -336,19 +355,11 @@ int	main(int argc, char *argv[])
 		}
 
 		isprintf(txt, sizeof(txt),
-			"[i] tcp4clo: Auto-set maxPayloadLen=%u (%u MB - %u B margin) "
-			"to enable BP fragmentation for bundles > slot size.",
-			safeMaxPayload, TCP4CLA_SLOT_SIZE / (1024*1024),
+			"[i] tcp4clo: Auto-set maxPayloadLen=%u (slot %u B - %u B "
+			"margin) to enable BP fragmentation for bundles > slot "
+			"size.", safeMaxPayload, cfg.slot_data_capacity,
 			TCP4CLA_BP_HEADER_MARGIN);
 		writeMemo(txt);
-	}
-
-	/*	Parse config and set up IPC.				*/
-
-	if (tcp4_parse_config(ductName, &cfg) < 0)
-	{
-		putErrmsg("tcp4clo: can't parse config.", ductName);
-		return -1;
 	}
 
 	if (pool_create(cfg.tx_pool_name, cfg.num_slots,
@@ -357,6 +368,15 @@ int	main(int argc, char *argv[])
 		putErrmsg("tcp4clo: can't create TX pool.",
 				cfg.tx_pool_name);
 		return -1;
+	}
+
+	{
+		char	geo[128];
+
+		isprintf(geo, sizeof geo, "[i] tcp4clo TX pool '%s': %u slots "
+				"x %u bytes", cfg.tx_pool_name, cfg.num_slots,
+				cfg.slot_data_capacity);
+		writeMemo(geo);
 	}
 
 	if (ctrl_server_create(&tx_ctrl, cfg.tx_ctrl_path,
@@ -591,7 +611,7 @@ int	main(int argc, char *argv[])
 			 *	twice would corrupt the requeued
 			 *	bundle.					*/
 
-			Object	unwound;
+			SdrObject unwound;
 
 			writeMemo("[w] tcp4clo: can't send SLOT_READY; "
 					"unwinding transfer.");

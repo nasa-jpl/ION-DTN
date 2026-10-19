@@ -1,0 +1,296 @@
+#!/usr/bin/env bash
+#
+# TCP4 Dual-Stack Test
+#
+# Exercises the tcpclv4_agent listener across address families.  The
+# agent's --listen argument carries the only address in the TCP4 CLA:
+# the ION duct name ("peer2", "peer3") is an opaque IPC key, so the
+# node configurations here are identical to the IPv4 two-node test and
+# the family is selected purely on the agent command line.
+#
+#   Phase 1: passive agent on [::1]      -> peer dials IPv6
+#   Phase 2: passive agent on :<port>    -> peer dials IPv4
+#
+# Phase 2 is the dual-stack case: one wildcard --listen binds both an
+# IPv4 and an IPv6 socket, so a peer of either family can establish.
+#
+# Copyright (c) 2026, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.tcp4/amroc.ionrc \
+./2.ipn.tcp4/amroc.ionconfig \
+./2.ipn.tcp4/amroc.bprc \
+./2.ipn.tcp4/amroc.ipnrc \
+./3.ipn.tcp4/amroc.ionrc \
+./3.ipn.tcp4/amroc.ionconfig \
+./3.ipn.tcp4/amroc.bprc \
+./3.ipn.tcp4/amroc.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing TCP4 CLA establishment over IPv6 and over a"
+echo "         dual-stack wildcard listener."
+echo
+echo "CONFIG: Two-node configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Two test cases:"
+echo "  1. Passive agent listening on [::1]: peer establishes over IPv6"
+echo "  2. Passive agent listening on the wildcard: peer establishes over IPv4"
+echo
+echo "VERIFICATION:"
+echo "  - Bundle delivered to the destination endpoint in each phase"
+echo "  - Agent log records a listener of the expected family"
+echo "  - Wildcard listener binds both families in one agent"
+echo
+echo "########################################"
+
+FAIL=0
+PORT=4556
+
+# --- Dependency checks (exit 2 = skip) ---
+
+# The C TCPCLv4 agent must be installed (built with
+# --enable-tcpclv4-external)
+if ! command -v tcpclv4_agent >/dev/null 2>&1; then
+    echo "tcpclv4_agent not found. Build ION with --enable-tcpclv4-external. Skipping test."
+    exit 2
+fi
+
+# IPv6 loopback must be usable; some CI containers run IPv4-only.
+if ! python3 -c "
+import socket, sys
+try:
+    s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    s.bind(('::1', 0))
+    s.close()
+except Exception:
+    sys.exit(1)
+" 2>/dev/null; then
+    echo "IPv6 loopback not available on this host. Skipping test."
+    exit 2
+fi
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "tcpclv4_agent" 2>/dev/null
+pkill -9 -f "tcp4cli" 2>/dev/null
+pkill -9 -f "tcp4clo" 2>/dev/null
+./cleanup
+sleep 2
+
+# Clean up stale shared memory and sockets
+rm -f /tmp/ion_tcp4/*.sock
+rm -f /dev/shm/ion_tcp4_*
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start Node 3 first (receiver, passive agent)
+cd 3.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ "$?" -eq 2 ]
+then
+    echo "Node 3 started successfully."
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+# Start Node 2 (sender, active agent)
+cd ../2.ipn.tcp4
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ "$?" -eq 2 ]
+then
+    echo "Node 2 started successfully."
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+# Apply global topology (contacts and ranges) to both nodes
+cd ../2.ipn.tcp4
+ionadmin ../global.ionrc
+cd ../3.ipn.tcp4
+ionadmin ../global.ionrc
+sleep 1
+
+# Wait for TCP4 CLAs to start on both nodes
+echo "Waiting for TCP4 CLAs to start..."
+for i in $(seq 1 15); do
+    CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+    CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+    if [ "$CLI_COUNT" -ge 2 ] && [ "$CLO_COUNT" -ge 2 ]; then
+        echo "TCP4 CLAs are running (${CLI_COUNT} cli, ${CLO_COUNT} clo)."
+        break
+    fi
+    echo "  Waiting... ($i) cli=$CLI_COUNT clo=$CLO_COUNT"
+    sleep 1
+done
+sleep 1
+
+BASEDIR=$PWD/..
+
+# run_phase <name> <listen-spec> <connect-spec> <expected-log-regex> <payload>
+#
+# Starts the passive agent on Node 3 and the active agent on Node 2 with
+# the given endpoint specs, sends one bundle, and verifies delivery.
+# Leaves the agents stopped so the next phase starts clean.
+run_phase()
+{
+    PHASE_NAME=$1
+    LISTEN_SPEC=$2
+    CONNECT_SPEC=$3
+    LOG_REGEX=$4
+    PAYLOAD=$5
+
+    echo ""
+    echo "=========================================="
+    echo "$PHASE_NAME"
+    echo "  passive: --listen $LISTEN_SPEC"
+    echo "  active:  --connect $CONNECT_SPEC"
+    echo "=========================================="
+
+    cd "$BASEDIR/3.ipn.tcp4"
+    rm -f agent.log testfile1
+    tcpclv4_agent --duct peer2 --node-id ipn:3.0 \
+        --listen "$LISTEN_SPEC" > agent.log 2>&1 &
+    AGENT2_PID=$!
+
+    # The agent attaches the duct's shared-memory pools and control
+    # sockets before it binds, so wait for the listener rather than
+    # assuming a fixed startup delay.
+    for i in $(seq 1 20); do
+        grep -Eq "$LOG_REGEX" agent.log 2>/dev/null && break
+        kill -0 $AGENT2_PID 2>/dev/null || break
+        sleep 1
+    done
+
+    if ! kill -0 $AGENT2_PID 2>/dev/null; then
+        echo "ERROR: passive agent failed to start."
+        cat agent.log
+        FAIL=1
+        return
+    fi
+
+    # The listener family is reported by the agent as it binds.
+    if grep -Eq "$LOG_REGEX" agent.log; then
+        echo "SUCCESS: agent bound the expected listener."
+        grep -E "listening on" agent.log | sed 's/^/  /'
+    else
+        echo "ERROR: agent did not report a listener matching /$LOG_REGEX/."
+        cat agent.log
+        FAIL=1
+        kill $AGENT2_PID 2>/dev/null
+        wait $AGENT2_PID 2>/dev/null
+        return
+    fi
+
+    cd "$BASEDIR/2.ipn.tcp4"
+    rm -f agent.log
+    tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
+        --connect "$CONNECT_SPEC" > agent.log 2>&1 &
+    AGENT1_PID=$!
+    sleep 5
+
+    if ! kill -0 $AGENT1_PID 2>/dev/null; then
+        echo "ERROR: active agent failed to start."
+        cat agent.log
+        FAIL=1
+        kill $AGENT2_PID 2>/dev/null
+        wait $AGENT2_PID 2>/dev/null
+        return
+    fi
+
+    # Deliver one bundle across the session.
+    cd "$BASEDIR/3.ipn.tcp4"
+    bpsink ipn:3.1 > testfile1 &
+    BPSINK_PID=$!
+    sleep 1
+
+    cd "$BASEDIR/2.ipn.tcp4"
+    echo "Sending bundle..."
+    bpsource ipn:3.1 "$PAYLOAD"
+    sleep 5
+
+    cd "$BASEDIR/3.ipn.tcp4"
+    if grep -q "$PAYLOAD" testfile1; then
+        echo "SUCCESS: bundle delivered."
+    else
+        echo "ERROR: bundle not delivered or content mismatch."
+        echo "Expected payload containing: $PAYLOAD"
+        echo "Received:"
+        cat testfile1
+        echo ""
+        echo "--- passive agent log ---"
+        tail -30 agent.log 2>/dev/null
+        echo "--- active agent log ---"
+        tail -30 "$BASEDIR/2.ipn.tcp4/agent.log" 2>/dev/null
+        echo "--- Node 3 ion.log ---"
+        tail -30 ion.log 2>/dev/null
+        FAIL=1
+    fi
+
+    kill $BPSINK_PID 2>/dev/null
+    wait $BPSINK_PID 2>/dev/null
+
+    # Stop both agents so the next phase rebinds the port cleanly.
+    kill $AGENT1_PID $AGENT2_PID 2>/dev/null
+    wait $AGENT1_PID 2>/dev/null
+    wait $AGENT2_PID 2>/dev/null
+    sleep 2
+}
+
+# --- Test Case 1: IPv6 literal listener ---
+run_phase "Test Case 1: IPv6 session" \
+    "[::1]:$PORT" "[::1]:$PORT" \
+    "listening on \[::1\]:$PORT \(IPv6\)" \
+    "Hello from Node 2 over IPv6"
+
+# --- Test Case 2: dual-stack wildcard listener, IPv4 peer ---
+if [ $FAIL -eq 0 ]; then
+    run_phase "Test Case 2: dual-stack wildcard, IPv4 session" \
+        ":$PORT" "127.0.0.1:$PORT" \
+        "listening on 0\.0\.0\.0:$PORT \(IPv4\)" \
+        "Hello from Node 2 over a dual-stack listener"
+
+    # The same wildcard agent must also have bound IPv6: that is what
+    # makes one listener serve peers of either family.
+    if [ $FAIL -eq 0 ]; then
+        cd "$BASEDIR/3.ipn.tcp4"
+        if grep -Eq "listening on \[::\]:$PORT \(IPv6\)" agent.log; then
+            echo "SUCCESS: wildcard listener also bound IPv6."
+        else
+            echo "ERROR: wildcard listener did not bind IPv6."
+            grep -E "listening on" agent.log | sed 's/^/  /'
+            FAIL=1
+        fi
+    fi
+fi
+
+# No end-of-test teardown: leave ION, the tcpclv4_agent processes, and
+# all shared-memory/socket state in place.  The runtests harness runs
+# ./cleanup before every test (clean slate) and after a PASS (reclaim
+# disk), but deliberately skips cleanup after a FAILURE so logs and live
+# state survive for diagnosis.  Doing our own teardown here would defeat
+# that preservation.
+echo ""
+echo "TCP4 dual-stack test completed."
+exit $FAIL

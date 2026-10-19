@@ -51,11 +51,33 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+/*	Upper bound on simultaneous listen sockets.  A dual-stack
+ *	wildcard bind needs two (IPv4 and IPv6); the slack covers a
+ *	hostname that resolves to several addresses.			*/
+
+#define AGENT_MAX_LISTEN	4
+
+/*	Longest duct name the agent accepts.  Must match
+ *	MAX_CL_DUCT_NAME_LEN in bpP.h: tcp4cli and tcp4clo derive the
+ *	pool and control-socket names from the full duct name, so a
+ *	shorter bound here would truncate on the agent side only and
+ *	silently produce paths that never appear.  Defined locally
+ *	rather than by including bpP.h to keep the agent independent
+ *	of ION's private headers.					*/
+
+#define AGENT_MAX_DUCT_NAME	255
+
 #define AGENT_CTRL_KEEPALIVE	15	/* seconds */
 #define AGENT_CTRL_TIMEOUT	45	/* seconds */
 #define AGENT_RECONNECT_SEC	5	/* TCPCL reconnect backoff */
 #define AGENT_STARTUP_WAIT_SEC	30	/* Wait for ION daemons */
 #define AGENT_POLL_MS		500
+
+/*	Upper bound on the TCPCL segment size the agent advertises/uses,
+ *	independent of (and capped by) the pool slot capacity.  Bounds
+ *	the per-session segment scratch buffers.			*/
+
+#define AGENT_MAX_SEGMENT	(1024 * 1024)	/* 1MB */
 
 static volatile sig_atomic_t	g_running = 1;
 
@@ -87,15 +109,18 @@ static void	logmsg(const char *fmt, ...)
 
 typedef struct
 {
-	char			duct_name[64];
+	char			duct_name[AGENT_MAX_DUCT_NAME + 1];
 	char			node_id[256];
 
-	/*	Peer (active mode) or listen (passive mode).		*/
+	/*	Peer (active mode) or listen (passive mode).  An empty
+	 *	host in passive mode means "any address", which binds
+	 *	one listen socket per available address family.		*/
 
 	char			host[256];
 	int			port;
 	int			passive;
-	int			listen_fd;
+	int			listen_fds[AGENT_MAX_LISTEN];
+	int			num_listen_fds;
 
 	/*	ION side.						*/
 
@@ -490,6 +515,44 @@ static int	attach_pools(agent_t *agent)
 	logmsg("attached pools %s (%u slots) and %s (%u slots)",
 			tx_name, agent->tx_pool.num_slots,
 			rx_name, agent->rx_pool.num_slots);
+
+	/*	Bound the TCPCL session's buffers to the fixed pool
+	 *	geometry, so the agent's per-session memory is fixed and
+	 *	known rather than the session library's large defaults
+	 *	(e.g. a 100MB transfer MRU).  A bundle can be no larger
+	 *	than a pool slot, so we advertise transfer MRUs equal to
+	 *	the slot capacities.					*/
+	{
+		uint32_t	tx_cap = pool_slot_capacity(&agent->tx_pool);
+		uint32_t	rx_cap = pool_slot_capacity(&agent->rx_pool);
+
+		agent->session_cfg.transfer_mru = rx_cap;
+		agent->session_cfg.max_tx_transfer = tx_cap;
+
+		if (agent->session_cfg.segment_mru == 0
+				|| agent->session_cfg.segment_mru > rx_cap)
+		{
+			agent->session_cfg.segment_mru = (rx_cap < AGENT_MAX_SEGMENT)
+					? rx_cap : AGENT_MAX_SEGMENT;
+		}
+
+		if (agent->session_cfg.segment_mtu == 0)
+		{
+			agent->session_cfg.segment_mtu = (tx_cap < AGENT_MAX_SEGMENT)
+					? tx_cap : AGENT_MAX_SEGMENT;
+		}
+		else if (agent->session_cfg.segment_mtu > tx_cap)
+		{
+			agent->session_cfg.segment_mtu = tx_cap;
+		}
+
+		logmsg("session bounds: transfer_mru=%u tx_max=%u "
+				"segment_mru=%llu segment_mtu=%llu", rx_cap,
+				tx_cap,
+				(unsigned long long) agent->session_cfg.segment_mru,
+				(unsigned long long) agent->session_cfg.segment_mtu);
+	}
+
 	return 0;
 }
 
@@ -498,64 +561,157 @@ static int	attach_pools(agent_t *agent)
  *	==============================================================
  */
 
-static int	open_listen_socket(agent_t *agent)
+/*	A predecessor agent's socket may take a moment to be released
+ *	after it exits; retry the bind briefly.				*/
+
+static int	bind_with_retry(int fd, const struct sockaddr *addr,
+			socklen_t addrlen)
 {
-	struct sockaddr_in	addr;
-	int			opt = 1;
-	int			attempt;
-
-	agent->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (agent->listen_fd < 0)
-	{
-		logmsg("listen socket: %s", strerror(errno));
-		return -1;
-	}
-
-	setsockopt(agent->listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-			sizeof(opt));
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(agent->port);
-	if (inet_pton(AF_INET, agent->host, &addr.sin_addr) != 1)
-	{
-		addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	}
-
-	/*	A predecessor agent's socket may take a moment to be
-	 *	released after it exits; retry the bind briefly.	*/
+	int	attempt;
 
 	for (attempt = 0; ; attempt++)
 	{
-		if (bind(agent->listen_fd, (struct sockaddr *) &addr,
-				sizeof(addr)) == 0)
+		if (bind(fd, addr, addrlen) == 0)
 		{
-			break;
+			return 0;
 		}
 
 		if (errno != EADDRINUSE
 		|| attempt >= AGENT_STARTUP_WAIT_SEC || !g_running)
 		{
-			logmsg("bind %s:%d: %s", agent->host, agent->port,
-					strerror(errno));
-			close(agent->listen_fd);
-			agent->listen_fd = -1;
 			return -1;
 		}
 
 		sleep(1);
 	}
+}
 
-	if (listen(agent->listen_fd, 4) < 0)
+/*	Open one listen socket per address the endpoint resolves to.
+ *
+ *	An empty agent->host means "any address": getaddrinfo with
+ *	AI_PASSIVE then returns both the IPv4 and the IPv6 wildcard, so
+ *	the agent accepts peers of either family on one port.  A
+ *	specific literal or hostname binds just what it resolves to.
+ *
+ *	IPV6_V6ONLY is set on every AF_INET6 socket so the families stay
+ *	disjoint: that is what lets 0.0.0.0 and :: share a port, and it
+ *	matches ION's own convention in createNetworkSocket().  Without
+ *	it the second bind would fail with EADDRINUSE on the platforms
+ *	that default to IPv4-mapped mode.				*/
+
+static int	open_listen_sockets(agent_t *agent)
+{
+	struct addrinfo	hints;
+	struct addrinfo	*result;
+	struct addrinfo	*rp;
+	char		portstr[16];
+	const char	*node;
+	int		rc;
+	int		opt = 1;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;		/* IPv4 and IPv6	*/
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
+
+	/*	AI_ADDRCONFIG is deliberately NOT set here.  On a host
+	 *	with no non-loopback IPv6 address it would suppress the
+	 *	IPv6 results entirely, so a ::1 test rig could not bind
+	 *	at all.							*/
+
+	node = (agent->host[0] == '\0') ? NULL : agent->host;
+	snprintf(portstr, sizeof(portstr), "%d", agent->port);
+
+	rc = getaddrinfo(node, portstr, &hints, &result);
+	if (rc != 0)
 	{
-		logmsg("listen %s:%d: %s", agent->host, agent->port,
-				strerror(errno));
-		close(agent->listen_fd);
-		agent->listen_fd = -1;
+		logmsg("getaddrinfo(%s:%d): %s", node ? node : "*",
+				agent->port, gai_strerror(rc));
 		return -1;
 	}
 
-	logmsg("listening on %s:%d", agent->host, agent->port);
+	agent->num_listen_fds = 0;
+	for (rp = result; rp != NULL; rp = rp->ai_next)
+	{
+		int	fd;
+
+		if (agent->num_listen_fds == AGENT_MAX_LISTEN)
+		{
+			logmsg("more than %d listen addresses for %s:%d; "
+					"ignoring the rest", AGENT_MAX_LISTEN,
+					node ? node : "*", agent->port);
+			break;
+		}
+
+		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (fd < 0)
+		{
+			logmsg("listen socket (family %d): %s", rp->ai_family,
+					strerror(errno));
+			continue;
+		}
+
+		setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+		if (rp->ai_family == AF_INET6)
+		{
+			setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt,
+					sizeof(opt));
+		}
+
+		if (bind_with_retry(fd, rp->ai_addr, rp->ai_addrlen) < 0
+		|| listen(fd, 4) < 0)
+		{
+			logmsg("can't listen on %s:%d (%s): %s",
+					node ? node : "*", agent->port,
+					rp->ai_family == AF_INET6 ? "IPv6"
+						: "IPv4", strerror(errno));
+			close(fd);
+			continue;
+		}
+
+		agent->listen_fds[agent->num_listen_fds] = fd;
+		agent->num_listen_fds++;
+		if (rp->ai_family == AF_INET6)
+		{
+			logmsg("listening on [%s]:%d (IPv6)",
+					node ? node : "::", agent->port);
+		}
+		else
+		{
+			logmsg("listening on %s:%d (IPv4)",
+					node ? node : "0.0.0.0", agent->port);
+		}
+	}
+
+	freeaddrinfo(result);
+
+	/*	A wildcard bind succeeds as long as one family came up,
+	 *	so a host without IPv6 still runs (the failure above is
+	 *	logged).  A specific address yields a single addrinfo, so
+	 *	if that one failed there is nothing left and this is an
+	 *	error.							*/
+
+	if (agent->num_listen_fds == 0)
+	{
+		logmsg("no listen socket bound for %s:%d", node ? node : "*",
+				agent->port);
+		return -1;
+	}
+
 	return 0;
+}
+
+static void	close_listen_sockets(agent_t *agent)
+{
+	int	i;
+
+	for (i = 0; i < agent->num_listen_fds; i++)
+	{
+		close(agent->listen_fds[i]);
+	}
+
+	agent->num_listen_fds = 0;
 }
 
 static void	try_connect_session(agent_t *agent)
@@ -587,12 +743,12 @@ static void	try_connect_session(agent_t *agent)
 	}
 }
 
-static void	accept_session(agent_t *agent)
+static void	accept_session(agent_t *agent, int listen_fd)
 {
 	int		conn_fd;
 	struct timeval	tv = { 10, 0 };
 
-	conn_fd = accept(agent->listen_fd, NULL, NULL);
+	conn_fd = accept(listen_fd, NULL, NULL);
 	if (conn_fd < 0)
 	{
 		return;
@@ -688,10 +844,12 @@ static void	drop_session(agent_t *agent)
 
 static int	run_agent(agent_t *agent)
 {
-	struct pollfd	pfds[4];
+	struct pollfd	pfds[3 + AGENT_MAX_LISTEN];
 	int		nfds;
 	int		session_idx;
-	int		listen_idx;
+	int		listen_base;
+	int		listen_count;
+	int		i;
 	int		ret;
 
 	while (g_running)
@@ -704,13 +862,17 @@ static int	run_agent(agent_t *agent)
 		pfds[nfds].events = POLLIN;
 		nfds++;
 
-		listen_idx = -1;
-		if (agent->passive && agent->listen_fd >= 0)
+		listen_base = nfds;
+		listen_count = 0;
+		if (agent->passive)
 		{
-			listen_idx = nfds;
-			pfds[nfds].fd = agent->listen_fd;
-			pfds[nfds].events = POLLIN;
-			nfds++;
+			for (i = 0; i < agent->num_listen_fds; i++)
+			{
+				pfds[nfds].fd = agent->listen_fds[i];
+				pfds[nfds].events = POLLIN;
+				nfds++;
+				listen_count++;
+			}
 		}
 
 		session_idx = -1;
@@ -788,9 +950,13 @@ static int	run_agent(agent_t *agent)
 				}
 			}
 
-			if (listen_idx >= 0 && pfds[listen_idx].revents)
+			for (i = 0; i < listen_count; i++)
 			{
-				accept_session(agent);
+				if (pfds[listen_base + i].revents)
+				{
+					accept_session(agent,
+						pfds[listen_base + i].fd);
+				}
 			}
 		}
 
@@ -841,27 +1007,73 @@ static void	usage(void)
 "           (--connect <host:port> | --listen <host:port>)\n"
 "           [--keepalive <seconds>] [--segment-mtu <bytes>]\n"
 "           [--tls-cert <pem> --tls-key <pem> --tls-ca <pem>]\n"
-"           [--tls-noverify]\n");
+"           [--tls-noverify]\n"
+"\n"
+"IPv6 addresses must be bracketed: [2001:db8::2]:4556, [::1]:4556.\n"
+"For --listen, ':4556' or '*:4556' binds every available address\n"
+"family, and '[::]:4556' or '0.0.0.0:4556' binds just the one.\n");
 }
+
+/*	Split "<host>:<port>" into its parts.
+ *
+ *	An IPv6 address must be bracketed, since an unbracketed one is
+ *	ambiguous with the port separator.  For a listen endpoint the
+ *	host may be empty (":4556") or "*" to mean "any address", which
+ *	is returned as an empty host string.				*/
 
 static int	parse_hostport(const char *arg, char *host, size_t host_len,
 			int *port)
 {
-	const char	*colon = strrchr(arg, ':');
+	const char	*portsep;
 
-	if (colon == NULL || colon == arg)
+	if (*arg == '[')			/*	[IPv6]:port	*/
 	{
-		return -1;
+		const char	*rbracket = strchr(arg, ']');
+
+		if (rbracket == NULL || rbracket[1] != ':')
+		{
+			return -1;
+		}
+
+		if ((size_t)(rbracket - arg - 1) >= host_len)
+		{
+			return -1;
+		}
+
+		memcpy(host, arg + 1, rbracket - arg - 1);
+		host[rbracket - arg - 1] = '\0';
+		portsep = rbracket + 1;
+	}
+	else
+	{
+		portsep = strrchr(arg, ':');
+		if (portsep == NULL)
+		{
+			return -1;
+		}
+
+		/*	More than one colon and no brackets: an IPv6
+		 *	literal that the user must bracket.		*/
+
+		if (strchr(arg, ':') != portsep)
+		{
+			return -1;
+		}
+
+		if ((size_t)(portsep - arg) >= host_len)
+		{
+			return -1;
+		}
+
+		memcpy(host, arg, portsep - arg);
+		host[portsep - arg] = '\0';
+		if (strcmp(host, "*") == 0)
+		{
+			host[0] = '\0';		/*	Any address.	*/
+		}
 	}
 
-	if ((size_t)(colon - arg) >= host_len)
-	{
-		return -1;
-	}
-
-	memcpy(host, arg, colon - arg);
-	host[colon - arg] = '\0';
-	*port = atoi(colon + 1);
+	*port = atoi(portsep + 1);
 	if (*port <= 0 || *port > 65535)
 	{
 		return -1;
@@ -878,7 +1090,7 @@ int	main(int argc, char *argv[])
 	int		tls_verify = 1;
 	int		exit_code;
 
-	agent.listen_fd = -1;
+	agent.num_listen_fds = 0;
 	agent.next_rx_xfer_id = 1;
 
 	for (i = 1; i < argc; i++)
@@ -897,6 +1109,15 @@ int	main(int argc, char *argv[])
 		{
 			if (parse_hostport(argv[++i], agent.host,
 					sizeof(agent.host), &agent.port) < 0)
+			{
+				usage();
+				return 1;
+			}
+
+			/*	Unlike --listen, a peer to dial cannot be
+			 *	the "any address" wildcard.		*/
+
+			if (agent.host[0] == '\0')
 			{
 				usage();
 				return 1;
@@ -974,11 +1195,30 @@ int	main(int argc, char *argv[])
 
 	tcpclv4_tls_init();
 
-	logmsg("starting: duct=%s node=%s %s %s:%d%s", agent.duct_name,
-			agent.node_id,
-			agent.passive ? "listening on" : "connecting to",
-			agent.host, agent.port,
-			agent.use_tls ? " (TLS)" : "");
+	{
+		char	endpoint[300];
+
+		/*	Bracket an IPv6 literal so "::1" and its port
+		 *	do not run together in the log.			*/
+
+		if (strchr(agent.host, ':') != NULL)
+		{
+			snprintf(endpoint, sizeof(endpoint), "[%s]:%d",
+					agent.host, agent.port);
+		}
+		else
+		{
+			snprintf(endpoint, sizeof(endpoint), "%s:%d",
+					agent.host[0] ? agent.host : "*",
+					agent.port);
+		}
+
+		logmsg("starting: duct=%s node=%s %s %s%s", agent.duct_name,
+				agent.node_id,
+				agent.passive ? "listening on"
+					: "connecting to", endpoint,
+				agent.use_tls ? " (TLS)" : "");
+	}
 
 	if (attach_pools(&agent) < 0
 	|| connect_ctrl_channels(&agent) < 0)
@@ -986,7 +1226,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (agent.passive && open_listen_socket(&agent) < 0)
+	if (agent.passive && open_listen_sockets(&agent) < 0)
 	{
 		return 1;
 	}
@@ -1039,10 +1279,7 @@ int	main(int argc, char *argv[])
 	}
 
 	drop_session(&agent);
-	if (agent.listen_fd >= 0)
-	{
-		close(agent.listen_fd);
-	}
+	close_listen_sockets(&agent);
 
 	ctrl_disconnect(&agent.tx_ctrl);
 	ctrl_disconnect(&agent.rx_ctrl);

@@ -346,6 +346,33 @@ The agent waits up to 30 seconds for the ION daemons' pools and control
 sockets to appear, so start order is flexible.  An active-side agent
 retries the peer connection every 5 seconds until it succeeds.
 
+### Address families
+
+The duct name is an opaque IPC key,
+so the address family is chosen entirely by the agent's endpoint
+argument; no ION configuration changes between IPv4 and IPv6.
+An IPv6 address must be bracketed.
+
+```bash
+# IPv6 peer, and an IPv6 listener:
+tcpclv4_agent --duct peer3 --node-id ipn:2.0 --connect [2001:db8::3]:4556
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen [::]:4556
+
+# Dual-stack: one listener accepting peers of either family.
+tcpclv4_agent --duct peer2 --node-id ipn:3.0 --listen :4556
+```
+
+For `--listen`, an empty or `*` host binds every address family the host
+provides -- one socket each for IPv4 and IPv6 -- while an explicit
+`0.0.0.0` or `[::]` binds only that one.
+`IPV6_V6ONLY` is set on every IPv6 socket,
+so the two families stay disjoint and can share a port;
+an IPv4 peer is never reported as an IPv4-mapped IPv6 address.
+
+A wildcard listen succeeds as long as one family binds,
+so a host without IPv6 still runs (the unavailable family is logged).
+An explicit address that cannot be bound is a startup failure.
+
 ### Tests
 
 - `tcpclv4_test_msg`, `tcpclv4_test_tls`, `tcpclv4_test_session` --

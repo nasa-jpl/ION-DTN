@@ -271,12 +271,29 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	if (tcp4_apply_pool_overrides(&cfg, getenv("TCP4_POOL_SLOTS"),
+			getenv("TCP4_POOL_SLOT_BYTES")) < 0)
+	{
+		putErrmsg("tcp4cli: invalid pool geometry override.",
+				ductName);
+		return -1;
+	}
+
 	if (pool_create(cfg.rx_pool_name, cfg.num_slots,
 			cfg.slot_data_capacity, &rx_pool) < 0)
 	{
 		putErrmsg("tcp4cli: can't create RX pool.",
 				cfg.rx_pool_name);
 		return -1;
+	}
+
+	{
+		char	geo[128];
+
+		isprintf(geo, sizeof geo, "[i] tcp4cli RX pool '%s': %u slots "
+				"x %u bytes", cfg.rx_pool_name, cfg.num_slots,
+				cfg.slot_data_capacity);
+		writeMemo(geo);
 	}
 
 	if (ctrl_server_create(&rx_ctrl, cfg.rx_ctrl_path,

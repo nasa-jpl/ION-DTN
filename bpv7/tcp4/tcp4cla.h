@@ -103,7 +103,7 @@ typedef struct
 
 typedef struct
 {
-	Object		bundleZco;
+	SdrObject	bundleZco;
 	uint64_t	xfer_id;
 	int		in_use;
 } Tcp4InFlight;
@@ -119,6 +119,21 @@ typedef struct
 
 extern int	tcp4_parse_config(const char *ductName, Tcp4Config *cfg);
 
+/*	Optionally override the shared-memory pool geometry that
+ *	tcp4_parse_config defaulted from the compile-time constants.
+ *	numSlotsStr and slotSizeStr (slot size in BYTES) are the string
+ *	values of the TCP4_POOL_SLOTS and TCP4_POOL_SLOT_BYTES
+ *	environment variables (either may be NULL to keep the default).
+ *	Environment is used rather than CLA command-line arguments
+ *	because ION appends the duct name to a CLA's argument list.
+ *	Enforces num_slots >= 2 and slot size >= 64KB.  The pool is
+ *	still a single fixed allocation made once at daemon start;
+ *	this only selects its size.  Returns 0 on success (including
+ *	"nothing to override"), -1 on an invalid value.			*/
+
+extern int	tcp4_apply_pool_overrides(Tcp4Config *cfg,
+			const char *numSlotsStr, const char *slotSizeStr);
+
 /*	In-flight transfer table management.
  *
  *	These functions are NOT thread-safe; callers must hold
@@ -127,9 +142,9 @@ extern int	tcp4_parse_config(const char *ductName, Tcp4Config *cfg);
 extern void	tcp4_inflight_init(Tcp4InFlight *table, int size);
 
 extern int	tcp4_inflight_add(Tcp4InFlight *table, int size,
-			Object bundleZco, uint64_t xfer_id);
+			SdrObject bundleZco, uint64_t xfer_id);
 
-extern Object	tcp4_inflight_remove(Tcp4InFlight *table, int size,
+extern SdrObject tcp4_inflight_remove(Tcp4InFlight *table, int size,
 			uint64_t xfer_id);
 
 /*	Fail all in-flight transfers by calling
@@ -146,7 +161,7 @@ extern void	tcp4_inflight_fail_all(Tcp4InFlight *table, int size);
  *
  *	Returns bytes written (>= 0) on success, -1 on error.		*/
 
-extern int	tcp4_extract_bundle(Sdr sdr, Object bundleZco,
+extern int	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
 			IonTransferPool *pool, int slot_idx);
 
 #ifdef __cplusplus
