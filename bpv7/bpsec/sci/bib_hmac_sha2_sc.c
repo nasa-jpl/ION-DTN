@@ -192,7 +192,16 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	/* Cleanup tracked resources including preamble */
 	bpsec_ctx_abort(&ctx);
 
-	return (result == 1);
+	if (result == 1)
+	{
+		return 1;
+	}
+	else if (result == 0)
+	{
+		return 0;
+	}
+
+	return ERROR;
 }
 
 
@@ -254,8 +263,9 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 
 	if(state->scRawKey.scValLength == 0)
 	{
-		/* Track the wrappedKey allocation immediately */
-		sc_value *wrappedKey = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+		/* Do not track wrappedKey in ctx once inserted into
+		 * extraParms; bpsec_scv_lystCbDel owns its cleanup. */
+		sc_value *wrappedKey = (sc_value *) MTAKE(sizeof(sc_value));
 		if (wrappedKey == NULL)
 		{
 			bpsec_ctx_abort(&ctx);
@@ -265,6 +275,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BHSSC_PARM_LTK_NAME, BPSEC_BHSSC_PARM_WRAPPED_KEY, sha_variant, &key, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", sha_variant);
+			MRELEASE(wrappedKey);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -276,6 +287,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 			BPSEC_DEBUG_ERR("%s", "Unable to store wrapped key.");
 			bpsec_scv_clear(0, &(state->scRawKey));
 			bpsec_scv_clear(0, wrappedKey);
+			MRELEASE(wrappedKey);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -346,8 +358,8 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		return ERROR;
 	}
 
-	/* Track the digest allocation */
-	digest = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+	/* Allocate digest; state->scStResults owns it once inserted. */
+	digest = (sc_value *) MTAKE(sizeof(sc_value));
 	if(digest == NULL)
 	{
 		BPSEC_DEBUG_ERR("%s", "Unable to allocate digest.");
@@ -361,6 +373,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	{
 		BPSEC_DEBUG_ERR("%s", "Unable to append new result.");
 		bpsec_scv_clear(0, digest); /* Also handles freeing csi_result.contents */
+		MRELEASE(digest);
 		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}

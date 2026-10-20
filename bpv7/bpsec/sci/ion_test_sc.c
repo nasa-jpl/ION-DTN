@@ -781,8 +781,11 @@ int bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb,
 	if (length < 1)
 	{
 		bpsec_scv_clear(0, &key_value);
-		zco_destroy(state->sdr, targetZco);
-		result = -1;
+		if (targetZco != 0)
+		{
+			zco_destroy(state->sdr, targetZco);
+		}
+		return ERROR;
 	}
 
 	/* Step 4 - Calculate a signature over the target block and verify it. */
@@ -799,8 +802,16 @@ int bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb,
 	result = csi_sign_finish(BPSEC_ITSC_BIB_SUITE, csi_ctx, &csi_digest, CSI_SVC_VERIFY);
 	csi_ctx_free(BPSEC_ITSC_BIB_SUITE, csi_ctx);
 
-	BPSEC_DEBUG_PROC("Returning %d.", (result == 1))
-	return (result == 1);
+	if (result == 1)
+	{
+		return 1;
+	}
+	else if (result == 0)
+	{
+		return 0;
+	}
+
+	return ERROR;
 }
 
 

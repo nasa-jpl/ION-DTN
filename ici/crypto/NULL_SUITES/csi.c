@@ -44,6 +44,12 @@
 char *crypto_suite_name = "NULL_SUITES";
 char gCsiMsg[GMSG_BUFLEN];      /*  Debug message buffer.  */
 
+static uint8_t g_csi_init = 0;
+
+#define CSI_CHK              \
+	if (g_csi_init == 0) \
+		csi_init();
+
 /************************************************************************
  *                        NULL Utility Functions                        *
  * *********************************************************************/
@@ -55,6 +61,8 @@ int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
 	(void) wrap;
 	(void) kek;
 	(void) input;
+
+	CSI_CHK
 
 	output->contents = MTAKE(NCS_LEN_VAL);
 	output->len = NCS_LEN_VAL;
@@ -107,12 +115,16 @@ static int8_t csi_memAlloc(uint8_t **mem, int32_t *len)
 
 int csi_init(void)
 {
-    return 1;
+	g_csi_init = 1;
+	writeMemo("[!] WARNING: ION compiled with NULL_SUITES; "
+		  "BPSec cryptographic signing/verification is a no-op.");
+	return 1;
 }
 
 void csi_teardown(void)
 {
-    return;
+	g_csi_init = 0;
+	return;
 }
 
 /******************************************************************************
@@ -144,6 +156,8 @@ uint32_t csi_blocksize(csi_csid_t suite)
 {
 	/* Parameter intentionally unused. */
 	(void) suite;
+
+	CSI_CHK
 
 	return NCS_BLOCKSIZE;
 }
@@ -761,10 +775,13 @@ csi_val_t csi_rand(csi_csid_t suite, uint32_t len)
 uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 {
 	uint8_t *context = NULL;
-	int32_t	 temp_len = csi_ctx_len(suite);
+	int32_t	 temp_len = 0;
 
 	/* Parameter intentionally unused. */
 	(void) svc;
+
+	CSI_CHK
+	temp_len = csi_ctx_len(suite);
 
 	if (csi_memAlloc(&context, &temp_len) <= 0)
 	{
@@ -877,18 +894,21 @@ int8_t csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svci
 
 int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_svcid_t svc)
 {
-	/* Parameters intentionally unused. */
+	/* Parameter intentionally unused. */
 	(void) suite;
-	(void) svc;
 
 	CHKERR(context);
+	CHKERR(result);
 
 #ifdef NULL_FAIL
 	return 0;
 #endif
 
-	/* Free the dummy context allocated during csi_sign_start */
-	MRELEASE(context);
+	/* Note: context is freed by the caller via csi_ctx_free(). */
+	if (svc == CSI_SVC_VERIFY)
+	{
+		return 1;
+	}
 
 	result->len = NCS_LEN_VAL;
 
@@ -930,13 +950,18 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 	(void) suite;
 	(void) input;
 	(void) key;
-	(void) svc;
 
+	CSI_CHK
 	CHKERR(result);
 
 #ifdef NULL_FAIL
 	return 4;
 #endif
+
+	if (svc == CSI_SVC_VERIFY)
+	{
+		return 1;
+	}
 
 	memset(result, 0, sizeof(csi_val_t));
 
@@ -971,9 +996,8 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 
 int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms)
 {
-	/* Parameters intentionally unused. */
+	/* Parameter intentionally unused. */
 	(void) suite;
-	(void) svc;
 
 	CHKERR(context);
 	CHKERR(parms);
@@ -981,8 +1005,11 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 #ifdef NULL_FAIL
 	return 0;
 #endif
-	/* Free the dummy context allocated during csi_sign_start */
-	MRELEASE(context);
+	/* Note: context is freed by the caller via csi_ctx_free(). */
+	if (svc == CSI_SVC_DECRYPT)
+	{
+		return 1;
+	}
 
 	parms->icv.len = NCS_ICV_LEN;
 	return csi_memAlloc(&parms->icv.contents, &parms->icv.len);
@@ -1026,6 +1053,7 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 			suite, svc, (uaddr) parms, (unsigned long) key.len,
 			(unsigned long) input.len, (uaddr) output);
 
+	CSI_CHK
 	CHKERR(parms);
 	CHKERR(output);
 
@@ -1057,9 +1085,17 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 		break;
 	}
 
-	/* TODO: Check return value. */
-	parms->icv.len = NCS_ICV_LEN;
-	csi_memAlloc(&parms->icv.contents, &parms->icv.len);
+	if (retval == 1 && svc == CSI_SVC_ENCRYPT)
+	{
+		parms->icv.len = NCS_ICV_LEN;
+		if (csi_memAlloc(&parms->icv.contents, &parms->icv.len) == ERROR)
+		{
+			MRELEASE(output->contents);
+			output->contents = NULL;
+			output->len = 0;
+			return ERROR;
+		}
+	}
 
 	CSI_DEBUG_PROC("- csi_crypt_full ->%d", retval);
 	return retval;
@@ -1090,6 +1126,7 @@ csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 {
 	csi_val_t result;
 
+	CSI_CHK
 	result.len = csi_crypt_parm_get_len(suite, parmid);
 	result.contents = NULL;
 

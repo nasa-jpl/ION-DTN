@@ -463,7 +463,6 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
 	if((parms->icv.contents = MTAKE(parms->icv.len)) == NULL)
 	{
 		BPSEC_DEBUG_ERR("Unable to allocate an ICV of length %d.", parms->icv.len);
-		csi_cipherparms_free(*parms);
 		return ERROR;
 	}
 
@@ -686,8 +685,9 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 	if(state->scRawKey.scValLength == 0)
 	{
-		/* Track the wrappedKey allocation immediately */
-		sc_value *wrappedKey = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+		/* Do not track wrappedKey in ctx once inserted into
+		 * extraParms; bpsec_scv_lystCbDel owns its cleanup. */
+		sc_value *wrappedKey = (sc_value *) MTAKE(sizeof(sc_value));
 		if (wrappedKey == NULL)
 		{
 			bpsec_ctx_abort(&ctx);
@@ -697,6 +697,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BAGSC_PARM_LTK_NAME, BPSEC_BAGSC_PARM_WRAPPED_KEY, aes_variant, &key_value, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", aes_variant);
+			MRELEASE(wrappedKey);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -707,6 +708,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		{
 			BPSEC_DEBUG_ERR("%s", "Unable to store wrapped key.");
 			bpsec_scv_clear(0, &(state->scRawKey));
+			bpsec_scv_clear(0, wrappedKey);
+			MRELEASE(wrappedKey);
 			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
@@ -784,8 +787,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 	if((result != ERROR) && (csi_parms.icv.len != 0))
 	{
-		/* Track the tag immediately */
-		sc_value *tag = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+		/* Allocate tag; state->scStResults owns it once inserted. */
+		sc_value *tag = (sc_value *) MTAKE(sizeof(sc_value));
 
 		if(tag == NULL)
 		{
@@ -795,12 +798,16 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		else
 		{
 			*tag = bpsec_scv_memCsiConvert(csi_parms.icv, SC_VAL_TYPE_RESULT, BPSEC_BAGSC_RESULT_TAG);
+			/* Transfer icv.contents ownership to tag. */
+			csi_parms.icv.contents = NULL;
+			csi_parms.icv.len = 0;
 
 			if((lyst_insert_last(state->scStResults, tag)) == NULL)
 			{
 				BPSEC_DEBUG_ERR("%s",
 						"Unable to append new result.");
 				bpsec_scv_clear(0, tag);
+				MRELEASE(tag);
 				result = ERROR;
 			}
 		}

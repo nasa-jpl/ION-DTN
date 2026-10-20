@@ -546,9 +546,11 @@ static int canonicalizePrimaryBlock(Bundle *bundle, SdrObject *zcoOut)
 	switch (zco)
 	{
 	case ((SdrObject) ERROR):
+		sdr_free(sdr, blkBytes);
 		return -1;
 
 	case 0:
+		sdr_free(sdr, blkBytes);
 		putErrmsg("ZCO failure in primary block canonicalization.",
 				NULL);
 		return 0;	/*	No canonicalization.		*/
@@ -693,12 +695,14 @@ static int canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
 	/*	Wrap canonicalized block data in a ZCO for processing.	*/
 
 	zco = zco_create(sdr, ZcoSdrSource, blk.bytes, 0, 0 - blk.length, ZcoOutbound);
-	switch (*zcoOut)
+	switch (zco)
 	{
 	case ((SdrObject) ERROR):
+		sdr_free(sdr, blk.bytes);
 		return -1;
 
 	case 0:
+		sdr_free(sdr, blk.bytes);
 		putErrmsg("ZCO failure in extension block canonicalization.",
 				NULL);
 		return 0;	/*	No canonicalization.		*/

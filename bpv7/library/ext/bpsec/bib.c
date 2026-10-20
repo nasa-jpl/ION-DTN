@@ -220,7 +220,7 @@ void bib_handle_rx_error(AcqWorkArea *work, Bundle *bundle, BpSecPolRule *polRul
 		{
 			work->authentic = 0;
 		}
-		else if(tgtId == PayloadBlk)
+		else
 		{
 			bundle->altered = 1;
 		}

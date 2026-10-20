@@ -322,6 +322,7 @@ mbedtls_md_context_t *hsha_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_sv
 		break;
 	case CSTYPE_HMAC_SHA512:
 		md_type = MBEDTLS_MD_SHA512;
+		break;
 	default:
 		break;
 	}
@@ -689,7 +690,8 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 {
 	const mbedtls_md_info_t *md_info;
 	mbedtls_md_type_t md_type = MBEDTLS_MD_NONE;
-	uint8_t retval = ERROR;
+	int8_t			 retval = ERROR;
+	int			 mbed_ret = 0;
 	uint32_t digest_len = 0;
 
 	CHKERR(digest);
@@ -706,6 +708,9 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 		break;
 	case CSTYPE_HMAC_SHA384:
 		md_type = MBEDTLS_MD_SHA384;
+		break;
+	case CSTYPE_HMAC_SHA512:
+		md_type = MBEDTLS_MD_SHA512;
 		break;
 	default:
 		break;
@@ -742,12 +747,19 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 			return ERROR;
 		}
 
-		if((retval = mbedtls_md_hmac(md_info, key.contents, key.len, input.contents, input.len, digest->contents)) != 0)
+		if ((mbed_ret = mbedtls_md_hmac(md_info, key.contents, key.len,
+				     input.contents, input.len,
+				     digest->contents)) != 0)
 		{
-			CSI_DEBUG_ERR("x hsha_sign_full: Error signing: %d.", retval);
+			CSI_DEBUG_ERR("x hsha_sign_full: Error signing: %d.",
+					mbed_ret);
 			MRELEASE(digest->contents);
+			digest->contents = NULL;
+			digest->len = 0;
 			return ERROR;
 		}
+
+		retval = 1;
 	}
 
 	/* If we are verifying, calculate a local digest and compare it to the
@@ -761,7 +773,7 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 		if(digest->len < 0 || (uint32_t)digest->len != digest_len)
 		{
 			CSI_DEBUG_ERR("x hsha_sign_full: Bad digest len. %d != %d.", digest->len, digest_len);
-			return ERROR;
+			return 0;
 		}
 
 		/* Second, Calculate a local digest. */
@@ -772,9 +784,12 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 			return ERROR;
 		}
 
-		if((retval = mbedtls_md_hmac(md_info, key.contents, key.len, input.contents, input.len, loc_digest.contents)) != 0)
+		if ((mbed_ret = mbedtls_md_hmac(md_info, key.contents, key.len,
+				     input.contents, input.len,
+				     loc_digest.contents)) != 0)
 		{
-			CSI_DEBUG_ERR("x hsha_sign_full: Unable to finish signing: %d", retval);
+			CSI_DEBUG_ERR("x hsha_sign_full: Unable to finish signing: %d",
+					mbed_ret);
 			MRELEASE(loc_digest.contents);
 			return ERROR;
 		}

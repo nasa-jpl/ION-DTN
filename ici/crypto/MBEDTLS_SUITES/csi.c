@@ -686,6 +686,7 @@ uint32_t csi_blocksize(csi_csid_t suite)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_blocksize(suite);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -741,6 +742,7 @@ uint32_t csi_ctx_len(csi_csid_t suite)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_ctx_len(suite);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -794,6 +796,7 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return (uint8_t *) hsha_ctx_init(suite, key_info, svc);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -846,6 +849,7 @@ uint8_t  csi_ctx_free(csi_csid_t suite, void *context)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_ctx_free(suite, context);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -896,6 +900,7 @@ uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_sign_res_len(suite, context);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -944,6 +949,7 @@ int8_t csi_sign_start(csi_csid_t suite, void *context)
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_sign_start(suite, context);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -992,6 +998,7 @@ int8_t  csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svc
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			return hsha_sign_update(suite, context, data, svc);
 
 		case CSTYPE_ECDSA_SHA256:
@@ -1047,6 +1054,7 @@ int8_t  csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			retval = hsha_sign_finish(suite, context, result, svc);
 			break;
 
@@ -1114,6 +1122,7 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 		case CSTYPE_HMAC_SHA1:
 		case CSTYPE_HMAC_SHA256:
 		case CSTYPE_HMAC_SHA384:
+		case CSTYPE_HMAC_SHA512:
 			retval = hsha_sign_full(suite, input, key, result, svc);
 			break;
 
