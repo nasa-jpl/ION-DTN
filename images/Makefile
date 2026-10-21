@@ -16,7 +16,7 @@ DOCKER_COMPOSE_VERSION ?= v5.6.0
 # renovate: datasource=github-releases depName=Yelp/dumb-init
 DUMB_INIT_VERSION ?= 1.2.5
 # renovate: datasource=github-releases depName=astral-sh/uv
-UV_VERSION ?= 0.12.23
+UV_VERSION ?= 0.13.1
 
 ARC_VERSION ?= $(shell grep -oP '(?<=appVersion: ")[0-9.]+' ../charts/arc/Chart.yaml)
 
