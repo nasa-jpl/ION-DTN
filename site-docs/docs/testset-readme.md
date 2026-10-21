@@ -178,6 +178,42 @@ tests/my-multi-node-test/
     └── ...
 ```
 
+!!! warning "`localhost` resolution on Solaris"
+
+    On Solaris,
+    `getent hosts` and [`getaddrinfo(3)`](https://docs.oracle.com/cd/E88353_01/html/E37843/getaddrinfo-3c.html)
+    may return inconsistent results
+    because they use different NSS databases:
+
+    -   `getent hosts` queries the `hosts` database (IPv4 only)
+    -   `getaddrinfo()` (used by ION)
+        queries the `ipnodes` database (IPv4 and IPv6)
+
+    Verify what `getaddrinfo(3)` resolves by checking:
+
+    ```console
+    $ getent ipnodes localhost
+    ```
+
+    If this returns `::1` first
+    (because `/etc/hosts` lists `::1 localhost`
+    before `127.0.0.1 localhost`),
+    ION will use IPv6.
+    This is not a problem
+    as long as all ION processes resolve consistently
+    and IPv6 loopback is plumbed (`ipadm show-addr lo0/v6`).
+
+    If you see connection failures between nodes using `localhost`,
+    check the order in `/etc/hosts` and ensure IPv4 comes first:
+
+    ```title="/etc/hosts"
+    127.0.0.1 myhost localhost loghost
+    ::1 myhost localhost
+    ```
+
+    Do not rely on `getent hosts` to diagnose address resolution issues ---
+    always use `getent ipnodes` to see what ION will actually resolve.
+
 ### The `cleanup` script
 
 The `cleanup` script is responsible for two things:

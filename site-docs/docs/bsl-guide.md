@@ -412,29 +412,6 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 Add this to `~/.profile` or `~/.bashrc` for persistence. Without it, `pkg-config --cflags ion` will fail to find `ion.pc` and the test runner will treat the build as native BPSec, excluding all BSL-specific tests.
 
-### Note on `localhost` resolution on Solaris
-
-ION supports both IPv4 and IPv6. The `.bsl` test configs use `127.0.0.1` instead of `localhost` for clarity, but `localhost` works correctly as long as `/etc/hosts` is properly ordered.
-
-**Important:** On Solaris, `getent hosts` and `getaddrinfo()` may return inconsistent results because they use different NSS databases:
-- `getent hosts` → queries the `hosts` database (IPv4 only)
-- `getaddrinfo()` (used by ION) → queries the `ipnodes` database (IPv4 and IPv6)
-
-Users should verify what `getaddrinfo()` actually resolves by checking:
-```bash
-getent ipnodes localhost
-```
-
-If this returns `::1` first (because `/etc/hosts` lists `::1 localhost` before `127.0.0.1 localhost`), ION will use IPv6. This is not a problem as long as all ION processes resolve consistently and IPv6 loopback is plumbed (`ipadm show-addr lo0/v6`).
-
-If you see connection failures between nodes using `localhost`, check the order in `/etc/hosts` and ensure IPv4 comes first:
-```
-127.0.0.1 myhost localhost loghost
-::1 myhost localhost
-```
-
-Do not rely on `getent hosts` to diagnose address resolution issues — always use `getent ipnodes` to see what ION will actually resolve.
-
 ## Troubleshooting
 
 ### `undefined symbol: BSLX_BCB_Execute`
