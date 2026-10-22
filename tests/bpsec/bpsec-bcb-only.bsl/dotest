@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 trap 'killm f' EXIT
 #
 # bpsec-bcb-only.bsl
@@ -30,7 +30,7 @@ killm
 sleep 1
 
 echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
+export ION_NODE_LIST_DIR="$PWD"
 rm -f ./ion_nodes
 
 BSL_KEY_FILE="${PWD}/key_set.json"
@@ -48,39 +48,39 @@ done
 
 PASS=1
 
-cd 2.ipn.ltp
+cd 2.ipn.ltp || return 1
 ionadmin amroc.ionrc
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 ionadmin amroc.ionrc
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 ionadmin amroc.ionrc
 
-cd ../2.ipn.ltp
+cd ../2.ipn.ltp || return 1
 ionadmin ../global.ionrc
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 ionadmin ../global.ionrc
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 ionadmin ../global.ionrc
 
-cd ../2.ipn.ltp
+cd ../2.ipn.ltp || return 1
 ionsecadmin amroc.ionsecrc
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 ionsecadmin amroc.ionsecrc
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 ionsecadmin amroc.ionsecrc
 
-cd ../2.ipn.ltp
+cd ../2.ipn.ltp || return 1
 ltpadmin amroc.ltprc
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 ltpadmin amroc.ltprc
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 ltpadmin amroc.ltprc
 
-cd ../2.ipn.ltp
+cd ../2.ipn.ltp || return 1
 bpadmin amroc.bprc
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 bpadmin amroc.bprc
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 bpadmin amroc.bprc
 
 cd ..
@@ -91,7 +91,7 @@ touch 3.ipn.ltp/3_receive_file.txt
 touch 3.ipn.ltp/3_results.txt
 
 echo "Starting bpsink on node 3..."
-cd 3.ipn.ltp
+cd 3.ipn.ltp || return 1
 bpsink ipn:3.1 >> 3_results.txt &
 cd ..
 
@@ -100,8 +100,8 @@ sleep 1
 #############
 # Test 1: BCB on payload, node 2->3
 
-cd 2.ipn.ltp
-echo -e "\n\n*****TEST 1*****"
+cd 2.ipn.ltp || return 1
+printf "\n\n*****TEST 1*****\n"
 echo "BCB on payload block, node 2->3. Should be delivered (decrypted)."
 sleep ${TIMETODISPLAYTEXT}
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "bcb_payload_test1" rcv,ct,fwd,dlv,del
@@ -130,17 +130,17 @@ touch 4.ipn.ltp/4_receive_file.txt
 touch 4.ipn.ltp/4_results.txt
 
 echo "Starting bpsink on node 4..."
-cd 4.ipn.ltp
+cd 4.ipn.ltp || return 1
 bpsink ipn:4.1 >> 4_results.txt &
 cd ..
 
 sleep 1
 
-echo -e "\n\n*****TEST 2*****"
+printf "\n\n*****TEST 2*****\n"
 echo "BCB on payload, node 2->4 via relay. Node 3 verifies BCB (no decrypt). Should be delivered."
 sleep ${TIMETODISPLAYTEXT}
 
-cd 2.ipn.ltp
+cd 2.ipn.ltp || return 1
 bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "bcb_relay_test2" rcv,ct,fwd,dlv,del
 cd ..
 
@@ -161,19 +161,20 @@ fi
 ##############################
 # Test 3: Large file with BCB on payload, node 2->3
 
-echo -e "\n\n*****TEST 3*****"
+printf "\n\n*****TEST 3*****\n"
 echo "Large ~100KB file with BCB on payload, node 2->3. Should be delivered intact."
 sleep ${TIMETODISPLAYTEXT}
 
-cd 3.ipn.ltp
+cd 3.ipn.ltp || return 1
 bprecvfile ipn:3.2 &
 cd ..
 
 sleep 1
 
-cd 2.ipn.ltp
+cd 2.ipn.ltp || return 1
 
-perl -e 'print "A" x (100 * 1024)' > hugefile.big
+send_size=$((100 * 1024))
+perl -e "print 'A' x $send_size" > hugefile.big
 
 bpsendfile ipn:2.1 ipn:3.2 hugefile.big
 
@@ -181,18 +182,10 @@ sleep 15
 
 cd ..
 
-PROGRAMTEST="stat"
-RESULTS=$(which ${PROGRAMTEST} 2>/dev/null)
-if [ -z "${RESULTS}" ]; then
-    RECV_SIZE=$(ls -1l 3.ipn.ltp/testfile1 2>/dev/null | sed 's/ [ ]*/ /g' | cut -d' ' -f5)
-    SEND_SIZE=$(ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5)
-else
-    RECV_SIZE=$(stat -c %s 3.ipn.ltp/testfile1 2>/dev/null)
-    SEND_SIZE=$(stat -c %s 2.ipn.ltp/hugefile.big)
-fi
+recv_size=$(wc -c <3.ipn.ltp/testfile1)
 
-echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
-if [ "$RECV_SIZE" = "$SEND_SIZE" ]; then
+echo "Receive size: $recv_size; Send size: $send_size"
+if [ "$recv_size" -eq "$send_size" ]; then
     echo "SUCCESS (test 3)"
 else
     echo "FAIL (test 3)"
@@ -206,11 +199,11 @@ rm -f 3.ipn.ltp/testfile1
 # END OF TESTS
 
 echo "Stopping ION..."
-cd 2.ipn.ltp
+cd 2.ipn.ltp || return 1
 ./ionstop &
-cd ../3.ipn.ltp
+cd ../3.ipn.ltp || return 1
 ./ionstop &
-cd ../4.ipn.ltp
+cd ../4.ipn.ltp || return 1
 ./ionstop &
 
 cd ..

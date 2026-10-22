@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 bpadmin		.
 sleep 1
 ltpadmin	.
