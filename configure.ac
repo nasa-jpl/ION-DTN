@@ -597,7 +597,7 @@ AM_CONDITIONAL([UNIBO_CGR], [test "x$enable_unibo_cgr" = xyes])
 AC_ARG_ENABLE([manpages],
   [AS_HELP_STRING([--disable-manpages],[disable manpage creation])],
   [AS_CASE(["$enableval"],
-     [yes|no], [],
+     [yes|no], [enable_man_pages=$enableval],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-manpages])])],
   [enable_man_pages=yes])
 AS_IF([test "x$enable_man_pages" != xno],
@@ -1203,12 +1203,11 @@ AC_CHECK_LIB(
   [AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --with-ncurses to turn on this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]))]
 )
 
-# Check for programs to build documentation
-AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
-if test "$POD_DOCUMENTATION" = 1; then
-  echo "ERROR: You need to have pod2man for documentation."
-  exit -1
-fi
+# pod2man/pod2html are only needed when building man pages
+AM_COND_IF([ENABLE_MANPAGES],
+  [AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1])
+   AS_IF([test "x$POD_DOCUMENTATION" = x1],
+     [AC_MSG_ERROR([pod2man is required to build man pages; install it (the perl package on Debian/Ubuntu, perl-podlators on RHEL) or re-run configure with --disable-manpages])])])
 
 
 
