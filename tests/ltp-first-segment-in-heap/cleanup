@@ -1,0 +1,6 @@
+#!/bin/sh
+cd "$(dirname "$0")" || exit 1
+export ION_NODE_LIST_DIR="$PWD"
+killm f
+rm -f ion_nodes node1/testfile node1/ion.log node1/node1.stdout
+rm -f node2/testfile1 node2/ion.log node2/node2.stdout

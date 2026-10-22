@@ -1,0 +1,48 @@
+#!/bin/sh
+trap 'kill $recv_pid 2>/dev/null; killm f' EXIT
+#
+# Verify that an LTP block fitting inside receiver's heap is not discarded.
+#
+
+. ../test_utils.sh
+
+./cleanup
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR="$PWD"
+rm -f ./ion_nodes
+
+for N in 1 2; do
+    cd "node${N}" || exit 1
+    ionstart -I "node${N}.rc" >node$N.stdout 2>&1
+    ../../../system_up -i "p 30" -l "p 30" -b "p 30"
+    if [ $? -ne 3 ]; then
+        echo "Node $N not started: Aborting Test"
+        exit 1
+    fi
+    cd ..
+done
+
+dd if=/dev/null of=node1/testfile bs=1 seek=4095
+
+cd node2 || exit 1
+bprecvfile ipn:2.1 &
+recv_pid=$!
+cd ..
+
+# shellcheck disable=SC2329
+fileArrived() {
+    cmp -s node1/testfile node2/testfile1
+}
+
+echo "Sending the file from node 1 to node 2..."
+(cd node1 && bpsendfile ipn:1.1 ipn:2.1 testfile)
+
+if waitForPredicate fileArrived 20000; then
+    echo "OK: the file arrived complete."
+    exit 0
+fi
+
+echo "FAIL: the file did not arrive complete."
+ls -l node2/testfile1 2>/dev/null
+exit 1

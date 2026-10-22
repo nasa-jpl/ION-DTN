@@ -1,0 +1,32 @@
+## begin ionadmin
+1 1 node1.ionconfig
+s
+a range +0 +600 1 2 0
+a contact +0 +600 1 2 10000
+a contact +0 +600 2 1 10000
+## end ionadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin
+
+## begin ltpadmin
+1 300
+m heapmax 4096
+a span 2 300 300 1400 250 1 'udplso 127.0.0.1:2113'
+a seat 'udplsi 127.0.0.1:1113'
+w 1
+s
+## end ltpadmin
+
+## begin bpadmin
+1
+a scheme ipn ipnfw ipnadminep
+a endpoint ipn:1.1 x
+a protocol ltp
+a induct ltp 1 ltpcli
+a outduct ltp 2 ltpclo
+a plan ipn:2.0
+a planduct ipn:2.0 ltp 2
+s
+## end bpadmin

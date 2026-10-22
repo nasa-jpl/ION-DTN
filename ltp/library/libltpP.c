@@ -6809,11 +6809,9 @@ static int acceptRedContent(LtpDB *ltpdb, SdrObject *sessionObj,
 		 *	file deleted.  Late/retransmitted segments
 		 *	arriving after delivery are redundant and must
 		 *	not attempt to access the (possibly deleted)
-		 *	file.  Similarly, if the blockFileRef has been
-		 *	destroyed (set to 0 by clearImportSession), the
-		 *	file is gone and no further writes are possible.	*/
+		 *	file.						*/
 
-		if (sessionBuf->delivered || sessionBuf->blockFileRef == 0)
+		if (sessionBuf->delivered)
 		{
 #if LTPDEBUG
 putErrmsg("Discarded late segment: block already delivered.", itoa(sessionNbr));
