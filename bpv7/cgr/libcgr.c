@@ -1358,6 +1358,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		earliestEndTime = MAX_TIME;
 		contact = finalContact;
+		firstContact = finalContact;
 		while (contact)
 		{
 			work = (CgrContactNote *) psp(ionwm,
