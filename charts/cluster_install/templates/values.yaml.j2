@@ -364,7 +364,7 @@ gha-runner-scale-set-5:
               memory: "384Mi"
             limits:
               cpu: "1000m"
-              memory: "1.5Gi"
+              memory: "3Gi"
           volumeMounts:
             {{ shared_artifact_mount() | indent(12) }}
             {{ container_build_mounts() | indent(12) }}
