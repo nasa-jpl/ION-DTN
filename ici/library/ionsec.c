@@ -239,9 +239,7 @@ static SecVdb	*_secvdb(char **name)
 		}
 
 		vdb = (SecVdb *) psp(wm, vdbAddress);
-#if !USING_BSL
-		vdb->bpsecPolicyRules = 0;
-#endif
+		memset(vdb, 0, sizeof(*vdb));
 		vdb->publicKeys = sm_rbt_create(wm);
 		if (vdb->publicKeys == 0)
 		{
