@@ -16,6 +16,7 @@
  */
 #include "auth.h"
 #include "crypto.h"
+#include "ionsec.h"
 
 #define	SHA1_HASH_LENGTH	(10)
 
@@ -24,37 +25,60 @@ static unsigned char	null_key[20] =
 				0xbe, 0xd1, 0x22, 0x07, 0x80, 0x89, 0x41, 0x15,
 				0x50, 0x68, 0xf7, 0x38};
 
+/*	The sec_get_*_key() functions assert CHKERR(*keyBufferLen > 0),
+ *	so the initial size probe must offer a real (if tiny) buffer.
+ *	They report the key's actual size by revising the buffer length
+ *	upward and returning 0; a length left unchanged means no such
+ *	key.  On failure these helpers leave *keyLength 0 and *keyValue
+ *	NULL, which is what every caller tests before using either.	*/
+
 static void	getSymmetricKeyForRule(char *keyName, int *keyLength,
 			char **keyValue)
 {
+	char	probe[1];
+	int	length = sizeof probe;
+
 	*keyLength = 0;
-	*keyValue = MTAKE(1);
-	oK(sec_get_key(keyName, keyLength, *keyValue));
-	MRELEASE(keyValue);
-	if (*keyLength <= 0)
+	*keyValue = NULL;
+	if (sec_get_key(keyName, &length, probe) > 0
+	|| length <= (int) sizeof probe)
 	{
-		/*	No such key in database, so we can't apply
-		 *	this rule.					*/
+		/*	No such key in database, or a key too short to
+		 *	be usable, so we can't apply this rule.		*/
 
 		writeMemoNote("[!] LTP auth key not found", keyName);
 		return;
 	}
 
-	*keyValue = MTAKE(*keyLength);
-	oK(sec_get_key(keyName, keyLength, *keyValue));
+	*keyValue = MTAKE(length);
+	if (*keyValue == NULL)
+	{
+		putErrmsg("Can't acquire LTP auth key buffer.", keyName);
+		return;
+	}
+
+	if (sec_get_key(keyName, &length, *keyValue) <= 0)
+	{
+		writeMemoNote("[!] LTP auth key not retrieved", keyName);
+		MRELEASE(*keyValue);
+		*keyValue = NULL;
+		return;
+	}
+
+	*keyLength = length;
 }
 
 static void	getPublicKeyForNode(uvast nodeNbr, int *keyLength,
 			char **keyValue)
 {
-	time_t	epoch = 0;
+	time_t		epoch = 0;
+	unsigned char	probe[1];
+	int		length = sizeof probe;
 
 	*keyLength = 0;
-	*keyValue = MTAKE(1);
-	sec_get_public_key(nodeNbr, epoch, keyLength,
-			(unsigned char *) *keyValue);
-	MRELEASE(keyValue);
-	if (*keyLength <= 0)
+	*keyValue = NULL;
+	if (sec_get_public_key(nodeNbr, epoch, &length, probe) > 0
+	|| length <= (int) sizeof probe)
 	{
 		/*	No such key in database, so we can't apply
 		 *	this rule.					*/
@@ -63,20 +87,35 @@ static void	getPublicKeyForNode(uvast nodeNbr, int *keyLength,
 		return;
 	}
 
-	*keyValue = MTAKE(*keyLength);
-	sec_get_public_key(nodeNbr, epoch, keyLength,
-			(unsigned char *) *keyValue);
+	*keyValue = MTAKE(length);
+	if (*keyValue == NULL)
+	{
+		putErrmsg("Can't acquire LTP auth public key buffer.", NULL);
+		return;
+	}
+
+	if (sec_get_public_key(nodeNbr, epoch, &length,
+			(unsigned char *) *keyValue) <= 0)
+	{
+		writeMemo("[!] LTP auth public key not retrieved.");
+		MRELEASE(*keyValue);
+		*keyValue = NULL;
+		return;
+	}
+
+	*keyLength = length;
 }
 
 static void	getPrivateKey(int *keyLength, char **keyValue)
 {
-	time_t	epoch = 0;
+	time_t		epoch = 0;
+	unsigned char	probe[1];
+	int		length = sizeof probe;
 
 	*keyLength = 0;
-	*keyValue = MTAKE(1);
-	sec_get_private_key(epoch, keyLength, (unsigned char *) *keyValue);
-	MRELEASE(keyValue);
-	if (*keyLength <= 0)
+	*keyValue = NULL;
+	if (sec_get_private_key(epoch, &length, probe) > 0
+	|| length <= (int) sizeof probe)
 	{
 		/*	No such key in database, so we can't apply
 		 *	this rule.					*/
@@ -85,8 +124,23 @@ static void	getPrivateKey(int *keyLength, char **keyValue)
 		return;
 	}
 
-	*keyValue = MTAKE(*keyLength);
-	sec_get_private_key(epoch, keyLength, (unsigned char *) *keyValue);
+	*keyValue = MTAKE(length);
+	if (*keyValue == NULL)
+	{
+		putErrmsg("Can't acquire LTP auth private key buffer.", NULL);
+		return;
+	}
+
+	if (sec_get_private_key(epoch, &length,
+			(unsigned char *) *keyValue) <= 0)
+	{
+		writeMemo("[!] LTP auth own private key not retrieved.");
+		MRELEASE(*keyValue);
+		*keyValue = NULL;
+		return;
+	}
+
+	*keyLength = length;
 }
 
 static int	verify_sha1(LtpExtensionInbound *trailerExt,
@@ -94,10 +148,16 @@ static int	verify_sha1(LtpExtensionInbound *trailerExt,
 {
 	Sdnv		sdnv;
 	int		hashOffset;
-	unsigned char	hashValue[32];
-	char		authVal[20];
+	unsigned char	hashValue[20];
+	unsigned char	diff = 0;
+	int		i;
 
-	if (trailerExt->length == 0 || trailerExt->length > sizeof authVal)
+	/*	The MAC length is not negotiable.  Honoring a shorter
+	 *	trailer would let the sender choose how many bytes of
+	 *	the MAC we compare, reducing the ciphersuite to a guess
+	 *	of that many bytes.					*/
+
+	if (trailerExt->length != SHA1_HASH_LENGTH)
 	{
 		return 0;	/*	Invalid hash in trailer field.	*/
 	}
@@ -107,19 +167,22 @@ static int	verify_sha1(LtpExtensionInbound *trailerExt,
 
 	/*	Compute hash over entire segment up to hash value.	*/
 
+	memset(hashValue, 0, sizeof hashValue);
 	hmac_sha1_sign((unsigned char *) keyValue, keyLength,
 			(unsigned char *) segmentRawData, hashOffset,
 			hashValue);
 
-	/*	Compare computed hash to hash value in trailer field.	*/
+	/*	Compare computed hash to hash value in trailer field,
+	 *	in constant time: an early-exit memcmp would leak how
+	 *	many leading bytes of a forged MAC were correct.		*/
 
-	memcpy(authVal, segmentRawData + hashOffset, trailerExt->length);
-	if (memcmp(authVal, hashValue, trailerExt->length) == 0)
+	for (i = 0; i < SHA1_HASH_LENGTH; i++)
 	{
-		return 1;	/*	Segment has been verified.	*/
+		diff |= ((unsigned char *) segmentRawData)[hashOffset + i]
+				^ hashValue[i];
 	}
 
-	return 0;
+	return diff == 0 ? 1 : 0;
 }
 
 static int	verify_sha256(LtpExtensionInbound *trailerExt,
@@ -128,6 +191,7 @@ static int	verify_sha256(LtpExtensionInbound *trailerExt,
 	void		*ctx = NULL;
 	Sdnv		sdnv;
 	int		hashOffset;
+	int		sigLength;
 	unsigned char	hashValue[32];
 	int		result = 0;
 
@@ -137,7 +201,20 @@ static int	verify_sha256(LtpExtensionInbound *trailerExt,
 		return -1;
 	}
 
-	encodeSdnv(&sdnv, rsa_sha256_sign_context_length(ctx));
+	/*	Read exactly as many signature bytes as the key's
+	 *	modulus dictates, and only if the trailer field really
+	 *	carries that many.  The previous fixed count of 512
+	 *	could read past the end of the receive buffer for a
+	 *	segment that ends near it.				*/
+
+	sigLength = rsa_sha256_verify_context_length(ctx);
+	if (sigLength <= 0 || trailerExt->length != (unsigned int) sigLength)
+	{
+		MRELEASE(ctx);
+		return 0;	/*	Invalid signature length.	*/
+	}
+
+	encodeSdnv(&sdnv, sigLength);
 	hashOffset = trailerExt->offset + 1 + sdnv.length;
 
 	/*	Compute hash over entire segment up to hash value.	*/
@@ -147,7 +224,7 @@ static int	verify_sha256(LtpExtensionInbound *trailerExt,
 
 	/*	Verify computed hash against hash in trailer field.	*/
 
-	if (rsa_sha256_verify(ctx, sizeof hashValue, hashValue, 512,
+	if (rsa_sha256_verify(ctx, sizeof hashValue, hashValue, sigLength,
 			(unsigned char *) segmentRawData + hashOffset) == 0)
 	{
 		result = 1;
@@ -170,6 +247,10 @@ static int	tryAuthHeader(LtpRecvSeg* segment, Lyst trailerExtensions,
 	int			result;
 	char			*keyValue;
 	int			keyLength;
+
+	/* Parameters intentionally unused. */
+	(void)segment;
+	(void)headerExt;
 
 	for (trailerElt = lyst_first(trailerExtensions); trailerElt;
 			trailerElt = lyst_next(trailerElt))
@@ -309,8 +390,15 @@ int	verifyAuthExtensionField(LtpRecvSeg* segment, Lyst headerExtensions,
 		{
 			headerExt = (LtpExtensionInbound *)
 					lyst_data(headerElt);
+
+			/*	The ciphersuite number must be compared
+			 *	as unsigned: char is signed on most
+			 *	platforms, so ciphersuite 255 would
+			 *	otherwise read as -1 and never match.	*/
+
 			if (headerExt->tag != 0x00 || headerExt->value == NULL
-			|| *(headerExt->value) != rule->ciphersuiteNbr)
+			|| *((unsigned char *) headerExt->value)
+					!= rule->ciphersuiteNbr)
 			{
 				/*	Skip header extension fields
 				 *	other than authentication
@@ -461,8 +549,12 @@ int	addAuthTrailerExtensionField(LtpXmitSeg *segment)
 			break;
 
 		case 1:
-			getSymmetricKeyForRule(rule->keyName, &keyLength,
-					&keyValue);
+			/*	Must size the trailer with the same key
+			 *	that serializeAuthTrailerExtensionField
+			 *	will sign with, which is our own private
+			 *	key -- not a named symmetric key.	*/
+
+			getPrivateKey(&keyLength, &keyValue);
 			if (keyLength <= 0)
 			{
 				break;
@@ -667,6 +759,7 @@ int serializeAuthTrailerExtensionField(SdrObject fieldObj, LtpXmitSeg *segment,
 	 *	reason, a signature of all zeroes - guaranteed to fail
 	 *	authentication - is attached to the segment.)		*/
 
+	sdr_exit_xn(sdr);
 	memcpy(*cursor, authVal, field->length);
 	(*cursor) += field->length;
 	return 0;
