@@ -9502,6 +9502,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	uvast		crcComputed = 0;
 	int		unreceivedPayload;
 	int		bytesRecd;
+	int		bytesAvailable;
 
 	/*	First acquire CBOR indefinite-length array token.	*/
 
@@ -9613,6 +9614,37 @@ static int	acqFromWork(AcqWorkArea *work)
 	 *	we reload the buffer from the next bundle in the ZCO.	*/
 
 	bytesToSkip = bundle->payload.length;
+	if (bundle->payload.crcType != NoCRC)
+	{
+		if (bundle->payload.crcType == X25CRC16)
+		{
+			crcSize = 2;
+		}
+		else
+		{
+			crcSize = 4;
+		}
+
+		bytesToSkip += (1 + crcSize);
+	}
+
+	/*	Make sure the entire payload block (including CRC,
+	 *	if any) is actually present in the ZCO before we
+	 *	read any of it.  The first byte of payload data is
+	 *	at the start of the buffer, so the bytes available
+	 *	are those still buffered plus those not yet
+	 *	received from the ZCO.					*/
+
+	bytesAvailable = (work->zcoLength - work->zcoBytesReceived)
+			+ work->bytesBuffered;
+	if (bytesToSkip > bytesAvailable)
+	{
+		writeMemoNote("[?] Payload truncated",
+				itoa(bytesToSkip - bytesAvailable));
+		work->malformed = 1;
+		return 0;
+	}
+
 	if (bundle->payload.crcType == NoCRC)
 	{
 		crcComputed = 0;
@@ -9625,13 +9657,10 @@ static int	acqFromWork(AcqWorkArea *work)
 		 *	ZCO; the buffer in the AcqWorkArea is
 		 *	unaffected.					*/
 
-		crcSize = checkPayloadCrc(work, &crcComputed, &crcReceived);
-		if (crcSize < 0)
+		if (checkPayloadCrc(work, &crcComputed, &crcReceived) < 0)
 		{
 			return -1;	/*	System failure.		*/
 		}
-
-		bytesToSkip += (1 + crcSize);
 	}
 
 	if (bytesToSkip <= work->bytesBuffered)
@@ -9682,7 +9711,9 @@ static int	acqFromWork(AcqWorkArea *work)
 	bytesParsed = cbor_decode_break(&cursor, &bytesBuffered);
 	if (bytesParsed != 1)
 	{
-		return 0;	/*	Array is not terminated.	*/
+		writeMemo("[?] Bundle array is not terminated.");
+		work->malformed = 1;
+		return 0;
 	}
 
 	work->bundleLength += bytesParsed;
