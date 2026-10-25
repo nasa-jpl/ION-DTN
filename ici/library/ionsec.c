@@ -239,7 +239,7 @@ static SecVdb	*_secvdb(char **name)
 		}
 
 		vdb = (SecVdb *) psp(wm, vdbAddress);
-		memset((char *) vdb, 0, sizeof(SecVdb));
+		memset(vdb, 0, sizeof(*vdb));
 		vdb->publicKeys = sm_rbt_create(wm);
 		if (vdb->publicKeys == 0)
 		{
