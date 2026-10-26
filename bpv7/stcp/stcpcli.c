@@ -51,6 +51,7 @@ typedef struct
 	int		bundleSocket;
 	pthread_t	thread;
 	int		*running;
+	int		joining;	/*	Boolean.		*/
 } ReceiverThreadParms;
 
 static void	terminateReceiverThread(ReceiverThreadParms *parms)
@@ -65,6 +66,15 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	}
 
 	lyst_delete(parms->elt);
+
+	/*	No other thread will join a receiver that ends on
+	 *	its own, so release its resources at exit.		*/
+
+	if (!parms->joining)
+	{
+		pthread_detach(pthread_self());
+	}
+
 	pthread_mutex_unlock(parms->mutex);
 	MRELEASE(parms);
 }
@@ -244,6 +254,7 @@ static void	*spawnReceivers(void *parm)
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
 		parms->running = &(atp->running);
+		parms->joining = 0;
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
@@ -279,6 +290,7 @@ static void	*spawnReceivers(void *parm)
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = parms->thread;
+		parms->joining = 1;
 		shutdown(parms->bundleSocket, SD_BOTH);
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
