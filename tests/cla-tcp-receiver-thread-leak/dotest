@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# TCP-based CLA daemons must release each receiver thread when its
+# connection ends.
+#
+# tcpcli, stcpcli and brsscla start a receiver thread per accepted
+# connection.  A receiver that ended on its own was neither joined nor
+# detached, so its stack stayed mapped: every connect/close cycle grew the
+# daemon by one or more thread stacks until thread creation failed and the
+# daemon exited.  A remote peer can drive this by repeatedly connecting.
+#
+# For each daemon, connect and close CYCLES times and compare the number of
+# thread-stack-sized mappings before and after, allowing for the few stacks
+# glibc caches for reuse.  tcpcli starts receivers for accepted sockets
+# from its clock thread and releases them when that thread deletes the
+# temporary neighbor, so first wait until every receiver has ended.
+set -u
+cd "$(dirname "$0")" || exit 1
+
+trap 'killm f' EXIT
+
+SYSUP=../../../system_up
+CYCLES=100
+SLACK=8
+SETTLE=60
+LOG=1.ipn.tcp/ion.log
+
+echo "########################################"
+echo "NAME: cla-tcp-receiver-thread-leak"
+echo "PURPOSE: Verify tcpcli, stcpcli and brsscla release receiver threads"
+echo "         of connections that have ended."
+echo "########################################"
+
+if [ ! -r /proc/self/smaps ]; then
+    echo "SKIP: /proc/<pid>/smaps is required."
+    exit 2
+fi
+
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+
+(cd 1.ipn.tcp && ./ionstart) >1.ipn.tcp/start.log 2>&1
+( cd 1.ipn.tcp && "$SYSUP" -i "p 30" -b "p 30" ) >/dev/null 2>&1
+if [ $? -ne 2 ]; then
+    echo "FAIL: node did not come up"
+    cat 1.ipn.tcp/start.log
+    exit 1
+fi
+sleep 2
+
+STACK_KB=$(ulimit -s)
+case "$STACK_KB" in
+    ''|*[!0-9]*) STACK_KB=8192 ;;
+esac
+
+stacks() {
+    grep -c "^Size: *$STACK_KB kB\$" "/proc/$1/smaps"
+}
+
+ok=1
+for spec in tcpcli:5811 stcpcli:5812 brsscla:5813; do
+    daemon=${spec%:*}
+    port=${spec#*:}
+    pid=$(pgrep -x "$daemon" | head -1)
+    if [ -z "$pid" ]; then
+        echo "FAIL: $daemon is not running."
+        ok=0
+        continue
+    fi
+
+    before=$(stacks "$pid")
+    ended0=$(grep -cE "$daemon receiver thread (has ended|stopping)" $LOG)
+    connected=0
+    for _ in $(seq 1 $CYCLES); do
+        if { exec 3<>"/dev/tcp/127.0.0.1/$port"; } 2>/dev/null; then
+            exec 3>&-
+            connected=$((connected + 1))
+        fi
+        sleep 0.02
+    done
+
+    for _ in $(seq 1 $SETTLE); do
+        ended=$(grep -cE "$daemon receiver thread (has ended|stopping)" $LOG)
+        [ $((ended - ended0)) -ge "$connected" ] && break
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 1
+    done
+
+    growth=0
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        sleep 1
+        kill -0 "$pid" 2>/dev/null || break
+        after=$(stacks "$pid")
+        growth=$((after - before))
+        [ "$growth" -le "$SLACK" ] && break
+    done
+
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "FAIL: $daemon exited during the connection cycles."
+        ok=0
+        continue
+    fi
+
+    echo "$daemon: $before -> $after thread stacks after $CYCLES connections"
+    if [ "$growth" -gt "$SLACK" ]; then
+        echo "FAIL: $daemon leaks receiver threads ($growth stacks)."
+        ok=0
+    fi
+done
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: receiver threads are released."
+    exit 0
+fi
+exit 1
