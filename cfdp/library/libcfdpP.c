@@ -4731,11 +4731,13 @@ printf("Written final hunk of segment data. After writing " VAST_FIELDSPEC " byt
 #endif
 	}
 
-#ifdef TargetFFS
+	/*	Close the file now: the FDU may be destroyed by another
+	 *	process (e.g., cfdpclock), which cannot close our FD.	*/
+
 	close(cfdpvdb->currentFile);
 	cfdpvdb->currentFile = -1;
 	cfdpvdb->currentFdu = 0;
-#endif
+
 	/*	Deliver File-Segment-Recv indication.			*/
 	event.progress = fdu->progress;
 
