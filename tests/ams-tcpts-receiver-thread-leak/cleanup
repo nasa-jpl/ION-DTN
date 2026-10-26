@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+pkill -x amsbenchr 2>/dev/null
+pkill -x amsd 2>/dev/null
+killm f
+rm -f ion_nodes ion.log amsd.out benchr.out
