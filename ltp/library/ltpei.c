@@ -15,9 +15,17 @@
  *  02-19-14    TC      - Modified signature of function
  *                        getIndexOfExtensionField and getExtensionField
  */
+
+#include "ltpei.h"
+
+#include <string.h>
+
 #include "ion.h"
 #include "ltpP.h"
-#include "ltpei.h"
+#include "platform.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+
 #include "ltpextensions.c"
 
 /* The number of LTP extensions. */

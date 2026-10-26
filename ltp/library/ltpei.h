@@ -19,6 +19,10 @@
 #ifndef LTPEI_H
 #define LTPEI_H
 
+#include "ltpP.h"
+#include "lyst.h"
+#include "sdrxn.h"
+
 /*****************************************************************************
  *                           CALLBACK TYPE DEFINITIONS                       *
  *****************************************************************************/
