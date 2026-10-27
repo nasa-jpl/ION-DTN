@@ -1,0 +1,13 @@
+## waypoint primary-BIB test - Node 3 (source): BIB over the primary and payload
+## blocks, and no primary block CRC (RFC 9171 4.3.1 allows CRC type 0 only when a
+## BIB targets the primary block).
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4553 udpcli
+a outduct udp 127.0.0.1:4552 udpclo
+r 'ipnadmin node.ipnrc'
+m primarycrc 0
+s

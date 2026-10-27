@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# bpsec-waypoint-primary-bib: a waypoint without BPSec rules forwards a bundle
+# whose primary block has no CRC and is covered by a BIB (issue #139).
+#
+# RFC 9171 section 4.3.1 allows a primary block without a CRC only when a BIB
+# targets it. The BIB can only be seen once it has been deserialized, and a
+# waypoint without a rule for it must still count it.
+#
+# Topology (chain), node 3 sourcing with 'm primarycrc 0':
+#   Node 3 (source) -> Node 2 (waypoint, no BPSec rules) -> Node 1 (destination)
+#
+# Node 3 adds a BIB over the payload of bundles to ipn:1.*, and a BIB over the
+# primary block only of bundles to ipn:1.1.
+#
+# Verifies:
+#   1. A bundle to ipn:1.1 (BIB over primary and payload, no primary CRC) is
+#      delivered, and node 2 did not judge its primary block uncovered.
+#   2. A bundle to ipn:1.2 (BIB over payload only, no primary CRC) is still
+#      discarded by node 2.
+#
+# Native BPSec only (.exclude_bsl).
+#
+
+. ../test_utils.sh
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Waypoint forwards a BIB-covered primary block without CRC ==="
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ "$1" -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    waitForLog "udpclo is running" "$TESTDIR/${node}.node/ion.log" 15000
+done
+cd "$TESTDIR"
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started."
+echo ""
+sleep 3
+
+cd "$TESTDIR/1.node"; bpsink ipn:1.1 > sink1.txt 2>&1 &
+SINK1=$!
+cd "$TESTDIR/1.node"; bpsink ipn:1.2 > sink2.txt 2>&1 &
+SINK2=$!
+cd "$TESTDIR"
+sleep 2
+
+# ---------------------------------------------------------------
+echo "--- Test 1: BIB over the primary block, no primary CRC ---"
+( cd "$TESTDIR/3.node" && bptrace -msg "covered-primary" -ttl 60 \
+    ipn:3.1 ipn:1.1 ipn:3.0 > trace1.txt 2>&1 )
+waitForLog "covered-primary" "$TESTDIR/1.node/sink1.txt" 20000
+if grep -q "covered-primary" "$TESTDIR/1.node/sink1.txt"; then
+    test_result 0 "bundle delivered at node 1"
+else
+    test_result 1 "bundle not delivered at node 1"
+fi
+if grep -q "No primary block BIB or primary block CRC" "$TESTDIR/2.node/ion.log"; then
+    test_result 1 "waypoint judged the primary block to have neither BIB nor CRC"
+else
+    test_result 0 "waypoint counted the BIB over the primary block"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: no BIB over the primary block, no primary CRC ---"
+( cd "$TESTDIR/3.node" && bptrace -msg "uncovered-primary" -ttl 60 \
+    ipn:3.1 ipn:1.2 ipn:3.0 > trace2.txt 2>&1 )
+waitForLog "No primary block BIB or primary block CRC" "$TESTDIR/2.node/ion.log" 20000
+sleep 3
+if grep -q "uncovered-primary" "$TESTDIR/1.node/sink2.txt"; then
+    test_result 1 "bundle without CRC or primary block BIB was delivered"
+else
+    test_result 0 "bundle without CRC or primary block BIB was not delivered"
+fi
+if grep -q "No primary block BIB or primary block CRC" "$TESTDIR/2.node/ion.log"; then
+    test_result 0 "waypoint discarded it for having neither BIB nor CRC"
+else
+    test_result 1 "waypoint did not log the missing BIB and CRC"
+fi
+
+kill $SINK1 $SINK2 2>/dev/null || true
+sleep 1
+
+# ---------------------------------------------------------------
+echo ""
+echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
+if [ "$TESTS_FAILED" -eq 0 ]; then
+    echo "TEST PASSED"
+    exit 0
+else
+    echo "TEST FAILED"
+    exit 1
+fi
