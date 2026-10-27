@@ -57,6 +57,11 @@ on:
         required: false
         type: boolean
         default: true
+      with_bsl:
+        description: "Compile ION with BSL"
+        required: false
+        type: boolean
+        default: false
     outputs:
       status:
         description: "Solaris test status"
@@ -104,6 +109,11 @@ on:
         required: false
         type: string
         default: ""
+      with_bsl:
+        description: "Compile ION with BSL"
+        required: false
+        type: boolean
+        default: false
 
 env:
   VM_WORK_DIR: /var/tmp/ion-gh-workspace
@@ -136,6 +146,7 @@ jobs:
           tests_to_run: ${{ inputs.tests_to_run }}
           num_runners: ${{ inputs.num_runners }}
           is_solaris: "true"
+          enable_bsl: ${{ inputs.with_bsl }}
 
   build-ion:
     needs: [validate-vms, generate-matrix]
@@ -149,9 +160,9 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ion-build-solaris.tar.gz
-          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-
+            solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-
 
       - name: Setup Solaris SSH Configuration
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
@@ -202,7 +213,7 @@ jobs:
             export MAKE_CMD=gmake
 
             cd ${{ env.VM_WORK_DIR }}/ion-ios-dev
-            sh .github/scripts/compile-and-buildcheck.sh
+            sh .github/scripts/compile-and-buildcheck.sh${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && ' --bsl' || '' }}
           ' > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
 
           BUILD_STATUS=$?
@@ -229,7 +240,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ion-build-solaris.tar.gz
-          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Restore run-specific artifact from cache
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key != '' }}

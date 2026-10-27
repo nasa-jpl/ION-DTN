@@ -34,6 +34,11 @@ on:
         required: false
         type: string
         default: ""
+      with_bsl:
+        description: "Compile ION with BSL"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   detect-changes:
@@ -46,6 +51,7 @@ jobs:
       pr-number: ${{ github.event.pull_request.number }}
       pr-sha: ${{ github.event.pull_request.head.sha }}
       enable_retest_value: ${{ steps.determine-tests.outputs.enable_retest_value }}
+      with-bsl-effective: ${{ steps.determine-tests.outputs.with_bsl_effective }}
     steps:
       - uses: actions/checkout@v6
 
@@ -122,38 +128,12 @@ jobs:
         id: determine-tests
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           TESTS_TO_RUN: ${{ inputs.tests_to_run }}
+          PR_LABELS: ${{ steps.pr-labels.outputs.all-labels }}
+          INPUTS_WITH_BSL: ${{ inputs.with_bsl }}
         run: |
-          TESTS=""
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PADDED_LABELS=" ${LIVE_LABELS//,/ } "
-
-          [[ "$PADDED_LABELS" == *" retest "* ]] && ENABLE_RETEST_VALUE="ENABLE_RETEST=1" || ENABLE_RETEST_VALUE="ENABLE_RETEST=0"
-          echo "Constructed ENABLE_RETEST: $ENABLE_RETEST_VALUE"
-
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TESTS="${{ env.TESTS_TO_RUN }}"
-            echo "Manual trigger. Tests: $TESTS"
-
-          elif [[ "$PADDED_LABELS" == *" test-mods "* ]]; then
-            echo "'test-mods' label detected. Analyzing changed files..."
-
-            # Fetch, extract parent directories, deduplicate, and join into a space-separated string in one line
-            CHANGED_FILES=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER/files --paginate --jq '.[].filename')
-            TESTS=$(echo "$CHANGED_FILES" | awk -F'/' '/^(tests|demos)\// {print $2}' | sort -u | xargs)
-
-            [ -z "$TESTS" ] && echo "Warning: No valid test/demo files changed." || echo "Dynamically detected tests: $TESTS"
-
-          elif [[ "$PADDED_LABELS" == *" quick-test "* || "$PADDED_LABELS" == *" CI/CD "* ]]; then
-            TESTS="bping cfdpv1 ams-sana ltp-cancel-ack-regression tcpcl-dos bibect conformance_test"
-            echo "Quick-test/CI label detected. Tests: $TESTS"
-
-          else
-            echo "Standard PR push. Running ALL tests."
-          fi
-
-          echo "tests_to_run=$TESTS" >> $GITHUB_OUTPUT
-          echo "enable_retest_value=$ENABLE_RETEST_VALUE" >> $GITHUB_OUTPUT
+          python3 .github/scripts/determine_test_subset.py >> $GITHUB_OUTPUT
 
   run-solaris-tests:
     needs: detect-changes
@@ -164,6 +144,7 @@ jobs:
       env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
       update_pr_status: false
+      with_bsl: ${{ needs.detect-changes.outputs.with-bsl-effective == 'true' }}
     secrets: inherit
 
   run-arc-tests:
@@ -175,6 +156,7 @@ jobs:
       env_vars: ${{ needs.detect-changes.outputs.enable_retest_value }} ${{ inputs.env_vars }}
       pr_number: ${{ needs.detect-changes.outputs.pr-number }}
       update_pr_status: false
+      with_bsl: ${{ needs.detect-changes.outputs.with-bsl-effective == 'true' }}
       runner_u22: true
       runner_u24: true
       runner_ol8: true

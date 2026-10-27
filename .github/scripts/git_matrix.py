@@ -139,7 +139,7 @@ def list_tests(
 
         if "demos" in str(test_dir):
             # Demo tests are siblings of tests/, so need ../ to go up from tests/
-            test_path = ".." / test_dir
+            test_path = Path("..") / test_dir
         elif len(test_dir.parents) == 3:
             # One subfolder deep: tests/subdir/testname -> subdir/testname
             test_path = Path(test_dir.parent.name) / Path(test_dir.name)
@@ -207,7 +207,7 @@ def get_folder_durations(folder_list: list[Path]) -> list[Task]:
 
     for folder in folder_list:
         # add tests for file took up
-        file_path = "tests" / folder / ".DURATION"
+        file_path = Path("tests") / folder / ".DURATION"
         duration = 0.0
 
         if file_path.exists() and file_path.is_file():

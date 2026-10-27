@@ -41,6 +41,11 @@ on:
         required: false
         type: number
         default: 7
+      with_bsl:
+        description: "Compile ION with BSL"
+        required: false
+        type: boolean
+        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
@@ -123,6 +128,11 @@ on:
         required: false
         type: number
         default: 7
+      with_bsl:
+        description: "Compile ION with BSL"
+        required: false
+        type: boolean
+        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
@@ -193,10 +203,10 @@ jobs:
           RUNNERS=$(./.github/scripts/build-runner-matrix.sh \
           --ubuntu_22=$U22 \
           --ubuntu_24=$U24 \
-            --oracle_linux_8=$OL8 \
-            --oracle_linux_9=$OL9 \
-            --rhel_8=$RHEL8 \
-            --rhel_9=$RHEL9)
+          --oracle_linux_8=$OL8 \
+          --oracle_linux_9=$OL9 \
+          --rhel_8=$RHEL8 \
+          --rhel_9=$RHEL9)
 
           # Map short names (u22, u24, etc.) to full runner names (arc-runner-set-u22, etc.)
           FULL_RUNNERS=$(echo "$RUNNERS" | jq -c 'map("arc-runner-set-" + .)')
@@ -209,6 +219,7 @@ jobs:
           tests_to_run: ${{ inputs.tests_to_run }}
           num_runners: ${{ inputs.num_runners }}
           is_solaris: "false"
+          enable_bsl: ${{ inputs.with_bsl }}
 
       - name: Generate timestamp for artifacts
         id: generate-timestamp
@@ -224,6 +235,8 @@ jobs:
       matrix:
         runner: ${{ fromJSON(needs.setup.outputs.active_runners) }}
     runs-on: ${{ matrix.runner }}
+    env:
+      BSL: ${{ inputs.with_bsl }}
 
     steps:
       - name: Checkout Code
@@ -240,9 +253,9 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-
 
       - name: Build ION and Run Buildcheck
         if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
@@ -250,7 +263,7 @@ jobs:
         env:
           EXTRA_CONFIGURE_FLAGS: "CFLAGS=-DHAVE_VALGRIND_VALGRIND_H"
         run: |
-          ./.github/scripts/compile-and-buildcheck.sh > compile-and-buildcheck.log 2>&1 || {
+          ./.github/scripts/compile-and-buildcheck.sh${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && ' --bsl' || '' }} > compile-and-buildcheck.log 2>&1 || {
             BUILD_STATUS=$?
             echo "Build or buildcheck failed with status $BUILD_STATUS" >&2
             exit $BUILD_STATUS
@@ -275,7 +288,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
 
   install-and-test:
     needs: [setup, build]
@@ -319,9 +332,9 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-
 
       - name: Restore Cached Build (Attempt 2 - Retry on failure)
         # Only run attempt 2 if attempt 1 completely failed to find a matching key
@@ -336,9 +349,9 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-
 
       # Re-checkout the correct ref with clean:false: this resets all tracked
       # files (tests/, demos/, killm, ...) to this job's ref regardless of the
