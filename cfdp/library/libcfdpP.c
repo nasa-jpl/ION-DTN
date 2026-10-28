@@ -4045,6 +4045,66 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 	return 0;
 }
 
+#if !CFDPDEBUG
+static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen);
+
+static int	computeFileChecksum(InFdu *fdu, unsigned int *checksum)
+{
+	char		fileName[SDRSTRING_BUFSZ];
+	char		buf[4096];
+	int		fd;
+	vast		offset = 0;
+	int		length;
+#ifndef ENABLE_HIGH_SPEED
+	int		i;
+#endif
+
+	if (getFileName(fdu, fileName, sizeof fileName) < 0)
+	{
+		putErrmsg("Can't get file name.", NULL);
+		return -1;
+	}
+
+	fd = ifopen(fileName, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		putSysErrmsg("Can't open working file", fileName);
+		return -1;
+	}
+
+	*checksum = 0;
+	while ((uvast) offset < fdu->fileSize)
+	{
+		length = sizeof buf;
+		if (fdu->fileSize - offset < (uvast) length)
+		{
+			length = fdu->fileSize - offset;
+		}
+
+		length = read(fd, buf, length);
+		if (length <= 0)
+		{
+			break;		/*	Short file: mismatch.	*/
+		}
+
+#ifdef ENABLE_HIGH_SPEED
+		addDataToChecksum((unsigned char *) buf, length, &offset,
+				checksum, fdu->ckType);
+		offset += length;
+#else
+		for (i = 0; i < length; i++, offset++)
+		{
+			addToChecksum((unsigned char) buf[i], &offset,
+					checksum, fdu->ckType);
+		}
+#endif
+	}
+
+	close(fd);
+	return 0;
+}
+#endif
+
 static int checkInFduComplete(InFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 {
 #if CFDPDEBUG
@@ -4053,6 +4113,7 @@ static int checkInFduComplete(InFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 	*/
 #else
 	CfdpHandler		handler;
+	unsigned int		fileChecksum;
 #endif
 
 	if (!fdu->metadataReceived)
@@ -4075,6 +4136,17 @@ printf("FDU checksum verification bypassed to provide received file for debuggin
  %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
 	fdu->checksumVerified = 1;
 #else
+	/*	A CRC accumulated in arrival order is wrong if file
+	 *	data arrived out of order, so recompute it from the
+	 *	reassembled file before declaring a mismatch.		*/
+
+	if (fdu->computedChecksum != fdu->eofChecksum
+	&& fdu->ckType != ModularChecksum && fdu->ckType != NullChecksum
+	&& computeFileChecksum(fdu, &fileChecksum) == 0)
+	{
+		fdu->computedChecksum = fileChecksum;
+	}
+
 	if (fdu->computedChecksum == fdu->eofChecksum
 	|| fdu->ckType == NullChecksum)
 	{
@@ -4731,11 +4803,13 @@ printf("Written final hunk of segment data. After writing " VAST_FIELDSPEC " byt
 #endif
 	}
 
-#ifdef TargetFFS
+	/*	Close the file now: the FDU may be destroyed by another
+	 *	process (e.g., cfdpclock), which cannot close our FD.	*/
+
 	close(cfdpvdb->currentFile);
 	cfdpvdb->currentFile = -1;
 	cfdpvdb->currentFdu = 0;
-#endif
+
 	/*	Deliver File-Segment-Recv indication.			*/
 	event.progress = fdu->progress;
 

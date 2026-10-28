@@ -1,0 +1,1 @@
+A CRC-checksummed CFDP file whose first file data PDU arrives last must verify and be delivered intact.
