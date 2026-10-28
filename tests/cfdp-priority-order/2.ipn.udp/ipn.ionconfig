@@ -1,0 +1,5 @@
+wmKey 66990
+sdrName ion2prio
+wmSize 40000000
+configFlags 1
+heapWords 4000000
