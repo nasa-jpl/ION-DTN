@@ -393,7 +393,7 @@ int	main(void)
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
 		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
-					&direction) < 0)
+					&direction, NULL) < 0)
 		{
 			writeMemo("[?] tcputa can't dequeue outbound CFDP PDU; \
 terminating.");
