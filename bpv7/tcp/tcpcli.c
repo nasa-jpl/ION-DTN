@@ -119,6 +119,7 @@ typedef struct
 
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
+	int			receiverStarted; /*	Not joined.	*/
 	vast			lengthReceived;	/*	Current in.	*/
 
 	/*	Administration function.				*/
@@ -475,6 +476,15 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	session->hasPlMutex = 1;
 	pthread_mutex_init(&(session->sigMutex), NULL);
 	session->hasSigMutex = 1;
+
+	/*	Reap the session's previous receiver, which has ended.	*/
+
+	if (session->receiverStarted && !session->hasReceiver)
+	{
+		pthread_join(session->receiver, NULL);
+		session->receiverStarted = 0;
+	}
+
 	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
@@ -501,6 +511,7 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		return -1;
 	}
 
+	session->receiverStarted = 1;
 	return 0;
 }
 
@@ -781,6 +792,7 @@ static int	sendShutdown(TcpclSession *session, signed char reason,
 static void	endSession(TcpclSession *session, signed char reason)
 {
 	TcpclNeighbor	*neighbor = session->neighbor;
+	int		joined = 0;
 
 	oK(sendShutdown(session, reason, 0));
 	closeSession(session);
@@ -797,30 +809,55 @@ static void	endSession(TcpclSession *session, signed char reason)
 		session->outductName = NULL;
 	}
 
-	if (session->hasReceiver
-	&& pthread_kill(session->receiver, SIGCONT) == 0)
+	if (session->hasReceiver)
+	{
+		oK(pthread_kill(session->receiver, SIGCONT));
+	}
+
+	/*	The receiver may have ended on its own; join it anyway
+	 *	so that its resources are released.			*/
+
+	if (session->receiverStarted)
 	{
 		pthread_join(session->receiver, NULL);
+		session->receiverStarted = 0;
+		joined = 1;
 	}
+
+	/*	Once the receiver is joined (sender and admin threads
+	 *	were stopped by closeSession), no other thread can be
+	 *	using the session's mutexes, so no need to wait.	*/
 
 	if (session->hasSigMutex)
 	{
 		pthread_mutex_unlock(&(session->sigMutex));
-		microsnooze(100000);
+		if (!joined)
+		{
+			microsnooze(100000);
+		}
+
 		pthread_mutex_destroy(&(session->sigMutex));
 	}
 
 	if (session->hasPlMutex)
 	{
 		pthread_mutex_unlock(&(session->plMutex));
-		microsnooze(100000);
+		if (!joined)
+		{
+			microsnooze(100000);
+		}
+
 		pthread_mutex_destroy(&(session->plMutex));
 	}
 
 	if (session->hasSocketMutex)
 	{
 		pthread_mutex_unlock(&(session->socketMutex));
-		microsnooze(100000);
+		if (!joined)
+		{
+			microsnooze(100000);
+		}
+
 		pthread_mutex_destroy(&(session->socketMutex));
 	}
 
@@ -1408,8 +1445,17 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			}
 			else	/*	Complementary session.		*/
 			{
-				/*	Copy this session into
-				 *	known neighbor.			*/
+				/*	Reap the receiver of the known
+				 *	neighbor's previous session if it
+				 *	has ended, then copy this session
+				 *	into known neighbor.		*/
+
+				if (chanceSession->receiverStarted
+				&& !chanceSession->hasReceiver)
+				{
+					pthread_join(chanceSession->receiver,
+							NULL);
+				}
 
 				memcpy((char *) chanceSession, (char *) session,
 						sizeof(TcpclSession));
@@ -1425,6 +1471,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				session->hasPlMutex = 0;
 				session->hasSigMutex = 0;
 				session->hasReceiver = 0;
+				session->receiverStarted = 0;
 				session->hasSender = 0;
 				session->vduct = NULL;
 				session->hasAdmin = 0;
@@ -2179,6 +2226,16 @@ static void	*handleContacts(void *parm)
 		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					tag);
+
+			/*	A temporary neighbor from accept() is
+			 *	no longer needed; have it deleted.	*/
+
+			if (neighbor->sessions[TCPCL_PLANNED].outductName
+					== NULL)
+			{
+				neighbor->mustDelete = 1;
+			}
+
 			closeSession(session);
 			continue;	/*	Try again.		*/
 		}

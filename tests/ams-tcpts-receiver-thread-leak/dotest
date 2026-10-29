@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# AMS modules must release each tcpts receiver thread when its connection
+# ends.
+#
+# The tcp transport service starts a receiver thread per accepted
+# connection.  A receiver whose peer disconnected removed itself from the
+# receiver pool and exited without being joined or detached, so its stack
+# stayed mapped: every connect/close cycle grew the module by one thread
+# stack until thread creation failed.  A remote peer can drive this by
+# repeatedly connecting to the module's tcp endpoint.
+#
+# Start amsd and an amsbenchr module, connect to the module's tcp endpoint
+# and close CYCLES times, and compare the number of thread-stack-sized
+# mappings before and after, allowing for the few stacks glibc caches.
+set -u
+cd "$(dirname "$0")" || exit 1
+
+AMSD_PID=""
+BENCHR_PID=""
+trap 'kill $BENCHR_PID $AMSD_PID 2>/dev/null; killm f' EXIT
+
+CYCLES=100
+SLACK=8
+SETTLE=30
+
+echo "########################################"
+echo "NAME: ams-tcpts-receiver-thread-leak"
+echo "PURPOSE: Verify an AMS module releases tcpts receiver threads of"
+echo "         connections that have ended."
+echo "########################################"
+
+if [ ! -r /proc/self/smaps ] || ! command -v ss >/dev/null 2>&1; then
+    echo "SKIP: /proc/<pid>/smaps and ss are required."
+    exit 2
+fi
+
+STACK_KB=$(ulimit -s)
+case "$STACK_KB" in
+    ''|*[!0-9]*) STACK_KB=8192 ;;
+esac
+
+stacks() {
+    grep -c "^Size: *$STACK_KB kB\$" "/proc/$1/smaps"
+}
+
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+
+ionadmin node.ionrc >/dev/null 2>&1
+sleep 1
+amsd mib.amsrc @ amsdemo test "" >amsd.out 2>&1 &
+AMSD_PID=$!
+sleep 8
+amsbenchr >benchr.out 2>&1 &
+BENCHR_PID=$!
+sleep 6
+
+if ! kill -0 "$BENCHR_PID" 2>/dev/null; then
+    echo "FAIL: amsbenchr did not start."
+    cat amsd.out benchr.out
+    exit 1
+fi
+
+ep=$(ss -ltnp 2>/dev/null | grep "pid=$BENCHR_PID," | awk '{print $4}' | head -1)
+if [ -z "$ep" ]; then
+    echo "FAIL: amsbenchr has no tcp endpoint."
+    exit 1
+fi
+host=${ep%:*}
+port=${ep##*:}
+
+before=$(stacks "$BENCHR_PID")
+for _ in $(seq 1 $CYCLES); do
+    if { exec 3<>"/dev/tcp/$host/$port"; } 2>/dev/null; then
+        exec 3>&-
+    fi
+    sleep 0.02
+done
+
+growth=0
+for _ in $(seq 1 $SETTLE); do
+    sleep 1
+    kill -0 "$BENCHR_PID" 2>/dev/null || break
+    after=$(stacks "$BENCHR_PID")
+    growth=$((after - before))
+    [ "$growth" -le "$SLACK" ] && break
+done
+
+if ! kill -0 "$BENCHR_PID" 2>/dev/null; then
+    echo "FAIL: amsbenchr exited during the connection cycles."
+    exit 1
+fi
+
+echo "amsbenchr: $before -> $after thread stacks after $CYCLES connections"
+if [ "$growth" -gt "$SLACK" ]; then
+    echo "FAIL: tcpts leaks receiver threads ($growth stacks)."
+    exit 1
+fi
+
+echo "PASS: tcpts receiver threads are released."
+exit 0

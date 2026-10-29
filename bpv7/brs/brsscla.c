@@ -61,6 +61,7 @@ typedef struct
 	pthread_t		senderThread;
 	int			hasSender;
 	SenderThreadParms	stp;
+	int			joining;	/*	Boolean.	*/
 } ReceiverThreadParms;
 
 /*	*	*	Sender thread functions	*	*	*	*/
@@ -190,6 +191,15 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	}
 
 	lyst_delete(parms->elt);
+
+	/*	No other thread will join a receiver that ends on
+	 *	its own, so release its resources at exit.		*/
+
+	if (!parms->joining)
+	{
+		pthread_detach(pthread_self());
+	}
+
 	pthread_mutex_unlock(parms->mutex);
 	MRELEASE(parms);
 }
@@ -527,6 +537,7 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		nameLength = sizeof(struct sockaddr);
 	ReceiverThreadParms	*receiverParms;
 	int			authenticated;
+	int			hung;
 	LystElt			elt;
 	pthread_t		thread;
 
@@ -594,6 +605,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->authenticated = &authenticated;
 		receiverParms->fqnn = (unsigned int) -1;
 		receiverParms->running = &(atp->running);
+		receiverParms->joining = 0;
 		if (pthread_begin(&(receiverParms->receiverThread), NULL,
 				receiveBundles, receiverParms))
 		{
@@ -606,7 +618,19 @@ static void	*spawnReceivers(void *parm)
 		}
 
 		snooze(1);		/*	Wait for authenticator.	*/
-		if (authenticated == 0)	/*	Still unknown.		*/
+
+		/*	Check under the lock: a receiver that has set
+		 *	authenticated may already have released itself.	*/
+
+		pthread_mutex_lock(&mutex);
+		hung = (authenticated == 0);
+		if (hung)
+		{
+			receiverParms->joining = 1;
+		}
+
+		pthread_mutex_unlock(&mutex);
+		if (hung)		/*	Still unknown.		*/
 		{
 			/*	Assume hung on DOS attack.  Bail out.	*/
 
@@ -636,6 +660,7 @@ static void	*spawnReceivers(void *parm)
 
 		receiverParms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = receiverParms->receiverThread;
+		receiverParms->joining = 1;
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
