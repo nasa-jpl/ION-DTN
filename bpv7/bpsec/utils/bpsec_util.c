@@ -73,6 +73,10 @@
  *                              FILE INCLUSIONS                              *
  *****************************************************************************/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bpsec_util.h"
 #include "sc_value.h"
 #include "sci_valmap.h"

@@ -10,25 +10,42 @@
 	acknowledged.
 
 									*/
-#include "bpP.h"
-#include "bei.h"
-#include "ionpatch.h"
-#include <BPSecLib_Public.h>
-#include <BPSecLib_Private.h>
-#include <backend/UtilDefs_SeqReadWrite.h>
-#include <security_context/DefaultSecContext.h>
-#include <policy_provider/SamplePolicyProvider.h>
-#include <assert.h>
-#include <errno.h>
-#include <poll.h>
-#include <m-string.h>
 
-#if 0
-#include "agent.h"
-#include "encode.h"
-#include "decode.h"
-#include "text_util.h"
-#endif
+#include "bsl.h"
+
+#include "bei.h"
+#include "bp.h"
+#include "bpP.h"
+#include "ion.h"
+#include "ionpatch.h"
+#include "lyst.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrlist.h"
+#include "sdrmgt.h"
+#include "sdrstring.h"
+#include "sdrxn.h"
+#include "zco.h"
+
+#include <bsl/BPSecLib_Private.h>
+#include <bsl/BPSecLib_Public.h>
+#include <bsl/crypto/KeyLoader.h>
+#include <bsl/default_sc/DefaultSecContext.h>
+#include <bsl/dynamic/SeqReadWrite.h>
+#include <bsl/front/BSLMemory.h>
+#include <bsl/front/Data.h>
+#include <bsl/front/SeqReader.h>
+#include <bsl/front/SeqWriter.h>
+#include <bsl/mock_bpa/KeyStore.h>
+#include <bsl/sample_pp/PolicyParser.h>
+#include <bsl/sample_pp/SamplePolicyProvider.h>
+
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <syslog.h>
 
 /*	Reasons a block cannot be the target of a security operation,
  *	as reported by reportIneligibleTarget below, and the reason
@@ -236,40 +253,56 @@ static int	getBlockNumbersFromRAM(AcqWorkArea *work,
 	return 0;
 }
 
+/*
+ * Per-thread holder for the serialized primary block that
+ * result_primary_block->encoded points at.  It is used only within one
+ * bslProcess call, which releases it.
+ */
+
+static ION_THREAD_LOCAL BSL_Data_t encodedPB;
+static ION_THREAD_LOCAL int	   encodedPB_ready = 0;
+
 static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 			BSL_PrimaryBlock_t *result_primary_block)
 {
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	unsigned char	destinationEid[300];
-	int		destinationEidLength;
-	unsigned char	sourceEid[300];
-	int		sourceEidLength;
-	unsigned char	reportToEid[300];
-	int		reportToEidLength;
+	unsigned char	destEidImg[300];
+	int		destEidImgLen;
+	unsigned char	srcEidImg[300];
+	int		srcEidImgLen;
+	unsigned char	rptEidImg[300];
+	int		rptEidImgLen;
 	int		maxPrimaryBlockLength;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 
-	/*	Note: the bundle structure itself may not yet reside
-	 *	in the SDR heap at this point, but the in-heap copy
-	 *	of the bundle structure will be identical to this copy
-	 *	(which resides in memory) and all bundle elements that
-	 *	are independently stored - notably extension blocks -
-	 *	have already been written to the heap.			*/
+	/*
+	 * BSL field_*_eid are pointers to BSL_HostEID_t.
+	 * Keep thread-local wrappers whose .handle points at this bundle's
+	 * EIDs; they stay valid for the synchronous QuerySecurity call that
+	 * reads them (bslProcess serializes per context, and the wrappers are
+	 * per-thread).
+	 */
+	static ION_THREAD_LOCAL BSL_HostEID_t destEid;
+	static ION_THREAD_LOCAL BSL_HostEID_t srcEid;
+	static ION_THREAD_LOCAL BSL_HostEID_t reportToEid;
 
 	CHKERR(bundle_ref);
-	CHKERR(bundle_ref->data);
+	CHKERR(bundle_ref->handle);
 	CHKERR(result_primary_block);
-	work = (AcqWorkArea *) (bundle_ref->data);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &(work->bundle);
 	memset(result_primary_block, 0, sizeof(*result_primary_block));
 	result_primary_block->field_version = 7;
 	result_primary_block->field_flags = bundle->bundleProcFlags;
 	result_primary_block->field_crc_type = bundle->primaryBlkCrcType;
-	result_primary_block->field_dest_eid.handle = &(bundle->destination);
-	result_primary_block->field_src_node_id.handle = &(bundle->id.source);
-	result_primary_block->field_report_to_eid.handle = &(bundle->reportTo);
+	destEid.handle = &(bundle->destination);
+	srcEid.handle = &(bundle->id.source);
+	reportToEid.handle = &(bundle->reportTo);
+	result_primary_block->field_dest_eid = &destEid;
+	result_primary_block->field_src_node_id = &srcEid;
+	result_primary_block->field_report_to_eid = &reportToEid;
 	result_primary_block->field_bundle_creation_time =
 			bundle->id.creationTime.msec;
 	result_primary_block->field_seq_num = bundle->id.creationTime.count;
@@ -281,8 +314,6 @@ static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 
 	if (work->rawBundle == 0)
 	{
-		/*	Null AcqWorkArea.				*/
-
 		if (getBlockNumbersFromSdr(bundle, result_primary_block) < 0)
 		{
 			return -2;
@@ -296,23 +327,23 @@ static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 		}
 	}
 
-	/*	Provide serialized form of primary block.		*/
-
-	destinationEidLength = serializeEid(&(bundle->destination),
-			destinationEid);
-	sourceEidLength = serializeEid(&(bundle->id.source),
-			sourceEid);
-	reportToEidLength = serializeEid(&(bundle->reportTo),
-			reportToEid);
-	if (destinationEidLength < 1 || sourceEidLength < 1 || reportToEidLength
-			< 1)
+	/*
+	 * Provide the serialized primary block. BSL keeps
+	 * result_primary_block->encoded as a const BSL_Data_t * that the
+	 * default security contexts dereference whenever the IPPT/AAD scope
+	 * includes the primary block - and the RFC 9173 default scope (0x07)
+	 * DOES include it, so this MUST be non-NULL for every BIB/BCB op.
+	 */
+	destEidImgLen = serializeEid(&(bundle->destination), destEidImg);
+	srcEidImgLen = serializeEid(&(bundle->id.source), srcEidImg);
+	rptEidImgLen = serializeEid(&(bundle->reportTo), rptEidImg);
+	if (destEidImgLen < 1 || srcEidImgLen < 1 || rptEidImgLen < 1)
 	{
 		BSL_free(result_primary_block->block_numbers);
 		return -2;
 	}
 
-	maxPrimaryBlockLength = 50 + destinationEidLength + sourceEidLength
-			+ reportToEidLength;
+	maxPrimaryBlockLength = 50 + destEidImgLen + srcEidImgLen + rptEidImgLen;
 	buffer = BSL_calloc(1, maxPrimaryBlockLength);
 	if (buffer == NULL)
 	{
@@ -321,25 +352,31 @@ static int	ion_bsl_GetBundleMetadata(const BSL_BundleRef_t *bundle_ref,
 	}
 
 	cursor = buffer;
-	serializePrimaryBlock(bundle, &cursor, destinationEid,
-			destinationEidLength, sourceEid, sourceEidLength,
-			reportToEid, reportToEidLength);
+	serializePrimaryBlock(bundle, &cursor, destEidImg, destEidImgLen,
+			srcEidImg, srcEidImgLen, rptEidImg, rptEidImgLen);
 
-	/*	BSL will take ownership of the encoded buffer and free it
-	 *	when BSL_PrimaryBlock_deinit() is called.  We allocate
-	 *	the exact size needed and copy the serialized data, then
-	 *	mark it as owned so BSL knows to free it.			*/
+	/*
+	 * Stash the encoding in a per-thread BSL_Data that outlives this
+	 * callback; free the previous one first.
+	 */
+	if (encodedPB_ready)
+	{
+		BSL_Data_Deinit(&encodedPB);
+		encodedPB_ready = 0;
+	}
 
-	if (BSL_Data_InitBuffer(&result_primary_block->encoded,
-			cursor - buffer) != BSL_SUCCESS)
+	if (BSL_Data_InitBuffer(&encodedPB, (size_t) (cursor - buffer))
+			!= BSL_SUCCESS)
 	{
 		BSL_free(result_primary_block->block_numbers);
 		BSL_free(buffer);
 		return -2;
 	}
 
-	memcpy(result_primary_block->encoded.ptr, buffer, cursor - buffer);
-	BSL_free(buffer);	/*	Free temporary serialization buffer.	*/
+	memcpy(encodedPB.ptr, buffer, cursor - buffer);
+	encodedPB_ready = 1;
+	BSL_free(buffer);
+	result_primary_block->encoded = &encodedPB;
 	return 0;
 }
 
@@ -417,9 +454,9 @@ static int	ion_bsl_GetBlockMetadata(const BSL_BundleRef_t *bundle_ref,
 	Bundle		*bundle;
 
 	CHKERR(bundle_ref);
-	CHKERR(bundle_ref->data);
+	CHKERR(bundle_ref->handle);
 	CHKERR(result_canonical_block);
-	work = (AcqWorkArea *) (bundle_ref->data);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &(work->bundle);
 	memset(result_canonical_block, 0, sizeof(*result_canonical_block));
 	if (block_num == 1)	/*	Payload block			*/
@@ -582,9 +619,9 @@ static int	ion_bsl_CreateBlock(BSL_BundleRef_t *bundle_ref,
 	Bundle		*bundle;
 
 	CHKERR(bundle_ref);
-	CHKERR(bundle_ref->data);
+	CHKERR(bundle_ref->handle);
 	CHKERR(result_block_num);
-	work = (AcqWorkArea *) (bundle_ref->data);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &work->bundle;
 	if (work->rawBundle == 0)
 	{
@@ -616,7 +653,7 @@ static int	ion_bsl_RemoveBlock(BSL_BundleRef_t *bundle_ref,
 	SdrObject	bundleBlkElt;
 	LystElt		workBlkElt;
 
-	work = (AcqWorkArea *) (bundle_ref->data);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &(work->bundle);
 	if (work->rawBundle == 0)
 	{
@@ -652,8 +689,8 @@ int	ion_bsl_DeleteBundle(BSL_BundleRef_t *bundle_ref,
 	Bundle		*bundle;
 
 	CHKERR(bundle_ref);
-	CHKERR(bundle_ref->data);
-	work = (AcqWorkArea *) (bundle_ref->data);
+	CHKERR(bundle_ref->handle);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &(work->bundle);
 
 	// Mark the bundle for deletion
@@ -688,8 +725,8 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	unsigned char	*buffer;
 #endif
 	CHKERR(bundle_ref);
-	CHKERR(bundle_ref->data);
-	work = (AcqWorkArea *) (bundle_ref->data);
+	CHKERR(bundle_ref->handle);
+	work = (AcqWorkArea *) (bundle_ref->handle);
 	bundle = &(work->bundle);
 	/* During transmit, bundle is in AcqWorkArea (memory), not SDR. */
 	CHKERR(block_num > 0);
@@ -814,12 +851,12 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	 *	does not resize the payload block.  For reference,
 	 *	see the MockBPA_ReallocBTSD function, shown below.	*/
 #if 0
-	if (!bundle_ref || !bundle_ref->data || block_num == 0 || bytesize == 0)
+	if (!bundle_ref || !bundle_ref->handle || block_num == 0 || bytesize == 0)
 	{
 		return -1;
 	}
 
-	MockBPA_Bundle_t *bundle = bundle_ref->data;
+	MockBPA_Bundle_t *bundle = bundle_ref->handle;
 
 	MockBPA_CanonicalBlock_t **found_ptr = MockBPA_BlockByNum_get(bundle->blocks_num, block_num);
 	if (found_ptr == NULL)
@@ -848,6 +885,24 @@ static void	destroyBtsdIoRef(void *user_data)
 {
 	CHKVOID(user_data);
 	BSL_free(user_data);
+}
+
+/*
+ * BSL SeqWriter deinit takes a success flag; ION commits each BTSD chunk
+ * immediately (sdr_write/zco_revise) in writeBTSD, so there is nothing to
+ * finalize or roll back - just free the ref.
+ */
+static void destroyBtsdIoWriter(void *user_data, bool success)
+{
+	/*
+	 * TODO: ION's BTSD writer mutates the block in place, so when
+	 * success==false (crypto op aborted mid-write) the partially-written
+	 * bytes are already committed - we cannot roll them back here.  A
+	 * faithful fix double-buffers into scratch ZCO space and only splices
+	 * it into the block on success.
+	 */
+	(void) success;
+	destroyBtsdIoRef(user_data);
 }
 
 static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
@@ -1059,7 +1114,7 @@ static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 		return NULL;
 	}
 
-	ref->work = (AcqWorkArea *) (bundle_ref->data);
+	ref->work = (AcqWorkArea *) (bundle_ref->handle);
 	ref->blockNbr = block_num;
 	ref->position = 0;	/*	Start at beginning		*/
 	ref->readerInitialized = 0;	/*	Reader not started yet	*/
@@ -1342,21 +1397,17 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 		return NULL;
 	}
 
-	ref->work = (AcqWorkArea *) (bundle_ref->data);
+	ref->work = (AcqWorkArea *) (bundle_ref->handle);
 	ref->blockNbr = block_num;
 	ref->position = 0;	/*	Start at beginning		*/
 	ref->readerInitialized = 0;	/*	Reader not started yet	*/
 	writer->user_data = ref;
 	writer->write = writeBTSD;
-	writer->deinit = destroyBtsdIoRef;
+	writer->deinit = destroyBtsdIoWriter;
 	return writer;
 }
 
 /*	 *	Operations on EIDs	*	*	*	*	*/
-
-#include <inttypes.h>
-#include <BSLConfig.h>
-#include <BPSecLib_Private.h>
 
 static void	 ion_bsl_eid_init(EndpointId *eid)
 {
@@ -1397,8 +1448,8 @@ static void	ion_bsl_eid_unload(void *user_data _U_,
 	memset(eidWrapper, 0, sizeof(BSL_HostEID_t));
 }
 
-static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
-			BSL_Data_t *cborText)
+static int ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
+		BSL_Data_t *cborText, size_t *encoded_size)
 {
 	unsigned char	buffer[300];
 	EndpointId	*eid;
@@ -1410,27 +1461,32 @@ static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
 	length = serializeEid(eid, buffer);
 	if (length < 1)
 	{
-		return 0;	/*	Failure.			*/
+		return -1;
 	}
 
-	/*	If cborText is NULL this is a size query;
-	 *	return the encoded length without copying.	*/
-
-	if (cborText == NULL)
+	/* If encoded_size is not NULL, this is a size query. */
+	if (encoded_size != NULL)
 	{
-		return length;
+		*encoded_size = (size_t) length;
+		return BSL_SUCCESS;
 	}
 
-	if ((size_t) length <= cborText->len)
+	if (cborText != NULL)
 	{
+		/*
+		 * BSL passes a freshly-Init'd EMPTY BSL_Data (len 0), and the
+		 * callback must allocate and fill it.
+		 */
+		if (BSL_Data_InitBuffer(cborText, (size_t) length) != BSL_SUCCESS)
+		{
+			return -1;
+		}
+
 		memcpy(cborText->ptr, buffer, length);
+		return BSL_SUCCESS;
 	}
 
-	/*	If encoded length exceeds available space we return
-	 *	the length without copying the encoded data into
-	 *	the BSL_Data_t object.					*/
-
-	return length;
+	return -1;
 }
 
 static int	ion_bsl_decode_eid(const BSL_Data_t *cborText,
@@ -1695,258 +1751,36 @@ static int	rfc9173_bcb_cek(unsigned char *buf, int len)
 
 /*************** Functions called by the host process *******************/
 
-/// Size of the base16_decode_table
-static const size_t	base64_decode_lim = 0x80;
-// clang-format off
-/// Decode table for base64 and base64uri
-static const int base64_decode_table[0x80] = {
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -2, -2, -2, -2, -2, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, 62, -1, 63,
-	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
-	-1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, 63,
-	-1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
-};
-// clang-format on
-
-/** Decode a single character.
- *
- * @param chr The character to decode.
- * @return If positive, the decoded value.
- * -1 to indicate error.
- * -2 to indicate whitespace.
- */
-static int	base64_decode_char(uint8_t chr)
+static int key_registry_init(BslAgent *agent, const char *pp_cfg_file_path)
 {
-	if (chr >= base64_decode_lim)
+	/*
+	 * TODO (key management): install BSL's reference (mock-BPA) key store
+	 * as the backend for now.  This is the seat of the planned Key-Access
+	 * Seam (resolveKEK / wrap / unwrap).
+	 * Need to replace MockBPA_KeyStore_* with an ION-owned, ionsec-backed
+	 * store (Path A) so production does not depend on the mock BPA.  The
+	 * key store is process-wide, installed once.
+	 */
+
+	int	   rc;
+
+	if (!agent->keystoreReady)
 	{
-		return -1;
+		MockBPA_KeyStore_Init();
+		agent->keystoreReady = 1;
 	}
 
-	return base64_decode_table[chr];
-}
-
-static int	base64_decode(m_bstring_t out, const m_string_t in)
-{
-	/*	Stolen from mock_bpa_base64_decode().		*/
-
-	size_t		in_len = m_string_size(in);
-	const char 	*curs = m_string_get_cstr(in);
-
-	BSL_CHKERR1(out);
-	BSL_CHKERR1(in);
-
-	size_t		out_len = (in_len / 4) * 3 + 2;
-	m_bstring_resize(out, out_len);
-	uint8_t		*out_curs = m_bstring_acquire_access(out, 0, out_len);
-
-	int		retval = 0;
-	for (; in_len >= 2; curs += 4, in_len -= 4)
-	{
-		// ignoring excess padding
-		if (curs[0] == '=')
-		{
-			break;
-		}
-
-		const int seg0 = base64_decode_char(curs[0]);
-		const int seg1 = base64_decode_char(curs[1]);
-		if ((seg0 < 0) || (seg1 < 0))
-		{
-			retval = 3;
-			break;
-		}
-
-		if (out_len)
-		{
-			const uint8_t byte = (seg0 << 2) | (seg1 >> 4);
-			*(out_curs++)      = byte;
-			--out_len;
-		}
-
-		if (in_len == 2)
-		{
-			// allow omitted padding
-			in_len = 0;
-			break;
-		}
-		else if (curs[2] == '=')
-		{
-			if (in_len != 4)
-			{
-				break;
-			}
-
-			if (curs[3] != '=')
-			{
-				break;
-			}
-		}
-		else
-		{
-			const int seg2 = base64_decode_char(curs[2]);
-			if (seg2 < 0)
-			{
-				retval = 3;
-				break;
-			}
-
-			if (out_len)
-			{
-				const uint8_t byte =
-					((seg1 << 4) & 0xF0) | (seg2 >> 2);
-				*(out_curs++)      = byte;
-				--out_len;
-			}
-
-			if (in_len == 3)
-			{
-				// allow omitted padding
-				in_len = 0;
-				break;
-			}
-			else if (curs[3] == '=')
-			{
-				if (in_len != 4)
-				{
-					break;
-				}
-			}
-			else
-			{
-				const int seg3 = base64_decode_char(curs[3]);
-				if (seg3 < 0)
-				{
-					retval = 3;
-					break;
-				}
-
-				if (out_len)
-				{
-					const uint8_t byte = ((seg2 << 6)
-							& 0xC0) | seg3;
-					*(out_curs++) = byte;
-					--out_len;
-				}
-			}
-		}
-	}
-
-	// trim if necessary
-	m_bstring_release_access(out);
-	m_bstring_resize(out, m_bstring_size(out) - out_len);
-	if (retval)
-	{
-		return retval;
-	}
-
-	// Per Section 3.3 of RFC 4648, ignoring excess padding
-	while ((in_len > 0) && (*curs == '='))
-	{
-		++curs;
-		--in_len;
-	}
-
-	return (in_len > 0) ? 4 : 0;
-}
-
-static int	key_registry_init(const char *pp_cfg_file_path)
-{
-	/*	Stolen from mock_bpa_key_registry_init().		*/
-
-	int		retval = 0;
-	json_t		*root;
-	json_error_t	err;
-	json_t		*keys;
-	size_t		n;
-	json_t		*key_obj;
-	json_t		*kty;
-	json_t		*kid;
-	const char	*kid_str;
-	json_t		*k;
-	const char	*k_str;
-	size_t		k_len;
-	const uint8_t	*k_ptr;
-
+	/* KeyLoader_LoadFile accepts only ".json" or ".cbor" suffix. */
 	BSL_LOG_INFO("Reading keys from %s", pp_cfg_file_path);
-	root = json_load_file(pp_cfg_file_path, 0, &err);
-	if (!root)
+	rc = BSL_Crypto_KeyLoader_LoadFile(pp_cfg_file_path);
+	if (rc != BSL_SUCCESS)
 	{
-		BSL_LOG_ERR("JSON error: line %d: %s", err.line, err.text);
-		json_decref(root);
+		BSL_LOG_ERR("BSL_Crypto_KeyLoader_LoadFile(%s) failed: %d",
+				pp_cfg_file_path, rc);
 		return 1;
 	}
 
-	keys = json_object_get(root, "keys");
-	if (!keys || !json_is_array(keys))
-	{
-		BSL_LOG_ERR("Missing \"keys\" ");
-		json_decref(root);
-		return 1;
-	}
-
-	n = json_array_size(keys);
-	BSL_LOG_INFO("Found %zu key objects", n);
-	for (size_t i = 0; !retval && (i < n); ++i)
-	{
-		key_obj = json_array_get(keys, i);
-		if (!json_is_object(key_obj))
-		{
-			continue;
-		}
-
-		kty = json_object_get(key_obj, "kty");
-		if (!kty)
-		{
-			BSL_LOG_ERR("Missing \"kty\" ");
-			continue;
-		}
-
-		if (0 != strcmp("oct", json_string_value(kty)))
-		{
-			BSL_LOG_ERR("Not a symmetric key set");
-			continue;
-		}
-
-		kid = json_object_get(key_obj, "kid");
-		if (!kid || !json_is_string(kid))
-		{
-			BSL_LOG_ERR("Missing \"kid\" ");
-			continue;
-		}
-
-		kid_str = json_string_value(kid);
-		BSL_LOG_DEBUG("kid: %s", kid_str);
-		k = json_object_get(key_obj, "k");
-		if (!k || !json_is_string(k))
-		{
-			BSL_LOG_ERR("Missing \"k\" ");
-			continue;
-		}
-
-		k_str = json_string_value(k);
-		BSL_LOG_DEBUG("k: %s", k_str);
-		m_string_t k_text;
-		m_string_init_set_cstr(k_text, k_str);
-		m_bstring_t k_data;
-		m_bstring_init(k_data);
-		retval = base64_decode(k_data, k_text);
-		if (!retval)
-		{
-			k_len = m_bstring_size(k_data);
-			k_ptr = m_bstring_view(k_data, 0, k_len);
-			retval = BSL_Crypto_AddRegistryKey(kid_str, k_ptr,
-					k_len);
-		}
-
-		m_bstring_clear(k_data);
-		m_string_clear(k_text);
-	}
-
-	json_decref(root);
-	return retval;
+	return 0;
 }
 
 #if 0
@@ -2054,25 +1888,25 @@ static int	initializeAgent(BslAgent *agent)
 	policy_callbacks.query_fn = BSLP_QueryPolicy;
 	policy_callbacks.finalize_fn = BSLP_FinalizePolicy;
 
-	agent->transmit.policy = BSLP_PolicyProvider_Init(1);
+	agent->transmit.policy = BSLP_PolicyProvider_New(1);
 	policy_callbacks.user_data = agent->transmit.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->transmit.bsl,
 			1, policy_callbacks));
 
-	agent->deliver.policy = BSLP_PolicyProvider_Init(1);
+	agent->deliver.policy = BSLP_PolicyProvider_New(1);
 	policy_callbacks.user_data = agent->deliver.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->deliver.bsl,
 			1, policy_callbacks));
 
-	agent->receive.policy = BSLP_PolicyProvider_Init(1);
+	agent->receive.policy = BSLP_PolicyProvider_New(1);
 	policy_callbacks.user_data = agent->receive.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->receive.bsl,
 			1, policy_callbacks));
 
-	agent->forward.policy = BSLP_PolicyProvider_Init(1);
+	agent->forward.policy = BSLP_PolicyProvider_New(1);
 	policy_callbacks.user_data = agent->forward.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->forward.bsl,
@@ -2087,7 +1921,7 @@ static bool	ion_bsl_log_is_enabled(int severity)
 	return true;
 }
 
-static void	ion_bsl_log_event(const struct timeval *timestamp,
+static void	ion_bsl_log_event(const struct timespec *timestamp,
 			int severity, const char *filename, int lineno,
 			const char *funcname, const char *format,
 			va_list args)
@@ -2157,7 +1991,6 @@ static void	loadCallbacks(BSL_HostDescriptors_t *descriptors)
 
 int	bslInitialize(BslAgent *agent)
 {
-	static int		bslInitialized = 0;
 	Sdr			sdr = getIonsdr();
 	SdrObject		bpDbObject;
 	BpDB			bpdb;
@@ -2168,7 +2001,7 @@ int	bslInitialize(BslAgent *agent)
 
 	/*	Guard against repeated initialization.			*/
 
-	if (bslInitialized)
+	if (agent->initialized)
 	{
 		return 0;	/*	Already initialized.		*/
 	}
@@ -2193,7 +2026,6 @@ int	bslInitialize(BslAgent *agent)
 		sdr_exit_xn(sdr);
 		writeMemo("[i] BSL not configured; security processing \
 disabled.  Use 'm bsl' in bprc to enable.");
-		bslInitialized = 1;
 		return 0;
 	}
 
@@ -2203,18 +2035,11 @@ disabled.  Use 'm bsl' in bprc to enable.");
 
 	/*	BSL initialization parameters are now loaded.		*/
 
-	BSL_CryptoInit();
 #ifdef ION_BSL_TEST_VECTORS
 	writeMemo("[!] ION_BSL_TEST_VECTORS build: content-encryption keys and \
 IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 	BSL_Crypto_SetRngGenerator(rfc9173_bcb_cek);
 #endif
-	if (initializeAgent(agent) < 0)
-	{
-		writeMemo("[?] Bsl agent initialization failed.");
-		return 1;
-	}
-
 	/*	NOTE: BSL_HostDescriptors_Set requires pass-by-value
 	 *	rather than pass-by-reference.  We temporarily
 	 *	allocate space for that object out of ION-managed
@@ -2223,23 +2048,31 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 	 *	allocated local object and returns, at which point
 	 *	we immediately release the ION-managed local memory
 	 *	occupied by the argument object.  No system memory
-	 *	is allocated at any time.				*/
+	 *	is allocated at any time.  The descriptors include
+	 *	BSL's memory allocation callbacks, so they must be
+	 *	set before anything is allocated by BSL.		*/
 
-	descriptors = BSL_malloc(sizeof(BSL_HostDescriptors_t));
+	descriptors = MTAKE(sizeof(BSL_HostDescriptors_t));
 	if (descriptors == NULL)
 	{
 		writeMemo("[?] Can't create Bsl host descriptors object.");
 		return 1;
 	}
 
+	memset(descriptors, 0, sizeof(BSL_HostDescriptors_t));
 	descriptors->user_data = agent;
 	loadCallbacks(descriptors);
 	result = BSL_HostDescriptors_Set(*descriptors);	/*	Value.	*/
-	BSL_free(descriptors);
+	MRELEASE(descriptors);
 	if (result < 0)
 	{
-		bslCleanup(agent);
 		writeMemo("[?] Bsl host descriptors setting failed.");
+		return 1;
+	}
+
+	if (initializeAgent(agent) < 0)
+	{
+		writeMemo("[?] Bsl agent initialization failed.");
 		return 1;
 	}
 
@@ -2247,7 +2080,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 
 	BSL_HostEID_Init(&agent->app_eid);
 	BSL_HostEID_Init(&agent->sec_eid);
-	if (key_registry_init(keyRegistryFilePath) != 0)
+	if (key_registry_init(agent, keyRegistryFilePath) != 0)
 	{
 		bslCleanup(agent);
 		writeMemo("[?] Bsl host failed initializing key registry.");
@@ -2256,7 +2089,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 
 	/*	Load policy.						*/
 
-	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+	if (BSLP_PolicyParser_LoadFile(policyConfigFilePath,
 			agent->transmit.policy) != 0)
 	{
 		bslCleanup(agent);
@@ -2264,7 +2097,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 		return 1;
 	}
 
-	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+	if (BSLP_PolicyParser_LoadFile(policyConfigFilePath,
 			agent->deliver.policy) != 0)
 	{
 		bslCleanup(agent);
@@ -2272,7 +2105,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 		return 1;
 	}
 
-	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+	if (BSLP_PolicyParser_LoadFile(policyConfigFilePath,
 			agent->receive.policy) != 0)
 	{
 		bslCleanup(agent);
@@ -2280,7 +2113,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 		return 1;
 	}
 
-	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+	if (BSLP_PolicyParser_LoadFile(policyConfigFilePath,
 			agent->forward.policy) != 0)
 	{
 		bslCleanup(agent);
@@ -2290,7 +2123,7 @@ IVs are FIXED RFC 9173 test vectors, not random.  NOT FOR OPERATIONAL USE.");
 
 	/*	Mark BSL as initialized.				*/
 
-	bslInitialized = 1;
+	agent->initialized = 1;
 	return 0;
 }
 
@@ -2299,17 +2132,21 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 {
 	int				returncode = 0;
 	BSL_SecurityActionSet_t		*malloced_action_set;
-	BSL_SecurityResponseSet_t	*malloced_response_set;
 
 	(void)agent;	/*	Unused parameter			*/
 	BSL_BundleRef_t			bundle_ref;
 
 	malloced_action_set = BSL_calloc(1, BSL_SecurityActionSet_Sizeof());
-	malloced_response_set = BSL_calloc(1, BSL_SecurityResponseSet_Sizeof());
-	bundle_ref.data = bundleWorkArea;
+
+	BSL_SecurityActionSet_Init(malloced_action_set);
+	BSL_BundleRef_Init(&bundle_ref);
+	bundle_ref.handle = bundleWorkArea;
 	if (pthread_mutex_lock(&ctx->mutex))
 	{
 		BSL_LOG_CRIT("failed to lock mutex");
+		BSL_SecurityActionSet_Deinit(malloced_action_set);
+		BSL_free(malloced_action_set);
+		BSL_BundleRef_Deinit(&bundle_ref);
 		return 2;
 	}
 
@@ -2323,8 +2160,7 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	if (returncode == 0)
 	{
 		BSL_LOG_INFO("calling BSL_API_ApplySecurity");
-		returncode = BSL_API_ApplySecurity(ctx->bsl,
-				malloced_response_set, &bundle_ref,
+		returncode = BSL_API_ApplySecurity(ctx->bsl, &bundle_ref,
 				malloced_action_set);
 		if (returncode < 0)
 		{
@@ -2493,7 +2329,13 @@ block.", NULL);
 
 	BSL_SecurityActionSet_Deinit(malloced_action_set);
 	BSL_free(malloced_action_set);
-	BSL_free(malloced_response_set);
+	BSL_BundleRef_Deinit(&bundle_ref);
+	if (encodedPB_ready)
+	{
+		BSL_Data_Deinit(&encodedPB);
+		encodedPB_ready = 0;
+	}
+
 	BSL_LOG_INFO("result code %d", returncode);
 	return returncode;
 }
@@ -2515,7 +2357,7 @@ void	bslCleanup(BslAgent *agent)
 		ctx = ctxs[ix];
 		if (ctx->policy)
 		{
-			BSLP_PolicyProvider_Deinit(ctx->policy);
+			BSLP_PolicyProvider_Destroy(ctx->policy);
 			ctx->policy = NULL;
 		}
 	}
@@ -2550,6 +2392,6 @@ void	bslCleanup(BslAgent *agent)
 		BSL_HostEID_Deinit(&agent->sec_eid);
 	}
 
-	BSL_CryptoDeinit();
 	BSL_HostDescriptors_Clear();
+	agent->initialized = 0;
 }

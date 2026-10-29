@@ -18,19 +18,15 @@
 #ifndef BPP_H
 #define BPP_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bp.h"
 #include "bp_admin.h"
 #include "rfx.h"
 #include "cbor.h"
 #include "crc.h"
-
-#ifndef USING_BSL
-#define USING_BSL	0
-#endif
-
-#if USING_BSL
-#include "bsl.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {

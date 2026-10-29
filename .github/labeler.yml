@@ -10,7 +10,6 @@ CI/CD:
               - "!**/*.h"
               - "!configure.ac"
               - "!Makefile.am"
-              - "!build-bsl-for-ion.sh"
               - "!killm"
               # Exclude genuine test suite subdirectories & demos
               - "!demos/**"
@@ -29,7 +28,6 @@ test-mods:
               - "!**/*.h"
               - "!configure.ac"
               - "!Makefile.am"
-              - "!build-bsl-for-ion.sh"
               - "!killm"
       # Must NOT be test runner / infrastructure files
       - changed-files:

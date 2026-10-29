@@ -20,6 +20,9 @@ AC_CONFIG_MACRO_DIR([m4])
 
 m4_pattern_forbid([^PKG_])
 
+BP_PKG_REQUIRES_PRIVATE=
+BP_PKG_LIBS_PRIVATE=
+
 ## -----checking wsl type------------------------------------------------------------------- ##
 virtual_device_name=`uname -r`;
 SUB="Microsoft";
@@ -673,18 +676,18 @@ else
 fi
 
 #
-# Allow user to enable BSL (Bundle Protocol Security Library)
+# Allow user to build with BSL (Bundle Protocol Security Library)
 #
-# To Enable BSL, use "./configure --enable-bsl"
-AC_ARG_ENABLE([bsl],
-  [AS_HELP_STRING([--enable-bsl],[Turn on BPSec using external BSL library])],
-  [AS_CASE(["$enableval"],
+# To build with BSL, use "./configure --with-bsl"
+AC_ARG_WITH([bsl],
+  [AS_HELP_STRING([--with-bsl], [use BPSec Library @<:@default=no@:>@])],
+  [AS_CASE(["$withval"],
      [yes|no], [],
-     [AC_MSG_ERROR([bad value ${enableval} for --enable-bsl])])],
-  [enable_bsl=no])
+     [AC_MSG_ERROR([bad value ${withval} for --with-bsl])])],
+  [with_bsl=no])
 
 # Test-only: use the fixed RFC 9173 Appendix A content-encryption key and
-# IV vectors instead of a CSPRNG.  Requires --enable-bsl.  NOT for
+# IV vectors instead of a CSPRNG.  Requires --with-bsl.  NOT for
 # operational use (see ION_BSL_TEST_VECTORS handling below).
 AC_ARG_ENABLE([bsl-test-vectors],
   [AS_HELP_STRING([--enable-bsl-test-vectors],
@@ -695,160 +698,22 @@ AC_ARG_ENABLE([bsl-test-vectors],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-bsl-test-vectors])])],
   [enable_bsl_test_vectors=no])
 
-AS_IF([test "x$enable_bsl_test_vectors" = xyes && test "x$enable_bsl" != xyes],
-  [AC_MSG_ERROR([--enable-bsl-test-vectors requires --enable-bsl])])
+AS_IF([test "x$enable_bsl_test_vectors" = xyes && test "x$with_bsl" != xyes],
+  [AC_MSG_ERROR([--enable-bsl-test-vectors requires --with-bsl])])
 
-AS_IF([test "x$enable_bsl" = xyes],
-  [
-    # Check if external/BSL directory exists
-    AC_MSG_CHECKING([for BSL submodule at external/BSL])
-    if test -d "$srcdir/external/BSL" && ls "$srcdir/external/BSL"/* >/dev/null 2>&1; then
-      AC_MSG_RESULT([yes])
-      ENABLE_BSL=yes
-
-      # BSL carries its own submodules under deps/.  A non-recursive
-      # "git submodule update --init external/BSL" registers them without
-      # populating them, and the resulting CMake failure ("deps/QCBOR does
-      # not appear to contain CMakeLists.txt") does not identify the cause.
-      AC_MSG_CHECKING([for BSL bundled dependencies])
-      bsl_missing_deps=
-      for bsl_dep in QCBOR mlib unity; do
-        if ! ls "$srcdir/external/BSL/deps/$bsl_dep"/* >/dev/null 2>&1; then
-          bsl_missing_deps="$bsl_missing_deps deps/$bsl_dep"
-        fi
-      done
-      if test -n "$bsl_missing_deps"; then
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([BSL dependencies not initialized:$bsl_missing_deps
-  Initialize them with:
-    git submodule update --init --recursive external/BSL])
-      fi
-      AC_MSG_RESULT([yes])
-
-      # Set BSL_HOME to default location
-      if test -z "${BSL_HOME}";
-      then
-        BSL_HOME="${srcdir}/external/BSL/testroot/usr"
-      fi
-
-      # Force BSL_HOME to be an absolute path to satisfy libtool.  It must
-      # not be required to exist yet: "make" builds BSL as part of "all"
-      # (see the all-bsl rule in Makefile.am) and "make clean" removes it
-      # again, so configure legitimately runs both before and after BSL
-      # exists.  Resolving this with `cd "$BSL_HOME" && pwd` assigned the
-      # empty result of a failed cd, silently degrading every flag below to
-      # -I/include/... and -L/lib and failing much later on a missing
-      # header, so build the absolute path textually instead.
-      case "$BSL_HOME" in
-        /*) ;;
-        *)  BSL_HOME="`pwd`/$BSL_HOME" ;;
-      esac
-      # Collapse the "/./" that a srcdir of "." would otherwise leave in
-      # every -I, -L and -rpath built from this path.
-      BSL_HOME=`echo "$BSL_HOME" | sed -e 's|/\./|/|g'`
-
-      # BSL installs its libraries into lib64 on some platforms (RHEL
-      # family) and lib on others, and which one it will use is not known
-      # until BSL has been built.  Reference both; a -L or -rpath naming a
-      # directory that does not exist is ignored.
-      BSL_LIB_DIR64="${BSL_HOME}/lib64"
-      BSL_LIB_DIR32="${BSL_HOME}/lib"
-
-      # Add preprocessor flag for conditional compilation
-      AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
-
-      # BSL test vectors: replace the CSPRNG-backed content-encryption key
-      # and IV generator with the fixed RFC 9173 Appendix A test vectors.
-      # For interop/regression reproduction of the Appendix A byte-exact
-      # vectors ONLY.  A build with this flag reuses a fixed key and IV,
-      # which defeats confidentiality, so it must never be used
-      # operationally; it is off unless explicitly requested.
-      AS_IF([test "x$enable_bsl_test_vectors" = xyes],
-        [AC_DEFINE([ION_BSL_TEST_VECTORS], [1],
-           [(BSL, test only) use fixed RFC 9173 Appendix A key/IV vectors
-            instead of a CSPRNG.  NOT for operational use.])
-         AC_MSG_WARN([ION_BSL_TEST_VECTORS enabled: content-encryption keys \
+# BSL test vectors: replace the CSPRNG-backed content-encryption key
+# and IV generator with the fixed RFC 9173 Appendix A test vectors.
+# For interop/regression reproduction of the Appendix A byte-exact
+# vectors ONLY.  A build with this flag reuses a fixed key and IV,
+# which defeats confidentiality, so it must never be used
+# operationally; it is off unless explicitly requested.
+AS_IF([test "x$enable_bsl_test_vectors" = xyes && test "x$with_bsl" = xyes],
+  [AC_DEFINE([ION_BSL_TEST_VECTORS], [1],
+    [(BSL, test only) use fixed RFC 9173 Appendix A key/IV vectors
+     instead of a CSPRNG.  NOT for operational use.])
+   AC_MSG_WARN([ION_BSL_TEST_VECTORS enabled: content-encryption keys \
 and IVs are FIXED RFC 9173 test vectors, not random. \
 Do not use this build operationally.])])
-
-      # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
-      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${BSL_HOME}/include/m-lib -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
-
-      # Add jansson include path for platforms where it's in a subdirectory (e.g., Solaris)
-      # Try common locations
-      for jansson_inc_dir in /usr/include/jansson /usr/local/include/jansson; do
-        if test -f "${jansson_inc_dir}/jansson.h"; then
-          AM_CFLAGS="$AM_CFLAGS -I${jansson_inc_dir}"
-          PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${jansson_inc_dir}"
-          AC_MSG_NOTICE([Found jansson headers in ${jansson_inc_dir}])
-          break
-        fi
-      done
-
-      # Expose Solaris extensions
-      if test "x$PLATFORM" = "xsolaris"; then
-        CFLAGS="$CFLAGS -D__EXTENSIONS__"
-      fi
-
-      # Set BSL library flags.  -L must precede the -l options it applies to.
-      BSL_LIBS="-L${BSL_LIB_DIR64} -L${BSL_LIB_DIR32} -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson"
-
-      # Executables linking against libbp need rpath-link to resolve
-      # BSL's transitive dependencies (e.g. libqcbor) at link time
-      # Use platform-specific linker flags
-      case $host_os in
-        solaris*)
-          # Solaris linker uses -R for runtime library path
-          AM_LDFLAGS="$AM_LDFLAGS -R${BSL_LIB_DIR64} -R${BSL_LIB_DIR32}"
-          ;;
-        *)
-          # GNU ld (Linux, BSD, etc.) uses -rpath-link
-          AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_LIB_DIR64} -Wl,-rpath-link,${BSL_LIB_DIR32}"
-          ;;
-      esac
-
-      AC_MSG_NOTICE([BSL will be built with ION integration])
-      AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
-    else
-      AC_MSG_RESULT([no])
-      AC_MSG_ERROR([BSL submodule not found. Initialize with:
-    git submodule update --init --recursive external/BSL])
-    fi
-  ],
-  [echo "BSL disabled (using ION native BPSec)"
-   ENABLE_BSL=no])
-
-AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
-
-if test "x$ENABLE_BSL" = "xyes"; then
-  # Apply AM_CFLAGS to CFLAGS for header checks
-  ORIGCFLAGS_BSL="$CFLAGS"
-  CFLAGS="$AM_CFLAGS $CFLAGS"
-
-  # Check for required BSL dependencies
-  AC_CHECK_HEADER([jansson.h],
-    [],
-    [AC_MSG_ERROR([jansson development headers not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
-
-  AC_CHECK_LIB([jansson], [json_object],
-    [],
-    [AC_MSG_ERROR([jansson library not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
-
-  # Restore original CFLAGS
-  CFLAGS="$ORIGCFLAGS_BSL"
-
-  AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
-  AC_SUBST([BSL_HOME], ["$BSL_HOME"])
-  AC_SUBST([BSL_LIB_DIR64], ["$BSL_LIB_DIR64"])
-  AC_SUBST([BSL_LIB_DIR32], ["$BSL_LIB_DIR32"])
-else
-  AC_SUBST([BSL_LIBS], [""])
-  AC_SUBST([BSL_HOME], [""])
-  AC_SUBST([BSL_LIB_DIR64], [""])
-  AC_SUBST([BSL_LIB_DIR32], [""])
-fi
 
 #
 # Allow user to enable TCPCLv4 external CLA (demo prototype)
@@ -1169,6 +1034,38 @@ fi # ENABLE_TCPCLV4_EXTERNAL
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"
+
+using_bsl=no
+AS_IF([test "x$with_bsl" = "xyes"],
+  [PKG_CHECK_MODULES([BSL], [bsl >= 2 bsl < 3 bsl-sample-pp bsl-default-sc])
+   PKG_CHECK_VAR([bsl_libdir], [bsl], [libdir], [],
+     [AC_MSG_ERROR([bsl.pc is missing libdir variable])])
+   saved_LDFLAGS="$LDFLAGS"
+   saved_LIBS="$LIBS"
+   LDFLAGS="-L$bsl_libdir $LDFLAGS"
+   AC_SEARCH_LIBS([MockBPA_KeyStore_Init], [bsl_mock_bpa],
+     [saved_CPPFLAGS="$CPPFLAGS"
+      CPPFLAGS="$BSL_CFLAGS $CPPFLAGS"
+      AC_CHECK_HEADER([bsl/mock_bpa/KeyStore.h], [],
+        [AC_MSG_ERROR([cannot find bsl/mock_bpa/KeyStore.h])])
+      CPPFLAGS="$saved_CPPFLAGS"],
+     [AC_MSG_ERROR([bsl_mock_bpa library is required but not found])])
+   LDFLAGS="$saved_LDFLAGS"
+   LIBS="$saved_LIBS"
+   _bsl_requires_private="bsl bsl-sample-pp bsl-default-sc"
+   _bsl_libs_private="-lbsl_mock_bpa"
+
+   AC_DEFINE([USING_BSL], [1], [Define to 1 if you have BSL.])
+
+   AS_IF([test "x$BP_PKG_REQUIRES_PRIVATE" = "x"],
+     [BP_PKG_REQUIRES_PRIVATE="$_bsl_requires_private"],
+     [BP_PKG_REQUIRES_PRIVATE="$BP_PKG_REQUIRES_PRIVATE $_bsl_requires_private"])
+   AS_IF([test "x$BP_PKG_LIBS_PRIVATE" = "x"],
+     [BP_PKG_LIBS_PRIVATE="$_bsl_libs_private"],
+     [BP_PKG_LIBS_PRIVATE="$BP_PKG_LIBS_PRIVATE $_bsl_libs_private"])
+
+   using_bsl=yes])
+AM_CONDITIONAL([USING_BSL], [test "x$using_bsl" = "xyes"])
 
 AS_IF([test "x$with_expat" != "xno"],
   [PKG_CHECK_MODULES([EXPAT], [expat],
@@ -1516,6 +1413,8 @@ AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
+AC_SUBST([BP_PKG_REQUIRES_PRIVATE])
+AC_SUBST([BP_PKG_LIBS_PRIVATE])
 AC_SUBST([PKG_CONFIG_CFLAGS])
 AC_SUBST([CRYPTO_LIBS],"$CRYPTO_LIBS")
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
@@ -1610,12 +1509,9 @@ dnl ===============================================================
 dnl  Configuration Summary
 dnl ===============================================================
 
-# Set native BPSec status based on ENABLE_BSL
-if test "x$ENABLE_BSL" = "xyes"; then
-  NATIVE_BPSEC_STATUS="no"
-else
-  NATIVE_BPSEC_STATUS="yes (default)"
-fi
+AS_IF([test "x$using_bsl" = "xyes"],
+  [native_bpsec_status="no"],
+  [native_bpsec_status="yes (default)"])
 
 AC_MSG_NOTICE([
 ========================================================================
@@ -1625,8 +1521,8 @@ ION Configuration Summary
   Bundle Protocol Version: BPv7
 
   BPSec Implementation:
-    BSL (Bundle Protocol Security Library):  ${ENABLE_BSL:-no}
-    Native ION BPSec:                        ${NATIVE_BPSEC_STATUS}
+    BSL (Bundle Protocol Security Library):  ${using_bsl:-no}
+    Native ION BPSec:                        ${native_bpsec_status}
 
   Optional Convergence Layers:
     DGR (Datagram Retransmission):           ${enable_dgr:-no}
@@ -1639,7 +1535,7 @@ ION Configuration Summary
   Security:
     Crypto Library:                          ${CRYPTO_MBEDTLS:-no (NULL suites)}
 
-  To enable BSL:    ./configure --enable-bsl
+  To enable BSL:    ./configure --with-bsl
   To disable DGR:   ./configure --disable-dgr
   To disable DTPC:  ./configure --disable-dtpc
   To disable TC:    ./configure --disable-tc

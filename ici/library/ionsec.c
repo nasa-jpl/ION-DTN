@@ -20,6 +20,11 @@
 	06-27-19  SB	   Extracted LTP and BP functions.
 
 									*/
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "ionsec.h"
 #include "ion.h"
 #include "platform.h"

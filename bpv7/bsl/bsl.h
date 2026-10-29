@@ -17,12 +17,11 @@
 extern "C" {
 #endif
 
-#include <BPSecLib_Private.h>
-#include <BPSecLib_Public.h>
-#include <CryptoInterface.h>
-#include <policy_provider/SamplePolicyProvider.h>
-#include <policy_provider/SamplePolicyConfigParser.h>
-#include <security_context/rfc9173.h>
+#include "platform.h" // IWYU pragma: keep
+
+#include <pthread.h>
+
+#include <bsl/BPSecLib_Public.h>
 
 /*	This structure holds the state of one of the four stages of
  *	security processing performed at this BP node - that is, the
@@ -31,9 +30,9 @@ extern "C" {
 
 typedef struct BslContext_s
 {
-	BSLP_PolicyProvider_t	*policy;
-	BSL_LibCtx_t		*bsl;
-	pthread_mutex_t		mutex;
+	struct BSLP_PolicyProvider_s *policy;
+	BSL_LibCtx_t		     *bsl;
+	pthread_mutex_t		      mutex;
 } BslContext;
 
 /*	This structure holds the state of the BSL agent configured
@@ -56,6 +55,9 @@ typedef struct BslAgent_s
 	BslContext	forward;	/*	Bundle sent to CLA.	*/
 	BslContext	receive;	/*	Bundle rec'd from CLA.	*/
 	BslContext	deliver;	/*	Bundle sent to app.	*/
+
+	int		initialized;	/*	Boolean.		*/
+	int		keystoreReady;	/*	Boolean.		*/
 } BslAgent;
 
 /*		bsl functions accessible from the host process		*/

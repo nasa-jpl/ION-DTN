@@ -11,6 +11,10 @@
 
 /*	Add external function declarations between here...		*/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "pnb.h"
 #include "bpq.h"
 #include "meb.h"

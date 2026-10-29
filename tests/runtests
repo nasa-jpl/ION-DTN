@@ -1081,7 +1081,7 @@ fi
 BP_VERSION="bpv7"
 
 # Determine BPSec implementation (BSL vs native BPSec)
-if pkg-config --cflags ion 2>/dev/null | grep -q 'USING_BSL'; then
+if pkg-config --print-requires-private ion 2>/dev/null | grep -q 'bsl'; then
     BPSEC_MODE="bsl"
 elif ! command -v bpsecadmin >/dev/null 2>&1; then
     BPSEC_MODE="bsl"

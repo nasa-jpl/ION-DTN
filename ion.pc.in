@@ -8,5 +8,7 @@ Description: Interplanetary Overlay Network DTN Implementation
 Version: @VERSION@
 URL: https://github.com/nasa-jpl/ION-DTN
 Requires:
+Requires.private: @BP_PKG_REQUIRES_PRIVATE@
 Libs: -L${libdir} -lbp -lici @PTHREAD_LIBS@ @CRYPTO_LIBS@
+Libs.private: @BP_PKG_LIBS_PRIVATE@
 Cflags: -I${includedir} @PKG_CONFIG_CFLAGS@

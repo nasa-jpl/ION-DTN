@@ -61,6 +61,10 @@
 #ifndef BCB_H_
 #define BCB_H_
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bpsec_util.h"
 #include "bpsec_asb.h"
 #if !USING_BSL

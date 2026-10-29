@@ -18,6 +18,10 @@
  *	09-04-19  SCB	Revision per version 7 of Bundle Protocol spec.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "bpP.h"
 #include "sdrhash.h"
 #include "smrbt.h"
@@ -38,6 +42,7 @@
 #endif
 
 #if USING_BSL
+#include "bsl.h"
 /*	State of BPSec library instance.				*/
 static BslAgent			agent;
 static int			bslConfigured = 0;

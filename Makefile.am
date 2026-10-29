@@ -97,26 +97,6 @@ EXTRA_DIST =	\
 
 # This hook now explicitly depends on the completion of all programs and
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
-
-if ENABLE_BSL
-# BSL v1.1 builds as a standalone library (no ION dependencies).
-# Build BSL first, then build ION linking against BSL.
-all: all-bsl
-
-all-bsl:
-	@echo "========================================"
-	@echo "Stage 1: Building BSL..."
-	@echo "========================================"
-	@$(srcdir)/build-bsl-for-ion.sh
-	@echo "========================================"
-	@echo "Stage 2: Building ION..."
-	@echo "========================================"
-	$(MAKE) $(AM_MAKEFLAGS) all-am
-
-all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
-else
-all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
-endif # end ENABLE_BSL
 if ENABLE_INSTALL_MESSAGES
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
@@ -132,17 +112,6 @@ if ENABLE_INSTALL_MESSAGES
 		echo ""; \
 		touch .build_finished; \
 	fi
-endif
-
-if ENABLE_BSL
-install-exec-hook:
-	@echo "Installing BSL shared libraries to $(DESTDIR)$(libdir)..."
-	@for d in $(BSL_LIB_DIR64) $(BSL_LIB_DIR32); do \
-		test -d "$$d" || continue; \
-		cp -pPR "$$d"/libbsl_*.so* $(DESTDIR)$(libdir)/; \
-		cp -pPR "$$d"/libqcbor.so* $(DESTDIR)$(libdir)/; \
-		break; \
-	done
 endif
 
 # This hook contains the final message after a successful installation.
@@ -227,13 +196,6 @@ distclean-local:
 # clean-local refers to existing documents.
 CLEAN_LOCAL_DEPS = iciclean-local ltpclean-local bpclean-local amsclean-local \
 	cfdpclean-local restartclean-local bssclean-local nmclean-local
-
-if ENABLE_BSL
-bsl-clean-local:
-	@echo "Cleaning BSL build artifacts..."
-	@cd $(srcdir)/external/BSL && ./build.sh clean || true
-CLEAN_LOCAL_DEPS += bsl-clean-local
-endif
 
 if ENABLE_DGR
 dgrclean-local:
@@ -1311,7 +1273,6 @@ bpextra = \
 	bpv7/doc/pod1/bpnmtest.pod \
 	bpv7/doc/pod1/bprecvfile.pod \
 	bpv7/doc/pod1/bprecvtest.pod \
-	bpv7/doc/pod1/bpsecadmin.pod \
 	bpv7/doc/pod1/bpsendfile.pod \
 	bpv7/doc/pod1/bprecvmeta.pod \
 	bpv7/doc/pod1/bpsendmeta.pod \
@@ -1384,6 +1345,10 @@ bpextra += \
 	bpv7/doc/pod1/imcfw.pod
 endif # end ENABLE_IMC
 
+if !USING_BSL
+bpextra += bpv7/doc/pod1/bpsecadmin.pod
+endif
+
 bpmans = \
 	bpv7/doc/bibeadmin.1 \
 	bpv7/doc/bibeclo.1 \
@@ -1402,7 +1367,6 @@ bpmans = \
 	bpv7/doc/bpnmtest.1 \
 	bpv7/doc/bprecvfile.1 \
 	bpv7/doc/bprecvtest.1 \
-	bpv7/doc/bpsecadmin.1 \
 	bpv7/doc/bpsendfile.1 \
 	bpv7/doc/bprecvmeta.1 \
 	bpv7/doc/bpsendmeta.1 \
@@ -1466,6 +1430,9 @@ bpmans += \
 	bpv7/doc/imcfw.1
 endif # end ENABLE_IMC
 
+if !USING_BSL
+bpmans += bpv7/doc/bpsecadmin.1
+endif
 
 bpclean-local:
 	rm -f $(top_builddir)/bpv7/doc/*.1
@@ -1519,7 +1486,7 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 
 # Native BPSec sources - only when BSL is NOT enabled
-if !ENABLE_BSL
+if !USING_BSL
 libbp_la_SOURCES += \
 	bpv7/bpsec/policy/bpsec_policy.c \
 	bpv7/bpsec/policy/bpsec_policy_eventset.c \
@@ -1563,16 +1530,15 @@ libbp_la_SOURCES += \
 	bpv7/library/ext/imc/imc.c
 endif # end ENABLE_IMC
 
-# BSL Integration - add BSL wrapper when enabled
-if ENABLE_BSL
+if USING_BSL
 libbp_la_SOURCES += \
 	bpv7/bsl/bsl.c \
-	bpv7/bsl/ionpatch.c
-
-libbp_la_LIBADD += $(BSL_LIBS)
-libbp_la_LDFLAGS = $(AM_LDFLAGS) -Wl,-rpath,$(BSL_LIB_DIR64) -Wl,-rpath,$(BSL_LIB_DIR32)
-endif # end ENABLE_BSL
-
+	bpv7/bsl/bsl.h \
+	bpv7/bsl/ionpatch.c \
+	bpv7/bsl/ionpatch.h
+libbp_la_CPPFLAGS += -I$(srcdir)/bpv7/bsl $(BSL_CFLAGS)
+libbp_la_LIBADD += $(BSL_LIBS) -lbsl_mock_bpa
+endif
 
 libcgr_la_SOURCES = bpv7/cgr/libcgr.c
 
@@ -1655,7 +1621,7 @@ bpinspect_SOURCES = bpv7/utils/bpinspect.c bpv7/utils/bpinspect_data.c bpv7/util
 bpinspect_LDADD = libici.la $(bplib)
 bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-if !ENABLE_BSL
+if !USING_BSL
 bin_PROGRAMS += bpsecadmin
 bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
 bpsecadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
@@ -2744,7 +2710,7 @@ restartclean-local:
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl
+.PHONY:	test check buildcheck test-all test-% retest
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).

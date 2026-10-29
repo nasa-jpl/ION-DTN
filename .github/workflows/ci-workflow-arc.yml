@@ -178,7 +178,7 @@ jobs:
 
       - name: Calculate Source Hash
         id: calculate-hash
-        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}" >> $GITHUB_OUTPUT
+        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am') }}" >> $GITHUB_OUTPUT
 
       - name: Build Runner Matrix
         id: build-runners

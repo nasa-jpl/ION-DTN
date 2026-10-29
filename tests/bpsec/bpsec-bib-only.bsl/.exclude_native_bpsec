@@ -1,1 +1,1 @@
-BSL-specific test (requires --enable-bsl)
+BSL-specific test (requires --with-bsl)
