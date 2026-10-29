@@ -638,6 +638,7 @@ tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
 tests/ltp-repair-rounds/loopback.ionconfig
 tests/ltp-span-override-persistence/loopback.ionconfig
 tests/bp_sap_thread_ownership/dotest
+tests/bpsec/bsl-reattach.bsl/dotest
 
 # CBR custody test binary
 cbrcustodytest

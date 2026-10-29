@@ -1,0 +1,1 @@
+BSL state across bp_detach and bp_attach: security processing resumes after a process re-attaches, and threads that exit do not leak the serialized primary block.

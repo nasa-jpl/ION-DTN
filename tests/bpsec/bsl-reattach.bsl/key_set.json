@@ -1,0 +1,9 @@
+{
+    "keys": [
+        {
+            "kty": "oct",
+            "kid": "9103",
+            "k": "YWJjZGVmZ2hpamtsbW5vcA=="
+        }
+    ]
+}

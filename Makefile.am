@@ -2828,6 +2828,10 @@ endif
 
 check_PROGRAMS += tests/crc-hwaccel/dotest
 
+if USING_BSL
+check_PROGRAMS += tests/bpsec/bsl-reattach.bsl/dotest
+endif
+
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
 tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
@@ -2874,6 +2878,20 @@ tests_ltp_budget_unit_dotest_CFLAGS = $(AM_CFLAGS) $(TESTUTILCFLAGS) \
 tests_bp_sap_thread_ownership_dotest_SOURCES = tests/bp_sap_thread_ownership/dotest.c
 tests_bp_sap_thread_ownership_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
 tests_bp_sap_thread_ownership_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_bpsec_bsl_reattach_bsl_dotest_SOURCES = \
+	tests/bpsec/bsl-reattach.bsl/dotest.c
+tests_bpsec_bsl_reattach_bsl_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include
+tests_bpsec_bsl_reattach_bsl_dotest_CFLAGS = $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_bpsec_bsl_reattach_bsl_dotest_LDADD = \
+	$(TESTUTILOBJS) \
+	libbp.la \
+	libici.la \
+	-lpthread \
+	-lm
 
 #Disabled this test in ION 3.6.0 because tcpcl does not support loopback
 #tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
