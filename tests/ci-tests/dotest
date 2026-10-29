@@ -28,8 +28,11 @@ echo
 
 RETVAL=1
 
+# Run with set +e so we can capture the return value
+set +e
 "$PYTHON_CMD" -m unittest
 RETVAL=$?
+set -e
 
 if [ "$RETVAL" -eq 1 ]; then
     echo ""
