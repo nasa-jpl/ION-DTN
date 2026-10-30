@@ -89,10 +89,10 @@ jobs:
       build_type: "runner"
       consolidate_runners: true
       full_build: ${{ github.event_name == 'push' || github.event_name == 'workflow_run' }}
-      runner_u22: ${{ inputs.runner_u22 }}
-      runner_u24: ${{ inputs.runner_u24 }}
-      runner_ol8: ${{ inputs.runner_ol8 }}
-      runner_ol9: ${{ inputs.runner_ol9 }}
-      runner_rhel8: ${{ inputs.runner_rhel8 }}
-      runner_rhel9: ${{ inputs.runner_rhel9 }}
+      runner_u22: ${{ inputs.runner_u22 == true }}
+      runner_u24: ${{ inputs.runner_u24 == true }}
+      runner_ol8: ${{ inputs.runner_ol8 == true }}
+      runner_ol9: ${{ inputs.runner_ol9 == true }}
+      runner_rhel8: ${{ inputs.runner_rhel8 == true }}
+      runner_rhel9: ${{ inputs.runner_rhel9 == true }}
     secrets: inherit
