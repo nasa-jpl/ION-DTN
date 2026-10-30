@@ -204,6 +204,18 @@ int	main(int argc, char *argv[])
 				continue;
 			}
 
+			if (dataLen > pool_slot_capacity(&rxPool))
+			{
+				fprintf(stderr, "tcp4_loopback: bundle "
+						"exceeds RX slot capacity.\n");
+				pool_slot_release(&txPool, msg.slot_index);
+				ctrl_msg_init(&reply, CTRL_XFER_FAILURE,
+						msg.slot_index, xferId,
+						NULL, 0);
+				ctrl_send(&txCtrl, &reply);
+				continue;
+			}
+
 			/*	Acquire an RX slot and copy data.	*/
 
 			rxSlot = pool_slot_acquire(&rxPool);

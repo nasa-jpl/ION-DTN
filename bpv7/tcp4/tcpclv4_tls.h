@@ -89,15 +89,15 @@ tcpclv4_tls_session_t* tcpclv4_tls_accept(
  *	==============================================================
  */
 
-/*	Send a TCPCLv4 message over TLS.
+/*	Send a complete TCPCLv4 message on a blocking session.
  *
- *	Encrypts msg_buf and writes to SSL socket. Handles partial writes
- *	and SSL_ERROR_WANT_WRITE in non-blocking mode.
+ *	Writes all of msg_buf, retrying partial writes.  On a
+ *	non-blocking session use tcpclv4_tls_write instead.
  *
  *	:param sess: Session handle
  *	:param msg_buf: Message bytes to send
  *	:param msg_len: Length of message
- *	:return: Number of bytes sent on success, -1 on error, 0 if would block
+ *	:return: Number of bytes sent on success, -1 on error
  */
 int tcpclv4_tls_send_msg(tcpclv4_tls_session_t *sess,
 			  const uint8_t *msg_buf, size_t msg_len);

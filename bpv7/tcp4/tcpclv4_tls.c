@@ -279,6 +279,12 @@ static int setup_tls(tcpclv4_tls_session_t *sess,
 		return -1;
 	}
 
+	if (SSL_CTX_set_min_proto_version(sess->ssl_ctx, TLS1_2_VERSION) != 1)
+	{
+		set_error_ssl(sess, "Failed to set minimum TLS version");
+		return -1;
+	}
+
 	if (tls_config->tls_cert_file)
 	{
 		if (SSL_CTX_use_certificate_file(sess->ssl_ctx,
@@ -727,9 +733,9 @@ int tcpclv4_tls_recv_msg(tcpclv4_tls_session_t *sess,
 
 	/*	Need more stream bytes: read once from the socket.	*/
 
-	if (sess->recv_buf_len == sess->recv_buf_cap
-	&& recv_buf_reserve(sess, sess->recv_buf_cap * 2) < 0)
+	if (sess->recv_buf_len == sess->recv_buf_cap)
 	{
+		set_error(sess, "Message exceeds receive buffer");
 		return -1;
 	}
 

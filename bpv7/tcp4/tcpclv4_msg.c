@@ -421,10 +421,8 @@ int tcpclv4_encode_sess_init(const tcpclv4_sess_init_t *msg,
 		return -1;
 	}
 
-	required = 1 + 2 + 8 + 8 + 2 + msg->node_id_len
-		   + 4 + msg->extensions_len;
-
-	if (buf_cap < required)
+	required = 1 + 2 + 8 + 8 + 2 + msg->node_id_len + 4;
+	if (buf_cap < required || msg->extensions_len > buf_cap - required)
 	{
 		return -1;
 	}
@@ -500,16 +498,19 @@ int tcpclv4_encode_xfer_segment(const tcpclv4_xfer_segment_t *msg,
 		return -1;
 	}
 
-	required = 1 + 1 + 8;
-
+	required = 1 + 1 + 8 + 8;
 	if (msg->flags & TCPCLV4_XFER_FLAG_START)
 	{
-		required += 4 + msg->extensions_len;
+		required += 4;
 	}
 
-	required += 8 + msg->data_len;
+	if (buf_cap < required || msg->extensions_len > buf_cap - required)
+	{
+		return -1;
+	}
 
-	if (buf_cap < required)
+	required += msg->extensions_len;
+	if (msg->data_len > buf_cap - required)
 	{
 		return -1;
 	}
