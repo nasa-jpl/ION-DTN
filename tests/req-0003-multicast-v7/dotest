@@ -31,6 +31,16 @@ trap 'killm f' EXIT
 # 10.	Node 3 sends a 320-byte file by multicast to group 19.  Nodes
 #	1, 2, and 4 receive copies.
 
+. ../test_utils.sh
+
+# A node cannot unregister from imc:19.0 while its bounded multicast receiver
+# still holds the endpoint open, so wait for that receiver to finish and exit
+# before unregistering (steps 5 and 7).  Without this the unregister is a
+# silent no-op on a slow runner, leaving the node in the group so it keeps
+# receiving later multicasts it should no longer get.
+node2ImcDone() { ! kill -0 "$NODE2_IMC_PID" 2>/dev/null; }
+node4ImcDone() { ! kill -0 "$NODE4_IMC_PID" 2>/dev/null; }
+
 ./cleanup
 
 echo "Starting ION..."
@@ -89,6 +99,7 @@ bprecvfile imc:19.0 &
 cd ../2.ipn.ltp
 bprecvfile ipn:2.1 &
 bprecvfile imc:19.0 3 &
+NODE2_IMC_PID=$!
 cd ../3.ipn.ltp
 bprecvfile ipn:3.1 &
 bprecvfile imc:19.0 &
@@ -96,6 +107,7 @@ bprecvfile imc:19.0 &
 cd ../4.ipn.ltp
 bprecvfile ipn:4.1 &
 bprecvfile imc:19.0 4 &
+NODE4_IMC_PID=$!
 
 echo "Before step 1, there should be no testfiles anywhere..."
 #read -p "Step 0: Press any key to continue... " -n1 -s
@@ -129,6 +141,8 @@ bpsendfile ipn:4.2 imc:19.0 file400
 
 sleep 2
 cd ../2.ipn.ltp
+waitForPredicate node2ImcDone 20000 || \
+    echo "WARNING: node 2 still holds imc:19.0 open; unregister may be a no-op" >&2
 echo "Node 2 unregisters from imc:19.0."
 bpadmin unregister.bprc
 mv testfile1 testfile01
@@ -144,6 +158,8 @@ bpsendfile ipn:3.2 imc:19.0 file300
 
 sleep 2
 cd ../4.ipn.ltp
+waitForPredicate node4ImcDone 20000 || \
+    echo "WARNING: node 4 still holds imc:19.0 open; unregister may be a no-op" >&2
 echo "Node 4 unregisters from imc:19.0"
 bpadmin unregister.bprc
 mv testfile1 testfile01
