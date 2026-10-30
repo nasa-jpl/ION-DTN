@@ -129,11 +129,22 @@ for i in $(seq 1 20); do
     [ "$D3dlv" -ge 2 ] && break
 done
 
+# Node 2 drains its batched forwarding statistics once per second (bpclock),
+# so its fwd tally for the second bundle can lag node 3's delivery by a drain
+# cycle.  Poll it rather than reading once, so a node that relayed both bundles
+# is not misreported as having died while signing.  Node 3 delivering both
+# bundles already proves node 2 relayed both; this is a liveness cross-check.
+G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+for i in $(seq 1 10); do
+    [ "$G2fwd" -ge 2 ] && break
+    snapshot
+    G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
+done
+
 kill "$SINKPID" 2>/dev/null
 
 D3dlv=$(plus 3 dlv); D3dlv=${D3dlv:-0}
 D3rcv=$(plus 3 rcv); D3rcv=${D3rcv:-0}
-G2fwd=$(plus 2 fwd); G2fwd=${G2fwd:-0}
 
 echo
 echo "=== evidence ==="
