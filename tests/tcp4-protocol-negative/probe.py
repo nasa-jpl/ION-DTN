@@ -7,7 +7,7 @@ the established primary session (agent <-> agent) must be undisturbed.
 
 Exit status: 0 if all probes behaved as expected, 1 otherwise.
 
-Usage: probe.py <host> <port>
+Usage: probe.py <host> <port> [long-node-id]
 """
 
 import socket
@@ -133,9 +133,50 @@ def probe_garbage_flood(host, port):
     check("garbage-flood", True, f"({len(data)} bytes then close)")
 
 
+def probe_long_node_id(host, port):
+    """Complete a session with a node ID longer than the control
+    channel payload, then end it.  The agent forwards the peer node ID
+    to tcp4cli and tcp4clo in SESSION_UP, cut to the payload size."""
+    node_id = b"dtn://" + b"n" * 300 + b"/"
+    sess_init = (
+        bytes([0x07])
+        + (0).to_bytes(2, "big")  # keepalive: none
+        + (1 << 20).to_bytes(8, "big")  # segment MRU
+        + (1 << 20).to_bytes(8, "big")  # transfer MRU
+        + len(node_id).to_bytes(2, "big")
+        + node_id
+        + (0).to_bytes(4, "big")  # no session extensions
+    )
+    s = connect(host, port)
+    s.sendall(CONTACT_OK)
+    s.sendall(sess_init)
+    s.settimeout(10)
+    data = b""
+    try:
+        while len(data) < 7:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+    except TimeoutError:
+        pass
+    s.sendall(bytes([0x05, 0x00, 0x00]))  # SESS_TERM, reason unknown
+    recv_all(s, 5)
+    s.close()
+    check(
+        "long-node-id",
+        len(data) >= 7 and data[6] == 0x07,
+        f"({len(node_id)}-byte node ID)",
+    )
+
+
 def main():
     host = sys.argv[1]
     port = int(sys.argv[2])
+
+    if len(sys.argv) > 3 and sys.argv[3] == "long-node-id":
+        probe_long_node_id(host, port)
+        return 1 if failures else 0
 
     probe_bad_magic(host, port)
     time.sleep(1)

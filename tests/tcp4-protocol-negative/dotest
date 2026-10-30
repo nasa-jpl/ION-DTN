@@ -10,6 +10,9 @@
 #   - valid contact header followed by garbage bytes
 #   - a silent peer (connects, sends nothing; the agent's 10s
 #     establishment timeout must release it)
+#   - before the primary session, a peer whose node ID is longer than
+#     the control channel payload (tcp4cli and tcp4clo must survive
+#     SESSION_UP)
 #
 # After every probe the agent must be alive and the primary session
 # must still deliver bundles.
@@ -86,7 +89,23 @@ tcpclv4_agent --duct peer2 --node-id ipn:3.0 \
 AGENT3_PID=$!
 sleep 2
 
-cd ../2.ipn.tcp4
+cd ..
+python3 probe.py 127.0.0.1 4556 long-node-id || FAIL=1
+sleep 2
+if ! grep -q "tcp4cli: TCPCL session up, peer=dtn://nnn" 3.ipn.tcp4/ion.log \
+|| ! grep -q "tcp4clo: TCPCL session up, peer=dtn://nnn" 3.ipn.tcp4/ion.log; then
+    echo "ERROR: long node ID session not reported by tcp4cli and tcp4clo."
+    FAIL=1
+fi
+
+CLI_COUNT=$(pgrep -f "tcp4cli" | wc -l)
+CLO_COUNT=$(pgrep -f "tcp4clo" | wc -l)
+if [ "$CLI_COUNT" -lt 2 ] || [ "$CLO_COUNT" -lt 2 ]; then
+    echo "ERROR: tcp4cli or tcp4clo died after a long node ID."
+    FAIL=1
+fi
+
+cd 2.ipn.tcp4
 tcpclv4_agent --duct peer3 --node-id ipn:2.0 \
     --connect 127.0.0.1:4556 > agent.log 2>&1 &
 AGENT2_PID=$!
