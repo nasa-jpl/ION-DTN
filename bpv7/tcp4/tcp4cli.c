@@ -165,10 +165,10 @@ static void	*receiveFromAgent(void *parm)
 			{
 				char	txt[512];
 
-				msg.payload[msg.payload_len] = '\0';
 				isprintf(txt, sizeof(txt),
 					"[i] tcp4cli: TCPCL session up, "
-					"peer=%s", msg.payload);
+					"peer=%.*s", (int) msg.payload_len,
+					msg.payload);
 				writeMemo(txt);
 			}
 
