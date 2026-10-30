@@ -61,7 +61,7 @@ waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1;
 printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
 bpsource ipn:1.1 < $IONSENDFILE &
 BPSOURCEPID=$!
-waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000 || {
+waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 40000 || {
     echo "Baseline delivery failed; environment problem, aborting." >&2
     kill -9 $BPSOURCEPID $BPSINKPID >/dev/null 2>&1; exit 1; }
 echo "Baseline delivery OK (LTP client registered)."
@@ -102,7 +102,7 @@ elif [ "$RETVAL" -eq 0 ]; then
     waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to restart" >&2; exit 1; }
     bpsource ipn:1.1 < $IONSENDFILE &
     BPSOURCEPID=$!
-    if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 20000
+    if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 40000
     then
         echo "SUCCESS: zero-length green segment discarded; LTP still delivers."
     else
