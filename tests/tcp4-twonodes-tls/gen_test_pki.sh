@@ -3,7 +3,9 @@
 # Generate a self-contained test PKI for TCPCLv4 TLS testing.
 #
 # Creates a throwaway CA and two node certificates with proper SANs
-# including URI-type SANs for RFC 9174 Node ID validation.
+# including URI-type SANs for RFC 9174 Node ID validation, plus two
+# certificates the agents must reject: one from an untrusted CA and one
+# that has expired.
 #
 # Usage: ./gen_test_pki.sh [output_dir]
 #   output_dir defaults to ./pki
@@ -59,6 +61,30 @@ openssl x509 -req -in "$OUTDIR/node3.csr" \
 
 cat "$OUTDIR/node3.crt" "$OUTDIR/ca.crt" > "$OUTDIR/node3-chain.pem"
 
+# --- Certificates for the TLS-negative probes ---
+openssl ecparam -genkey -name prime256v1 -noout -out "$OUTDIR/rogue-ca.key" 2>/dev/null
+openssl req -new -x509 -key "$OUTDIR/rogue-ca.key" \
+    -out "$OUTDIR/rogue-ca.crt" -days 3650 \
+    -subj "/CN=Rogue Test CA" 2>/dev/null
+
+openssl ecparam -genkey -name prime256v1 -noout -out "$OUTDIR/probe.key" 2>/dev/null
+openssl req -new -key "$OUTDIR/probe.key" \
+    -out "$OUTDIR/probe.csr" -subj "/CN=node2" 2>/dev/null
+
+# Node 2's identity, signed by a CA the agents don't trust.
+openssl x509 -req -in "$OUTDIR/probe.csr" \
+    -CA "$OUTDIR/rogue-ca.crt" -CAkey "$OUTDIR/rogue-ca.key" -CAcreateserial \
+    -out "$OUTDIR/untrusted.crt" -days 3650 \
+    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID") \
+    2>/dev/null
+
+# Node 2's identity, signed by the test CA, expired yesterday.
+openssl x509 -req -in "$OUTDIR/probe.csr" \
+    -CA "$OUTDIR/ca.crt" -CAkey "$OUTDIR/ca.key" -CAcreateserial \
+    -out "$OUTDIR/expired.crt" -days -1 \
+    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID") \
+    2>/dev/null
+
 # --- Cleanup CSRs and serial ---
 rm -f "$OUTDIR"/*.csr "$OUTDIR"/*.srl
 
@@ -66,3 +92,4 @@ echo "PKI generated:"
 echo "  CA:     $OUTDIR/ca.crt"
 echo "  Node 2: $OUTDIR/node2-chain.pem (SAN: URI:$NODE2_EID)"
 echo "  Node 3: $OUTDIR/node3-chain.pem (SAN: URI:$NODE3_EID)"
+echo "  Probes: $OUTDIR/untrusted.crt, $OUTDIR/expired.crt (key: probe.key)"

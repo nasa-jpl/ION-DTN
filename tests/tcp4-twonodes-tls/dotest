@@ -8,6 +8,9 @@
 #   2. BP fragmentation over TLS (6MB file)
 #   3. Source SDR cleanup (XFER_SUCCESS feedback)
 #   4. TLS was actually negotiated (not plaintext fallback)
+#   5. The passive agent refuses a peer without CAN_TLS and peers whose
+#      client certificate is missing, from an untrusted CA, or expired,
+#      and accepts a valid one
 #
 # Copyright (c) 2026, California Institute of Technology.
 # ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
@@ -224,7 +227,7 @@ if [ $FAIL -eq 0 ] && command -v python3 >/dev/null 2>&1; then
     echo ""
     echo "Running TLS-negative probes..."
     cd ..
-    python3 tls_probe.py 127.0.0.1 4556
+    python3 tls_probe.py 127.0.0.1 4556 pki
     if [ $? -eq 0 ]; then
         echo "SUCCESS: TLS-negative probes behaved as expected."
     else
