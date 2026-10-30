@@ -93,8 +93,7 @@
         "Yelp/dumb-init",
         "oraclelinux",
         "ubuntu",
-        "/ubi/",
-        "/rhel/"
+        "/ubi/"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -110,8 +109,7 @@
       "matchDepNames": [
         "oraclelinux",
         "ubuntu",
-        "/ubi/",
-        "/rhel/"
+        "/ubi/"
       ],
       "matchUpdateTypes": [
         "major"
@@ -257,6 +255,30 @@
     {
       "matchUpdateTypes": [
         "lockFileMaintenance"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Bypass stability-days for container digest pins lacking registry timestamps",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "pin",
+        "digest",
+        "pinDigest"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Ensure OS base images are never delayed by stability-days checks",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepNames": [
+        "oraclelinux",
+        "ubuntu",
+        "/ubi/"
       ],
       "minimumReleaseAge": null
     }
