@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes bulkfile expfile 2.ipn.udp/ion.log 2.ipn.udp/start.log \
+      2.ipn.udp/send.log 3.ipn.udp/ion.log 3.ipn.udp/start.log \
+      3.ipn.udp/recv.log 3.ipn.udp/bulkrcv 3.ipn.udp/exprcv

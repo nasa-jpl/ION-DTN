@@ -406,8 +406,15 @@ extern int		enqueueCfdpEvent(CfdpEvent *event);
 extern int		handleFault(CfdpTransactionId *id, CfdpCondition c,
 				CfdpHandler *handler);
 
+/*	Ranks an outbound FDU by its UT parms; the highest-ranked
+ *	FDU is served first.  NULL serves FDUs in FIFO order.	*/
+
+typedef int		(*CfdpFduRanker)(unsigned char *utParms,
+				int utParmsLength);
+
 extern int		cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer,
-				FinishPdu *fpdu, int *direction);
+				FinishPdu *fpdu, int *direction,
+				CfdpFduRanker ranker);
 extern int		cfdpHandleInboundPdu(unsigned char *buf, int length);
 
 #ifdef __cplusplus
