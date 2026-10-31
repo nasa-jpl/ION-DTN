@@ -603,6 +603,32 @@ CgrVdb	*cgr_get_vdb(void)
 		return NULL;
 	}
 
+#if !UNIBO_CGR
+	/*	Contact work areas outlive the vdb (cgr_stop frees only
+	 *	the vdb), so a stamp from an earlier vdb's search could
+	 *	match a generation of this one and be taken as current.
+	 *	Clear the stamps; the search generation restarts at 0.	*/
+
+	{
+		IonVdb		*ionvdb = getIonVdb();
+		IonCXref	*contact;
+		CgrContactNote	*work;
+
+		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
+		{
+			contact = (IonCXref *) psp(ionwm,
+					sm_rbt_data(ionwm, elt));
+			if (contact->routingObject)
+			{
+				work = (CgrContactNote *) psp(ionwm,
+						contact->routingObject);
+				work->generation = 0;
+			}
+		}
+	}
+#endif
+
 	sdr_exit_xn(sdr);
 	return vdb;
 }
