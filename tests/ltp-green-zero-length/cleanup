@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 export ION_NODE_LIST_DIR=$PWD
-rm -f ion.log ion_nodes ionsendfile.txt ionreceivefile.txt ion.sdr ion.sdrlog
 killm f
+rm -f ion_nodes \
+      2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout \
+      2.ipn.ltp/ionsendfile.txt \
+      3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout \
+      3.ipn.ltp/ionreceivefile.txt

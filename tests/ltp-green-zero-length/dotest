@@ -6,17 +6,39 @@ trap 'killm f' EXIT
 # handleGreenDataSegment() passed the wire-supplied green data-segment length to
 # sdr_insert().  A length of zero reaches the SDR allocator's zero-size
 # assertion (ici/sdr/sdrmgt.c: XNCHKZERO(!(nbytes == 0 ...))), which cancels the
-# transaction and terminates the LTP link-service input task.  One unauthenticated
-# zero-length green segment therefore stops reception over LTP.
+# transaction and terminates the LTP link-service input task.  One
+# unauthenticated zero-length green segment therefore stops reception over LTP.
 #
-# This test brings up a loopback LTP node (BP over LTP, so the LTP client is
-# registered), confirms delivery works, then sends one crafted zero-length green
-# segment to the udplsi port and asserts that udplsi is still running and still
-# delivers a bundle.  Before the fix udplsi aborts on the segment and the
-# post-attack delivery fails; after the fix the segment is discarded and delivery
-# continues.
+# Topology -- two distinct nodes over LTP, no loopback:
+#
+#   node 2 (sender)  --LTP/udp-->  node 3 (receiver, attack target)
+#
+# node 2 sends a bundle to ipn:3.1 and node 3 delivers it.  The crafted
+# zero-length green segment is injected into node 3's udplsi.  Two separate
+# nodes are used deliberately: an earlier single-node version sent ipn:1.1 to
+# its own node over the LTP convergence layer, which rides ION's
+# local-destination-over-CLA path.  There the dequeued sender copy and the
+# looped-back received copy share one node's bundle database under a single
+# non-unique bundle-ID key, and the steward copy can intermittently strand
+# "Awaiting completion of convergence-layer transmission" (issue #167) -- which
+# made the delivery checks flaky in CI.  With two nodes the sender and receiver
+# copies live in separate databases, so there is no such collision.  The
+# security behaviour under test is unchanged: node 3's udplsi must discard the
+# zero-length green segment instead of aborting on the SDR assertion.
+#
+#   baseline     a normal bundle must be delivered node 2 -> node 3.  It proves
+#                the pipeline works and, by delivering over LTP into node 3,
+#                that node 3's ltpcli has registered the BP LTP client (service
+#                1) -- the green-segment handler is only reached for a
+#                registered client.
+#   post-attack  after the crafted segment, node 3 must still deliver a bundle.
 
 . ../test_utils.sh
+
+ATTACK_HOST=127.0.0.1
+ATTACK_PORT=3113        # node 3's udplsi
+ATTACK_ENGINE=2         # segment claims to originate at engine 2 (node 3's peer)
+IONMESSAGE="iontestmessage"
 
 echo "########################################"
 echo
@@ -33,87 +55,112 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 2
 fi
 
-UDP_HOST=127.0.0.1
-UDP_PORT=1113
-IONMESSAGE="iontestmessage"
-IONSENDFILE=./ionsendfile.txt
-IONRECEIVEFILE=./ionreceivefile.txt
+dump_diagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    for n in 2 3; do
+        echo "----- node $n ion.log (tail 40) -----"
+        tail -40 "$n.ipn.ltp/ion.log" 2>/dev/null
+        echo "----- node $n bplist -----"
+        ( cd "$n.ipn.ltp" && bplist ) 2>/dev/null
+    done
+}
 
 echo "Cleaning up old ION ..."
 ./cleanup >/dev/null 2>&1
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-echo "Starting loopback LTP node..."
-ionadmin loopback.ionrc
-ltpadmin loopback.ltprc
-bpadmin loopback.bprc
-ipnadmin loopback.ipnrc
+echo "Starting node 2 (LTP sender) ..."
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "Node 2 did not start; aborting." >&2
+    cd ..; dump_diagnostics; exit 1
+fi
+cd ..
 
-waitForLog "udplsi is running" ion.log 30000 || {
-    echo "udplsi did not start; aborting." >&2; exit 1; }
+echo "Starting node 3 (LTP receiver / attack target) ..."
+cd 3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "Node 3 did not start; aborting." >&2
+    cd ..; dump_diagnostics; exit 1
+fi
+cd ..
 
-# --- Baseline delivery: also guarantees the LTP client is registered. -----
-echo "Baseline delivery check..."
-bpsink ipn:1.1 > $IONRECEIVEFILE &
+# --- Baseline delivery: node 2 -> node 3. ---------------------------------
+echo "Baseline delivery check (node 2 -> node 3) ..."
+cd 3.ipn.ltp
+bpsink ipn:3.1 > ionreceivefile.txt 2>&1 &
 BPSINKPID=$!
+cd ..
 waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to start" >&2; exit 1; }
-printf '%s\n!\n' "$IONMESSAGE" > $IONSENDFILE
-bpsource ipn:1.1 < $IONSENDFILE &
+
+printf '%s\n!\n' "$IONMESSAGE" > 2.ipn.ltp/ionsendfile.txt
+cd 2.ipn.ltp
+bpsource ipn:3.1 < ionsendfile.txt &
 BPSOURCEPID=$!
-waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 40000 || {
+cd ..
+
+waitForFileContent "ION event: Payload delivered." 3.ipn.ltp/ionreceivefile.txt 20000 || {
     echo "Baseline delivery failed; environment problem, aborting." >&2
+    dump_diagnostics
     kill -9 $BPSOURCEPID $BPSINKPID >/dev/null 2>&1; exit 1; }
-echo "Baseline delivery OK (LTP client registered)."
+echo "Baseline delivery OK (node 3 LTP client registered)."
 kill -9 $BPSOURCEPID >/dev/null 2>&1
 killAndWaitForPidToDie $BPSINKPID 2 5000
-: > $IONRECEIVEFILE
+: > 3.ipn.ltp/ionreceivefile.txt
 
-# --- Attack: one zero-length green LTP segment. ---------------------------
-echo "Sending a zero-length green LTP segment to udplsi..."
-python3 ./send_green_segment.py $UDP_HOST $UDP_PORT || {
+# --- Attack: one zero-length green LTP segment to node 3's udplsi. --------
+echo "Sending a zero-length green LTP segment to node 3's udplsi ..."
+python3 ./send_green_segment.py $ATTACK_HOST $ATTACK_PORT $ATTACK_ENGINE || {
     echo "failed to send crafted segment" >&2; exit 1; }
 sleep 2
 
 # --- Check: the zero-length segment must not reach the SDR allocator. -----
 #
-# The deterministic signal is the SDR zero-size assertion in the log: on the
-# vulnerable code sdr_insert(...,0) trips XNCHKZERO(nbytes == 0 ...) in
+# The deterministic signal is the SDR zero-size assertion in node 3's log: on
+# the vulnerable code sdr_insert(...,0) trips XNCHKZERO(nbytes == 0 ...) in
 # ici/sdr/sdrmgt.c, which logs "SDR transaction canceled" and aborts the LTP
 # input transaction.  On the fixed code the segment is discarded before the
 # allocator, so no such assertion appears.
 RETVAL=0
-if grep -q "nbytes == 0" ion.log 2>/dev/null; then
+if grep -q "nbytes == 0" 3.ipn.ltp/ion.log 2>/dev/null; then
     echo
     echo "FAIL: the zero-length green segment reached the SDR allocator and"
     echo "tripped its zero-size assertion (GHSA-hpw7-8j6m-px2p regression):"
-    grep -E "sdrmgt.c|SDR transaction canceled" ion.log 2>/dev/null | head -2
+    grep -E "sdrmgt.c|SDR transaction canceled" 3.ipn.ltp/ion.log 2>/dev/null | head -2
     RETVAL=1
 fi
 
-# --- Liveness: udplsi must still be running and still deliver. ------------
-echo "Post-attack delivery check..."
-if ! pgrep -x udplsi >/dev/null 2>&1; then
-    echo "FAIL: udplsi is no longer running after the zero-length green segment."
-    RETVAL=1
-elif [ "$RETVAL" -eq 0 ]; then
-    bpsink ipn:1.1 > $IONRECEIVEFILE &
+# --- Liveness: node 3 must still deliver over LTP after the attack. -------
+echo "Post-attack delivery check (node 2 -> node 3) ..."
+if [ "$RETVAL" -eq 0 ]; then
+    cd 3.ipn.ltp
+    bpsink ipn:3.1 > ionreceivefile.txt 2>&1 &
     BPSINKPID=$!
+    cd ..
     waitForPidReady $BPSINKPID 10000 || { echo "bpsink failed to restart" >&2; exit 1; }
-    bpsource ipn:1.1 < $IONSENDFILE &
+    cd 2.ipn.ltp
+    bpsource ipn:3.1 < ionsendfile.txt &
     BPSOURCEPID=$!
-    if waitForFileContent "ION event: Payload delivered." "$IONRECEIVEFILE" 40000
+    cd ..
+    if waitForFileContent "ION event: Payload delivered." 3.ipn.ltp/ionreceivefile.txt 20000
     then
-        echo "SUCCESS: zero-length green segment discarded; LTP still delivers."
+        echo "SUCCESS: zero-length green segment discarded; node 3 LTP still delivers."
     else
         echo "FAIL: no delivery after the zero-length green segment."
+        dump_diagnostics
         RETVAL=1
     fi
     kill -9 $BPSOURCEPID >/dev/null 2>&1
     killAndWaitForPidToDie $BPSINKPID 2 5000
 fi
 
-echo "Stopping ION..."
-ionstop
+echo "Stopping ION ..."
+( cd 2.ipn.ltp && ./ionstop ) >/dev/null 2>&1
+( cd 3.ipn.ltp && ./ionstop ) >/dev/null 2>&1
 
 exit $RETVAL

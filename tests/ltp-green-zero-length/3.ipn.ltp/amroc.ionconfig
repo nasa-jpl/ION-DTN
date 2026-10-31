@@ -1,5 +1,6 @@
-wmKey 66970
-sdrName ionltpgreen
+wmKey 66972
+sdrName ionltpgreen3
 wmSize 20000000
 configFlags 1
 heapWords 500000
+pathName /tmp
