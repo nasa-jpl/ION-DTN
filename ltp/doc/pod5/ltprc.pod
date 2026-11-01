@@ -122,6 +122,17 @@ bundles in each session's block, to avoid having to wait for the restart
 of transmission on this span before those bundles can be successfully
 transmitted.
 
+B<NOTE:> A span whose peer engine number is the local engine's own number is a
+loopback, useful mainly for testing the LTP stack against itself rather than as
+an operational configuration.  Pairing such a self-span with a BP egress plan
+that directs the local node's own bundles into it is best avoided: a bundle
+destined for the local node is normally delivered locally by BP without a
+convergence layer, and forcing a self-addressed bundle out through a convergence
+layer and back can leave the sender's copy awaiting a convergence-layer
+transmission that does not complete (an effect more likely on a reliable
+convergence layer such as red LTP).  Operational spans normally connect the
+local engine to a I<remote> engine.
+
 =item B<a seat> 'I<LSI_command>'
 
 The B<add seat> command.  This command declares that the local LTP engine
