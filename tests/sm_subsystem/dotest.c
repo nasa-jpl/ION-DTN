@@ -382,11 +382,14 @@ static int multi_thread_semtest(void)
 
 	for (i = 0; i < nthreads; i++)
 	{
-		int exitValue;
-		pthread_join(threads[i], (void *) &exitValue);
-		if (exitValue != 0)
-			fprintf(stderr, "Thread %d returned with exit value %d\n",
+		void *exitValue;
+		(void) pthread_join(threads[i], &exitValue);
+		if (exitValue != NULL)
+		{
+			(void) fprintf(stderr,
+					"Thread %d returned with non-NULL value %p\n",
 					i, exitValue);
+		}
 	}
 
 	gettimeofday(&time_end, NULL);
