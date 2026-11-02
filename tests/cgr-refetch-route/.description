@@ -1,0 +1,1 @@
+Verifies that repeated cgrfetch queries on one node keep finding the route: a per-contact work-area generation stamp must not survive CGR vdb recreation.

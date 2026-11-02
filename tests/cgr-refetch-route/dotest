@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for CGR route loss across a vdb recreation.
+#
+# CGR resets each contact's Dijkstra work area lazily, keyed on a search
+# generation counter.  The counter lives in the CGR vdb, but the work
+# areas live on the contacts, which outlive the vdb.  cgrfetch frees and
+# recreates the vdb on every run, restarting the counter, so a second
+# run's early generation can match a stamp a prior run left on a contact
+# and that stale work area (visited, old arrival time) is taken as
+# current -- the route is then reported as unreachable.
+#
+# One node (ipn:1) reaches ipn:200 through ipn:100.  No bundles are sent,
+# so only cgrfetch drives CGR: the first query must find the route and
+# every later query on the same node must find it too.
+
+CONFIGFILES=" \
+./amroc.ionconfig \
+./amroc.ionrc \
+./global.ionrc \
+./amroc.ipnrc \
+./amroc.bprc \
+./amroc.ionsecrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that running cgrfetch repeatedly on one node keeps
+    finding the route to a destination.  A stale per-contact work-area
+    generation stamp must not survive recreation of the CGR vdb, which
+    cgrfetch does on every run."
+echo
+echo "CONFIG: Single node ipn:1 with a two-hop contact graph to ipn:200
+    via ipn:100:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Each of three identical cgrfetch queries must report a
+    proposed route; none may report no route."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log run1.trace run2.trace run3.trace
+killm f
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+./ionstart
+
+echo "Waiting for the forwarder to start..."
+i=0
+while [ $i -lt 30 ]
+do
+    if grep -q "ipnfw is running" ion.log
+    then
+        break
+    fi
+    sleep 1
+    i=`expr $i + 1`
+done
+sleep 1
+
+RETVAL=0
+RUNS=3
+r=1
+while [ $r -le $RUNS ]
+do
+    echo ""
+    echo "Query $r: cgrfetch to ipn:200..."
+    cgrfetch -j -t 0 -e 216000 -d udp:127.0.0.1:4557 200 2>run$r.trace
+
+    if grep -q "PROPOSE firstHop" run$r.trace \
+    && ! grep -q "NO route" run$r.trace
+    then
+        echo "OK: query $r found a route."
+    else
+        echo "ERROR: query $r found no route; a stale work-area stamp"
+        echo "       survived the vdb recreation.  Trace:"
+        cat run$r.trace
+        RETVAL=1
+    fi
+    r=`expr $r + 1`
+done
+
+echo ""
+if [ $RETVAL -eq 0 ]
+then
+    echo "TEST PASSED: every cgrfetch query found the route."
+else
+    echo "TEST FAILED: a repeated cgrfetch query lost the route."
+fi
+
+echo "Stopping ION..."
+exit $RETVAL
