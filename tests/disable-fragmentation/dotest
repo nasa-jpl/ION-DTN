@@ -86,10 +86,15 @@ cd ../3.ipn.udp || exit 1
 ./ionstart >& node3.stdout
 ../../../system_up -i "p 30" -b "p 30"
 if [ $? -ne 2 ]; then echo "Node 3 not started: Aborting Test"; exit 1; fi
+if ! waitForLog "udpcli is running" ion.log 30000; then
+    echo "Node 3 induct not started: Aborting Test"; exit 1
+fi
 
 echo "Starting bprecvfile on node 3..."
-sleep 1
 bprecvfile ipn:3.1 &
+if ! waitForLog "bprecvfile is running" ion.log 30000; then
+    echo "bprecvfile not started: Aborting Test"; exit 1
+fi
 cd ../2.ipn.udp || exit 1
 
 RETVAL=0
