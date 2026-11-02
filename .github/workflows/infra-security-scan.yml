@@ -1,0 +1,58 @@
+name: PR Container Security Gate
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    # Using non-standard branch so placeholder does not trigger
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  matrix-build-and-scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native RHEL runners requiring host RHSM entitlement mounts
+          - os_id: "rhel-8"
+            runner_scale_set: "arc-runner-set-rhel8"
+            make_base_target: "buildah-build-base-rhel"
+            make_runner_target: "buildah-build-rhel"
+
+          - os_id: "rhel-9"
+            runner_scale_set: "arc-runner-set-rhel9"
+            make_base_target: "buildah-build-base-rhel"
+            make_runner_target: "buildah-build-rhel"
+
+          # All other distributions built on the OL8 runner pool
+          - os_id: "ol8"
+            runner_scale_set: "arc-runner-set-ol8"
+            make_base_target: "buildah-build-base"
+            make_runner_target: "buildah-build"
+
+          - os_id: "ol9"
+            runner_scale_set: "arc-runner-set-ol8"
+            make_base_target: "buildah-build-base"
+            make_runner_target: "buildah-build"
+
+          - os_id: "ubuntu-22"
+            runner_scale_set: "arc-runner-set-ol8"
+            make_base_target: "buildah-build-base"
+            make_runner_target: "buildah-build"
+
+          - os_id: "ubuntu-24"
+            runner_scale_set: "arc-runner-set-ol8"
+            make_base_target: "buildah-build-base"
+            make_runner_target: "buildah-build"
+
+    runs-on: ${{ matrix.runner_scale_set }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Placeholder
+        run: |
+          echo "Placeholder workflow for future implementation"
