@@ -36,7 +36,6 @@ RUN apt-get update -y --no-install-recommends \
     libjansson-dev \
     build-essential \
     rsync \
-    ruby \
     tcpdump \
     iproute2 \
     zlib1g-dev \
@@ -84,6 +83,34 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 sha256sum.txt
 
+RUN git clone https://github.com/laurencelundblade/QCBOR.git \
+    && cd QCBOR \
+    && git checkout 930708b \
+    && cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build build \
+    && cmake --install build \
+    && cd .. \
+    && rm -rf QCBOR
+
+RUN git clone https://github.com/P-p-H-d/mlib.git \
+    && cd mlib \
+    && git checkout 9a59099 \
+    && make install \
+    && cd .. \
+    && rm -rf mlib
+
+RUN git clone https://github.com/NASA-AMMOS/BSL.git \
+    && cd BSL \
+    && git checkout 999505cb \
+    && ./build.sh prep -DBUILD_UNITTEST=OFF \
+    && ./build.sh \
+    && cmake --install build/default --prefix /usr \
+    && cd .. \
+    && rm -rf BSL
+
 RUN adduser --disabled-password --gecos "" --uid "${RUNNER_USER_UID}" runner \
     && groupadd docker --gid "${DOCKER_GROUP_GID}" \
     && usermod -aG sudo runner \
@@ -101,5 +128,5 @@ LABEL org.opencontainers.image.title="ubuntu-24" \
     jpl.nasa.gov.image.revision="${REV}"
 
 ENV ImageOS=ubuntu-24 \
-    LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"

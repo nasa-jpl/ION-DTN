@@ -22,7 +22,6 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     automake \
     make \
     gcc-c++ \
-    ruby \
     autoconf \
     libtool \
     openssl-devel \
@@ -71,6 +70,34 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 sha256sum.txt
 
+RUN git clone https://github.com/laurencelundblade/QCBOR.git \
+    && cd QCBOR \
+    && git checkout 930708b \
+    && cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build build \
+    && cmake --install build \
+    && cd .. \
+    && rm -rf QCBOR
+
+RUN git clone https://github.com/P-p-H-d/mlib.git \
+    && cd mlib \
+    && git checkout 9a59099 \
+    && make install \
+    && cd .. \
+    && rm -rf mlib
+
+RUN git clone https://github.com/NASA-AMMOS/BSL.git \
+    && cd BSL \
+    && git checkout 999505cb \
+    && ./build.sh prep -DBUILD_UNITTEST=OFF \
+    && ./build.sh \
+    && cmake --install build/default --prefix /usr \
+    && cd .. \
+    && rm -rf BSL
+
 # Setup runner user and docker group
 RUN groupadd docker --gid "${DOCKER_GROUP_GID}" \
     && useradd --uid "${RUNNER_USER_UID}" -m runner -G docker \
@@ -100,7 +127,7 @@ LABEL org.opencontainers.image.title="rhel-9" \
     jpl.nasa.gov.image.revision="${REV}"
 
 ENV ImageOS=rhel-9 \
-    LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
     # Buildah configuration
     BUILDAH_ISOLATION=chroot \

@@ -83,7 +83,7 @@ RUN mkdir -p /tmp/arc \
     && install -m 755 docker-shim.sh /usr/local/bin/docker \
     && mkdir -p /etc/arc/hooks \
     && cp -r hooks/* /etc/arc/hooks/ \
-    && cd / \
+    && cd /home/runner \
     && rm -rf arc.tar.gz /tmp/arc
 
 COPY --from=ghcr.io/astral-sh/uv:"${UV_VERSION}" /uv /uvx /usr/local/bin/

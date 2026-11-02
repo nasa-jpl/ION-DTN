@@ -25,7 +25,8 @@ RUN microdnf install -y oracle-epel-release-el8 \
     clang \
     gcc \
     gcc-c++ \
-    ruby \
+    gcc-toolset-11-gcc \
+    gcc-toolset-11-gcc-c++ \
     automake \
     make \
     autoconf \
@@ -77,6 +78,39 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 sha256sum.txt
 
+RUN git clone https://github.com/laurencelundblade/QCBOR.git \
+    && cd QCBOR \
+    && git checkout 930708b \
+    && cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build build \
+    && cmake --install build \
+    && cd .. \
+    && rm -rf QCBOR
+
+RUN git clone https://github.com/P-p-H-d/mlib.git \
+    && cd mlib \
+    && git checkout 9a59099 \
+    && make install \
+    && cd .. \
+    && rm -rf mlib
+
+RUN git clone https://github.com/NASA-AMMOS/BSL.git \
+    && cd BSL \
+    && git checkout 999505cb \
+    && source /opt/rh/gcc-toolset-11/enable \
+    && gcc --version \
+    && export CFLAGS="-I/usr/include/openssl3" \
+    && ./build.sh prep -DBUILD_UNITTEST=OFF -DOPENSSL_ROOT_DIR=/usr -DOPENSSL_INCLUDE_DIR=/usr/include/openssl3 -DOPENSSL_CRYPTO_LIBRARY=/usr/lib64/libcrypto.so.3 -DOPENSSL_SSL_LIBRARY=/usr/lib64/libssl.so.3 \
+    && ./build.sh \
+    && cmake --install build/default --prefix /usr/local \
+    && sed -i 's/openssl >=/openssl3 >=/g' /usr/local/lib64/pkgconfig/bsl.pc \
+    && cd .. \
+    && rm -rf BSL \
+    && microdnf remove -y gcc-toolset-11-gcc gcc-toolset-11-gcc-c++
+
 # Setup runner user and docker group
 RUN groupadd docker --gid "${DOCKER_GROUP_GID}" \
     && useradd --uid "${RUNNER_USER_UID}" -m runner -G docker \
@@ -100,7 +134,7 @@ LABEL org.opencontainers.image.title="oraclelinux-8" \
     jpl.nasa.gov.image.revision="${REV}"
 
 ENV ImageOS=oraclelinux-8 \
-    LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
     # Buildah configuration
     BUILDAH_ISOLATION=chroot \
