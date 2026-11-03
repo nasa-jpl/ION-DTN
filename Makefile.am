@@ -218,7 +218,11 @@ CLEAN_LOCAL_DEPS += dtpcclean-local
 endif
 
 clean-local: $(CLEAN_LOCAL_DEPS)
-	@rm -f .build_finished
+.PHONY: $(CLEAN_LOCAL_DEPS)
+
+CLEANFILES = \
+	.build_finished \
+	retest
 
 bin_PROGRAMS = \
 	$(icibin) \
