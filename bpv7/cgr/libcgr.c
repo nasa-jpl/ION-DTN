@@ -2463,6 +2463,12 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 		 *	radiation latency is computed as bundle size
 		 *	divided by data rate.				*/
 
+		if (contact->xmitRate == 0)
+		{
+			/* Zero-rate interior contact: route unusable. */
+			return 0;
+		}
+
 		lastByteTransmitTime = firstByteTransmitTime;
 		loadScalar(&radiationLatency, route->bundleECCC);
 		divideScalar(&radiationLatency, contact->xmitRate);
@@ -2877,6 +2883,28 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 			TRACE(CgrExcludeRoute, CgrRouteViaSelf);
 			*elt = nextElt;
 			return 1;
+		}
+	}
+
+	/*	Never loop back through self: a hop after the first that
+	 *	departs from the local node would re-enqueue the bundle
+	 *	here, and its interior timing skips the local ETO, so it
+	 *	is a routing loop even when the first hop is not to self.*/
+
+	elt2 = sm_list_first(ionwm, route->hops);
+	if (elt2)
+	{
+		for (elt2 = sm_list_next(ionwm, elt2); elt2;
+				elt2 = sm_list_next(ionwm, elt2))
+		{
+			contact = (IonCXref *) psp(ionwm,
+					sm_list_data(ionwm, elt2));
+			if (contact->fromFqnn == getOwnFqnn())
+			{
+				TRACE(CgrExcludeRoute, CgrRouteViaSelf);
+				*elt = nextElt;
+				return 1;
+			}
 		}
 	}
 
