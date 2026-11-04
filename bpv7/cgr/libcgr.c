@@ -1592,6 +1592,8 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	IonCXref	*contact;
 	CgrContactNote	*work;
 	unsigned int	owlt;
+	time_t		arrivalTime;
+	unsigned int	hopCount;
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
@@ -1634,41 +1636,81 @@ is corrupt (abandoning spur computation).");
 		clearWorkAreas((IonCXref *) psp(ionwm, rootOfSpurAddr));
 	}
 
+	/*	Suppress the root-path contacts preceding this spur's waypoint
+	 *	and reseed the waypoint's own work area -- the Dijkstra start
+	 *	vertex -- with the earliest arrival time accumulated along the
+	 *	root path, computed as computeDistanceToTerminus relaxes an edge.
+	 *	rootOfSpur is an SmListElt in the hops list of the route this
+	 *	spur branches from, not necessarily lastSelectedRoute, so walk
+	 *	the list that actually contains rootOfSpur, from its first hop
+	 *	forward to the waypoint.				*/
+
+	if (rootOfSpur != 0)
+	{
+//puts("*** Suppressing contacts on root path. ***");
+		arrivalTime = currentTime;
+		hopCount = 0;
+		contactElt = sm_list_first(ionwm, sm_list_list(ionwm,
+				rootOfSpur));
+		while (contactElt)
+		{
+			contactAddr = sm_list_data(ionwm, contactElt);
+			if (contactAddr == 0)
+			{
+				return 0;
+			}
+
+			contact = (IonCXref *) psp(ionwm, contactAddr);
+			CHKERR(work = getWorkArea(ionwm, contact));
+			if (contact->toTime <= arrivalTime
+			|| getApplicableRange(contact, &owlt) < 0)
+			{
+				/*	Root path can't be traversed, so no
+				 *	spur route branches from it.		*/
+
+				return 0;
+			}
+
+			/*	Got OWLT; add some margin.		*/
+
+			owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
+			if (contact->fromTime > arrivalTime)
+			{
+				arrivalTime = contact->fromTime;
+			}
+
+			arrivalTime += owlt;
+			work->arrivalTime = arrivalTime;
+			work->hopCount = ++hopCount;
+			if (contactElt == rootOfSpur)
+			{
+				/*	Reached the waypoint; leave it
+				 *	unsuppressed as the search start.	*/
+
+				break;
+			}
+
+			work->suppressed = 1;
+//putFqn(nbrBuf, contact->toFqnn); debugPrint("*** Suppressing contact to node %s on root path. ***\n", nbrBuf);
+			contactElt = sm_list_next(ionwm, contactElt);
+		}
+
+		if (contactElt == 0)
+		{
+			/*	Walked off the end without reaching the
+			 *	waypoint, so rootOfSpur was not an element of
+			 *	the list it claims; the spur is unsound.	*/
+
+			return 0;
+		}
+	}
+
 	excludedEdges = sm_list_create_unlocked(ionwm);
 	if (excludedEdges == 0)
 	{
 		writeMemo("[i] CGR: skipping spur - can't create"
 				" excludedEdges list.");
 		return 0;
-	}
-
-	/*	Suppress contacts that would introduce loops, i.e.,
-	 *	all contacts on the root path for this spur path.
-	 *	But restore arrival times for those contacts so that
-	 *	the computed arrival times of non-suppressed contacts
-	 *	will be correct.					*/
-
-	if (rootOfSpur != 0)
-	{
-//puts("*** Suppressing contacts on root path. ***");
-		contactElt = sm_list_prev(ionwm, rootOfSpur);
-		while (contactElt)
-		{
-			contactAddr = sm_list_data(ionwm, contactElt);
-			contact = (IonCXref *) psp(ionwm, contactAddr);
-			CHKERR(work = getWorkArea(ionwm, contact));
-			if (getApplicableRange(contact, &owlt) >= 0)
-			{
-				/*	 Got OWLT; add some margin.	*/
-
-				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
-			}
-
-			work->arrivalTime = contact->fromTime + owlt;
-			work->suppressed = 1;
-//putFqn(nbrBuf, contact->toFqnn); debugPrint("*** Suppressing contact to node %s on root path. ***\n", nbrBuf);
-			contactElt = sm_list_prev(ionwm, contactElt);
-		}
 	}
 
 	/*	Exclude edges that would introduce duplicates: for
