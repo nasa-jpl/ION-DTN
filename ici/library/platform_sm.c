@@ -2580,7 +2580,18 @@ int	sm_TaskIdSelf(void)
 
 int	sm_TaskExists(int task)
 {
+	int	savedErrno = errno;
+
 	waitpid(task, NULL, WNOHANG);	/*	In case it's a zombie.	*/
+
+	/*	waitpid() is a best-effort zombie reap, not the result of
+	 *	this predicate.  Once sm_TaskSpawn() has set SIGCHLD to
+	 *	SIG_IGN the child is auto-reaped and this waitpid() returns
+	 *	ECHILD; leaving that in errno would surface later as a
+	 *	spurious "system error" against whatever the caller checks
+	 *	next.  Restore errno so only kill() below can change it.	*/
+
+	errno = savedErrno;
 	if (kill(task, 0) < 0)
 	{
 		return 0;		/*	No such process.	*/
