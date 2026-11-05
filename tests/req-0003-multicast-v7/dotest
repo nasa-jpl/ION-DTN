@@ -41,10 +41,34 @@ trap 'killm f' EXIT
 node2ImcDone() { ! kill -0 "$NODE2_IMC_PID" 2>/dev/null; }
 node4ImcDone() { ! kill -0 "$NODE4_IMC_PID" 2>/dev/null; }
 
+# Count received testfiles of a given size in a node directory.
+recvCount() ( cd "$1" 2>/dev/null && ls -l testfile* 2>/dev/null | egrep "$2" | wc -l )
+
+# True once every file each node should receive has arrived.
+allDelivered() {
+    [ "$(recvCount "$TESTDIR/1.ipn.ltp" 200)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/1.ipn.ltp" 400)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/1.ipn.ltp" 300)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/1.ipn.ltp" 310)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/1.ipn.ltp" 320)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/2.ipn.ltp" 100)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/2.ipn.ltp" 400)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/2.ipn.ltp" 320)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/3.ipn.ltp" 150)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/3.ipn.ltp" 100)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/3.ipn.ltp" 200)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/3.ipn.ltp" 400)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/4.ipn.ltp" 100)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/4.ipn.ltp" 200)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/4.ipn.ltp" 300)" -ge 1 ] && \
+    [ "$(recvCount "$TESTDIR/4.ipn.ltp" 320)" -ge 1 ]
+}
+
 ./cleanup
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
+TESTDIR=$PWD
 rm -f ./ion_nodes
 
 # Start all nodes
@@ -185,14 +209,17 @@ echo "Node 4 re-registers in imc:19.0"
 bprecvfile imc:19.0 &
 #read -p "Step 9 done: Press any key to continue... " -n1 -s
 
-sleep 2
+# Wait for the rejoin petitions to propagate before the final send, so file320
+# fans out to the rejoined node 4.
+sleep 5
 cd ../3.ipn.ltp
 echo "Sending 320-byte file from ipn:3.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:3.2 imc:19.0 file320
 #read -p "Step 10 done: Press any key to continue... " -n1 -s
 
-# Verify that the correct files were received at all nodes.
-sleep 10
+# Wait for every expected file to arrive, then verify what each node received.
+waitForPredicate allDelivered 60000 || \
+    echo "WARNING: not all expected files arrived within 60s" >&2
 RETVAL=0
 
 echo "Now we check what files are received."
