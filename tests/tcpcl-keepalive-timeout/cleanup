@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Thaw a tcpcli that dotest froze, then reap every node.
+export ION_NODE_LIST_DIR=$PWD
+if [ -n "$(ps -eo stat,args 2>/dev/null | awk '$1 ~ /^T/ && $2 ~ /(^|\/)tcpcli$/ { print }')" ]; then
+	ps -eo pid,stat,args | awk '$2 ~ /^T/ && $3 ~ /(^|\/)tcpcli$/ { print $1 }' |
+		while read -r pid; do
+			kill -CONT "$pid" 2>/dev/null || true
+		done
+fi
+killm f
+rm -f ion_nodes
+rm -f 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/sink.out
