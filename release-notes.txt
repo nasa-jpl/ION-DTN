@@ -1,6 +1,61 @@
 = Release Notes for ION =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= ION 4.2.1-a.2 - Security Hardening (Alpha) =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Second alpha build toward ION 4.2.1.  Like 4.2.1-a.1, this build is a
+focused security release: it collects a further set of remotely
+triggerable memory-corruption and denial-of-service fixes made since the
+first alpha, together with convergence-layer performance work and a
+documentation refresh.
+
+Security:
+
+Wire-supplied lengths and counts in the DGR, AMS, and NM paths are now
+bounded before they size an allocation, a copy, or an index, closing
+several out-of-bounds accesses reachable from unauthenticated input:
+
+- an out-of-bounds read in the DGR receiver when a datagram declares more
+  service data than it actually carries, and the related 64-bit to 32-bit
+  length confusion that could undersize the receive allocation; the DGR
+  receive call now takes an explicit destination-capacity argument and
+  every convergence layer, and the bundled dgr2file utility, passes its
+  real buffer size, so an oversized record is rejected rather than copied
+  past the caller's buffer;
+- a heap out-of-bounds read and NULL dereference in the AMS cell_status
+  handler from an unchecked supplement length;
+- a heap out-of-bounds write in the NM manager's report, table, and macro
+  formatting path, where unbounded string concatenation could overflow a
+  fixed-size rendering buffer;
+- a heap under-allocation in the AMS daemon's crash-event handlers that
+  could overflow into adjacent event memory.
+
+A memory-safety defect was fixed in the BPSec Block Confidentiality Block
+decryption path: a payload block whose authentication tag fails to verify
+no longer double-frees the bundle payload, which had aborted the
+receiving task and forced its shared SDR into an unrecoverable state.  The
+original payload is preserved until an authenticated conversion succeeds.
+
+A spoofing defect was fixed in the AMS and MAMS UDP transports: the short
+datagram used internally to signal receiver shutdown is now honored only
+when it originates from the socket's own bound address, so a remote peer
+can no longer close an AMS or MAMS receiver with a one-byte datagram.
+This is enforced by default.
+
+Other changes:
+
+- Contact Graph Routing route computation was reworked for lower latency
+  on large contact plans (a min-heap replaces the linear extract-min
+  scan, with a pre-allocated frontier and per-search work-area reset) and
+  hardened against zero-rate interior hops, self-looping routes, and stale
+  route state after the routing database is recreated.
+- Bundle and LTP block CRCs now use a hardware-accelerated CRC-32C and
+  CRC-16 implementation on x86 and AArch64, with a slice-by-8 software
+  fallback.
+- The developer and contribution documentation was substantially revised.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = ION 4.2.1-a.1 - Security Hardening (Alpha) =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
