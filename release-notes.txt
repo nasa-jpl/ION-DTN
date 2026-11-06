@@ -43,6 +43,14 @@ when it originates from the socket's own bound address, so a remote peer
 can no longer close an AMS or MAMS receiver with a one-byte datagram.
 This is enforced by default.
 
+An unauthenticated denial of service was fixed in the TCPCL convergence
+layer: the endpoint-ID length in a received contact header is now bounded
+by the same limit ION applies to its own endpoint IDs, so a peer can no
+longer drive an unbounded allocation from the header alone.  A failure to
+send a keepalive or acknowledgment now ends only the affected session's
+admin thread rather than stopping the whole tcpcli daemon, so one peer's
+loss no longer takes down the induct's other sessions.
+
 Other changes:
 
 - Contact Graph Routing route computation was reworked for lower latency
