@@ -1,5 +1,5 @@
 BP = bpv7
-VNAME = ION-OPEN-SOURCE-4.2.1-a.1
+VNAME = ION-OPEN-SOURCE-4.2.1-a.2
 
 # BPSec implementation toggle: set to 1 to use BSL, 0 for original BPSec.
 # Default is original BPSec (0).  Override on the command line:
