@@ -107,6 +107,12 @@ extern "C" {
 #define	MAX_XMIT_COPIES			(20)
 #endif
 
+/* Seconds to wait before re-forwarding a multicast bundle whose
+ * convergence-layer transmission failed. */
+#ifndef IMC_REFORWARD_DELAY
+#define IMC_REFORWARD_DELAY		(1)
+#endif
+
 #ifndef MIN_CONFIDENCE_IMPROVEMENT
 #define	MIN_CONFIDENCE_IMPROVEMENT	(.05)
 #endif
@@ -356,6 +362,8 @@ typedef struct
 	/*	Database navigation stuff (back-references).		*/
 
 	SdrObject	hashEntry;	/*	Entry in bundles hash.	*/
+	SdrObject stewardZco; /* ZCO handed to the CLA if listed in
+			       * the BundleSet's stewards, else 0. */
 
 	SdrObject	timelineElt;	/*	TTL expire list ref.	*/
 	SdrObject	overdueElt;	/*	Xmit overdue ref.	*/
@@ -701,6 +709,8 @@ typedef struct
 	SdrObject	bundleObj;	/*	0 if count > 1.		*/
 	unsigned int	count;
 	SdrObject	stewardObj;	/*	Steward copy if count > 1.	*/
+	SdrObject stewards; /* SDR list of copies dequeued with
+			     * stewardship while count > 1, or 0. */
 } BundleSet;
 
 typedef struct

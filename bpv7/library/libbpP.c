@@ -2982,6 +2982,67 @@ static void	purgeStationsStack(Bundle *bundle)
 	}
 }
 
+/*
+ * Removes bundleObj from the BundleSet's list of steward copies, destroying
+ * the list once it is empty.
+ */
+static void removeSteward(BundleSet *bset, SdrObject bundleObj)
+{
+	Sdr sdr = getIonsdr();
+	SdrObject elt;
+
+	if (bset->stewards == 0)
+	{
+		return;
+	}
+
+	for (elt = sdr_list_first(sdr, bset->stewards); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		if (sdr_list_data(sdr, elt) == bundleObj)
+		{
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			break;
+		}
+	}
+
+	if (sdr_list_length(sdr, bset->stewards) == 0)
+	{
+		sdr_list_destroy(sdr, bset->stewards, NULL, NULL);
+		bset->stewards = 0;
+	}
+}
+
+/*
+ * Ends the convergence-layer stewardship recorded for a bundle whose
+ * bundle-ID key was not unique when it was dequeued.
+ */
+static void releaseSteward(SdrObject bundleObj)
+{
+	Sdr sdr = getIonsdr();
+	Bundle bundle;
+	SdrObject bsetObj;
+	BundleSet bset;
+
+	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	if (bundle.stewardZco == 0)
+	{
+		return;
+	}
+
+	if (bundle.hashEntry)
+	{
+		bsetObj = sdr_hash_entry_value(sdr, (_bpConstants())->bundles,
+				bundle.hashEntry);
+		sdr_stage(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
+		removeSteward(&bset, bundleObj);
+		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
+	}
+
+	bundle.stewardZco = 0;
+	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+}
+
 int bpDestroyBundle(SdrObject bundleObj, int unconditional)
 {
 	Sdr		sdr = getIonsdr();
@@ -3185,8 +3246,15 @@ incomplete bundle.", NULL);
 			bset.stewardObj = 0;
 		}
 
+		removeSteward(&bset, bundleObj);
 		if (bset.count == 0)
 		{
+			if (bset.stewards)
+			{
+				sdr_list_destroy(sdr, bset.stewards, NULL,
+						NULL);
+			}
+
 			sdr_hash_delete_entry(sdr, bundle.hashEntry);
 			sdr_free(sdr, bsetObj);
 		}
@@ -3371,13 +3439,16 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 
 static int	findBundleForSteward(char *sourceEid, BpTimestamp *creationTime,
 			unsigned int fragmentOffset, unsigned int fragmentLength,
-			SdrObject *bundleAddr)
+			SdrObject bundleZco, SdrObject *bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	char		key[BUNDLES_HASH_KEY_BUFLEN];
 	SdrAddress	bsetObj;
 	SdrObject	hashElt;
 	BundleSet	bset;
+	SdrObject	elt;
+	SdrObject	copyObj;
+	Bundle		copy;
 
 	/*	Like findBundle(), but when the bundle-ID key is non-unique
 	 *	(count > 1, so bset.bundleObj has been zeroed) this falls
@@ -3412,6 +3483,27 @@ static int	findBundleForSteward(char *sourceEid, BpTimestamp *creationTime,
 	default:
 		sdr_read(sdr, (char *) &bset, bsetObj, sizeof(BundleSet));
 		*bundleAddr = bset.bundleObj;
+
+		/*
+		 * Copies that share a non-unique key at dequeue time are
+		 * told apart by the ZCO each one handed to its CLA.
+		 */
+		if (*bundleAddr == 0 && bset.stewards != 0)
+		{
+			for (elt = sdr_list_first(sdr, bset.stewards); elt;
+					elt = sdr_list_next(sdr, elt))
+			{
+				copyObj = sdr_list_data(sdr, elt);
+				sdr_read(sdr, (char *) &copy, copyObj,
+						sizeof(Bundle));
+				if (copy.stewardZco == bundleZco)
+				{
+					*bundleAddr = copyObj;
+					break;
+				}
+			}
+		}
+
 		if (*bundleAddr == 0 && bset.stewardObj != 0)
 		{
 			*bundleAddr = bset.stewardObj;
@@ -6047,6 +6139,7 @@ cannot be retrieved by key", bundleKey);
 		bset.bundleObj = bundleObj;
 		bset.count = 1;
 		bset.stewardObj = 0;
+		bset.stewards = 0;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		if (sdr_hash_insert(sdr, bundles, bundleKey, bsetObj,
 				&(bundle->hashEntry)) < 0)
@@ -6279,6 +6372,7 @@ int bpClone(Bundle *oldBundle, Bundle *newBundle, SdrObject *newBundleObj,
 
 	/*	Detach new bundle from all pointers to old bundle.	*/
 
+	newBundle->stewardZco = 0;
 	newBundle->overdueElt = 0;
 	newBundle->fwdQueueElt = 0;
 	newBundle->fragmentElt = 0;
@@ -12912,8 +13006,7 @@ bundle.", NULL);
 	 *	accepted stewardship.
 	 *
 	 *	If the bundle isn't in the node's hash table of all
-	 *	bundles -- or if multiple bundles have the same key
-	 *	-- then neither of these stewardship resolution
+	 *	bundles then neither of these stewardship resolution
 	 *	functions can succeed, so stewardship cannot be
 	 *	successfully accepted.  Again, stewardshipAccepted
 	 *	is forced to zero.					*/
@@ -12921,16 +13014,6 @@ bundle.", NULL);
 	if (bundle.hashEntry == 0)
 	{
 		stewardshipAccepted = 0;
-	}
-	else	/*	Does hash entry resolve to only this bundle?	*/
-	{
-		sdr_read(sdr, (char *) &bset, sdr_hash_entry_value(sdr,
-				(_bpConstants())->bundles, bundle.hashEntry),
-				sizeof(BundleSet));
-		if (bset.bundleObj != bundleObj)
-		{
-			stewardshipAccepted = 0;
-		}
 	}
 
 	/*	Last check: if the bundle is anonymous then its key
@@ -12946,14 +13029,13 @@ bundle.", NULL);
 	}
 
 	/*	If stewardship is definitively accepted for this bundle
-	 *	then, at this instant, its bundle-ID key is unique
-	 *	(the checks above declined stewardship for any ambiguous,
-	 *	anonymous or critical bundle).  Record this object as the
-	 *	steward copy of the key so that, should a same-key copy be
-	 *	catalogued later (e.g. the received copy on an LTP loopback)
-	 *	and zero bset.bundleObj, the transmission-success/failure
-	 *	notice can still resolve back to this retained object via
-	 *	findBundleForSteward() rather than leaking it to TTL.	*/
+	 *	and its bundle-ID key is unique at this instant, record
+	 *	this object as the steward copy of the key so that,
+	 *	should a same-key copy be catalogued later (e.g. the
+	 *	received copy on an LTP loopback) and zero bset.bundleObj,
+	 *	the transmission-success/failure notice can still resolve
+	 *	back to this retained object via findBundleForSteward()
+	 *	rather than leaking it to TTL.				*/
 
 	if (stewardshipAccepted && bundle.hashEntry)
 	{
@@ -12966,9 +13048,37 @@ bundle.", NULL);
 		if (bset.bundleObj == bundleObj)
 		{
 			bset.stewardObj = bundleObj;
-			sdr_write(sdr, stewardBsetObj, (char *) &bset,
-					sizeof(BundleSet));
 		}
+		else
+		{
+			/*
+			 * The key is shared with other copies, such as
+			 * the per-gang copies of a multicast bundle, so
+			 * record the ZCO handed to the CLA to tell this
+			 * copy apart when its transmission is resolved.
+			 */
+			if (bset.stewards == 0)
+			{
+				bset.stewards = sdr_list_create(sdr);
+			}
+
+			if (bset.stewards == 0
+			|| (bundle.stewardZco == 0
+			    && sdr_list_insert_last(sdr, bset.stewards,
+					bundleObj) == 0))
+			{
+				putErrmsg("Can't record bundle steward.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
+			bundle.stewardZco = *bundleZco;
+			sdr_write(sdr, bundleObj, (char *) &bundle,
+					sizeof(Bundle));
+		}
+
+		sdr_write(sdr, stewardBsetObj, (char *) &bset,
+				sizeof(BundleSet));
 	}
 
 	/*	Note that when stewardship is not accepted, the bundle
@@ -13421,7 +13531,7 @@ int retrieveSerializedBundle(SdrObject bundleZco, SdrObject *bundleObj)
 
 	result = findBundleForSteward(sourceEid, &image.id.creationTime,
 			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
-			: image.payload.length, bundleObj);
+			: image.payload.length, bundleZco, bundleObj);
 	MRELEASE(sourceEid);
 	eraseEid(&image.id.source);
 	eraseEid(&image.destination);
@@ -13458,6 +13568,7 @@ int bpHandleXmitSuccess(SdrObject bundleZco)
 		return 0;	/*	bpDestroyBundle already called.	*/
 	}
 
+	releaseSteward(bundleAddr);
 	sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 	/*	Send "forwarded" status report if necessary.		*/
@@ -13510,6 +13621,7 @@ int bpHandleXmitFailure(SdrObject bundleZco)
 	Sdr	sdr = getIonsdr();
 	SdrObject bundleAddr;
 	Bundle	bundle;
+	BpEvent event;
 
 	CHKERR(bundleZco);
 	CHKERR(sdr_begin_xn(sdr));
@@ -13533,7 +13645,8 @@ int bpHandleXmitFailure(SdrObject bundleZco)
 		return 0;	/*	No bundle, can't retransmit.	*/
 	}
 
-	sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	releaseSteward(bundleAddr);
+	sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
 	/*	Note that the "clfail" statistics count failures of
 	 *	convergence-layer transmission of bundles for which
@@ -13556,7 +13669,28 @@ int bpHandleXmitFailure(SdrObject bundleZco)
 	}
 
 	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);
-	if (bpReforwardBundle(bundleAddr) < 0)
+	if (bundle.destination.schemeCodeNbr == imc && bundle.overdueElt == 0)
+	{
+		/*
+		 * A multicast copy usually fails because its receiver is
+		 * not ready yet, such as an LTP engine whose BP client has
+		 * not registered, which rejects a retry just as fast; so
+		 * re-forward it from the timeline after a short delay.
+		 */
+		event.type = xmitOverdue;
+		event.time = getCtime() + IMC_REFORWARD_DELAY;
+		event.ref = bundleAddr;
+		bundle.overdueElt = insertBpTimelineEvent(&event);
+		if (bundle.overdueElt == 0)
+		{
+			putErrmsg("Can't schedule re-forwarding.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
+	}
+	else if (bpReforwardBundle(bundleAddr) < 0)
 	{
 		putErrmsg("Failed trying to re-forward bundle.", NULL);
 		sdr_cancel_xn(sdr);

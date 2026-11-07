@@ -905,6 +905,7 @@ int	main(void)
 	SdrObject	imcblkElt;
 	SdrObject	imcblkAddr;
 	ExtensionBlock	imcblock;
+	int		reforwarded;
 
 	if (bpAttach() < 0)
 	{
@@ -981,12 +982,13 @@ int	main(void)
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.fwdQueueElt = 0;
 
-		/*	Clear the bundle's imc destinations list.	*/
-
-		while ((elt = sdr_list_first(sdr, bundle.destinations)))
-		{
-			sdr_list_delete(sdr, elt, NULL, NULL);
-		}
+		/*
+		 * Only a copy being re-forwarded, such as after a failed
+		 * transmission, still lists the destinations it was sent
+		 * to; every other bundle's list is built below.
+		 */
+		reforwarded = (bundle.destinations
+				&& sdr_list_length(sdr, bundle.destinations) > 0);
 
 		/*	Must rewrite bundle to note removal of
 		 *	fwdQueueElt, in case the bundle is abandoned
@@ -1011,7 +1013,20 @@ puts("IMC extension block missing");
 		imcblkAddr = sdr_list_data(sdr, imcblkElt);
 		sdr_stage(sdr, (char *) &imcblock, imcblkAddr,
 				sizeof(ExtensionBlock));
-		if (imcblock.object == 0)
+		if (reforwarded)
+		{
+#if IMCDEBUG
+puts("IMC bundle re-forwarded.");
+#endif
+			if (forwardImcBundle(&bundle, bundleAddr) < 0)
+			{
+				putErrmsg("Can't re-forward IMC bundle.", NULL);
+				sdr_cancel_xn(sdr);
+				running = 0;
+				continue;
+			}
+		}
+		else if (imcblock.object == 0)
 		{
 #if IMCDEBUG
 puts("IMC bundle originated.");
