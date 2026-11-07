@@ -44,6 +44,8 @@ node4ImcDone() { ! kill -0 "$NODE4_IMC_PID" 2>/dev/null; }
 # Count received testfiles of a given size in a node directory.
 recvCount() ( cd "$1" 2>/dev/null && ls -l testfile* 2>/dev/null | egrep "$2" | wc -l )
 
+node3GotUnicast() { [ "$(recvCount "$TESTDIR/3.ipn.ltp" 150)" -ge 1 ]; }
+
 # True once every file each node should receive has arrived.
 allDelivered() {
     [ "$(recvCount "$TESTDIR/1.ipn.ltp" 200)" -ge 1 ] && \
@@ -157,7 +159,11 @@ cd ../1.ipn.ltp
 echo "Sending 150-byte file from ipn:1.2 to ipn:3.1 (unicast)...."
 bpsendfile ipn:1.2 ipn:3.1 file150
 cd ../3.ipn.ltp
-sleep 4
+# Node 3's unicast and multicast receivers share this directory, so move the
+# unicast file aside only once it has arrived, before any multicast file can
+# be named testfile1.
+waitForPredicate node3GotUnicast 30000 || \
+    echo "WARNING: node 3 did not get file150 within 30s" >&2
 mv testfile1 testfile01
 #read -p "Step 1 done: Press any key to continue... " -n1 -s
 
