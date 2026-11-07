@@ -64,6 +64,18 @@ allDelivered() {
     [ "$(recvCount "$TESTDIR/4.ipn.ltp" 320)" -ge 1 ]
 }
 
+# True once every node has its egress plans, its multicast forwarder, and its
+# LTP induct running.
+nodesReady() {
+    local n m
+    for n in 1 2 3 4; do
+        for m in "bpclm is running: ipn:4.0" "imcfw is running" \
+                "ltpcli is running"; do
+            grep -q "$m" "$TESTDIR/$n.ipn.ltp/ion.log" 2>/dev/null || return 1
+        done
+    done
+}
+
 ./cleanup
 
 echo "Starting ION..."
@@ -87,8 +99,12 @@ sleep 2
 cd ../4.ipn.ltp
 ./ionstart >& node4.stdout &
 
-#give nodes enough time to start
-sleep 8
+# Join the group only once every node is ready, since a join petition sent
+# before then is silently lost.  ltpcli registers with LTP about a second
+# after it reports running, hence the extra sleep.
+waitForPredicate nodesReady 60000 || \
+    echo "WARNING: not every node reported ready within 60s" >&2
+sleep 2
 
 echo "All nodes launched."
 #read -p "Press any key to continue... " -n1 -s
