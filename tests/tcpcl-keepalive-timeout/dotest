@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # A lost RST, or a peer crash that delivers no segment, leaves the
 # TCP connection established. tcpcli must abandon that session after
 # two silent keepalive intervals. SIGSTOP is the stand-in: the peer
@@ -7,129 +7,148 @@
 
 STOPPED_PID=""
 thaw() {
-	if [ -n "$STOPPED_PID" ]; then
-		kill -CONT "$STOPPED_PID" 2>/dev/null || true
-		STOPPED_PID=""
-	fi
+    if [ -n "$STOPPED_PID" ]; then
+        kill -CONT "$STOPPED_PID" 2>/dev/null || true
+        STOPPED_PID=""
+    fi
 }
 trap 'thaw; killm f' EXIT
+
+# Linux /proc state 01 is ESTABLISHED. Ports 4555 and 4556 are 11CB
+# and 11CC. Other platforms use netstat; colon and dot are both used
+# before the port.
+established_count() {
+    if [ -r /proc/net/tcp ]; then
+        awk 'FNR > 1 && $4 == "01" {
+            lp = substr($2, length($2) - 3, 4)
+            rp = substr($3, length($3) - 3, 4)
+            if (lp == "11CB" || lp == "11CC" ||
+                rp == "11CB" || rp == "11CC")
+                c++
+        } END { print c + 0 }' /proc/net/tcp /proc/net/tcp6 2>/dev/null
+        return
+    fi
+    netstat -an 2>/dev/null | awk '
+        /ESTABLISHED/ && /[.:]455[56]([^0-9]|$)/ { c++ }
+        END { print c + 0 }'
+}
 
 echo "########################################"
 echo "NAME: tcpcl-keepalive-timeout"
 echo "PURPOSE: Abandon a TCPCL session after a lost RST or a silent peer crash."
 echo "########################################"
 
-export ION_NODE_LIST_DIR=$PWD
+export ION_NODE_LIST_DIR="$PWD"
 ROOT=$PWD
 
 echo "Starting node 2..."
-cd "$ROOT/2.ipn.tcp"
+cd "$ROOT/2.ipn.tcp" || exit 1
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
-if [ "$?" -ne 2 ]; then
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+status=$?
+if [ "$status" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting node 1..."
-cd "$ROOT/1.ipn.tcp"
+cd "$ROOT/1.ipn.tcp" || exit 1
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
-if [ "$?" -ne 2 ]; then
-	echo "Node 1 not started: Aborting Test"
-	exit 1
+status=$?
+if [ "$status" -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
 fi
 
-cd "$ROOT/2.ipn.tcp"
+cd "$ROOT/2.ipn.tcp" || exit 1
 bpsink ipn:2.1 > sink.out &
 sleep 1
 
-cd "$ROOT/1.ipn.tcp"
+cd "$ROOT/1.ipn.tcp" || exit 1
 echo "Sending warmup bundle..."
 bpsource ipn:2.1 "silent-peer"
 
 delivered=0
 i=0
 while [ "$i" -lt 15 ]; do
-	if grep -q "silent-peer" "$ROOT/2.ipn.tcp/sink.out"; then
-		delivered=1
-		break
-	fi
-	sleep 1
-	i=$((i + 1))
+    if grep -q "silent-peer" "$ROOT/2.ipn.tcp/sink.out"; then
+        delivered=1
+        break
+    fi
+    sleep 1
+    i=$((i + 1))
 done
 if [ "$delivered" -ne 1 ]; then
-	echo "FAIL: warmup bundle was not delivered."
-	exit 1
+    echo "FAIL: warmup bundle was not delivered."
+    exit 1
 fi
 echo "Okay: warmup bundle delivered."
 
 # Select the peer by the induct address on its command line. A name
 # match against this script would also match the shell running it.
 STOPPED_PID=$(ps -eo pid,args | awk '
-	$2 ~ /(^|\/)tcpcli$/ && $3 == "127.0.0.1:4556" { print $1; exit }')
+    $2 ~ /(^|\/)tcpcli$/ && $3 == "127.0.0.1:4556" { print $1; exit }')
 if [ -z "$STOPPED_PID" ]; then
-	echo "FAIL: node 2 tcpcli (127.0.0.1:4556) is not running."
-	exit 1
+    echo "FAIL: node 2 tcpcli (127.0.0.1:4556) is not running."
+    exit 1
 fi
 
-ended_before=$(grep -c "receiver thread has ended" "$ROOT/1.ipn.tcp/ion.log" || true)
+log="$ROOT/1.ipn.tcp/ion.log"
+ended_before=$(grep -c "receiver thread has ended" "$log" || true)
 echo "Freezing tcpcli pid ${STOPPED_PID}."
 kill -STOP "$STOPPED_PID"
-stat=$(ps -o stat= -p "$STOPPED_PID" | awk '{ print $1 }')
-case "$stat" in
-T*)
-	echo "Okay: peer tcpcli is stopped ($stat)."
-	;;
-*)
-	echo "FAIL: peer tcpcli state is '${stat}' after SIGSTOP."
-	exit 1
-	;;
+# Solaris ps has "s", not "stat". Take the last line so a header is ignored.
+proc_state=$(ps -p "$STOPPED_PID" -o s |
+    awk 'NF { line = $1 } END { print line }')
+case "$proc_state" in
+    T)
+        echo "Okay: peer tcpcli is stopped ($proc_state)."
+        ;;
+    *)
+        echo "FAIL: peer tcpcli state is '${proc_state}' after SIGSTOP."
+        exit 1
+        ;;
 esac
 
 echo "Waiting up to 50 seconds for node 1 to end the session..."
 ended=0
 i=0
 while [ "$i" -lt 50 ]; do
-	now=$(grep -c "receiver thread has ended" "$ROOT/1.ipn.tcp/ion.log" || true)
-	if [ "$now" -gt "$ended_before" ]; then
-		ended=1
-		echo "Okay: receive thread ended after ${i} seconds of silence."
-		break
-	fi
-	sleep 1
-	i=$((i + 1))
+    now=$(grep -c "receiver thread has ended" "$log" || true)
+    if [ "$now" -gt "$ended_before" ]; then
+        ended=1
+        echo "Okay: receive thread ended after ${i} seconds of silence."
+        break
+    fi
+    sleep 1
+    i=$((i + 1))
 done
 
 if [ "$ended" -ne 1 ]; then
-	echo "FAIL: session still up after 50 seconds of silence."
-	exit 1
+    echo "FAIL: session still up after 50 seconds of silence."
+    exit 1
 fi
 
-if [ -r /proc/net/tcp ]; then
-	# Both directions time out in one pass of the clock thread, and
-	# each endSession joins its receive thread before the next session
-	# is checked. Give that pass a moment to finish.
-	count=1
-	j=0
-	while [ "$j" -lt 5 ]; do
-		count=$(awk 'FNR > 1 && $4 == "01" {
-			lp = substr($2, length($2) - 3, 4)
-			rp = substr($3, length($3) - 3, 4)
-			if (lp == "11CB" || lp == "11CC" || rp == "11CB" || rp == "11CC")
-				c++
-		} END { print c + 0 }' /proc/net/tcp /proc/net/tcp6 2>/dev/null)
-		if [ "$count" -eq 0 ]; then
-			break
-		fi
-		sleep 1
-		j=$((j + 1))
-	done
-	if [ "$count" -ne 0 ]; then
-		echo "FAIL: ${count} TCP connection(s) still established on 4555/4556."
-		exit 1
-	fi
-	echo "Okay: no established TCP connection remains on 4555 or 4556."
+# Both directions time out in one pass of the clock thread, and
+# each endSession joins its receive thread before the next session
+# is checked. Give that pass a moment to finish.
+if [ -r /proc/net/tcp ] || command -v netstat >/dev/null 2>&1; then
+    count=1
+    j=0
+    while [ "$j" -lt 5 ]; do
+        count=$(established_count)
+        if [ "$count" -eq 0 ]; then
+            break
+        fi
+        sleep 1
+        j=$((j + 1))
+    done
+    if [ "$count" -ne 0 ]; then
+        echo "FAIL: ${count} connection(s) still established on 4555/4556."
+        exit 1
+    fi
+    echo "Okay: no established connection remains on 4555 or 4556."
 fi
 
 thaw

@@ -2727,7 +2727,7 @@ static void	checkSession(TcpclSession *session)
 				session->keepaliveInterval)
 		{
 			session->timeoutCount++;
-			/*	Begin the next interval.		*/
+			/* Begin the next interval. */
 			session->secSinceReception = 0;
 			if (session->timeoutCount > 1)
 			{
