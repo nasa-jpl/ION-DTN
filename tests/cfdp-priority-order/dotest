@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# CFDP must issue PDUs of a higher-priority transaction ahead of a
+# lower-priority one that was put earlier.
+#
+#   node 2 (sender, bputa throttled to 400 kbit/s)  --udp-->  node 3
+#
+# Node 2 puts a 500 KB bulk file (~10 s at the throttled rate), then 2 s
+# later a 20 KB expedited file.  The expedited file must arrive complete
+# while the bulk file is still incomplete.
+set -u
+cd "$(dirname "$0")" || exit 1
+
+trap 'killm f' EXIT
+
+SYSUP=../../../system_up
+
+echo "########################################"
+echo "NAME: cfdp-priority-order"
+echo "PURPOSE: Verify an expedited CFDP file put after a bulk file is"
+echo "         delivered before the bulk file."
+echo "########################################"
+
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+
+dd if=/dev/urandom of=bulkfile bs=1000 count=500 2>/dev/null
+dd if=/dev/urandom of=expfile bs=1000 count=20 2>/dev/null
+
+echo "Starting node 3 (receiver) and node 2 (sender) ..."
+(cd 3.ipn.udp && ./ionstart) >3.ipn.udp/start.log 2>&1
+(cd 2.ipn.udp && ./ionstart) >2.ipn.udp/start.log 2>&1
+for n in 3 2; do
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 30" -b "p 30" -c "p 30" ) >/dev/null 2>&1
+    if [ $? -ne 3 ]; then
+        echo "FAIL: node $n did not come up"
+        cat "$n.ipn.udp/start.log"
+        exit 1
+    fi
+done
+
+(cd 3.ipn.udp && printf 'z 40\nq\n' | cfdptest >recv.log 2>&1) &
+sleep 1
+(cd 2.ipn.udp && printf 'd 3\np 0\nf ../bulkfile\nt bulkrcv\n&\nz 2\np 2\nf ../expfile\nt exprcv\n&\nz 30\nq\n' | \
+    cfdptest >send.log 2>&1) &
+
+EXP_DONE=0
+BULK_DONE_FIRST=0
+for _ in $(seq 1 40); do
+    if cmp -s expfile 3.ipn.udp/exprcv; then
+        EXP_DONE=1
+        cmp -s bulkfile 3.ipn.udp/bulkrcv && BULK_DONE_FIRST=1
+        break
+    fi
+    sleep 1
+done
+
+BULK_DONE=0
+for _ in $(seq 1 30); do
+    cmp -s bulkfile 3.ipn.udp/bulkrcv && BULK_DONE=1 && break
+    sleep 1
+done
+
+echo
+echo "=== evidence ==="
+grep -E "^(Event|Condition|File Status)" 3.ipn.udp/recv.log
+
+ok=1
+[ "$EXP_DONE" -eq 1 ] || { echo "FAIL: expedited file not delivered."; ok=0; }
+[ "$BULK_DONE" -eq 1 ] || { echo "FAIL: bulk file not delivered."; ok=0; }
+if [ "$BULK_DONE_FIRST" -eq 1 ]; then
+    echo "FAIL: bulk file completed before the expedited file."
+    ok=0
+fi
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: expedited file delivered ahead of the earlier bulk file."
+    exit 0
+fi
+exit 1
