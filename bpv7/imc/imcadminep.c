@@ -153,16 +153,8 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	MetaEid		metaEid;
 	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
-	SdrObject	groupAddr;
-	SdrObject	groupElt;
-	ImcGroup	group;
-	SdrObject	elt;
-	uvast		fqnn;
-	SdrObject	iondbObj;
 	IonDB		iondb;
-	int		sourceRegionIdx;
-	uint32_t	sourceRegionNbr;
-	uint32_t	destinationRegionNbr;
+	int		newMember;
 
 	/*	Finish parsing the petition.				*/
 
@@ -193,244 +185,54 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	/*	Now get the multicast group.				*/
-
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
 UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownFqnn);
 fflush(stdout);
 #endif
-	oK(sdr_begin_xn(sdr));
-	imcFindGroup(petition.fqgn, &groupAddr, &groupElt);
-#if IMCDEBUG
-printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.fqgn);
-#endif
-	if (groupElt == 0)	/*	System failure.			*/
+	if (metaEid.elementNbr == ownFqnn)
 	{
-#if IMCDEBUG
-puts("Group not found.");
-#endif
-		if (petition.isMember)	/*	(Else nothing to do.)	*/
+		/*
+		 * A node applies its own Join or Leave when it adds or
+		 * removes the endpoint, so only a passageway, which also
+		 * petitions on behalf of other nodes, acts on a petition
+		 * from itself.
+		 */
+		oK(sdr_begin_xn(sdr));
+		sdr_read(sdr, (char *) &iondb, getIonDbObject(),
+				sizeof(IonDB));
+		sdr_exit_xn(sdr);
+		if (iondb.regions[1].regionNbr == 0)
 		{
-			writeMemoNote("Can't handle IMC Join petition",
-					itoa(petition.fqgn));
+			return 0;
 		}
+	}
 
-		/*	Nothing to propagate even if node is a
-		 *	passageway.  Can't Join the group, and
-		 *	since the group is unknown the passageway
-		 *	cannot be an "ex officio" member of that
-		 *	group and thus cannot be Leaving in the
-		 *	other region.					*/
-
-		sdr_cancel_xn(sdr);
+	if (imcApplyPetition(&petition, metaEid.elementNbr, &newMember) < 0)
+	{
+		putErrmsg("Failed handling petition.", NULL);
 		return -1;
 	}
 
-	/*	The multicast group is known, though possibly empty.	*/
-
-#if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
-#endif
-	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-	if (petition.isMember)	/*	Source node joining the group.	*/
+	if (newMember && metaEid.elementNbr != ownFqnn)
 	{
-		for (elt = sdr_list_first(sdr, group.members); elt;
-				elt = sdr_list_next(sdr, elt))
+		/*
+		 * A newly joined node doesn't know about any other nodes'
+		 * subscriptions, so it must be briefed.
+		 */
+		CHKERR(sdr_begin_xn(sdr));
+		if (briefNewNode(metaEid.elementNbr) < 0)
 		{
-			fqnn = sdr_list_data(sdr, elt);
-			if (fqnn < metaEid.elementNbr)
-			{
-				continue;
-			}
-
-			if (fqnn == metaEid.elementNbr)
-			{
-#if IMCDEBUG
-puts("Ignoring redundant Join.");
-fflush(stdout);
-#endif
-			/*	Again nothing to propagate even if
-			 *	node is a passageway.  Since the
-			 *	source node is already a member of
-			 *	the group, the passageway's "ex
-			 *	officio" membership in the group
-			 *	has already been announced in the
-			 *	other region.				*/
-
-				sdr_cancel_xn(sdr);
-				return 0;
-			}
-
-			break;	/*	Source node not in list.	*/
-		}
-
-		/*	Must add new member of group at this point.	*/
-#if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, petition.fqgn);
-fflush(stdout);
-#endif
-		if (elt)
-		{
-			oK(sdr_list_insert_before(sdr, elt,
-					metaEid.elementNbr));
-		}
-		else
-		{
-			oK(sdr_list_insert_last(sdr, group.members,
-					metaEid.elementNbr));
-		}
-
-		if (metaEid.elementNbr == ownFqnn)
-		{
-			group.isMember = 1;
-		}
-
-		if (metaEid.elementNbr != ownFqnn)
-		{
-#if IMCDEBUG
-printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
-fflush(stdout);
-#endif
-			/*	This node is subscribing to the IMC
-			 *	petitions group, i.e., it is a node
-			 *	that is newly announcing itself to
-			 *	the multicast community.  So it
-			 *	doesn't know about any other nodes'
-			 *	subscriptions.  So we must send this
-			 *	node a briefing.			*/
-
-			if (briefNewNode(metaEid.elementNbr) < 0)
-			{
-				putErrmsg("Failed briefing new node.", NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-		}
-
-		/*	Any scheduled deletion of the group is now
-		 *	canceled.					*/
-
-		group.secUntilDelete = -1;
-	}
-	else
-	{			/*	Source node leaving the group.	*/
-		for (elt = sdr_list_first(sdr, group.members); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			fqnn = sdr_list_data(sdr, elt);
-			if (fqnn < metaEid.elementNbr)
-			{
-				continue;
-			}
-
-			if (fqnn > metaEid.elementNbr)
-			{
-#if IMCDEBUG
-puts("Ignoring Leave by non-member.");
-fflush(stdout);
-#endif
-			/*	Again nothing to propagate even if
-			 *	node is a passageway.  Since the
-			 *	source node is already missing from
-			 *	the group, the passageway's "ex
-			 *	officio" withdrawal from the group
-			 *	has already been announced in the
-			 *	other region.				*/
-
-				sdr_cancel_xn(sdr);
-				return 0;
-			}
-
-			break;	/*	Source node may be in the list.	*/
-		}
-
-		/*	Must delete this member of the group, if found.	*/
-#if IMCDEBUG
-printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
-fflush(stdout);
-#endif
-		if (elt)	/*	Source node is a member.	*/
-		{
-			sdr_list_delete(sdr, elt, NULL, NULL);
-			if (metaEid.elementNbr == ownFqnn)
-			{
-				group.isMember = 0;
-			}
-
-			/*	If group now has no members in any
-			 *	region that the node knows about,
-			 *	schedule deletion of the group at
-			 *	this node.				*/
-
-			if (sdr_list_length(sdr, group.members) == 0)
-			{
-#if IMCDEBUG
-puts("Flagging group for deletion.");
-fflush(stdout);
-#endif
-				group.secUntilDelete = 15;
-			}
-		}
-	}
-
-	/*	If node is a passageway, propagate petition as needed.	*/
-
-	iondbObj = getIonDbObject();
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	if (iondb.regions[1].regionNbr != 0)
-	{
-		/*	Node is a passageway between its home region
-		 *	and the immediate encompassing region.		*/
-
-		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownFqnn,
-				&sourceRegionNbr);
-		if (sourceRegionIdx < 0)
-		{
-			putErrmsg("IMC system error.", NULL);
+			putErrmsg("Failed briefing new node.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
-		destinationRegionNbr =
-				iondb.regions[0 - sourceRegionIdx].regionNbr;
-		if (petition.isMember == 1)		/*	Join	*/
+		if (sdr_end_xn(sdr) < 0)
 		{
-			group.count[sourceRegionIdx] += 1;
-			if (group.count[sourceRegionIdx] == 1)
-			{
-				if (imcSendPetition(&petition,
-						destinationRegionNbr) < 0)
-				{
-					putErrmsg("Join propagation failed.",
-							NULL);
-					sdr_cancel_xn(sdr);
-					return -1;
-				}
-			}
+			putErrmsg("Failed briefing new node.", NULL);
+			return -1;
 		}
-		else					/*	Leave	*/
-		{
-			group.count[sourceRegionIdx] -= 1;
-			if (group.count[sourceRegionIdx] == 0)
-			{
-				if (imcSendPetition(&petition,
-						destinationRegionNbr) < 0)
-				{
-					putErrmsg("Leave propagation failed.",
-							NULL);
-					sdr_cancel_xn(sdr);
-					return -1;
-				}
-			}
-		}
-	}
-
-	sdr_write(sdr, groupAddr, (char *) &group, sizeof(ImcGroup));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Failed handling petition.", NULL);
-		return -1;
 	}
 
 	return 0;

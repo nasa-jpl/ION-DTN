@@ -3885,8 +3885,17 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 		return 0;
 	}
 
+	/*
+	 * Record the local node's membership directly, then petition the
+	 * other nodes of the region.
+	 */
 	petition.isMember = 1;
-	result = imcSendPetition(&petition, 0);
+	result = imcApplyPetition(&petition, getOwnFqnn(), NULL);
+	if (result == 0)
+	{
+		result = imcSendPetition(&petition, 0);
+	}
+
 	clearMetaEid(&metaEid);
 	return result;
 }
@@ -4084,8 +4093,18 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
 	petition.fqgn = metaEid.elementNbr;
+
+	/*
+	 * Record the local node's departure directly, then petition the
+	 * other nodes of the region.
+	 */
 	petition.isMember = 0;
-	result = imcSendPetition(&petition, 0);
+	result = imcApplyPetition(&petition, getOwnFqnn(), NULL);
+	if (result == 0)
+	{
+		result = imcSendPetition(&petition, 0);
+	}
+
 	clearMetaEid(&metaEid);
 	return result;
 }

@@ -516,3 +516,151 @@ printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->fqgn);
 
 	return result;
 }
+
+int imcApplyPetition(ImcPetition *petition, uvast sourceFqnn, int *newMember)
+{
+	Sdr sdr = getIonsdr();
+	uvast ownFqnn = getOwnFqnn();
+	SdrObject groupAddr;
+	SdrObject groupElt;
+	ImcGroup group;
+	SdrObject elt;
+	uvast fqnn = 0;
+	IonDB iondb;
+	int sourceRegionIdx;
+	uint32_t sourceRegionNbr;
+	uint32_t destinationRegionNbr;
+
+	CHKERR(petition);
+	if (newMember)
+	{
+		*newMember = 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't attach to IMC database.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	imcFindGroup(petition->fqgn, &groupAddr, &groupElt);
+	if (groupElt == 0)
+	{
+		if (petition->isMember)
+		{
+			writeMemoNote("Can't handle IMC Join petition",
+					itoa(petition->fqgn));
+		}
+
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	/* Members are listed in ascending node number order. */
+
+	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
+	for (elt = sdr_list_first(sdr, group.members); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		fqnn = sdr_list_data(sdr, elt);
+		if (fqnn >= sourceFqnn)
+		{
+			break;
+		}
+	}
+
+	if (petition->isMember)
+	{
+		if (elt && fqnn == sourceFqnn)
+		{
+			/*
+			 * Already a member, so any passageway propagation
+			 * has already been done.
+			 */
+			return sdr_end_xn(sdr);
+		}
+
+		if (elt)
+		{
+			oK(sdr_list_insert_before(sdr, elt, sourceFqnn));
+		}
+		else
+		{
+			oK(sdr_list_insert_last(sdr, group.members,
+					sourceFqnn));
+		}
+
+		if (sourceFqnn == ownFqnn)
+		{
+			group.isMember = 1;
+		}
+
+		group.secUntilDelete = -1;
+		if (newMember)
+		{
+			*newMember = 1;
+		}
+	}
+	else
+	{
+		if (elt == 0 || fqnn != sourceFqnn)
+		{
+			/*
+			 * Not a member, so any passageway propagation has
+			 * already been done.  The group may have just been
+			 * created, so end rather than exit the transaction.
+			 */
+			return sdr_end_xn(sdr);
+		}
+
+		sdr_list_delete(sdr, elt, NULL, NULL);
+		if (sourceFqnn == ownFqnn)
+		{
+			group.isMember = 0;
+		}
+
+		if (sdr_list_length(sdr, group.members) == 0)
+		{
+			group.secUntilDelete = 15;
+		}
+	}
+
+	/*
+	 * A passageway propagates the first Join and the last Leave from
+	 * either of its regions into the other region.
+	 */
+
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	if (iondb.regions[1].regionNbr != 0)
+	{
+		sourceRegionIdx = ionRegionOf(sourceFqnn, ownFqnn,
+				&sourceRegionNbr);
+		if (sourceRegionIdx < 0)
+		{
+			putErrmsg("IMC system error.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		destinationRegionNbr =
+				iondb.regions[0 - sourceRegionIdx].regionNbr;
+		group.count[sourceRegionIdx] += petition->isMember ? 1 : -1;
+		if (group.count[sourceRegionIdx] == (petition->isMember ? 1 : 0)
+		&& imcSendPetition(petition, destinationRegionNbr) < 0)
+		{
+			putErrmsg("Petition propagation failed.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+	}
+
+	sdr_write(sdr, groupAddr, (char *) &group, sizeof(ImcGroup));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed applying IMC petition.", NULL);
+		return -1;
+	}
+
+	return 0;
+}

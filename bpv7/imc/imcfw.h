@@ -67,6 +67,16 @@ extern int		imcSendDispatch(char *destEid, uint32_t toRegion,
 extern int		imcSendPetition(ImcPetition *petition,
 				uint32_t toRegion);
 
+/*
+ * Applies a Join or Leave petition from node sourceFqnn to the local
+ * membership of the petition's group and, if the local node is a
+ * passageway, propagates it into the other region as needed.  If
+ * newMember is not NULL, sets *newMember to 1 when a Join adds
+ * sourceFqnn to the group and to 0 otherwise.
+ */
+extern int imcApplyPetition(ImcPetition *petition, uvast sourceFqnn,
+		int *newMember);
+
 #ifdef __cplusplus
 }
 #endif

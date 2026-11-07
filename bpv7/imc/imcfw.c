@@ -740,7 +740,8 @@ printf("Loading: Bundle has %d destinations.\n", destinationsCount);
 	return forwardImcBundle(bundle, bundleAddr);
 }
 
-static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
+static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db,
+			uvast excludedFqnn)
 {
 	Sdr		sdr = getIonsdr();
 	SdrObject	elt;
@@ -753,6 +754,11 @@ static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 		memberAddr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, memberAddr,
 				sizeof(RegionMember));
+		if (member.fqnn == excludedFqnn)
+		{
+			continue;
+		}
+
 		if (member.homeRegionNbr == regionNbr
 		|| member.outerRegionNbr == regionNbr)
 		{
@@ -780,6 +786,7 @@ static int originateImcBundle(Bundle *bundle, SdrObject bundleAddr)
 	ImcGroup	group;
 	SdrObject	elt;
 	uvast		fqnn;
+	uvast		excludedFqnn = 0;
 
 	fqgn = bundle->destination.ssp.imc.fqgn;
 
@@ -795,15 +802,28 @@ puts("Bundle is a dispatch to region members");
 		regionNbr = bundle->ancillaryData.imcRegionNbr;
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+
+		/*
+		 * A node that is not a passageway applies its own petitions
+		 * directly, so it doesn't send them to itself.
+		 */
+		if (bundle->destination.ssp.imc.serviceNbr == 0
+		&& iondb.regions[1].regionNbr == 0)
+		{
+			excludedFqnn = getOwnFqnn();
+		}
+
 		if (regionNbr == 0)	/*	Fwd in both regions.	*/
 		{
 			/*	Send to all members of both home
 			 *	region and (if any) outer region.	*/
 
 			if (loadRegionMembers(bundle,
-					iondb.regions[0].regionNbr, &iondb) < 0
+					iondb.regions[0].regionNbr, &iondb,
+					excludedFqnn) < 0
 			|| loadRegionMembers(bundle,
-					iondb.regions[1].regionNbr, &iondb) < 0)
+					iondb.regions[1].regionNbr, &iondb,
+					excludedFqnn) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;
@@ -822,7 +842,8 @@ puts("Bundle is a dispatch to region members");
 			}
 
 			if (loadRegionMembers(bundle,
-				iondb.regions[regionIdx].regionNbr, &iondb) < 0)
+				iondb.regions[regionIdx].regionNbr, &iondb,
+				excludedFqnn) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;
