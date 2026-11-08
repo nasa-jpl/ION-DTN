@@ -1615,8 +1615,6 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	IonCXref	*contact;
 	CgrContactNote	*work;
 	unsigned int	owlt;
-	time_t		arrivalTime;
-	unsigned int	hopCount;
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
@@ -1659,72 +1657,69 @@ is corrupt (abandoning spur computation).");
 		clearWorkAreas((IonCXref *) psp(ionwm, rootOfSpurAddr));
 	}
 
-	/*	Suppress the root-path contacts preceding this spur's waypoint
-	 *	and reseed the waypoint's own work area -- the Dijkstra start
-	 *	vertex -- with the earliest arrival time accumulated along the
-	 *	root path, computed as computeDistanceToTerminus relaxes an edge.
-	 *	rootOfSpur is an SmListElt in the hops list of the route this
-	 *	spur branches from, not necessarily lastSelectedRoute, so walk
-	 *	the list that actually contains rootOfSpur, from its first hop
-	 *	forward to the waypoint.				*/
+	/*	Suppress the root-path contacts that precede this spur's
+	 *	waypoint; repair the waypoint's own work area -- the
+	 *	Dijkstra start vertex -- only if it was corrupted.
+	 *
+	 *	clearWorkAreas() preserves the waypoint's arrival time from the
+	 *	prior search; an intervening graph-root spur can have left that
+	 *	at the maximum representable time (its contact suppressed), and
+	 *	the waypoint search would then reject every near-term successor
+	 *	as ending before the bundle could arrive -- a viable near-term
+	 *	route lost after the contact plan is extended with future
+	 *	contacts (ion-ios-dev #1642).  Reseed the waypoint, and the
+	 *	suppressed predecessors, from each contact's own window open
+	 *	plus OWLT: a time-independent basis.  A running, wall-clock-
+	 *	seeded accumulation instead makes the route's computed arrival
+	 *	drift with the current time and churns route selection under
+	 *	sustained load, collapsing LTP spans into retransmission.	*/
 
 	if (rootOfSpur != 0)
 	{
-//puts("*** Suppressing contacts on root path. ***");
-		arrivalTime = currentTime;
-		hopCount = 0;
-		contactElt = sm_list_first(ionwm, sm_list_list(ionwm,
-				rootOfSpur));
+//puts("*** Reseeding spur waypoint; suppressing its predecessors. ***");
+		contact = (IonCXref *) psp(ionwm, rootOfSpurAddr);
+		CHKERR(work = getWorkArea(ionwm, contact));
+		if (work->arrivalTime == MAX_TIME)
+		{
+			/*	The waypoint is on a selected route, so it is
+			 *	reachable: a MAX_TIME here is the "unreached"
+			 *	default left by an intervening graph-root search
+			 *	and preserved by clearWorkAreas(), which would make
+			 *	this spur reject every near-term successor
+			 *	(ion-ios-dev #1642).  Repair ONLY that case -- a
+			 *	valid preserved arrival from the route's own search
+			 *	is left untouched, so steady-state route costs do
+			 *	not shift and the spans do not collapse under load.	*/
+
+			owlt = 0;
+			if (getApplicableRange(contact, &owlt) >= 0)
+			{
+				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
+			}
+
+			work->arrivalTime = contact->fromTime + owlt;
+		}
+
+		/*	Leave the waypoint unsuppressed as the search start;
+		 *	suppress each contact before it on the root path.	*/
+
+		contactElt = sm_list_prev(ionwm, rootOfSpur);
 		while (contactElt)
 		{
 			contactAddr = sm_list_data(ionwm, contactElt);
-			if (contactAddr == 0)
-			{
-				return 0;
-			}
-
 			contact = (IonCXref *) psp(ionwm, contactAddr);
 			CHKERR(work = getWorkArea(ionwm, contact));
-			if (contact->toTime <= arrivalTime
-			|| getApplicableRange(contact, &owlt) < 0)
+			owlt = 0;
+			if (getApplicableRange(contact, &owlt) >= 0)
 			{
-				/*	Root path can't be traversed, so no
-				 *	spur route branches from it.		*/
+				/*	Got OWLT; add some margin.	*/
 
-				return 0;
+				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
 			}
 
-			/*	Got OWLT; add some margin.		*/
-
-			owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
-			if (contact->fromTime > arrivalTime)
-			{
-				arrivalTime = contact->fromTime;
-			}
-
-			arrivalTime += owlt;
-			work->arrivalTime = arrivalTime;
-			work->hopCount = ++hopCount;
-			if (contactElt == rootOfSpur)
-			{
-				/*	Reached the waypoint; leave it
-				 *	unsuppressed as the search start.	*/
-
-				break;
-			}
-
+			work->arrivalTime = contact->fromTime + owlt;
 			work->suppressed = 1;
-//putFqn(nbrBuf, contact->toFqnn); debugPrint("*** Suppressing contact to node %s on root path. ***\n", nbrBuf);
-			contactElt = sm_list_next(ionwm, contactElt);
-		}
-
-		if (contactElt == 0)
-		{
-			/*	Walked off the end without reaching the
-			 *	waypoint, so rootOfSpur was not an element of
-			 *	the list it claims; the spur is unsound.	*/
-
-			return 0;
+			contactElt = sm_list_prev(ionwm, contactElt);
 		}
 	}
 
