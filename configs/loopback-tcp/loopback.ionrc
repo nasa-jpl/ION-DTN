@@ -10,5 +10,18 @@
 #	Use default sdr configuration (empty configuration file name '').
 1 1 ''
 
+# Add a contact.
+#	It will start at +0 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +0 +3600 1 1 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +0 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 0 second to reach the other
+#	end (One Way Light Time).
+a range +0 +3600 1 1 0
+
 # start ion node
 s

@@ -349,7 +349,6 @@ loopbackstcpdir = $(pkgdatadir)/configs/loopback-stcp
 loopbackstcp_DATA = \
 	$(srcdir)/configs/loopback-stcp/loopback.ionrc \
 	$(srcdir)/configs/loopback-stcp/loopback.bprc \
-	$(srcdir)/configs/loopback-stcp/loopback.ipnrc \
 	$(srcdir)/configs/loopback-stcp/loopback.rc
 # loopback using the udp convergence layer
 loopbackudpdir = $(pkgdatadir)/configs/loopback-udp
@@ -2770,6 +2769,8 @@ bpv7_file_stub_libfile_simple_provider_la_LDFLAGS = -module -avoid-version -rpat
 # If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
 #  and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
+	tests/1300.loopback-tcp/dotest \
+	tests/1400.loopback-stcp/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/ionexit_test/checksemaphores \
 	tests/issue-260-teach-valgrind-mtake/domtake \
@@ -2872,15 +2873,24 @@ tests_bpsec_bsl_reattach_bsl_dotest_LDADD = \
 	-lpthread \
 	-lm
 
-#Disabled this test in ION 3.6.0 because tcpcl does not support loopback
-#tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
-#tests_1300_loopback_tcp_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
-#tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
+tests_1300_loopback_tcp_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(TESTUTILCFLAGS)
+tests_1300_loopback_tcp_dotest_LDADD = $(TESTUTILOBJS) libbp.la libici.la
+EXTRA_DIST += \
+	configs/loopback-tcp/loopback.bprc \
+	configs/loopback-tcp/loopback.ionrc
 
-# Disabled this test in ION 3.2.2 due to crashes. Restore after fixing crashes.
-# tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
-# tests_1400_loopback_stcp_dotest_LDADD = $(bplib) libici.la $(ltplib) $(TESTUTILOBJS)
-# tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
+tests_1400_loopback_stcp_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(TESTUTILCFLAGS)
+tests_1400_loopback_stcp_dotest_LDADD = $(TESTUTILOBJS) libbp.la libici.la
 
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)

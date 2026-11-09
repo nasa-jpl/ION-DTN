@@ -32,6 +32,8 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	(void) argc;
+
 	/* Clean up any leftover ION instance from a previous test */
 	synch_killm(60);
 
@@ -40,11 +42,8 @@ int main(int argc, char **argv)
 			NULL,
 			NULL,
 			"loopback-tcp/loopback.bprc",
-			"loopback-tcp/loopback.ipnrc",
+			NULL,
 			NULL);
-	ionstart_default_config(NULL, NULL, NULL,
-			"loopback-tcp/loopbackstart.bprc",
-			NULL, NULL);
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);

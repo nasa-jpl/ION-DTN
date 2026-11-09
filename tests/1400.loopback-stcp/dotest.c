@@ -31,6 +31,8 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	(void) argc;
+
 	/* Clean up any leftover ION instance from a previous test */
 	synch_killm(60);
 
@@ -39,7 +41,7 @@ int main(int argc, char **argv)
 			NULL,
 			NULL,
 			"loopback-stcp/loopback.bprc",
-			"loopback-stcp/loopback.ipnrc",
+			NULL,
 			NULL);
 
 	/* Attach to ION */

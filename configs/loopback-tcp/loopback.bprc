@@ -29,9 +29,7 @@ a endpoint ipn:1.2 q
 
 # Add a protocol.
 #	Add the protocol named tcp.
-#	Estimate transmission capacity assuming 1400 bytes of each frame (in
-#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
-a protocol tcp 1400 100
+a protocol tcp
 
 # Add an induct. (listen)
 #	Add an induct to accept bundles using the tcp protocol.
@@ -40,5 +38,16 @@ a induct tcp 0.0.0.0:4556 tcpcli
 
 # Add an outduct. (send to yourself)
 #	Add an outduct to send bundles using the tcp protocol.
-#	The outduct itself is implemented by the 'tcpclo' command.
-a outduct tcp 127.0.0.1:4556 tcpclo
+#	The outduct itself is implemented within 'tcpcli'.
+a outduct tcp 127.0.0.1:4556 ''
+
+# Add an egress plan.
+#	Bundles to be transmitted to Fully Qualified Node Number (0, 1)
+#	(that is, yourself).
+a plan ipn:1.0
+# Attach an outduct to an egress plan.
+#	Attach the outduct tcp 127.0.0.1:4556 to the egress plan to ipn:1.0
+a planduct ipn:1.0 tcp 127.0.0.1:4556
+
+# Start the daemons
+s
