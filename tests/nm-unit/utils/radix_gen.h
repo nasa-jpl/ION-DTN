@@ -1,6 +1,7 @@
-#include "ion.h"
-#include "ici/include/radix.h"
-#include "ici/library/radixP.h"
+#ifndef RADIX_GEN_H
+#define RADIX_GEN_H
+
+#include "psm.h"
 
 #define RADIX_TEST 0
 #define LYST_TEST 1
@@ -48,3 +49,5 @@ extern RadixTestStats gStats;
 extern RadixTestConfig gConfig;
 
 extern PsmAddress radix_alloc(PsmPartition partition, int size);
+
+#endif // !RADIX_GEN_H

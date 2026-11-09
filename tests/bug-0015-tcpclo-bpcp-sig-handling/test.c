@@ -4,12 +4,12 @@
  * Ohio University
  * March 5, 2013*/
 
-#include <stdlib.h>
-#include <stdio.h>
 #include "bp.h"
-#include "sdrxn.h"
 #include "platform.h"
-#include "platform_sm.h"
+#include "sdrxn.h"
+
+#include <signal.h>
+#include <stdio.h>
 
 void sighandler(int signum)
 {

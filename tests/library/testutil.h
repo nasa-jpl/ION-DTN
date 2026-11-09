@@ -4,7 +4,8 @@
 
 									*/
 
-#include <bp.h>
+#include "platform.h" // IWYU pragma: keep
+#include <stddef.h>
 
 /* A "default" amount of time to wait for bundle delivery before timing out. */
 #define IONTEST_DEFAULT_RECEIVE_WAIT    (5)

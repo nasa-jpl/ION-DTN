@@ -6,9 +6,15 @@
  * Author: Samuel Jero
  * Date: December 2011			*/
 
-#include <cfdp.h>
-#include <bputa.h>
-#include <stdlib.h>
+#include "bp.h"
+#include "bputa.h"
+#include "cfdp.h"
+#include "platform.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "check.h"
 #include "testutil.h"
 

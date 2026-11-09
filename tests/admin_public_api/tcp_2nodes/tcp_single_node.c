@@ -46,11 +46,13 @@
  *   gcc -o tcp_single_node tcp_single_node.c -lici -lbp -lpthread -lm -lrt
  */
 
+#include "platform.h"
 #include "ion.h"
 #include "ion_admin.h"
 #include "ionsec.h"
 #include "bp.h"
 #include "bp_admin.h"
+#include "sdrxn.h"
 #include "rfx.h"
 
 #include <stdio.h>

@@ -3,8 +3,9 @@
  * Like libcheck (check.sf.net), except it doesn't leak memory.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "platform.h" // IWYU pragma: keep
+
+#include <stddef.h>
 #include <errno.h>
 
 /*

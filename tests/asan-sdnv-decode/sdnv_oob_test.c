@@ -17,8 +17,8 @@
  * otherwise.
  */
 
-#include <ion.h>
-#include <platform.h>
+#include "ion.h"
+#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>

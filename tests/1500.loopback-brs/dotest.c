@@ -4,10 +4,19 @@
 
 									*/
 
-#include <ion.h>
-#include <ionsec.h>
-#include <bp.h>
-#include <bpP.h>
+#include "bp.h"
+#include "bpP.h"
+#include "ion.h"
+#include "ionsec.h"
+#include "platform.h"
+#include "psm.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+#include "zco.h"
+
+#include <string.h>
+#include <unistd.h>
+
 #include "check.h"
 #include "testutil.h"
 

@@ -14,9 +14,10 @@
 								*/
 
 #include "../tcpclv4_msg.h"
+
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #define TEST_BUFFER_SIZE 65536
 

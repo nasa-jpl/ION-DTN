@@ -2,11 +2,14 @@
  * Author: Samuel Jero <sj323707@ohio.edu>
  * Date: December 2011
  */
+
+#include "cfdp.h"
+#include "platform.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "cfdp.h"
-#include "ion.h"
-
+#include <string.h>
+#include <time.h>
 
 void poll_cfdp_messages(void);
 void dbgprintf(int level, const char *fmt, ...);

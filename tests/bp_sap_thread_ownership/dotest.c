@@ -15,11 +15,13 @@
 
 										*/
 
+#include "bp.h"
+#include "platform.h"
+
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
 
-#include <bp.h>
 #include "check.h"
 #include "testutil.h"
 

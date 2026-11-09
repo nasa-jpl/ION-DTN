@@ -26,11 +26,13 @@
  * 5. Report results
  */
 
-#include "platform.h"
+#include "platform.h" // IWYU pragma: keep
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/param.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/types.h>

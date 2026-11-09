@@ -19,9 +19,11 @@
 	acknowledged.
 								*/
 
+#include "platform.h"
 #include "ion_transfer_pool.h"
 #include "ion_ctrl_channel.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -28,11 +28,11 @@
  * suite a no-op, so the dotest skips unless real crypto is present.
  */
 
-#include <ion.h>
-#include <platform.h>
-#include <csi.h>
+#include "ion.h"
+#include "csi.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #define TAG_LEN		(16)

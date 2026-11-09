@@ -21,15 +21,12 @@
  * to a running node; the dotest starts a minimal one.
  */
 
-#include <ion.h>
-#include <platform.h>
-#include <psm.h>
-#include <smlist.h>
-
+#include "bib_hmac_sha2_sc.h"
+#include "ion.h"
+#include "psm.h"
 #include "sci.h"
 #include "sci_structs.h"
-#include "sc_value.h"
-#include "bib_hmac_sha2_sc.h"
+#include "smlist.h"
 
 #include <stdio.h>
 #include <string.h>

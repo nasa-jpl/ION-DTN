@@ -16,7 +16,10 @@
 								*/
 
 #include "../tcpclv4_session.h"
+#include "../tcpclv4_msg.h"
+#include "../tcpclv4_tls.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

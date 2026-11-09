@@ -4,13 +4,15 @@
 
 */
 
-#include <bp.h>
-#include <rfx.h>
-#include <ltp.h>
-#include <unistd.h>
-#include <libgen.h>
-#include "check.h"
 #include "testutil.h"
+
+#include "platform.h"
+
+#include <libgen.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#include "check.h"
 
 void _xadmin(const char *xadmin, const char *path_prefix, const char *xrc)
 {

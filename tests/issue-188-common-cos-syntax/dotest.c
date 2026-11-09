@@ -4,9 +4,9 @@
 
 									*/
 
-#include <bp.h>
+#include "bp.h"
+
 #include "check.h"
-#include "testutil.h"
 
 unsigned int BPV_SPECIFIC_FLAGS = 0;
 

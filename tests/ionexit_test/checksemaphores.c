@@ -7,15 +7,14 @@
 	location for the named semaphores.
  */
 
+#include "platform.h" // for SEM_NSEMS_MAX
+
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+#include <limits.h>
 #include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <platform.h> // for SEM_NSEMS_MAX
 
 int main(void) {
 

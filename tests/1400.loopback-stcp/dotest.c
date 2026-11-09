@@ -4,7 +4,14 @@
 
 									*/
 
-#include <bp.h>
+#include "bp.h"
+#include "platform.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+#include "zco.h"
+
+#include <string.h>
+
 #include "check.h"
 #include "testutil.h"
 

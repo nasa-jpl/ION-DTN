@@ -22,7 +22,7 @@
 
 /* platform.h must precede the system headers (ION feature-test macros). */
 // clang-format off
-#include "platform.h"
+#include "platform.h" // IWYU pragma: keep
 #include "crc.h"
 #include <stdint.h>
 #include <stdio.h>

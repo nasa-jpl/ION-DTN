@@ -20,9 +20,8 @@
  * -fsanitize=address -- no AddressSanitizer build of ION is required.
  */
 
-#include <ion.h>
-#include <platform.h>
 #include "dgrP.h"
+#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>

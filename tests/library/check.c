@@ -3,11 +3,12 @@
  * Like libcheck (check.sf.net), except it doesn't leak memory.
  */
 
+#include "check.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <errno.h>
-#include "check.h"
 
 static int current_failures = 0;
 static int current_success  = 0;

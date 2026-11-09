@@ -22,11 +22,13 @@
  * ==================================================================
  */
 
+#include "ion_atomic.h"
+#include "platform.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
-#include "ion_atomic.h"
 
 /*
  * Tier-dispatch self-check.  When the integrator forces a tier via
@@ -56,7 +58,6 @@ static const char *active_tier(void)
 #endif
 }
 
-#define SEM_NSEMS_MAX 256
 #define THREAD_COUNT  8
 #define LOOP_COUNT    100000
 

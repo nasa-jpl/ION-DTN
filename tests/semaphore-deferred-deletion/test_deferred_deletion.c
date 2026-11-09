@@ -19,16 +19,11 @@
  *   ./dotest
  */
 
-#include <platform.h>
-#include <memmgr.h>
-#include <sdr.h>
+#include "platform.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <errno.h>
 
 /* Color codes for output */
 #define COLOR_GREEN "\x1b[32m"

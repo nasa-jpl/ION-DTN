@@ -21,9 +21,12 @@
 
 									*/
 
-#include <bp.h>
-#include <bpP.h>
+#include "bp.h"
+#include "bpP.h"
+#include "platform.h"
+
 #include <string.h>
+
 #include "check.h"
 #include "testutil.h"
 

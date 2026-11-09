@@ -12,11 +12,13 @@
 	at which the budget steps IS the test.
 									*/
 
-#include "platform.h"
-#include <math.h>
 #include "ltpP.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "check.h"
-#include "testutil.h"
 
 /*	The algorithm as it stood before the session failure target was
  *	introduced, transcribed so that equivalence at a target of 1.0

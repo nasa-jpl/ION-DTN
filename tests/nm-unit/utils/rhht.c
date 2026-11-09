@@ -1,12 +1,20 @@
+#include "ion.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
 // Framework
 #include "unity.h"
+#include "unity_internals.h"
 #include "testutil.h"
 
 // module being tested
 #include "utils/db.h"
+#include "utils/debug.h"
 #include "utils/rhht.h"
 #include "utils/utils.h"
 #include "primitives/ari.h"
+#include "primitives/blob.h"
 
 // Macros to appese the compiler
 #define INT2VOIDP(i) (void*)(uintptr_t)(i)

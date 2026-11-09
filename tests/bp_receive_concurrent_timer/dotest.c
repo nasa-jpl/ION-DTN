@@ -5,12 +5,16 @@
  * never returns, means the two calls are sharing timer state.
  */
 
+// clang-format off
+#include "bp.h"
+#include "platform.h"
+
 #include <pthread.h>
 #include <string.h>
-#include "bp.h"
+
 #include "check.h"
-#include "platform.h"
 #include "testutil.h"
+// clang-format on
 
 #define ITERATIONS	40 /* Per thread. */
 #define TIMEOUT_SECONDS 1  /* Positive => a timer thread. */

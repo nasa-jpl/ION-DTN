@@ -7,9 +7,12 @@
 
 									*/
 
-#include <ion.h>
+#include "ion.h"
+#include "platform.h"
+
+#include <stddef.h>
+
 #include "check.h"
-#include "testutil.h"
 
 int main(int argc, char **argv)
 {

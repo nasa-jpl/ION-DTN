@@ -1,9 +1,10 @@
-#include "ici/library/lystP.h"
+#ifndef RADIX_PT_H
+#define RADIX_PT_H
+
+#include "lyst.h"
+#include "psm.h"
 
 #include "radix_gen.h"
-
-
-
 
 void radixpt_ui_parse_args(int argc, char *argv[]);
 void radixpt_ui_print_usage(char *name);
@@ -24,3 +25,5 @@ typedef struct LystTestData_s
 	char key[RADIX_MAX_SUBSTR];
 	void *data;
 } LystTestData;
+
+#endif // !RADIX_PT_H

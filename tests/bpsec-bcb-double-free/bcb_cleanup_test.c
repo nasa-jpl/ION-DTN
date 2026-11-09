@@ -21,9 +21,14 @@
  * skips before running this harness.
  */
 
-#include <ion.h>
-#include <csi.h>
+#include "csi.h"
+#include "ion.h"
+#include "platform.h"
+#include "sdrmgt.h"
+#include "sdrxn.h"
+#include "zco.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 

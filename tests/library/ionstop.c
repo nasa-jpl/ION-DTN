@@ -4,7 +4,10 @@
 
 									*/
 
-#include <bp.h>
+#include "platform.h"
+
+#include <unistd.h>
+
 #include "check.h"
 
 int synch_killm(int maxseconds)

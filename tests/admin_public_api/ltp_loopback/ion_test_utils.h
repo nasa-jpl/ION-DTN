@@ -13,19 +13,10 @@
 #ifndef ION_TEST_UTILS_H
 #define ION_TEST_UTILS_H
 
-#include "ion.h"
-#include "ion_admin.h"
-#include "ionsec.h"
-#include "bp.h"
 #include "bp_admin.h"
-#include "ltp.h"
-#include "ltp_admin.h"
+#include "platform.h"
 
-#include <errno.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 /* Test result tracking */

@@ -19,13 +19,12 @@
  * under --enable-asan; the dotest skips otherwise.
  */
 
-#include <ion.h>
-#include <platform.h>
-#include <lyst.h>
-
-#include "sci.h"
-#include "sc_value.h"
 #include "bib_hmac_sha2_sc.h"
+#include "ion.h"
+#include "lyst.h"
+#include "sc_value.h"
+#include "sci.h"
+#include "sci_structs.h"
 
 #include <stdio.h>
 #include <string.h>

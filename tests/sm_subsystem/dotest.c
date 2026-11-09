@@ -3,11 +3,19 @@
  * Author: Shawn Ostermann @ OHIO
  * Date: August 2022			*/
 
-#include <bputa.h>
-#include <cfdp.h>
+#include "platform.h"
+
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include "check.h"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+
 #include "testutil.h"
 
 static int debug = 0;

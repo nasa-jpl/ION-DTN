@@ -1,8 +1,11 @@
-// Framework
-#include "unity.h"
-
 // module being tested
 #include "nm/shared/utils/vector.h"
+
+#include <stdio.h>
+
+// Framework
+#include "unity.h"
+#include "unity_internals.h"
 
 /** The following stubs are needed for compilation
  * adm_init() as a stub to avoid building nmagent.c/nm_mgr.c

@@ -22,9 +22,8 @@
  * The test SKIPs (exit 2) when a DGR loopback SAP cannot be established here.
  */
 
-#include <ion.h>
-#include <platform.h>
-#include <dgr.h>
+#include "dgr.h"
+#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>

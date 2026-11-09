@@ -4,7 +4,13 @@
 				config/executable paths.
 
 									*/
-#include <ionsec.h>
+
+#include "ionsec.h"
+#include "platform.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "check.h"
 #include "testutil.h"
 

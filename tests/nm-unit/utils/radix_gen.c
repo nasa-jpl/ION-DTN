@@ -1,6 +1,14 @@
 #include "radix_gen.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
 
+#include "ion.h"
+#include "platform.h"
+#include "radix.h"
+#include "radixP.h"
 
 PsmAddress makeDataFromString(PsmPartition wm, char *str)
 {

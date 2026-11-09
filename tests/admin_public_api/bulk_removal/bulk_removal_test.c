@@ -23,10 +23,19 @@
  * ./dotest
  */
 
-#include "../ltp_loopback/ion_test_utils.h"
+#include "bp_admin.h"
+#include "ion_admin.h"
 #include "ltp_admin.h"
-#include "ltp.h"
-#include "rfx.h"
+#include "platform.h"
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
+#include "../ltp_loopback/ion_test_utils.h"
 
 /* Global test results */
 TestResults results = { 0, 0, 0 };
