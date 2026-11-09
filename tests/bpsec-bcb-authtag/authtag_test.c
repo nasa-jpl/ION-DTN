@@ -66,7 +66,9 @@ static int gcm_encrypt(csi_csid_t suite, csi_val_t key,
 	csi_val_t		out;
 
 	memset(&parms, 0, sizeof parms);
-	parms.iv.contents = (uint8_t *) IV12;
+	uint8_t ivbuf[sizeof(IV12)];
+	memcpy(ivbuf, IV12, sizeof(ivbuf));
+	parms.iv.contents = ivbuf;
 	parms.iv.len = sizeof IV12;
 
 	ctx = csi_ctx_init(suite, key, CSI_SVC_ENCRYPT);
@@ -81,7 +83,9 @@ static int gcm_encrypt(csi_csid_t suite, csi_val_t key,
 		return -1;
 	}
 
-	in.contents = (uint8_t *) PLAINTEXT;
+	uint8_t ptbuf[PT_LEN];
+	memcpy(ptbuf, PLAINTEXT, sizeof(ptbuf));
+	in.contents = ptbuf;
 	in.len = PT_LEN;
 	out = csi_crypt_update(suite, ctx, CSI_SVC_ENCRYPT, in);
 	if (out.contents == NULL || out.len != PT_LEN)
@@ -128,7 +132,9 @@ static int gcm_decrypt(csi_csid_t suite, csi_val_t key,
 	int			rc;
 
 	memset(&parms, 0, sizeof parms);
-	parms.iv.contents = (uint8_t *) IV12;
+	uint8_t ivbuf[sizeof(IV12)];
+	memcpy(ivbuf, IV12, sizeof(ivbuf));
+	parms.iv.contents = ivbuf;
 	parms.iv.len = sizeof IV12;
 	memcpy(tagbuf, tag, TAG_LEN);
 	parms.icv.contents = tagbuf;		/*	Tag from the wire.	*/
@@ -146,7 +152,9 @@ static int gcm_decrypt(csi_csid_t suite, csi_val_t key,
 		return -1;
 	}
 
-	in.contents = (uint8_t *) ct;
+	uint8_t ctbuf[PT_LEN];
+	memcpy(ctbuf, ct, sizeof(ctbuf));
+	in.contents = ctbuf;
 	in.len = PT_LEN;
 	out = csi_crypt_update(suite, ctx, CSI_SVC_DECRYPT, in);
 	if (out.contents == NULL)
@@ -247,9 +255,13 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	key16.contents = (uint8_t *) KEY16;
+	uint8_t key16buf[sizeof(KEY16)];
+	memcpy(key16buf, KEY16, sizeof(key16buf));
+	key16.contents = key16buf;
 	key16.len = sizeof KEY16;
-	key32.contents = (uint8_t *) KEY32;
+	uint8_t key32buf[sizeof(KEY32)];
+	memcpy(key32buf, KEY32, sizeof(key32buf));
+	key32.contents = key32buf;
 	key32.len = sizeof KEY32;
 
 	failures += run_suite("AES-128-GCM", CSTYPE_AES128_GCM, key16);
