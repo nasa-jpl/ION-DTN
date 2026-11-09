@@ -1,0 +1,1 @@
+Verifies that an LTP receiver keeps every segment of a block held in the heap, before any block file exists.
