@@ -11,7 +11,6 @@
 #include "ion.h"
 
 static BpSAP        sap;
-static BpVdb        *vdb;
 static Sdr          sdr;
 char *defaultDestEid = NULL;
 char *ownEid = NULL;
@@ -273,9 +272,6 @@ int main(int argc, char **argv)
 		putErrmsg("Can't bp_attach()", NULL);
 		exit(1);
 	}
-
-	/* Hook up to ION's private side to get the stats. */
-	vdb = getBpVdb();
 
 	if(bp_open(ownEid, &sap) < 0)
 	{
