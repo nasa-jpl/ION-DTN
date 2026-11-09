@@ -867,7 +867,6 @@ typedef struct
 #define	CGR_HEAP_INITIAL	(256)
 
 static CgrHeapElt	*cgrHeap = NULL;	/*	Process cache of vdb buf.*/
-static int		cgrHeapCap = 0;		/*	Slots in cgrHeap.	*/
 static int		cgrHeapLen = 0;		/*	Live entries this search.*/
 
 /*	Size the frontier to hold n entries (floor CGR_HEAP_INITIAL) and cache
@@ -886,7 +885,6 @@ static int	cgrHeapEnsureCapacity(PsmPartition ionwm, CgrVdb *vdb, int n)
 	if (vdb->frontierHeap != 0 && n <= vdb->frontierCap)
 	{
 		cgrHeap = (CgrHeapElt *) psp(ionwm, vdb->frontierHeap);
-		cgrHeapCap = vdb->frontierCap;
 		return 0;
 	}
 
@@ -905,7 +903,6 @@ static int	cgrHeapEnsureCapacity(PsmPartition ionwm, CgrVdb *vdb, int n)
 	vdb->frontierHeap = buf;
 	vdb->frontierCap = n;
 	cgrHeap = (CgrHeapElt *) psp(ionwm, buf);
-	cgrHeapCap = n;
 	return 0;
 }
 
@@ -921,7 +918,6 @@ static void	cgrHeapFree(PsmPartition ionwm, CgrVdb *vdb)
 
 	vdb->frontierCap = 0;
 	cgrHeap = NULL;
-	cgrHeapCap = 0;
 	cgrHeapLen = 0;
 }
 
