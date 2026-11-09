@@ -79,7 +79,7 @@ void test_simple_cnt_cb(void *value, void *tag)
 ari_t* test_ari_deserialize_raw(char* input)
 {
 	int	success = AMP_FAIL;
-	blob_t *buf, *buf2;
+	blob_t *buf;
 
 	// Construct input Data Blob
 	buf = utils_string_to_hex(input);
@@ -131,7 +131,7 @@ void test_rhht_ari(void)
 
 void test_simple_int(void)
 {
-	int	 rtv, i, x;
+	int	 rtv, i;
 	rhht_t	 ht;
 	rhht_t	*htp = &ht;
 	rh_idx_t idx;

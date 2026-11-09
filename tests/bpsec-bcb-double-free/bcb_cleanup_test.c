@@ -113,7 +113,7 @@ static int one_case(Sdr sdr, const char *mode)
 	return 0;
 }
 
-int main(int argc, char **argv)
+int main(void)
 {
 	static const char	*modes[] = {
 		"positive", "wrong-key", "wrong-tag", "wrong-ciphertext"

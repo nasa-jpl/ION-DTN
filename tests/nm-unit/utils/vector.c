@@ -36,7 +36,7 @@ void test_vecstring(void)
 	char* val1 = "Hello World!";
 	char* valX = "String %d";
 	char valI[32];
-	char *ptr, *ptr2;
+	char *ptr;
 	vec_idx_t idx;
 	int rtv, i, num;
 	vecit_t it;

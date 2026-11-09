@@ -119,9 +119,6 @@ int test_simple_ari(char *desc, char* cbor, amp_type_e type)
  * -
  */
 int test_msg_grp_deserialize(void) { // TODO: Remove or finish this function
-	msg_grp_t *grp = NULL;
-	int success = AMP_FAIL;
-
 	init_group("TEST msg_grp_deserialize");
 
 
@@ -143,6 +140,9 @@ int test_msg_grp_deserialize(void) { // TODO: Remove or finish this function
 	ari_release(ari, 1);
 
 #if 0 // Requires a fully constructed message, not just the debug part
+	msg_grp_t *grp = NULL;
+	int success = AMP_FAIL;
+
 	// Attempt to Deserialize
 	grp = msg_grp_deserialize(buf, &success);
 	check(success==AMP_OK);

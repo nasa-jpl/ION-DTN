@@ -160,7 +160,7 @@ void shallow(void)
 	PsmAddress radixAddr;
 	PsmPartition wm = getIonwm();
 	char key[20];
-	int i,j;
+	int i;
 
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
