@@ -338,11 +338,14 @@ otherstuff_DATA = \
 # folder, otherwise everything gets installed in a flat folder
 loopbackltpdir = $(pkgdatadir)/configs/loopback-ltp
 loopbackltp_DATA = \
+	$(srcdir)/configs/loopback-ltp/loopback.ionconfig \
 	$(srcdir)/configs/loopback-ltp/loopback.ionrc \
+	$(srcdir)/configs/loopback-ltp/loopback.ionsecrc \
 	$(srcdir)/configs/loopback-ltp/loopback.ltprc \
 	$(srcdir)/configs/loopback-ltp/loopback.bprc \
 	$(srcdir)/configs/loopback-ltp/loopback.ipnrc \
-	$(srcdir)/configs/loopback-ltp/loopback.rc
+	$(srcdir)/configs/loopback-ltp/loopback.rc \
+	$(srcdir)/configs/loopback-ltp/loopbackstart.bprc
 # new loopback for ion2, stcp
 loopbackstcpdir = $(pkgdatadir)/configs/loopback-stcp
 loopbackstcp_DATA = \
@@ -2722,23 +2725,26 @@ retest: buildcheck
 check: test
 
 # This library contains utility code that's helpful for tests in C.
-TESTUTILOBJS = tests/library/libtestutil.la
-TESTUTILCFLAGS = -I$(srcdir)/tests/library
-check_LTLIBRARIES = $(TESTUTILOBJS)
-tests_library_libtestutil_la_SOURCES = \
+check_LTLIBRARIES = libtestutil.la
+testutil_cppflags = -I$(srcdir)/tests/library
+libtestutil_la_SOURCES = \
 	tests/library/check.c \
+	tests/library/check.h \
 	tests/library/paths.c \
 	tests/library/ionstart.c \
-	tests/library/ionstop.c
-tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+	tests/library/ionstop.c \
+	tests/library/testutil.h
+libtestutil_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+libtestutil_la_LIBADD = libici.la
 
 # Unity Test Framework (http://throwtheswitch.org/unity) Utility
-TESTUNITYOBJS = tests/library/libtestunity.la
-TEST_UNITY_DIR = contrib/c-unity-harness/tests/unity
-TESTUNITYCFLAGS = -I$(srcdir)/contrib/Unity/src
-check_LTLIBRARIES += $(TESTUNITYOBJS)
-tests_library_libtestunity_la_SOURCES = contrib/Unity/src/unity.c
-tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
+check_LTLIBRARIES += libtestunity.la
+testunity_cppflags = -I$(srcdir)/contrib/Unity/src
+libtestunity_la_SOURCES = \
+	contrib/Unity/src/unity.c \
+	contrib/Unity/src/unity.h \
+	contrib/Unity/src/unity_internals.h
+libtestunity_la_LIBADD = -lm
 
 # SPP, EPP, and File loopback provider libraries for testing
 # These are separate shared libraries that can be loaded by sppcli/sppclo, eppcli/eppclo, and filecli/fileclo
@@ -2760,9 +2766,9 @@ bpv7_file_stub_libfile_simple_provider_la_LDFLAGS = -module -avoid-version -rpat
 # If a test does not require compilation, it should not be listed here. Just make a
 #  script named "dotest" that is executable.
 # If a test does require compilation, it should be listed here and have
-#  the required _SOURCES, _LDADD, and _CFLAGS entries.
-# If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
-#  and $(TESTUTILCFLAGS) in _CFLAGS.
+#  the required per-target variables.
+# If a test uses the testutil helpers, include libtestutil.la in _LDADD,
+#  and $(testutil_cppflags) in _CPPFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1300.loopback-tcp/dotest \
 	tests/1400.loopback-stcp/dotest \
@@ -2801,75 +2807,144 @@ if USING_BSL
 check_PROGRAMS += tests/bpsec/bsl-reattach.bsl/dotest
 endif
 
-# Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
-tests_nm_unit_dotest_SOURCES = \
-	tests/nm-unit/dotest.c \
-	$(nm_agent_SOURCES) \
-	$(libamp_la_SOURCES) \
-	$(libampAgentADM_la_SOURCES)
-tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
-tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
-	 -I$(srcdir)/nm -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
+# HACK: The motivation for -DUSE_MALLOC here is unknown, consider removing.
+check_LTLIBRARIES += libamp_malloc.la
+libamp_malloc_la_SOURCES = $(libamp_la_SOURCES)
+libamp_malloc_la_CPPFLAGS = $(AM_CPPFLAGS) $(libamp_la_CPPFLAGS) -DUSE_MALLOC
+libamp_malloc_la_CFLAGS = $(AM_CFLAGS) $(libamp_la_CFLAGS)
+libamp_malloc_la_LIBADD = $(libamp_la_LIBADD)
 
-tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
-tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
-tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
+nm_unit_cppflags = \
+	$(nm_cbor_cppflags) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/nm \
+	-I$(srcdir)/nm/shared
 
-tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(libamp_la_SOURCES)
-tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUTILOBJS) $(TESTUNITYOBJS) libici.la $(bplib) libltp.la
-tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c
+tests_nm_unit_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(nm_unit_cppflags) \
+	-I$(srcdir)/$(BP_DIR)/library/ext/bpsec \
+	-I$(srcdir)/$(BP_DIR)/library \
+	$(testutil_cppflags)
+tests_nm_unit_dotest_LDADD = libamp_malloc.la libtestutil.la libici.la
 
-tests_nm_unit_utils_radix_pt_dotest_SOURCES = tests/nm-unit/utils/radix_pt.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c
-tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUTILOBJS) $(TESTUNITYOBJS) libici.la $(bplib) libltp.la
-tests_nm_unit_utils_radix_pt_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
+tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c
+tests_nm_unit_utils_vector_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(nm_unit_cppflags) \
+	$(testunity_cppflags)
+tests_nm_unit_utils_vector_dotest_LDADD = \
+	libamp_malloc.la \
+	libici.la \
+	libtestunity.la
 
-tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c
-tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUTILOBJS) $(TESTUNITYOBJS) libici.la $(bplib) libltp.la
-tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
+tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c
+tests_nm_unit_utils_rhht_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(nm_unit_cppflags) \
+	$(testutil_cppflags) \
+	$(testunity_cppflags)
+tests_nm_unit_utils_rhht_dotest_LDADD = \
+	libamp_malloc.la \
+	libtestutil.la \
+	libici.la \
+	libtestunity.la
 
+noinst_HEADERS += tests/nm-unit/utils/radix_gen.h
+
+tests_nm_unit_utils_radix_pt_dotest_SOURCES = \
+	tests/nm-unit/utils/radix_gen.c \
+	tests/nm-unit/utils/radix_pt.c \
+	tests/nm-unit/utils/radix_pt.h
+tests_nm_unit_utils_radix_pt_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(nm_unit_cppflags) \
+	-I$(srcdir)/ici/library \
+	$(testutil_cppflags)
+tests_nm_unit_utils_radix_pt_dotest_LDADD = libtestutil.la libici.la
+
+tests_nm_unit_utils_radix_ut_dotest_SOURCES = \
+	tests/nm-unit/utils/radix_gen.c \
+	tests/nm-unit/utils/radix_ut.c
+tests_nm_unit_utils_radix_ut_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(nm_unit_cppflags) \
+	-I$(srcdir)/ici/library \
+	$(testutil_cppflags) \
+	$(testunity_cppflags)
+tests_nm_unit_utils_radix_ut_dotest_LDADD = \
+	libtestutil.la \
+	libici.la \
+	libtestunity.la
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
-tests_1000_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
-tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_1000_loopback_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_1000_loopback_dotest_LDADD = libtestutil.la libbp.la libici.la
 
-tests_eid_format_preservation_dotest_SOURCES = tests/eid-format-preservation/dotest.c
-tests_eid_format_preservation_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
-tests_eid_format_preservation_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_eid_format_preservation_dotest_SOURCES = \
+	tests/eid-format-preservation/dotest.c
+tests_eid_format_preservation_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	-I$(srcdir)/bpv7/library \
+	$(testutil_cppflags)
+tests_eid_format_preservation_dotest_LDADD = libtestutil.la libbp.la libici.la
 
-tests_bp_receive_concurrent_timer_dotest_SOURCES = tests/bp_receive_concurrent_timer/dotest.c
-tests_bp_receive_concurrent_timer_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
-tests_bp_receive_concurrent_timer_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_bp_receive_concurrent_timer_dotest_SOURCES = \
+	tests/bp_receive_concurrent_timer/dotest.c
+tests_bp_receive_concurrent_timer_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_bp_receive_concurrent_timer_dotest_LDADD = libtestutil.la libbp.la libici.la
 
 tests_ltp_budget_unit_dotest_SOURCES = tests/ltp-budget-unit/dotest.c
-tests_ltp_budget_unit_dotest_LDADD = libici.la -lm $(ltplib) $(TESTUTILOBJS)
-tests_ltp_budget_unit_dotest_CFLAGS = $(AM_CFLAGS) $(TESTUTILCFLAGS) \
-	 -I$(srcdir)/ltp/library -I$(srcdir)/ltp/include
+tests_ltp_budget_unit_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ltp/library \
+	$(testutil_cppflags)
+tests_ltp_budget_unit_dotest_LDADD = libtestutil.la libltp.la -lm
 
-tests_bp_sap_thread_ownership_dotest_SOURCES = tests/bp_sap_thread_ownership/dotest.c
-tests_bp_sap_thread_ownership_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
-tests_bp_sap_thread_ownership_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_bp_sap_thread_ownership_dotest_SOURCES = \
+	tests/bp_sap_thread_ownership/dotest.c
+tests_bp_sap_thread_ownership_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_bp_sap_thread_ownership_dotest_LDADD = \
+	libtestutil.la \
+	libbp.la \
+	libici.la \
+	$(PTHREAD_LIBS)
 
 tests_bpsec_bsl_reattach_bsl_dotest_SOURCES = \
 	tests/bpsec/bsl-reattach.bsl/dotest.c
 tests_bpsec_bsl_reattach_bsl_dotest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(srcdir)/ici/include \
-	-I$(srcdir)/bpv7/include
-tests_bpsec_bsl_reattach_bsl_dotest_CFLAGS = $(AM_CFLAGS) $(TESTUTILCFLAGS)
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
 tests_bpsec_bsl_reattach_bsl_dotest_LDADD = \
-	$(TESTUTILOBJS) \
+	libtestutil.la \
 	libbp.la \
 	libici.la \
-	-lpthread \
-	-lm
+	$(PTHREAD_LIBS)
 
 tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
 tests_1300_loopback_tcp_dotest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/bpv7/include \
-	$(TESTUTILCFLAGS)
-tests_1300_loopback_tcp_dotest_LDADD = $(TESTUTILOBJS) libbp.la libici.la
+	$(testutil_cppflags)
+tests_1300_loopback_tcp_dotest_LDADD = libtestutil.la libbp.la libici.la
 EXTRA_DIST += \
 	configs/loopback-tcp/loopback.bprc \
 	configs/loopback-tcp/loopback.ionrc
@@ -2879,106 +2954,225 @@ tests_1400_loopback_stcp_dotest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/bpv7/include \
-	$(TESTUTILCFLAGS)
-tests_1400_loopback_stcp_dotest_LDADD = $(TESTUTILOBJS) libbp.la libici.la
+	$(testutil_cppflags)
+tests_1400_loopback_stcp_dotest_LDADD = libtestutil.la libbp.la libici.la
 
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
-tests_1500_loopback_brs_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
-tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_1500_loopback_brs_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	-I$(srcdir)/bpv7/library \
+	$(testutil_cppflags)
+tests_1500_loopback_brs_dotest_LDADD = libtestutil.la libbp.la libici.la
+EXTRA_DIST += \
+	configs/loopback-brs/1.brs \
+	configs/loopback-brs/loopback.bprc \
+	configs/loopback-brs/loopbackstart.bprc \
+	configs/loopback-brs/loopback.ionrc \
+	configs/loopback-brs/loopback.ionsecrc \
+	configs/loopback-brs/loopback.ipnrc \
+	configs/loopback-brs/restart-brsc.bprc
 
 tests_ionexit_test_checksemaphores_SOURCES = tests/ionexit_test/checksemaphores.c
-tests_ionexit_test_checksemaphores_LDADD = -lpthread
-tests_ionexit_test_checksemaphores_CFLAGS = $(AM_CFLAGS)
+tests_ionexit_test_checksemaphores_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
 
-tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
-tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
-tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_188_common_cos_syntax_dotest_SOURCES = \
+	tests/issue-188-common-cos-syntax/dotest.c
+tests_issue_188_common_cos_syntax_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_issue_188_common_cos_syntax_dotest_LDADD = libtestutil.la libbp.la
 
-tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
-tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la -lm $(TESTUTILOBJS)
-tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = \
+	tests/issue-260-teach-valgrind-mtake/domtake.c
+tests_issue_260_teach_valgrind_mtake_domtake_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libtestutil.la libici.la
 
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm $(bplib)
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES = \
+	tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libbp.la libici.la
 
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm $(bplib)
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(bpcflags) $(icicflags) $(cfdpcflags) $(AM_CFLAGS)
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = \
+	tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/cfdp/include
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la
 
-tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
-tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_334_cfdp_transaction_id_dotest_SOURCES = \
+	tests/issue-334-cfdp-transaction-id/dotest.c
+tests_issue_334_cfdp_transaction_id_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	-I$(srcdir)/cfdp/include \
+	$(testutil_cppflags)
+tests_issue_334_cfdp_transaction_id_dotest_LDADD = \
+	libtestutil.la \
+	libcfdp.la \
+	libbp.la \
+	libici.la
+EXTRA_DIST += \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/config.bprc \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/config.cfdprc \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/config.ionrc \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/config.ipnrc \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/config.ltprc \
+	tests/issue-334-cfdp-transaction-id/cfdp.ipn.bp.ltp.udp/loopbackstart.bprc
 
 tests_sm_subsystem_dotest_SOURCES = tests/sm_subsystem/dotest.c
-tests_sm_subsystem_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
-tests_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags)
+tests_sm_subsystem_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	$(testutil_cppflags)
+tests_sm_subsystem_dotest_LDADD = libtestutil.la libici.la $(PTHREAD_LIBS)
 
-tests_admin_public_api_ltp_loopback_dotest_SOURCES = tests/admin_public_api/ltp_loopback/ltp_admin_api_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_ltp_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_ltp_loopback_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+check_LTLIBRARIES += libadmin_api_testutils.la
+libadmin_api_testutils_la_SOURCES = \
+	tests/admin_public_api/ltp_loopback/ion_test_utils.c \
+	tests/admin_public_api/ltp_loopback/ion_test_utils.h
+libadmin_api_testutils_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/bpv7/include
+libadmin_api_testutils_la_LIBADD = libbp.la libltp.la libici.la
 
-tests_admin_public_api_ltp_span_management_dotest_SOURCES = tests/admin_public_api/ltp_span_management/ltp_span_management_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_ltp_span_management_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_ltp_span_management_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+tests_admin_public_api_ltp_loopback_dotest_SOURCES = \
+	tests/admin_public_api/ltp_loopback/ltp_admin_api_test.c
+tests_admin_public_api_ltp_loopback_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/bpv7/include
+tests_admin_public_api_ltp_loopback_dotest_LDADD = \
+	libadmin_api_testutils.la \
+	libbp.la \
+	libltp.la \
+	libici.la
 
-tests_admin_public_api_bp_plan_crash_recovery_dotest_SOURCES = tests/admin_public_api/bp_plan_crash_recovery/bp_plan_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+tests_admin_public_api_ltp_span_management_dotest_SOURCES = \
+	tests/admin_public_api/ltp_span_management/ltp_span_management_test.c
+tests_admin_public_api_ltp_span_management_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/bpv7/include
+tests_admin_public_api_ltp_span_management_dotest_LDADD = \
+	libadmin_api_testutils.la \
+	libbp.la \
+	libltp.la \
+	libici.la
 
-tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_SOURCES = \
+	tests/admin_public_api/bp_plan_crash_recovery/bp_plan_crash_recovery_test.c
+tests_admin_public_api_bp_plan_crash_recovery_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include
+tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = \
+	libadmin_api_testutils.la \
+	libbp.la \
+	libici.la
+
+tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = \
+	tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c
+tests_admin_public_api_ltp_span_crash_recovery_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = \
+	libadmin_api_testutils.la \
+	libtestutil.la \
+	libbp.la \
+	libltp.la \
+	libici.la
 
 if ENABLE_TCPCLV4_EXTERNAL
 # TCP4 CLA loopback bridge for testing
 check_PROGRAMS += tcp4_loopback
 tcp4_loopback_SOURCES = bpv7/tcp4/tcp4_loopback.c
-tcp4_loopback_LDADD = libici.la $(PTHREAD_LIBS) $(LIBS)
-tcp4_loopback_CFLAGS = $(icicflags) $(AM_CFLAGS)
+tcp4_loopback_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+tcp4_loopback_LDADD = libici.la
 
 # TCPCLv4 library unit tests (wire format, TLS transport, session FSM)
 check_PROGRAMS += tcpclv4_test_msg tcpclv4_test_tls tcpclv4_test_session
 tcpclv4_test_msg_SOURCES = bpv7/tcp4/tests/test_msg_roundtrip.c
-tcpclv4_test_msg_LDADD = libtcpclv4_msg.la $(LIBS)
-tcpclv4_test_msg_CFLAGS = $(icicflags) $(AM_CFLAGS)
+tcpclv4_test_msg_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+tcpclv4_test_msg_LDADD = libtcpclv4_msg.la
+
 tcpclv4_test_tls_SOURCES = bpv7/tcp4/tests/test_tls_loopback.c
-tcpclv4_test_tls_LDADD = libtcpclv4_tls.la libtcpclv4_msg.la \
-	$(OPENSSL_LIBS) $(PTHREAD_LIBS) $(LIBS)
-tcpclv4_test_tls_CFLAGS = $(icicflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
+tcpclv4_test_tls_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+tcpclv4_test_tls_LDADD = libtcpclv4_tls.la libtcpclv4_msg.la $(PTHREAD_LIBS)
+
 tcpclv4_test_session_SOURCES = bpv7/tcp4/tests/test_session_loopback.c
-tcpclv4_test_session_LDADD = libtcpclv4_session.la libtcpclv4_tls.la \
-	libtcpclv4_msg.la $(OPENSSL_LIBS) $(PTHREAD_LIBS) $(LIBS)
-tcpclv4_test_session_CFLAGS = $(icicflags) $(AM_CFLAGS) $(OPENSSL_CFLAGS)
+tcpclv4_test_session_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+tcpclv4_test_session_LDADD = \
+	libtcpclv4_session.la \
+	libtcpclv4_tls.la \
+	libtcpclv4_msg.la \
+	$(PTHREAD_LIBS)
 endif # ENABLE_TCPCLV4_EXTERNAL
 
 # Helper program tcp_single_node for tcp_2nodes test.
 # Must be noinst_PROGRAMS (not check_PROGRAMS) so it's built by default
 # `make`; otherwise the launcher dotest cannot find it at runtime.
 noinst_PROGRAMS = tests/admin_public_api/tcp_2nodes/tcp_single_node
-tests_admin_public_api_tcp_2nodes_tcp_single_node_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_single_node.c
-tests_admin_public_api_tcp_2nodes_tcp_single_node_LDADD = libici.la -lm $(bplib)
-tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+tests_admin_public_api_tcp_2nodes_tcp_single_node_SOURCES = \
+	tests/admin_public_api/tcp_2nodes/tcp_single_node.c
+tests_admin_public_api_tcp_2nodes_tcp_single_node_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include
+tests_admin_public_api_tcp_2nodes_tcp_single_node_LDADD = libbp.la libici.la
 
-tests_admin_public_api_tcp_2nodes_dotest_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_2nodes_launcher.c
-tests_admin_public_api_tcp_2nodes_dotest_LDADD = libici.la -lm $(bplib)
-tests_admin_public_api_tcp_2nodes_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+tests_admin_public_api_tcp_2nodes_dotest_SOURCES = \
+	tests/admin_public_api/tcp_2nodes/tcp_2nodes_launcher.c
+tests_admin_public_api_tcp_2nodes_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include
 
-tests_admin_public_api_bulk_removal_dotest_SOURCES = tests/admin_public_api/bulk_removal/bulk_removal_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_bulk_removal_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_bulk_removal_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+tests_admin_public_api_bulk_removal_dotest_SOURCES = \
+	tests/admin_public_api/bulk_removal/bulk_removal_test.c
+tests_admin_public_api_bulk_removal_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ltp/include \
+	-I$(srcdir)/bpv7/include \
+	$(testutil_cppflags)
+tests_admin_public_api_bulk_removal_dotest_LDADD = \
+	libadmin_api_testutils.la \
+	libtestutil.la \
+	libbp.la \
+	libltp.la \
+	libici.la
 
 # Build rules for semaphore deferred deletion test (POSIX Named Semaphores only)
 if USING_POSIX_NAMED_SEMAPHORES
-tests_semaphore_deferred_deletion_dotest_SOURCES = tests/semaphore-deferred-deletion/test_deferred_deletion.c
-tests_semaphore_deferred_deletion_dotest_LDADD = libici.la -lpthread
-tests_semaphore_deferred_deletion_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
+tests_semaphore_deferred_deletion_dotest_SOURCES = \
+	tests/semaphore-deferred-deletion/test_deferred_deletion.c
+tests_semaphore_deferred_deletion_dotest_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include
+tests_semaphore_deferred_deletion_dotest_LDADD = libici.la $(PTHREAD_LIBS)
 endif
 
 tests_crc_hwaccel_dotest_SOURCES = tests/crc-hwaccel/dotest.c
-tests_crc_hwaccel_dotest_LDADD = libici.la -lm
-tests_crc_hwaccel_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
-
+tests_crc_hwaccel_dotest_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/ici/include
+tests_crc_hwaccel_dotest_LDADD = libici.la
 
 # ---- generated man‑page rules (added by configure) --------------
 include $(top_builddir)/ici/doc/podman.mk      # am--include-marker
