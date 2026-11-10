@@ -6,22 +6,22 @@
  * <ms-since-epoch> <token-string>\n */
 static void buildWatchMessage(char *buf, size_t buflen, char* token_str)
 {
-    struct timeval time; 
+    struct timeval time;
     getCurrentTime(&time);
 
     /* Build message buffer */
-    isprintf(buf, buflen, "%ld%03ld %s\n", time.tv_sec, time.tv_usec / 1000,
-            token_str);
+    isprintf(buf, buflen, VAST_FIELDSPEC "%03ld %s\n", (vast) time.tv_sec,
+            (long) (time.tv_usec / 1000), token_str);
 }
 
-/* Write the specified character as a watch char to the file ion.watch. 
+/* Write the specified character as a watch char to the file ion.watch.
  * Copied from buildLogMessage() in ici/library/ion.c, with differences:
  * - Takes a single char as a parameter, not a char*. Do not check if the token
  *   is NULL or \0.
  * - File name is "ion.watch".
  * - Variables renamed, names referring to "log" things now refer to "watch"
  *   things.
- * - Uses buildWatchMessage() to build the watch message. As a consequence, some 
+ * - Uses buildWatchMessage() to build the watch message. As a consequence, some
  *   variables are unused and are removed. */
 static void	writeCharToIonWatch(char* token_str)
 {
@@ -61,7 +61,7 @@ static void	writeCharToIonWatch(char* token_str)
 	}
 
     /* Build watch message using buildWatchMessage() */
-    buildWatchMessage(msgbuf, sizeof(msgbuf), token_str); 
+    buildWatchMessage(msgbuf, sizeof(msgbuf), token_str);
 
 	textLen = strlen(msgbuf);
 	if (write(ionWatchFile, msgbuf, textLen) < 0)
@@ -76,7 +76,7 @@ static void	writeCharToIonWatch(char* token_str)
 }
 
 static void ionRedirectWatchCharacters(void)
-{ 
+{
     setWatcher(writeCharToIonWatch);
 }
 

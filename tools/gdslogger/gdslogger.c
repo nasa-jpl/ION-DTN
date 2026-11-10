@@ -1,19 +1,20 @@
-/* Build log message containing specified text in char[] buffer of specified 
+/* Build log message containing specified text in char[] buffer of specified
  * length. The message format is
  * <ms-since-epoch> <text>\n */
 static void buildLogMessage(char *buf, size_t buflen, char *text)
 {
-    struct timeval time; 
+    struct timeval time;
     getCurrentTime(&time);
 
     /* Build message buffer */
-    isprintf(buf, buflen, "%ld%03d %s\n", time.tv_sec, time.tv_usec / 1000, 
-            text); 
+    isprintf(buf, buflen, VAST_FIELDSPEC "%03ld %s\n", (vast) time.tv_sec,
+            (long) (time.tv_usec / 1000),
+            text);
 }
 
-/* Append the specified text as a log message to the file ion.log. 
- * Copied from writeMemoToIonLog() in ici/library/ion.c, with some differences: 
- * - Uses buildLogMessage() to build the log message. As a consequence, some 
+/* Append the specified text as a log message to the file ion.log.
+ * Copied from writeMemoToIonLog() in ici/library/ion.c, with some differences:
+ * - Uses buildLogMessage() to build the log message. As a consequence, some
  *   variables are unused and are removed. */
 static void	writeMemoToIonLog(char *text)
 {
@@ -65,7 +66,7 @@ static void	writeMemoToIonLog(char *text)
 	}
 
     /* Build log message using buildLogMessage() */
-    buildLogMessage(msgbuf, sizeof(msgbuf), text); 
+    buildLogMessage(msgbuf, sizeof(msgbuf), text);
 
 	textLen = strlen(msgbuf);
 	if (write(ionLogFile, msgbuf, textLen) < 0)
