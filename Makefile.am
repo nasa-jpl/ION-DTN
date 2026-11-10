@@ -68,10 +68,17 @@ pkgconfig_DATA = ion.pc
 # man page source files.
 EXTRA_DIST =	\
 	$(srcdir)/ion.pc.in \
+	generate-podman-rules.sh \
 	$(srcdir)/sysctl_script.sh \
 	$(srcdir)/README.md \
 	$(srcdir)/release-notes.txt \
 	$(srcdir)/configs/3node-ltp-brs/README.txt \
+	tests/normaltests \
+	tests/runtests \
+	tests/runtestset \
+	tests/test_utils.sh \
+	tests/bping/dotest \
+	tests/bping/cleanup \
 	$(stuff_SCRIPTS) \
 	$(loopbackltp_DATA) \
 	$(loopbackudp_DATA) \
@@ -258,7 +265,7 @@ noinst_LTLIBRARIES =
 # Only built when --enable-commandline-history is used
 if ENABLE_CMD_HIST
 noinst_LTLIBRARIES += liblinenoise.la
-liblinenoise_la_SOURCES = ici/linenoise/linenoise.c
+liblinenoise_la_SOURCES = ici/linenoise/linenoise.c ici/linenoise/linenoise.h
 LINENOISE_LDADD = liblinenoise.la
 LINENOISE_CFLAGS = -I$(srcdir)/ici/linenoise
 else
@@ -284,6 +291,7 @@ noinst_HEADERS = \
 	$(bpnoinst) \
 	$(bssnoinst) \
 	$(dtpcnoinst) \
+	$(nmnoinst) \
 	$(amsnoinst) \
 	$(cfdpnoinst)
 
@@ -499,6 +507,7 @@ endif
 
 icinoinst = \
 	ici/library/lystP.h \
+	ici/library/platform_smP.h \
 	ici/library/radixP.h \
 	ici/sdr/sdrP.h \
 	ici/test/file2sdr.h
@@ -606,6 +615,9 @@ iciclean-local:
 
 libici_la_SOURCES =	\
 	ici/bulk/STUB_BULK/bulk.c \
+	ici/crypto/entropy_src.c \
+	ici/crypto/entropy_src.h \
+	ici/crypto/csi_debug.h \
 	ici/library/cbor.c \
 	ici/library/crc.c \
 	ici/library/ion.c \
@@ -632,8 +644,7 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrstring.c \
 	ici/sdr/sdrtable.c \
 	ici/sdr/sdrxn.c \
-	ici/sdr/sdr_perf.c \
-	ici/crypto/entropy_src.c
+	ici/sdr/sdr_perf.c
 
 if ENABLE_TCPCLV4_EXTERNAL
 libici_la_SOURCES += \
@@ -861,8 +872,11 @@ libltp_la_SOURCES = \
 	ltp/library/libltpnm.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
+	ltp/library/ltpei.h \
+	ltp/library/ltpnm.h \
 	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c
+EXTRA_libltp_la_SOURCES = ltp/library/ext/ltpextensions.c
 libltp_la_CPPFLAGS = -I$(srcdir)/ici/library
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la -lm
@@ -1417,37 +1431,50 @@ libbp_la_SOURCES = \
 	bpv7/bpsec/sci/rfc9173_utils.c \
 	bpv7/bpsec/sci/rfc9173_utils.h \
 	bpv7/bpsec/sci/sc_util.c \
+	bpv7/bpsec/sci/sc_util.h \
 	bpv7/bpsec/sci/sc_value.c \
+	bpv7/bpsec/sci/sc_value.h \
 	bpv7/bpsec/sci/sci.c \
 	bpv7/bpsec/sci/sci.h \
+	bpv7/bpsec/sci/sci_structs.h \
 	bpv7/bpsec/sci/sci_valmap.c \
+	bpv7/bpsec/sci/sci_valmap.h \
 	bpv7/bpsec/utils/bpsec_asb.c \
 	bpv7/bpsec/utils/bpsec_asb.h \
 	bpv7/bpsec/utils/bpsec_util.c \
 	bpv7/bpsec/utils/bpsec_util.h \
 	bpv7/bibe/bibe.c \
+	bpv7/bibe/bibeP.h \
 	bpv7/dtn2/libdtn2fw.c \
-	bpv7/library/libbp.c \
-	bpv7/library/libbpP.c \
-	bpv7/library/libbpnm.c \
-	bpv7/library/eureka.c \
 	bpv7/library/bei.c \
+	bpv7/library/bei.h \
+	bpv7/library/bpnm.h \
 	bpv7/library/cbr.c \
+	bpv7/library/cbr.h \
+	bpv7/library/cbrP.h \
+	bpv7/library/eureka.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
-	bpv7/library/ext/hcb/hcb.c \
-	bpv7/library/ext/meb/meb.c \
+	bpv7/library/ext/bpq/bpq.h \
 	bpv7/library/ext/creb/creb.c \
 	bpv7/library/ext/cteb/cteb.c \
+	bpv7/library/ext/hcb/hcb.c \
+	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/pnb/pnb.c \
 	bpv7/library/ext/pnb/pnb.h \
 	bpv7/library/ext/snw/snw.c \
+	bpv7/library/ext/snw/snw.h \
+	bpv7/library/libbp.c \
+	bpv7/library/libbpP.c \
+	bpv7/library/libbpnm.c \
 	bpv7/ipn/libipnfw.c \
 	bpv7/saga/saga.c \
 	bpv7/utils/jsmn.c \
+	bpv7/utils/jsmn.h \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
-	ici/libbloom-master/murmur2/MurmurHash2.c
+	ici/libbloom-master/murmur2/MurmurHash2.c \
+	ici/libbloom-master/murmur2/murmurhash2.h
 
 # Native BPSec sources - only when BSL is NOT enabled
 if !USING_BSL
@@ -1458,7 +1485,8 @@ libbp_la_SOURCES += \
 	bpv7/bpsec/policy/bpsec_policy_rule.c \
 	bpv7/library/ext/bpsec/bcb.c \
 	bpv7/library/ext/bpsec/bib.c \
-	bpv7/utils/bpsecadmin_config.c
+	bpv7/utils/bpsecadmin_config.c \
+	bpv7/utils/bpsecadmin_config.h
 endif
 
 
@@ -1471,8 +1499,11 @@ libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/crypto.c \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
+	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.h \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
+	ici/crypto/MBEDTLS_SUITES/csi_gcm.h \
 	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.h
 else
 AM_CFLAGS+= \
 	-I$(srcdir)/ici/crypto/NULL_SUITES \
@@ -1504,7 +1535,9 @@ libbp_la_CPPFLAGS += -I$(srcdir)/bpv7/bsl $(BSL_CFLAGS)
 libbp_la_LIBADD += $(BSL_LIBS) -lbsl_mock_bpa
 endif
 
-libcgr_la_SOURCES = bpv7/cgr/libcgr.c
+libcgr_la_SOURCES = \
+	bpv7/cgr/libcgr.c \
+	bpv7/library/cgr.h
 
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
@@ -1550,7 +1583,7 @@ endif # ENABLE_TCPCLV4_EXTERNAL
 # --- libmetadata --- #
 
 metadatalib = libmetadata.la
-libmetadata_la_SOURCES = bpv7/metadata/metadata.c
+libmetadata_la_SOURCES = bpv7/metadata/metadata.c bpv7/metadata/metadata.h
 libmetadata_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libmetadata_la_LIBADD = libbp.la libici.la
 
@@ -1559,9 +1592,13 @@ libmetadata_la_LIBADD = libbp.la libici.la
 secryptlib = libsecrypt.la
 
 if CRYPTO_MBEDTLS
-    libsecrypt_la_SOURCES = ici/crypto/MBEDTLS_SUITES/secrypt.c
+libsecrypt_la_SOURCES = \
+	ici/crypto/MBEDTLS_SUITES/secrypt.c \
+	ici/crypto/MBEDTLS_SUITES/secrypt.h
 else
-    libsecrypt_la_SOURCES = ici/crypto/NULL_SUITES/secrypt.c
+libsecrypt_la_SOURCES = \
+	ici/crypto/NULL_SUITES/secrypt.c \
+	ici/crypto/NULL_SUITES/secrypt.h
 endif
 
 libsecrypt_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1581,7 +1618,14 @@ bplist_SOURCES = bpv7/utils/bplist.c
 bplist_LDADD = libici.la $(bplib)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpinspect_SOURCES = bpv7/utils/bpinspect.c bpv7/utils/bpinspect_data.c bpv7/utils/bpinspect_filter.c bpv7/utils/bpinspect_ops.c
+bpinspect_SOURCES = \
+	bpv7/utils/bpinspect.c \
+	bpv7/utils/bpinspect_data.c \
+	bpv7/utils/bpinspect_data.h \
+	bpv7/utils/bpinspect_filter.c \
+	bpv7/utils/bpinspect_filter.h \
+	bpv7/utils/bpinspect_ops.c \
+	bpv7/utils/bpinspect_ops.h
 bpinspect_LDADD = libici.la $(bplib)
 bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
@@ -1617,7 +1661,7 @@ imcadminep_SOURCES = bpv7/imc/imcadminep.c
 imcadminep_LDADD = libici.la $(bplib)
 imcadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-imcfw_SOURCES = bpv7/imc/imcfw.c
+imcfw_SOURCES = bpv7/imc/imcfw.c bpv7/imc/imcfw.h
 imcfw_LDADD = libici.la $(bplib)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end ENABLE_IMC
@@ -1658,8 +1702,11 @@ ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnd_SOURCES = \
 	bpv7/ipnd/beacon.c \
+	bpv7/ipnd/beacon.h \
 	bpv7/ipnd/bpa.c \
+	bpv7/ipnd/bpa.h \
 	bpv7/ipnd/helper.c \
+	bpv7/ipnd/helper.h \
 	bpv7/ipnd/ipnd.c
 ipnd_LDADD = libici.la $(bplib)
 ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1743,11 +1790,11 @@ endif # ENABLE_TCPCLV4_EXTERNAL
 
 # --- File CLA Executables --- #
 
-filecli_SOURCES = bpv7/file/filecli.c bpv7/file/libfilecla.c
+filecli_SOURCES = bpv7/file/filecli.c bpv7/file/filecla.h bpv7/file/libfilecla.c
 filecli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
 filecli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-fileclo_SOURCES = bpv7/file/fileclo.c bpv7/file/libfilecla.c
+fileclo_SOURCES = bpv7/file/fileclo.c bpv7/file/filecla.h bpv7/file/libfilecla.c
 fileclo_LDADD = libici.la $(bplib) $(LIBS)
 fileclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
@@ -1985,6 +2032,13 @@ libtcc_la_LIBADD = libici.la libbp.la
 # GF-Complete library (Galois Field arithmetic)
 # Note: This is vendored third-party code; suppress warnings that are treated as errors
 libgfcomplete_la_SOURCES = \
+	tc/gf-complete/include/gf_complete.h \
+	tc/gf-complete/include/gf_cpu.h \
+	tc/gf-complete/include/gf_int.h \
+	tc/gf-complete/include/gf_w4.h \
+	tc/gf-complete/include/gf_w8.h \
+	tc/gf-complete/include/gf_w16.h \
+	tc/gf-complete/include/gf_w32.h \
 	tc/gf-complete/src/gf.c \
 	tc/gf-complete/src/gf_w4.c \
 	tc/gf-complete/src/gf_w8.c \
@@ -1998,6 +2052,9 @@ libgfcomplete_la_CFLAGS = -I$(srcdir)/tc/gf-complete/include -w \
 # Jerasure library (Reed-Solomon erasure coding)
 # Note: This is vendored third-party code; suppress warnings that are treated as errors
 libjerasure_la_SOURCES = \
+	tc/jerasure/include/galois.h \
+	tc/jerasure/include/jerasure.h \
+	tc/jerasure/include/reed_sol.h \
 	tc/jerasure/src/jerasure.c \
 	tc/jerasure/src/reed_sol.c \
 	tc/jerasure/src/galois.c
@@ -2068,13 +2125,43 @@ endif # ENABLE_TC
 nmbin= nm_agent nm_mgr
 nmlib= libamp.la libampAgentADM.la
 
+nmnoinst = \
+	bpv7/adm/adm_bp_agent.h \
+	bpv7/adm/adm_bpsec.h \
+	bpv7/adm/adm_ion_bp_admin.h \
+	nm/shared/adm/adm_amp_agent.h \
+	nm/shared/adm/adm_ion_admin.h \
+	nm/shared/adm/adm_ion_ipn_admin.h \
+	nm/shared/adm/adm_ion_ltp_admin.h \
+	nm/shared/adm/adm_ionsec_admin.h \
+	nm/shared/adm/adm_ltp_agent.h \
+	nm/shared/msg/ion_if.h \
+	nm/shared/msg/msg.h \
+	nm/shared/nm.h \
+	nm/shared/primitives/ari.h \
+	nm/shared/primitives/blob.h \
+	nm/shared/primitives/ctrl.h \
+	nm/shared/primitives/expr.h \
+	nm/shared/primitives/report.h \
+	nm/shared/primitives/rules.h \
+	nm/shared/primitives/table.h \
+	nm/shared/primitives/tnv.h \
+	nm/shared/utils/db.h \
+	nm/shared/utils/debug.h \
+	nm/shared/utils/nm_types.h \
+	nm/shared/utils/utils.h \
+	nm/shared/utils/vector.h
+
 nm_cbor_cppflags = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
 #  This library is standalone (no dependencies on other ION components)
 libamp_la_SOURCES = \
+	nm/contrib/QCBOR/inc/qcbor.h \
+	nm/contrib/QCBOR/inc/UsefulBuf.h \
 	nm/contrib/QCBOR/src/UsefulBuf.c \
 	nm/contrib/QCBOR/src/ieee754.c \
+	nm/contrib/QCBOR/src/ieee754.h \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/qcbor_encode.c \
 	nm/shared/adm/adm.c \
@@ -2083,15 +2170,18 @@ libamp_la_SOURCES = \
 	nm/shared/primitives/blob.c \
 	nm/shared/primitives/ctrl.c \
 	nm/shared/primitives/edd_var.c \
+	nm/shared/primitives/edd_var.h \
 	nm/shared/primitives/expr.c \
 	nm/shared/primitives/report.c \
 	nm/shared/primitives/rules.c \
 	nm/shared/primitives/table.c \
 	nm/shared/primitives/tnv.c \
 	nm/shared/utils/cbor_utils.c \
+	nm/shared/utils/cbor_utils.h \
 	nm/shared/utils/db.c \
 	nm/shared/utils/nm_types.c \
 	nm/shared/utils/rhht.c \
+	nm/shared/utils/rhht.h \
 	nm/shared/utils/utils.c \
 	nm/shared/utils/vector.c
 libamp_la_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci -I$(srcdir)/ltp/library -I$(srcdir)/nm \
@@ -2103,14 +2193,22 @@ libamp_la_LIBADD = libici.la
 # Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
 nm_agent_SOURCES = \
 	nm/agent/ingest.c \
+	nm/agent/ingest.h \
 	nm/agent/instr.c \
+	nm/agent/instr.h \
 	nm/agent/lcc.c \
+	nm/agent/lcc.h \
 	nm/agent/nmagent.c \
+	nm/agent/nmagent.h \
 	nm/agent/ldc.c \
+	nm/agent/ldc.h \
 	nm/agent/rda.c \
+	nm/agent/rda.h \
 	nm/shared/msg/ion_if.c \
 	nm/agent/adm_amp_agent_impl.c \
+	nm/agent/adm_amp_agent_impl.h \
 	nm/agent/adm_amp_agent_agent.c \
+	nm/shared/adm/adm.h \
 	nm/shared/adm/adm_init.c
 
 NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR) -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci
@@ -2128,20 +2226,28 @@ nmclean-local:
 
 libampAgentADM_la_SOURCES = \
 	bpv7/adm/adm_bp_agent_impl.c \
+	bpv7/adm/adm_bp_agent_impl.h \
 	bpv7/adm/adm_bp_agent_agent.c \
 	bpv7/adm/adm_bpsec_impl.c \
+	bpv7/adm/adm_bpsec_impl.h \
 	bpv7/adm/adm_bpsec_agent.c \
 	bpv7/adm/adm_ion_bp_admin_impl.c \
+	bpv7/adm/adm_ion_bp_admin_impl.h \
 	bpv7/adm/adm_ion_bp_admin_agent.c \
 	nm/agent/adm_ion_admin_agent.c \
 	nm/agent/adm_ion_admin_impl.c \
+	nm/agent/adm_ion_admin_impl.h \
 	nm/agent/adm_ionsec_admin_impl.c \
+	nm/agent/adm_ionsec_admin_impl.h \
 	nm/agent/adm_ionsec_admin_agent.c \
 	nm/agent/adm_ion_ipn_admin_impl.c \
+	nm/agent/adm_ion_ipn_admin_impl.h \
 	nm/agent/adm_ion_ipn_admin_agent.c \
 	nm/agent/adm_ion_ltp_admin_impl.c \
+	nm/agent/adm_ion_ltp_admin_impl.h \
 	nm/agent/adm_ion_ltp_admin_agent.c \
 	nm/agent/adm_ltp_agent_impl.c \
+	nm/agent/adm_ltp_agent_impl.h \
 	nm/agent/adm_ltp_agent_agent.c
 libampAgentADM_la_CFLAGS = \
 	-I$(srcdir)/nm \
@@ -2182,12 +2288,18 @@ nm_mgr_SOURCES = \
 	nm/mgr/adm_ionsec_admin_mgr.c \
 	nm/mgr/adm_ltp_agent_mgr.c \
 	nm/mgr/agents.c \
+	nm/mgr/agents.h \
 	nm/mgr/metadata.c \
+	nm/mgr/metadata.h \
 	nm/mgr/nm_mgr_print.c \
+	nm/mgr/nm_mgr_print.h \
 	nm/mgr/nm_mgr_rx.c \
 	nm/mgr/nm_mgr_ui.c \
+	nm/mgr/nm_mgr_ui.h \
 	nm/mgr/nm_mgr.c \
+	nm/mgr/nm_mgr.h \
 	nm/mgr/ui_input.c \
+	nm/mgr/ui_input.h \
 	nm/shared/msg/ion_if.c \
 	nm/shared/adm/adm_init.c
 
@@ -2268,6 +2380,22 @@ amsnoinst = \
 
 amsextra = \
 	ams/README.txt \
+	ams/doc/pod1/amsbenchr.pod \
+	ams/doc/pod1/amsbenchs.pod \
+	ams/doc/pod1/amsd.pod \
+	ams/doc/pod1/amshello.pod \
+	ams/doc/pod1/amslog.pod \
+	ams/doc/pod1/amslogprt.pod \
+	ams/doc/pod1/amsmib.pod \
+	ams/doc/pod1/amspub.pod \
+	ams/doc/pod1/amsshell.pod \
+	ams/doc/pod1/amsstop.pod \
+	ams/doc/pod1/amssub.pod \
+	ams/doc/pod1/ramsgate.pod \
+	ams/doc/pod3/ams.pod \
+	ams/doc/pod5/amsrc.pod \
+	ams/doc/pod5/amsxml.pod \
+	ams/doc/pod5/petition_log.pod \
 	ams/library/vmqts.c \
 	ams/test/amspubsub.c
 
@@ -2519,7 +2647,8 @@ bssinclude = \
 	bss/include/bss.h
 
 bssnoinst = \
-	bss/library/bssP.h
+	bss/library/bssP.h \
+	bss/test/bsstest.h
 
 bssextra = \
 	bss/README.txt \
