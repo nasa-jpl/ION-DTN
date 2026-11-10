@@ -259,7 +259,6 @@ noinst_LTLIBRARIES =
 if ENABLE_CMD_HIST
 noinst_LTLIBRARIES += liblinenoise.la
 liblinenoise_la_SOURCES = ici/linenoise/linenoise.c
-liblinenoise_la_CFLAGS = $(AM_CFLAGS)
 LINENOISE_LDADD = liblinenoise.la
 LINENOISE_CFLAGS = -I$(srcdir)/ici/linenoise
 else
@@ -889,7 +888,6 @@ ltpstats_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpcancel_SOURCES = ltp/utils/ltpcancel.c
 ltpcancel_LDADD = libici.la
-ltpcancel_CFLAGS = $(AM_CFLAGS)
 
 ltpwatch_SOURCES = ltp/utils/ltpwatch.c
 ltpwatch_LDADD = libltp.la libici.la
@@ -2750,15 +2748,12 @@ FILESTUBLIB = bpv7/file/stub/libfile_simple_provider.la
 check_LTLIBRARIES += $(SPPSTUBLIB) $(EPPSTUBLIB) $(FILESTUBLIB)
 
 bpv7_spp_stub_libspp_loopback_provider_la_SOURCES = bpv7/spp/stub/spp_loopback_provider.c
-bpv7_spp_stub_libspp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
 bpv7_spp_stub_libspp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
 
 bpv7_epp_stub_libepp_loopback_provider_la_SOURCES = bpv7/epp/stub/epp_loopback_provider.c
-bpv7_epp_stub_libepp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
 bpv7_epp_stub_libepp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
 
 bpv7_file_stub_libfile_simple_provider_la_SOURCES = bpv7/file/stub/file_simple_provider.c
-bpv7_file_stub_libfile_simple_provider_la_CFLAGS = $(AM_CFLAGS)
 bpv7_file_stub_libfile_simple_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
 
 # TEST AUTHORS: README
