@@ -899,16 +899,14 @@ AC_ARG_ENABLE([sysctl-check],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-sysctl-check])])],
   [enable_sysctl_check=yes])
 
-if test "x$enable_sysctl_check" = xyes; then
-  echo "checking sysctl configuration..."
-  echo
-
-  if ! ${ac_confdir}/sysctl_script.sh; then
-    echo "Reconfigure with --disable-sysctl-check to bypass this check."
-    echo "Update sysctl configuration by running ./install_macos_sysctl.sh"
-    exit 1
-  fi
-fi
+AS_IF([test "x$enable_sysctl_check" != xno],
+  [AC_MSG_NOTICE([checking sysctl configuration...])
+   AS_IF(["$srcdir/sysctl_script.sh"], [],
+     [AC_MSG_NOTICE(
+        [Reconfigure with --disable-sysctl-check to bypass this check.])
+      AC_MSG_NOTICE(
+        [Update sysctl configuration by running ./install_macos_sysctl.sh])
+      AC_MSG_ERROR([sysctl check failed])])])
 
 # AMP default (user can specify version N using this command: "AMP_VERSION=N ./configure")
 # This addition resolves the prior GNU "AMP_VERSION ?= 8" lines in Makefile.am
