@@ -9,7 +9,7 @@ AC_PREREQ([2.69])
 AC_INIT([ION], [4.2.1-a.2], [https://github.com/nasa-jpl/ION-DTN/issues], [],
         [https://github.com/nasa-jpl/ION-DTN])
 
-AM_INIT_AUTOMAKE([1.16 subdir-objects -Wall foreign])
+AM_INIT_AUTOMAKE([1.16 subdir-objects -Wall foreign serial-tests])
 AM_SILENT_RULES([yes])
 AM_MAINTAINER_MODE([enable])
 

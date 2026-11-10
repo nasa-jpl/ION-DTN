@@ -2850,9 +2850,6 @@ test-all: buildcheck
 retest: buildcheck
 	cd $(srcdir)/tests && ./runtestset retest
 
-# "make check" is the same as "make test"
-check: test
-
 # This library contains utility code that's helpful for tests in C.
 check_LTLIBRARIES = libtestutil.la
 testutil_cppflags = -I$(srcdir)/tests/library
@@ -2890,6 +2887,28 @@ bpv7_epp_stub_libepp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpat
 
 bpv7_file_stub_libfile_simple_provider_la_SOURCES = bpv7/file/stub/file_simple_provider.c
 bpv7_file_stub_libfile_simple_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
+
+TESTS_ENVIRONMENT = \
+	PATH="$(abs_builddir):$(abs_srcdir):$$PATH" \
+	ENABLE_RETEST=0 \
+	'$(srcdir)/tests/runtests'
+
+# Only list tests that pass distcheck.
+# Do not expect to be able to put many tests here. ION's tests were not
+# designed to work with Automake's test suites.
+TESTS = \
+	tests/1000.loopback/dotest \
+	tests/1300.loopback-tcp/dotest \
+	tests/1400.loopback-stcp/dotest \
+	tests/1500.loopback-brs/dotest \
+	tests/bp_receive_concurrent_timer/dotest \
+	tests/bp_sap_thread_ownership/dotest \
+	tests/eid-format-preservation/dotest \
+	tests/issue-188-common-cos-syntax/dotest \
+	tests/ltp-budget-unit/dotest \
+	tests/nm-unit/utils/radix_pt/dotest \
+	tests/nm-unit/utils/rhht/dotest \
+	tests/nm-unit/utils/vector/dotest
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here. Just make a
