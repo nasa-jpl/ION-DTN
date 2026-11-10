@@ -2789,7 +2789,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/bp_sap_thread_ownership/dotest \
 	tests/eid-format-preservation/dotest \
 	tests/ltp-budget-unit/dotest
-# Note: SPP/EPP loopback tests use shell scripts, not C programs
 
 # Only build semaphore deferred deletion test if using POSIX Named Semaphores
 if USING_POSIX_NAMED_SEMAPHORES
@@ -2886,10 +2885,6 @@ tests_1400_loopback_stcp_dotest_LDADD = $(TESTUTILOBJS) libbp.la libici.la
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-
-# Note: SPP/EPP loopback tests (tests/loopback-spp, tests/loopback-epp) use
-# shell scripts instead of C programs because they need to pass the provider
-# library path to the CLI/CLO daemons.
 
 tests_ionexit_test_checksemaphores_SOURCES = tests/ionexit_test/checksemaphores.c
 tests_ionexit_test_checksemaphores_LDADD = -lpthread
