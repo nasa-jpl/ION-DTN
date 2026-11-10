@@ -102,6 +102,8 @@ trap 'killm f' EXIT
 #
 #	-	All nodes shut down.
 
+. ../test_utils.sh
+
 ./cleanup
 
 export ION_NODE_LIST_DIR=$PWD
@@ -286,10 +288,19 @@ $killcmd lt-ipnd 2>/dev/null
 sleep 5
 echo ""
 echo "Checking results..."
+
+# Node 2 re-sends its limbo copy of file y to node 5 at every limbo flush
+# until that no longer improves the bundle's delivery confidence, so the
+# last copy may still be passing through nodes 2, 5 and 7.  Poll each
+# node's bundle count until it holds the expected value instead of
+# relying on a single snapshot.
+holdsBundles() {
+    bplist >& node.bplist
+    [ "$(grep -c Bundle node.bplist)" -eq "$1" ]
+}
+
 cd ../2.ipn.tcp
-bplist >& node.bplist
-COUNT=`egrep Bundle node.bplist | wc -l`
-if [ $COUNT -eq 1 ]
+if waitForPredicate "holdsBundles 1" 20000
 then
     echo ""
     echo "Okay: one bundle left in limbo at node 2."
@@ -300,9 +311,7 @@ else
 fi
 
 cd ../3.ipn.tcp
-bplist >& node.bplist
-COUNT=`egrep Bundle node.bplist | wc -l`
-if [ $COUNT -eq 0 ]
+if waitForPredicate "holdsBundles 0" 20000
 then
     echo ""
     echo "Okay: no bundles buffered at node 3."
@@ -313,9 +322,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-bplist >& node.bplist
-COUNT=`egrep Bundle node.bplist | wc -l`
-if [ $COUNT -eq 0 ]
+if waitForPredicate "holdsBundles 0" 20000
 then
     echo ""
     echo "Okay: no bundles buffered at node 5."
@@ -326,9 +333,7 @@ else
 fi
 
 cd ../6.ipn.tcp
-bplist >& node.bplist
-COUNT=`egrep Bundle node.bplist | wc -l`
-if [ $COUNT -eq 0 ]
+if waitForPredicate "holdsBundles 0" 20000
 then
     echo ""
     echo "Okay: no bundles buffered at node 6."
@@ -350,9 +355,7 @@ else
 fi
 
 cd ../7.ipn.tcp
-bplist >& node.bplist
-COUNT=`egrep Bundle node.bplist | wc -l`
-if [ $COUNT -eq 0 ]
+if waitForPredicate "holdsBundles 0" 20000
 then
     echo ""
     echo "Okay: no bundles buffered at node 7."
