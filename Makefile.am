@@ -2789,7 +2789,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/bp_sap_thread_ownership/dotest \
 	tests/eid-format-preservation/dotest \
 	tests/ltp-budget-unit/dotest
-#	tests/nm-unit/primitives/ari/dotest
 # Note: SPP/EPP loopback tests use shell scripts, not C programs
 
 # Only build semaphore deferred deletion test if using POSIX Named Semaphores
@@ -2829,9 +2828,6 @@ tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tes
 tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUTILOBJS) $(TESTUNITYOBJS) libici.la $(bplib) libltp.la
 tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
-#tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
-#tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
-#tests_nm_unit_primitives_ari_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS)
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
