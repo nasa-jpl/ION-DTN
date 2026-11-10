@@ -98,11 +98,18 @@ log="$ROOT/1.ipn.tcp/ion.log"
 ended_before=$(grep -c "receiver thread has ended" "$log" || true)
 echo "Freezing tcpcli pid ${STOPPED_PID}."
 kill -STOP "$STOPPED_PID"
-# Solaris ps has "s", not "stat". Take the last line so a header is ignored.
-proc_state=$(ps -p "$STOPPED_PID" -o s |
+# Solaris ps accepts -o s. FreeBSD accepts -o state, and a stopped
+# process may be reported as T plus flag characters. The last line
+# is the process; the header is ignored.
+if ps -p "$$" -o s >/dev/null 2>&1; then
+    ps_state_fmt=s
+else
+    ps_state_fmt=state
+fi
+proc_state=$(ps -p "$STOPPED_PID" -o "$ps_state_fmt" |
     awk 'NF { line = $1 } END { print line }')
 case "$proc_state" in
-    T)
+    T*)
         echo "Okay: peer tcpcli is stopped ($proc_state)."
         ;;
     *)
