@@ -53,7 +53,7 @@ jobs:
     uses: ./.github/workflows/reusable-runner-build.yml
     with:
       build_type: "base"
-      consolidate_runners: false
+      consolidate_runners: true
       full_build: ${{ github.event_name == 'schedule' || github.event_name == 'push' }}
       runner_u22: ${{ inputs.runner_u22 == true }}
       runner_u24: ${{ inputs.runner_u24 == true }}

@@ -61,7 +61,7 @@ env:
 
 jobs:
   setup:
-    runs-on: arc-runner-set-u22
+    runs-on: arc-runner-set-ol8
     outputs:
       matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
