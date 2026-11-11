@@ -130,6 +130,64 @@ in [Contact Graph Events and LTP Interaction](./contact-graph-events-and-ltp.md)
 is concerned only with establishing that rate control sits *below* the routing seam and is
 independent of it.
 
+## What happens under backpressure
+
+Because rate control is open-loop from the contact plan above,
+the pipeline is not slowed when a link runs slower than its planned rate.
+The response depends on why the duct stops draining.
+
+### Network (TCP) backpressure
+
+The only signal given by a congested or slow link
+is the convergence layer's own blocking socket write.
+When the kernel send buffer fills,
+the TCPCL sending thread is stalled inside `send()`
+and bundles are no longer dequeued from the outduct.
+That stall is not propagated upward immediately.
+New bundles continue to be metered into the outduct
+by `bpclm` at the contact-plan rate,
+and injecting applications are given no signal to slow down.
+Bundles accumulate in the outduct's queue in the SDR.
+
+### Relay (inbound) backpressure
+
+When a node cannot forward as fast as it receives,
+its inbound ZCO heap is built up.
+For a reliable induct (LTP or TCP),
+acknowledgment of data is stopped by that buildup,
+and the upstream sender is paced down.
+A UDP-based induct has no such feedback,
+so excess traffic is dropped on arrival.
+
+### Stopping a duct or blocking a plan
+
+Operator-driven stops are handled differently from network stalls:
+
+*   When an outduct is stopped, its sending thread is ended,
+    so bundles are no longer dequeued,
+    but bundles already queued to that duct
+    are retained in its queue until the duct is restarted.
+
+*   When an egress plan is blocked,
+    the neighbor is treated by the BP agent as if it did not exist.
+    Bundles queued for that neighbor are reverse-enqueued back to the agent
+    and are either re-routed over another path
+    or held in [limbo](./topics/bundle-forwarding-disposition.md)
+    until a future contact or route appears.
+
+### The ZCO space-admission backstop
+
+Creating a new payload requests zero-copy-object (ZCO) space.
+Once the applicable ceiling is reached ---
+the outbound heap account or the overall heap, whichever is hit first ---
+the request is blocked on its attendant semaphore and is not completed,
+so data can no longer be injected by the application.
+This is the second, higher level of flow control,
+and the SDR is protected from overflow.
+The block is not propagated all the way up from the duct.
+It is engaged only once storage is genuinely threatened,
+which bounds a sustained buildup from any of the cases above.
+
 ## Why the layering matters
 
 Because the interface between routing and the pipeline is a single next-hop node number,
@@ -168,3 +226,6 @@ several things follow:
 - [ION Design and API Overview](./design-and-api-overview.md) — ION's modular
   architecture and the daemons involved.
 - [CLA API](./cla-api.md) — the convergence-layer interface at the bottom of the pipeline.
+- [Bundle Forwarding Disposition](./topics/bundle-forwarding-disposition.md) ---
+  the limbo and abandonment lifecycle
+  that backpressure and plan blocking feed into.
