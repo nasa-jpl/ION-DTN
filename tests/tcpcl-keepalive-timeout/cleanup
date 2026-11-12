@@ -1,0 +1,17 @@
+#!/bin/sh
+# Thaw a tcpcli that dotest froze, then reap every node.
+export ION_NODE_LIST_DIR="$PWD"
+# Solaris ps accepts -o s and -e for every process. FreeBSD rejects
+# "s", uses "state", and -e prints the environment, so use -ax.
+if ps -e -o pid,s,args >/dev/null 2>&1; then
+    ps -e -o pid,s,args
+else
+    ps -ax -o pid,state,command
+fi | awk \
+    '$2 ~ /^T/ && $3 ~ /(^|\/)tcpcli$/ { print $1 }' |
+    while read -r pid; do
+        kill -CONT "$pid" 2>/dev/null || true
+    done
+killm f
+rm -f ion_nodes
+rm -f 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/sink.out
