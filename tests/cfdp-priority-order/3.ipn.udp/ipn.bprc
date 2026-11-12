@@ -1,0 +1,10 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.64 x
+a endpoint ipn:3.65 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:5743 udpcli
+a outduct udp 127.0.0.1:5742 udpclo
+r 'ipnadmin ipn.ipnrc'
+s

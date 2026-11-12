@@ -3254,11 +3254,17 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 
 /*	*	*	PDU issuance functions	*	*	*	*/
 
-static SdrObject selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
+static SdrObject selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer,
+			CfdpFduRanker ranker)
 {
 	Sdr	sdr = getIonsdr();
 	SdrObject elt;
 	SdrObject obj;
+	SdrObject bestObj = 0;
+	int	rank;
+	int	bestRank = 0;
+
+	/*	Highest rank first; FIFO among FDUs of equal rank.	*/
 
 	for (elt = sdr_list_first(sdr, cfdpdb->outboundFdus); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -3271,10 +3277,25 @@ static SdrObject selectOutFdu(CfdpDB *cfdpdb, OutFdu *buffer)
 			continue;
 		}
 
-		return obj;
+		if (ranker == NULL)
+		{
+			return obj;
+		}
+
+		rank = ranker(buffer->utParms, buffer->utParmsLength);
+		if (bestObj == 0 || rank > bestRank)
+		{
+			bestRank = rank;
+			bestObj = obj;
+		}
 	}
 
-	return 0;
+	if (bestObj)
+	{
+		sdr_read(sdr, (char *) buffer, bestObj, sizeof(OutFdu));
+	}
+
+	return bestObj;
 }
 
 static int selectFduPdu(OutFdu *fdu, SdrObject *pdu, int *pduIsFileData,
@@ -3449,7 +3470,8 @@ static int selectFduPdu(OutFdu *fdu, SdrObject *pdu, int *pduIsFileData,
 
 static int selectOutPdu(CfdpDB *db, SdrObject *pdu, SdrObject *fdu,
 			OutFdu *fduBuffer, FinishPdu *fpdu, int *direction,
-			int *pduIsFileData, int *haveMetadata)
+			int *pduIsFileData, int *haveMetadata,
+			CfdpFduRanker ranker)
 {
 	Sdr	sdr = getIonsdr();
 	SdrObject elt;
@@ -3488,7 +3510,7 @@ static int selectOutPdu(CfdpDB *db, SdrObject *pdu, SdrObject *fdu,
 	/*	Look for a forward PDU.					*/
 
 	*direction = 0;			/*	Toward destination.	*/
-	*fdu = selectOutFdu(db, fduBuffer);
+	*fdu = selectOutFdu(db, fduBuffer, ranker);
 	if (*fdu)
 	{
 		sdr_stage(sdr, NULL, *fdu, 0);
@@ -3504,7 +3526,7 @@ static int selectOutPdu(CfdpDB *db, SdrObject *pdu, SdrObject *fdu,
 }
 
 int cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
-		int *direction)
+		int *direction, CfdpFduRanker ranker)
 {
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
@@ -3578,7 +3600,7 @@ int cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 
 	CHKERR(sdr_begin_xn(sdr));
 	if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
-			&pduIsFileData, &haveMetadata) < 0)
+			&pduIsFileData, &haveMetadata, ranker) < 0)
 	{
 		putErrmsg("UTO can't get outbound PDU.", NULL);
 		sdr_cancel_xn(sdr);
@@ -3609,7 +3631,7 @@ int cfdpDequeueOutboundPdu(SdrObject *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 
 		CHKERR(sdr_begin_xn(sdr));
 		if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
-				&pduIsFileData, &haveMetadata) < 0)
+				&pduIsFileData, &haveMetadata, ranker) < 0)
 		{
 			putErrmsg("UTO can't get outbound PDU.", NULL);
 			sdr_cancel_xn(sdr);
