@@ -91,8 +91,8 @@ COPY --from=ghcr.io/astral-sh/uv:"${UV_VERSION}" /uv /uvx /usr/local/bin/
 USER runner
 
 ENV VIRTUAL_ENV="/home/runner/.venv" \
-    UV_PROJECT_ENVIRONMENT="/home/runner/.venv" \
-    PATH="${VIRTUAL_ENV}/bin:/home/runner/.local/bin${PATH:+:$PATH}"
+    UV_PROJECT_ENVIRONMENT="/home/runner/.venv"
+ENV PATH="${VIRTUAL_ENV}/bin:/home/runner/.local/bin${PATH:+:$PATH}"
 
 COPY --chown=runner:runner pyproject.toml uv.lock .python-version /tmp/app/
 WORKDIR /tmp/app
