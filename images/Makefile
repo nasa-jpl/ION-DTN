@@ -4,6 +4,7 @@ BUILDAH ?= buildah
 DEFAULT_RUNNER_NAME ?= ${DOCKER_USER}/ion-actions-runner
 OS_IMAGE ?= ubuntu-22
 TARGETPLATFORM ?= $(shell arch)
+DIGEST_FILE ?=
 
 # renovate: datasource=github-releases depName=actions/runner
 RUNNER_VERSION ?= 2.338.2
@@ -122,7 +123,7 @@ docker-push:
 	${DOCKER} push "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
 
 buildah-push:
-	${BUILDAH} push --storage-driver=vfs "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
+	${BUILDAH} push --storage-driver=vfs --retry 5 --retry-delay 15s $(if $(DIGEST_FILE),--digestfile "$(DIGEST_FILE)") "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
 
 buildah-push-base:
-	${BUILDAH} push --storage-driver=vfs "${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE}"
+	${BUILDAH} push --storage-driver=vfs $(if $(DIGEST_FILE),--digestfile "$(DIGEST_FILE)") "${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE}"

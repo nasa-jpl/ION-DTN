@@ -76,26 +76,39 @@ runs:
         echo "sbom_prefix=$SBOM_PREFIX" >> $GITHUB_OUTPUT
 
     - name: Build and Push container image
+      id: build-push
       shell: bash
+      env:
+        REPO: ${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images
       run: |
-        cd images && \
+        set -euo pipefail
+        DIGESTFILE="$(sudo mktemp)"
+
+        cd images
         sudo make ${{ steps.vars.outputs.target }} \
           OS_IMAGE=${{ steps.vars.outputs.os_image }} \
-          DEFAULT_RUNNER_NAME=${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images && \
+          DEFAULT_RUNNER_NAME="$REPO"
         sudo make ${{ inputs.build_type == 'base' && 'buildah-push-base' || 'buildah-push' }} \
           OS_IMAGE=${{ steps.vars.outputs.os_image }} \
-          DEFAULT_RUNNER_NAME=${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images
+          DEFAULT_RUNNER_NAME="$REPO" \
+          DIGEST_FILE="$DIGESTFILE"
 
-    - name: Export image for SBOM scan
-      shell: bash
-      run: |
-        sudo buildah push --storage-driver=vfs ${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images:${{ steps.vars.outputs.sbom_prefix }}${{ steps.vars.outputs.os_image }} \
-          docker-archive:runner-image.tar
+        echo "digest=$(sudo cat "$DIGESTFILE")" >> "$GITHUB_OUTPUT"
+        sudo rm -f "$DIGESTFILE"
+
+        # Reclaim vfs disk and page-cache memory before Syft runs
+        sudo buildah rmi --storage-driver=vfs -a -f
 
     - name: Generate SBOM
       uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      env:
+        SYFT_PARALLELISM: "1"
+        GOGC: "50"
+        SYFT_REGISTRY_AUTH_AUTHORITY: ${{ inputs.registry_address }}
+        SYFT_REGISTRY_AUTH_USERNAME: ${{ inputs.registry_robot }}
+        SYFT_REGISTRY_AUTH_PASSWORD: ${{ inputs.registry_password }}
       with:
-        image: docker-archive:runner-image.tar
+        image: registry:${{ inputs.registry_address }}/${{ inputs.registry_namespace }}/ion-runner-images:${{ steps.vars.outputs.sbom_prefix }}${{ steps.vars.outputs.os_image }}
         output-file: ${{ steps.vars.outputs.os_image }}-sbom.spdx.json
         upload-artifact: false
         syft-version: ${{ inputs.syft_version }}
@@ -107,18 +120,12 @@ runs:
         REGISTRY_NAMESPACE: ${{ inputs.registry_namespace }}
         OS_IMAGE: ${{ steps.vars.outputs.os_image }}
         SBOM_PREFIX: ${{ steps.vars.outputs.sbom_prefix }}
+        DIGEST: ${{ steps.build-push.outputs.digest }}
       run: |
         set -euo pipefail
         REPO="${REGISTRY_ADDRESS}/${REGISTRY_NAMESPACE}/ion-runner-images"
         TAG="${SBOM_PREFIX}${OS_IMAGE}"
         SBOM_FILE="${OS_IMAGE}-sbom.spdx.json"
-
-        # Capture image digest to generate a deterministic sha256 reference tag
-        DIGESTFILE="$(sudo mktemp)"
-        sudo buildah push --storage-driver=vfs --digestfile "$DIGESTFILE" "${REPO}:${TAG}"
-        DIGEST="$(sudo cat "$DIGESTFILE")"
-        sudo rm -f "$DIGESTFILE"
-
         ALGO_HASH="${DIGEST#*:}"
 
         # Build a minimal scratch container holding the SBOM file
