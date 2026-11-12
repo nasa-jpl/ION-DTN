@@ -29,6 +29,18 @@ extern "C" {
 #else
 #define STCPCLA_BUFSZ		(512 * 1024)
 #endif
+
+/*	Maximum bundle length that receiveBundleByStcp() will accept from
+ *	a four-octet STCP length preamble.  The preamble is read into an
+ *	unsigned 32-bit field but the acquisition machinery below it
+ *	carries the length in a signed int, so any value at or above 2^31
+ *	would become negative; and a four-byte preamble must not be able
+ *	to make the node commit an arbitrary amount of acquisition space.
+ *	The cap must stay below 2^31; raise it at compile time if a
+ *	deployment legitimately carries larger bundles over STCP.	*/
+#ifndef STCPCLA_MAX_BUNDLE_LEN
+#define STCPCLA_MAX_BUNDLE_LEN	(512 * 1024 * 1024)
+#endif
 #define BpStcpDefaultPortNbr	4456
 
 #ifndef STCP_KEEPALIVE_PERIOD

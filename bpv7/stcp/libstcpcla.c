@@ -295,6 +295,22 @@ int	receiveBundleByStcp(int *sock, AcqWorkArea *work, char *buffer,
 		bundleLength = ntohl(preamble);
 	}
 
+	/*	Reject a preamble that the signed length counters below
+	 *	cannot represent, or that exceeds the accepted maximum.
+	 *	bundleLength is unsigned, so this comparison also catches
+	 *	every value at or above 2^31; without it such a value would
+	 *	be stored negative in totalBytesToReceive, skip the receive
+	 *	loop, and drive an empty bpEndAcq that terminates the
+	 *	induct.  Close this one connection (a clean stop) rather
+	 *	than the daemon; the stream is no longer framable.	*/
+
+	if (bundleLength > STCPCLA_MAX_BUNDLE_LEN)
+	{
+		writeMemoNote("[?] STCP bundle length exceeds maximum; closing \
+connection", utoa(bundleLength));
+		return 0;
+	}
+
 	/*	Receive the bundle itself, a buffer's worth at a
 	 *	time.							*/
 
