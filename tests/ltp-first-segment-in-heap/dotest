@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+trap 'kill $RECV_PID 2>/dev/null; killm f' EXIT
+#
+# Regression test for issue 131: an LTP receiver must keep every segment
+# of a block that is held in the heap.
+#
+# The receiver holds the first heapmax bytes of a red part in the heap and
+# creates the block file only when data goes past them, so blockFileRef is
+# legitimately 0 until then.  acceptRedContent() used to read that 0 as
+# "the block file was destroyed after delivery" and discard every segment
+# after the first as late.  No report was sent, and the sender eventually
+# cancelled the session.
+#
+# The receiver's heapmax is 65536, so all of this roughly 7 KB block stays
+# in the heap and the block file is never created.  Every segment after
+# the first was therefore discarded, whatever order they arrived in.  The
+# file must arrive complete.
+
+. ../test_utils.sh
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+seq 1 1700 > 2.ipn.ltp/testfile
+
+for N in 2 3
+do
+	cd $N.ipn.ltp
+	./ionstart > node$N.stdout 2>&1
+	../../../system_up -i "p 30" -l "p 30" -b "p 30"
+	if [ $? -ne 3 ]
+	then
+		echo "Node $N not started: Aborting Test"
+		exit 1
+	fi
+	cd ..
+done
+
+cd 3.ipn.ltp
+bprecvfile ipn:3.1 &
+RECV_PID=$!
+cd ..
+
+fileArrived() {
+	cmp -s 2.ipn.ltp/testfile 3.ipn.ltp/testfile1
+}
+
+echo "Sending the file from node 2 to node 3..."
+(cd 2.ipn.ltp && bpsendfile ipn:2.2 ipn:3.1 testfile)
+
+if waitForPredicate fileArrived 20000
+then
+	echo "OK: the file arrived complete."
+	exit 0
+fi
+
+echo "FAIL: the file did not arrive complete."
+ls -l 3.ipn.ltp/testfile1 2>/dev/null
+exit 1
