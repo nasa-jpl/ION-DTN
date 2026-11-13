@@ -91,7 +91,7 @@
         "moby/moby",
         "docker/compose",
         "Yelp/dumb-init",
-        "oraclelinux",
+        "container-registry.oracle.com/os/oraclelinux",
         "ubuntu",
         "/ubi/"
       ],
@@ -107,7 +107,7 @@
     },
     {
       "matchDepNames": [
-        "oraclelinux",
+        "container-registry.oracle.com/os/oraclelinux",
         "ubuntu",
         "/ubi/"
       ],
@@ -272,7 +272,7 @@
         "docker"
       ],
       "matchDepNames": [
-        "oraclelinux",
+        "container-registry.oracle.com/os/oraclelinux",
         "ubuntu",
         "/ubi/"
       ],

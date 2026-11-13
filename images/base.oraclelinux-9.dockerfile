@@ -1,5 +1,5 @@
 # kics-scan disable=fd54f200-402c-4333-a5a4-36ef6709af2f
-FROM oraclelinux:9-slim@sha256:59431c7e33419d7f28a2c8bb94c77fffea3f4ee3d07583940d7172736932a93b as build
+FROM container-registry.oracle.com/os/oraclelinux:9-slim@sha256:9514f8698506b8b50e1add66d9f64880e7616156e3ad7d80e18d8ad9950afe28 as build
 
 ARG BUILD_DATE
 ARG REV
