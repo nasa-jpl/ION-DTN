@@ -1,5 +1,5 @@
 # kics-scan disable=fd54f200-402c-4333-a5a4-36ef6709af2f
-FROM registry.access.redhat.com/ubi8/ubi-init:8.10 as build
+FROM registry.access.redhat.com/ubi8/ubi-init:8.10-1794484464@sha256:70ceff2079691064a00d1dea3e72f02f052f78e5c2b23df32412889ceed1e32a as build
 
 ARG BUILD_DATE
 ARG REV

@@ -1,5 +1,5 @@
 # kics-scan disable=fd54f200-402c-4333-a5a4-36ef6709af2f
-FROM registry.access.redhat.com/ubi9/ubi-init:9.7 as build
+FROM registry.access.redhat.com/ubi9/ubi-init:9.9-1794500054@sha256:1e1e7fe6413372d1f2cb9427d1d41506490e7e99fcc9af1bec538d6cac8b0c55 as build
 
 ARG BUILD_DATE
 ARG REV

@@ -4,51 +4,51 @@ description: GitHub Actions Runner Controller deployment with controller and run
 type: application
 version: 0.2.0
 # renovate: datasource=github-releases depName=actions/actions-runner-controller
-appVersion: "0.14.2"
+appVersion: "0.15.1"
 
 dependencies:
   - name: gha-runner-scale-set-controller
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: controller.enabled
 
   - name: gha-runner-scale-set
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-2
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet2.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-3
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet3.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-4
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet4.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-5
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet5.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-6
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSet6.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-rtems
-    version: "0.14.2"
+    version: "0.15.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
     condition: runnerScaleSetRtems.enabled
