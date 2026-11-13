@@ -82,7 +82,7 @@ RUN groupadd docker --gid "${DOCKER_GROUP_GID}" \
     && chmod 644 /etc/subuid /etc/subgid \
     && mkdir -p /home/runner \
     && chown -R runner:runner /home/runner \
-    && mkdir /run/user/"${RUNNER_USER_UID}" \
+    && mkdir -p /run/user/"${RUNNER_USER_UID}" \
     && chown runner:runner /run/user/"${RUNNER_USER_UID}" \
     && chmod a+x /run/user/"${RUNNER_USER_UID}" \
     # openssh.txt gave an permission issue early in migrating Solaris testing to ARC and this was a fix
