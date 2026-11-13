@@ -6,7 +6,7 @@ OS_IMAGE ?= ubuntu-22
 TARGETPLATFORM ?= $(shell arch)
 
 # renovate: datasource=github-releases depName=actions/runner
-RUNNER_VERSION ?= 2.338.0
+RUNNER_VERSION ?= 2.338.2
 # renovate: datasource=github-releases depName=actions/runner-container-hooks
 RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
 # renovate: datasource=github-releases depName=moby/moby
