@@ -1,7 +1,15 @@
 #!/bin/sh
 trap 'kill $recv_pid 2>/dev/null; killm f' EXIT
 #
-# Verify that an LTP block fitting inside receiver's heap is not discarded.
+# Verify that LTP blocks whose first segment fits in the receiver's heap
+# buffer arrive intact, both when the whole block stays in the heap and
+# when the block spills over into a block file.
+#
+# Node 2 has a 4096-byte heap buffer and the span carries 1400-byte
+# segments.  The 2000-byte payload yields a two-segment block that stays
+# entirely in the heap, so the second segment must be accepted whatever
+# order the segments arrive in.  The 8000-byte payload yields a block
+# that starts in the heap and continues in a block file.
 #
 
 . ../test_utils.sh
@@ -23,26 +31,45 @@ for N in 1 2; do
     cd ..
 done
 
-dd if=/dev/null of=node1/testfile bs=1 seek=4095
+# makePayload FILE LINES: write LINES numbered 8-byte lines to FILE, so
+# that data delivered at the wrong offset fails the comparison.
+makePayload() {
+    awk 'BEGIN { for (i = 0; i < '"$2"'; i++) printf "%07d\n", i }' >"$1"
+}
+
+makePayload node1/inheap 250
+makePayload node1/spill 1000
 
 cd node2 || exit 1
-bprecvfile ipn:2.1 &
+bprecvfile ipn:2.1 2 &
 recv_pid=$!
 cd ..
 
 # shellcheck disable=SC2329
-fileArrived() {
-    cmp -s node1/testfile node2/testfile1
+inHeapArrived() {
+    cmp -s node1/inheap node2/testfile1
 }
 
-echo "Sending the file from node 1 to node 2..."
-(cd node1 && bpsendfile ipn:1.1 ipn:2.1 testfile)
+# shellcheck disable=SC2329
+spillArrived() {
+    cmp -s node1/spill node2/testfile2
+}
 
-if waitForPredicate fileArrived 20000; then
-    echo "OK: the file arrived complete."
-    exit 0
+echo "Sending a block that fits in node 2's heap buffer..."
+(cd node1 && bpsendfile ipn:1.1 ipn:2.1 inheap)
+if ! waitForPredicate inHeapArrived 20000; then
+    echo "FAIL: the block that fits in the heap did not arrive intact."
+    ls -l node2/testfile1 2>/dev/null
+    exit 1
 fi
 
-echo "FAIL: the file did not arrive complete."
-ls -l node2/testfile1 2>/dev/null
-exit 1
+echo "Sending a block that spills into a block file..."
+(cd node1 && bpsendfile ipn:1.1 ipn:2.1 spill)
+if ! waitForPredicate spillArrived 20000; then
+    echo "FAIL: the block that spills into a file did not arrive intact."
+    ls -l node2/testfile2 2>/dev/null
+    exit 1
+fi
+
+echo "OK: both blocks arrived intact."
+exit 0

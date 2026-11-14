@@ -22,7 +22,7 @@ s
 ## begin bpadmin
 1
 a scheme ipn ipnfw ipnadminep
-a endpoint ipn:2.1 x
+a endpoint ipn:2.1 q
 a protocol ltp
 a induct ltp 2 ltpcli
 a outduct ltp 1 ltpclo

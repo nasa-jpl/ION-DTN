@@ -1,1 +1,1 @@
-Verify that an LTP block fitting inside receiver's heap is not discarded.
+Verify that LTP blocks whose first segment fits in the receiver's heap arrive intact, whether or not they spill into a block file.
