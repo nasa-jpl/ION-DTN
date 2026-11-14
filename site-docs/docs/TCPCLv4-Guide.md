@@ -46,6 +46,34 @@ ION Node A                                           ION Node B
                                                         └────────────┘
 ```
 
+### Design rationale: isolation from the SDR
+
+The `tcpclv4_agent` runs as a **separate process** that does not attach
+to or operate on ION's SDR, and it is deliberately kept that way.
+It exchanges bundle bytes with `tcp4clo`/`tcp4cli` only through the
+POSIX shared-memory pool and the Unix-socket control channel,
+and it does not route the pool's slot-state atomics through ION's
+shared-memory atomic abstraction (`ion_ipc_atomic_t`):
+it uses bare POSIX shared memory and C11 atomics.
+
+ION's SDR is guarded by a single node-global transaction lock,
+so any work done while holding or waiting on the SDR is serialized
+across the whole node.
+Keeping the agent off the SDR lets its TLS and TCP work —
+the handshake, record encryption, segmentation, and socket I/O —
+run concurrently with ION's bundle processing instead of queuing
+behind that lock.
+The ION-side daemons take the SDR only briefly, to copy a bundle into
+or out of a pool slot, and release it before any wait on the agent or
+the network.
+This matters most on ground nodes and other capable hosts, where the
+TLS/TCP path is the expensive work and there are cores to spare.
+
+Although the agent, the pool, and the control channel are all part of
+ION, this process boundary — and the bare shared memory and C11 atomics
+that come with it — is an intentional design choice, not an oversight.
+It is what keeps the convergence layer off the SDR's critical path.
+
 ## Building ION with TCPCLv4 Support
 
 The TCPCLv4 CLA is **not built by default**. To enable it, pass the
