@@ -1,0 +1,1 @@
+Waypoint without BPSec rules forwards a bundle whose primary block has no CRC and is covered by a BIB (#139).
