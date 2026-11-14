@@ -22,7 +22,9 @@ static void	writeMemoToIonLog(char *text)
 	static char		ionLogFileName[264] = "";
 	static int		ionLogFile = -1;
 	int			textLen;
-	static char		msgbuf[256];
+
+	/*	Holds the longest error message plus its timestamp.	*/
+	static char msgbuf[ERRMSGS_BUFSIZE + 32];
 
 	if (text == NULL) return;
 	if (*text == '\0')	/*	Claims that log file is closed.	*/
