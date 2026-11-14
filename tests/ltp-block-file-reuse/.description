@@ -1,0 +1,1 @@
+Verify that an LTP import session never shares or adopts a block file that is already on disk.

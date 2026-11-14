@@ -64,6 +64,10 @@
 #define REPORTACK_BURST		1
 #endif
 
+#if (!(defined(LTP_BLOCK_FILE_TRIES)) || LTP_BLOCK_FILE_TRIES < 1)
+#define LTP_BLOCK_FILE_TRIES 100
+#endif
+
 #if (!(defined(CANCELACK_BURST)) || CANCELACK_BURST < 1)
 #define CANCELACK_BURST		1
 #endif
@@ -6354,11 +6358,13 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 static int createBlockFile(LtpSpan *span, SdrObject sessionObj,
 		LtpImportSession *session)
 {
-	Sdr	sdr = getIonsdr();
-	char	cwd[200];
-	char	nbrBuf[FQN_MAX_LENGTH];
-	char	name[256];
-	int	fd;
+	Sdr    sdr = getIonsdr();
+	char   cwd[200];
+	char   nbrBuf[FQN_MAX_LENGTH];
+	char   name[256];
+	size_t baseLength;
+	int    tries;
+	int    fd;
 
 	if (igetcwd(cwd, sizeof cwd) == NULL)
 	{
@@ -6369,7 +6375,20 @@ static int createBlockFile(LtpSpan *span, SdrObject sessionObj,
 	putFqn(nbrBuf, span->engineId);
 	isprintf(name, sizeof name, "%s%cltpblock.%s.%u", cwd,
 			ION_PATH_DELIMITER, nbrBuf, session->sessionNbr);
-	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
+	baseLength = strlen(name);
+
+	/*	Always create a new file, never open an existing one.
+	 *	While the name is taken, append "-1", "-2", and so on.	*/
+
+	fd = iopen(name, O_WRONLY | O_CREAT | O_EXCL, 0666);
+	for (tries = 1; fd < 0 && errno == EEXIST && tries < LTP_BLOCK_FILE_TRIES;
+			tries++)
+	{
+		isprintf(name + baseLength, sizeof name - baseLength, "-%d",
+				tries);
+		fd = iopen(name, O_WRONLY | O_CREAT | O_EXCL, 0666);
+	}
+
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't create block file", name);
@@ -6377,10 +6396,16 @@ static int createBlockFile(LtpSpan *span, SdrObject sessionObj,
 	}
 
 	close(fd);
+	if (tries > 1)
+	{
+		writeMemoNote("[?] LTP block file name in use; created", name);
+	}
+
 	session->blockFileRef = zco_create_file_ref(sdr, name, "",
 			ZcoInbound);
 	if (session->blockFileRef == 0)
 	{
+		oK(unlink(name));
 		putErrmsg("Can't create block file reference.", NULL);
 		return -1;
 	}

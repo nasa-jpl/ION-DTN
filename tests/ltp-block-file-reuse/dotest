@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+trap 'kill $recv_pid 2>/dev/null; killm f' EXIT
+#
+# Verify that an LTP import session never shares a block file with an
+# earlier session that had the same session number, and never adopts a
+# block file left on disk.
+#
+# Node 1 sends two files to node 2, whose endpoint queues the bundles
+# because no receiver is attached yet, so each delivered block keeps its
+# block file on disk.  The test then:
+#
+#   1. plants a stale file under the block file name of node 1's next
+#      session before that session's block arrives;
+#   2. waits for node 2 to forget the first session, then injects a red
+#      data segment for that session number, which starts a new import
+#      session with the same number;
+#   3. lets a receiver consume both bundles, which removes the first
+#      session's block file;
+#   4. injects a second segment for the new session.
+#
+# Each new session must get a block file of its own, the queued bundles
+# must arrive intact, the new session's file must survive the removal of
+# the first session's file, and the stale file must be left untouched.
+#
+
+. ../test_utils.sh
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping."
+    exit 2
+fi
+
+NODE2_LSI_PORT=2153
+HEAPMAX=560     # m heapmax in node2.rc; offsets at or past it go to the file
+RETVAL=0
+
+fail() {
+    echo "FAIL: $*"
+    RETVAL=1
+}
+
+fsize() {
+    if [ -f "$1" ]; then
+        wc -c <"$1" | tr -d ' '
+    else
+        echo 0
+    fi
+}
+
+# ltpTally NAME: current count of node 2's LTP span tally NAME.
+ltpTally() {
+    (cd node2 && ltpstats -a >/dev/null 2>&1)
+    grep "\[x\] span 1 $1 " node2/ion.log | tail -1 | awk '{print $(NF-1)}'
+}
+
+# inject SESSION OFFSET LENGTH FILL
+inject() {
+    python3 ./inject_red_segment.py 127.0.0.1 "$NODE2_LSI_PORT" 1 "$@"
+}
+
+dumpDiagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    ls -l node2/ltpblock.* 2>/dev/null
+    for name in import_complete in_seg_recv_red in_seg_redundant \
+        in_seg_ses_closed; do
+        echo "$name: $(ltpTally $name)"
+    done
+    echo "----- node 2 ion.log (tail 40) -----"
+    tail -40 node2/ion.log 2>/dev/null
+}
+
+./cleanup
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR="$PWD"
+rm -f ./ion_nodes
+
+for N in 1 2; do
+    cd "node${N}" || exit 1
+    ionstart -I "node${N}.rc" >node$N.stdout 2>&1
+    ../../../system_up -i "p 30" -l "p 30" -b "p 30"
+    if [ $? -ne 3 ]; then
+        echo "Node $N not started: Aborting Test"
+        exit 1
+    fi
+    cd ..
+done
+
+awk 'BEGIN { for (i = 0; i < 2500; i++) printf "A%06d\n", i }' >node1/fileA
+awk 'BEGIN { for (i = 0; i < 1125; i++) printf "B%06d\n", i }' >node1/fileB
+
+# shellcheck disable=SC2329
+oneImported() {
+    [ "$(ltpTally import_complete)" -ge 1 ] 2>/dev/null
+}
+
+# shellcheck disable=SC2329
+twoImported() {
+    [ "$(ltpTally import_complete)" -ge 2 ] 2>/dev/null
+}
+
+echo "Sending file A..."
+(cd node1 && bpsendfile ipn:1.1 ipn:2.1 fileA)
+if ! waitForPredicate oneImported 30000; then
+    echo "Block A was not received: Aborting Test"
+    dumpDiagnostics
+    exit 1
+fi
+
+set -- node2/ltpblock.1.*
+if [ $# -ne 1 ] || [ ! -f "$1" ]; then
+    echo "Expected one block file after block A, found: $*"
+    dumpDiagnostics
+    exit 1
+fi
+N=${1##*.}
+case "$N" in
+*[!0-9]* | "")
+    fail "block A's file name has a suffix: ${1##*/}"
+    dumpDiagnostics
+    exit 1
+    ;;
+esac
+cp "node2/ltpblock.1.$N" node2/blockA.ref
+echo "Block A is session $N."
+
+S=$((N + 1))
+echo "Planting a stale file named for session $S, then sending file B..."
+awk 'BEGIN { for (i = 0; i < 100; i++) printf "S" }' >"node2/ltpblock.1.$S"
+cp "node2/ltpblock.1.$S" node2/stale.ref
+(cd node1 && bpsendfile ipn:1.1 ipn:2.1 fileB)
+if ! waitForPredicate twoImported 30000; then
+    echo "Block B was not received: Aborting Test"
+    dumpDiagnostics
+    exit 1
+fi
+
+if [ -f "node2/ltpblock.1.$S-1" ]; then
+    echo "Block B was written to a file of its own."
+elif cmp -s "node2/ltpblock.1.$S" node2/stale.ref; then
+    echo "INCONCLUSIVE: block B was not session $S."
+    dumpDiagnostics
+    exit 1
+else
+    fail "block B was written into the stale file."
+fi
+
+# shellcheck disable=SC2329
+sessionRestarted() {
+    [ "$(fsize "node2/ltpblock.1.$N-1")" -eq 64 ] ||
+        ! cmp -s "node2/ltpblock.1.$N" node2/blockA.ref
+}
+
+echo "Injecting segments for session $N until node 2 starts a new session..."
+restarted=0
+tries=0
+while [ "$tries" -lt 60 ]; do
+    inject "$N" "$HEAPMAX" 64 X
+    if waitForPredicate sessionRestarted 1000 200 2>/dev/null; then
+        restarted=1
+        break
+    fi
+    tries=$((tries + 1))
+done
+if [ "$restarted" -ne 1 ]; then
+    echo "INCONCLUSIVE: node 2 never started a new session $N."
+    dumpDiagnostics
+    exit 1
+fi
+
+if [ "$(fsize "node2/ltpblock.1.$N-1")" -eq 64 ] &&
+    cmp -s "node2/ltpblock.1.$N" node2/blockA.ref; then
+    echo "The new session $N was written to a file of its own."
+else
+    fail "the new session $N was written into block A's file."
+fi
+
+if [ "$(grep -c 'LTP block file name in use' node2/ion.log)" -lt 2 ]; then
+    fail "node 2 did not report both block file name collisions."
+fi
+
+echo "Receiving the queued bundles..."
+cd node2 || exit 1
+bprecvfile ipn:2.1 2 &
+recv_pid=$!
+cd ..
+
+# shellcheck disable=SC2329
+receiverDone() {
+    ! kill -0 "$recv_pid" 2>/dev/null
+}
+
+if ! waitForPredicate receiverDone 30000; then
+    fail "the receiver did not get both bundles."
+fi
+
+if { cmp -s node1/fileA node2/testfile1 && cmp -s node1/fileB node2/testfile2; } ||
+    { cmp -s node1/fileA node2/testfile2 && cmp -s node1/fileB node2/testfile1; }; then
+    echo "Both files arrived intact."
+else
+    fail "the delivered files differ from the files sent."
+fi
+
+# shellcheck disable=SC2329
+blockAReleased() {
+    [ ! -f "node2/ltpblock.1.$N" ]
+}
+
+if ! waitForPredicate blockAReleased 20000; then
+    echo "INCONCLUSIVE: block A's file was not removed after delivery."
+    dumpDiagnostics
+    exit 1
+fi
+
+echo "Injecting a second segment for the new session $N..."
+inject "$N" $((HEAPMAX + 64)) 64 Y
+
+# shellcheck disable=SC2329
+secondSegmentHandled() {
+    [ "$(fsize "node2/ltpblock.1.$N-1")" -eq 128 ] ||
+        grep -q "Can't open block file" node2/ion.log
+}
+
+waitForPredicate secondSegmentHandled 10000 >/dev/null 2>&1
+if grep -q "Can't open block file" node2/ion.log; then
+    fail "the new session's block file was removed with block A's file."
+elif [ "$(fsize "node2/ltpblock.1.$N-1")" -ne 128 ]; then
+    fail "the second segment was not written to the new session's file."
+else
+    echo "The new session's file survived the removal of block A's file."
+fi
+
+if cmp -s "node2/ltpblock.1.$S" node2/stale.ref; then
+    echo "The stale file was left untouched."
+else
+    fail "the stale file was modified or removed."
+fi
+
+if [ "$RETVAL" -ne 0 ]; then
+    dumpDiagnostics
+    exit 1
+fi
+
+echo "OK: every session got a block file of its own."
+exit 0
