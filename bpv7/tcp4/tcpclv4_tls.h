@@ -183,6 +183,22 @@ int tcpclv4_tls_set_nonblocking(tcpclv4_tls_session_t *sess, int nonblock);
  */
 const char* tcpclv4_tls_get_peer_nodeid(tcpclv4_tls_session_t *sess);
 
+/*	Authenticate a peer's Node ID against its TLS certificate
+ *	(RFC 9174 §4.4.3).  The Node ID, learned from the peer's
+ *	SESS_INIT, must appear as an id-on-bundleEID otherName SAN in
+ *	the certificate presented during the handshake.
+ *
+ *	:param sess:    Session handle
+ *	:param node_id: Node ID the peer advertised in SESS_INIT
+ *	:param required: 1 if authentication is mandatory (peer
+ *	                 verification was enabled), 0 to allow a
+ *	                 missing certificate or absent SAN
+ *	:return: 0 if authenticated (or not required), -1 if required
+ *	         and the certificate does not vouch for the Node ID
+ */
+int tcpclv4_tls_authenticate_nodeid(tcpclv4_tls_session_t *sess,
+		const char *node_id, int required);
+
 /*	Check if TLS is enabled for this session.
  *
  *	:param sess: Session handle

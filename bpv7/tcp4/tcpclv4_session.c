@@ -66,6 +66,7 @@ struct tcpclv4_session_s
 
 	char		local_node_id[256];
 	char		*peer_node_id;
+	int		auth_required;	/* Authenticate peer Node ID vs cert */
 
 	/*	Our parameters (offered in SESS_INIT).			*/
 
@@ -302,6 +303,18 @@ static int handle_sess_init(tcpclv4_session_t *s, const uint8_t *buf,
 
 	s->peer_node_id = init.node_id;	/* Take ownership */
 	init.node_id = NULL;
+
+	/*	Authenticate the peer's Node ID against its certificate.
+	 *	On failure the caller sends SESS_TERM (Contact Failure)
+	 *	and tears the session down.				*/
+
+	if (tcpclv4_tls_authenticate_nodeid(s->transport, s->peer_node_id,
+			s->auth_required) < 0)
+	{
+		set_error(s, "Peer Node ID not authenticated by certificate");
+		return -1;
+	}
+
 	s->peer_segment_mru = init.segment_mru;
 	s->peer_transfer_mru = init.transfer_mru;
 	s->session_keepalive = (init.keepalive_interval
@@ -605,6 +618,13 @@ static tcpclv4_session_t *session_create(
 
 	snprintf(s->local_node_id, sizeof(s->local_node_id), "%s",
 			cfg->node_id);
+
+	/*	When peer verification is on, the peer's Node ID must be
+	 *	authenticated against its certificate once SESS_INIT
+	 *	arrives (RFC 9174 §4.4.3).				*/
+
+	s->auth_required = (cfg->tls != NULL && cfg->tls->tls_verify_peer);
+
 	if (cbs != NULL)
 	{
 		s->cbs = *cbs;

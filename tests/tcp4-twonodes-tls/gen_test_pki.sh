@@ -2,8 +2,10 @@
 #
 # Generate a self-contained test PKI for TCPCLv4 TLS testing.
 #
-# Creates a throwaway CA and two node certificates with proper SANs
-# including URI-type SANs for RFC 9174 Node ID validation, plus two
+# Creates a throwaway CA and two node certificates with proper SANs:
+# an id-on-bundleEID otherName (OID 1.3.6.1.5.5.7.8.11) carrying the
+# Node ID for RFC 9174 §4.4.3 authentication, plus DNS/IP SANs for the
+# active side's host check and a URI SAN for reference.  Also two
 # certificates the agents must reject: one from an untrusted CA and one
 # that has expired.
 #
@@ -43,7 +45,7 @@ openssl req -new -key "$OUTDIR/node2.key" \
 openssl x509 -req -in "$OUTDIR/node2.csr" \
     -CA "$OUTDIR/ca.crt" -CAkey "$OUTDIR/ca.key" -CAcreateserial \
     -out "$OUTDIR/node2.crt" -days 3650 \
-    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID") \
+    -extfile <(printf "subjectAltName=otherName:1.3.6.1.5.5.7.8.11;IA5STRING:%s,URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID" "$NODE2_EID") \
     2>/dev/null
 
 cat "$OUTDIR/node2.crt" "$OUTDIR/ca.crt" > "$OUTDIR/node2-chain.pem"
@@ -56,7 +58,7 @@ openssl req -new -key "$OUTDIR/node3.key" \
 openssl x509 -req -in "$OUTDIR/node3.csr" \
     -CA "$OUTDIR/ca.crt" -CAkey "$OUTDIR/ca.key" -CAcreateserial \
     -out "$OUTDIR/node3.crt" -days 3650 \
-    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE3_EID") \
+    -extfile <(printf "subjectAltName=otherName:1.3.6.1.5.5.7.8.11;IA5STRING:%s,URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE3_EID" "$NODE3_EID") \
     2>/dev/null
 
 cat "$OUTDIR/node3.crt" "$OUTDIR/ca.crt" > "$OUTDIR/node3-chain.pem"
@@ -75,14 +77,14 @@ openssl req -new -key "$OUTDIR/probe.key" \
 openssl x509 -req -in "$OUTDIR/probe.csr" \
     -CA "$OUTDIR/rogue-ca.crt" -CAkey "$OUTDIR/rogue-ca.key" -CAcreateserial \
     -out "$OUTDIR/untrusted.crt" -days 3650 \
-    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID") \
+    -extfile <(printf "subjectAltName=otherName:1.3.6.1.5.5.7.8.11;IA5STRING:%s,URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID" "$NODE2_EID") \
     2>/dev/null
 
 # Node 2's identity, signed by the test CA, expired yesterday.
 openssl x509 -req -in "$OUTDIR/probe.csr" \
     -CA "$OUTDIR/ca.crt" -CAkey "$OUTDIR/ca.key" -CAcreateserial \
     -out "$OUTDIR/expired.crt" -days -1 \
-    -extfile <(printf "subjectAltName=URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID") \
+    -extfile <(printf "subjectAltName=otherName:1.3.6.1.5.5.7.8.11;IA5STRING:%s,URI:%s,DNS:localhost,IP:127.0.0.1\nbasicConstraints=CA:FALSE" "$NODE2_EID" "$NODE2_EID") \
     2>/dev/null
 
 # --- Cleanup CSRs and serial ---

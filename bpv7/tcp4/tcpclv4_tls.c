@@ -37,6 +37,8 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/x509v3.h>
+#include <openssl/objects.h>
 
 /*	Ceiling on a single message accepted from the peer before
  *	SESS_INIT negotiation gives the caller a chance to impose
@@ -267,7 +269,8 @@ static int exchange_contact_headers(tcpclv4_tls_session_t *sess,
  *	Called only after contact headers agreed on TLS.		*/
 
 static int setup_tls(tcpclv4_tls_session_t *sess,
-		const tcpclv4_tls_config_t *tls_config, int is_server)
+		const tcpclv4_tls_config_t *tls_config, int is_server,
+		const char *expected_host)
 {
 	int	ret;
 
@@ -341,6 +344,42 @@ static int setup_tls(tcpclv4_tls_session_t *sess,
 
 	SSL_set_fd(sess->ssl, sess->fd);
 
+	/*	Active side: bind the handshake to the host we dialled so
+	 *	the passive peer's certificate is checked against it (RFC
+	 *	9174 DNS-ID / Network-ID), not merely chained to a trusted
+	 *	CA.  An IP literal is matched as an iPAddress SAN; anything
+	 *	else as a DNS name.  Only meaningful when verifying.	*/
+
+	if (!is_server && tls_config->tls_verify_peer && expected_host != NULL)
+	{
+		X509_VERIFY_PARAM	*vp = SSL_get0_param(sess->ssl);
+		struct in6_addr		scratch;
+
+		if (inet_pton(AF_INET, expected_host, &scratch) == 1
+		|| inet_pton(AF_INET6, expected_host, &scratch) == 1)
+		{
+			if (X509_VERIFY_PARAM_set1_ip_asc(vp, expected_host)
+					!= 1)
+			{
+				set_error(sess, "Failed to set expected peer "
+						"IP for certificate check");
+				return -1;
+			}
+		}
+		else
+		{
+			X509_VERIFY_PARAM_set_hostflags(vp,
+				X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+			if (X509_VERIFY_PARAM_set1_host(vp, expected_host, 0)
+					!= 1)
+			{
+				set_error(sess, "Failed to set expected peer "
+						"host for certificate check");
+				return -1;
+			}
+		}
+	}
+
 	ret = is_server ? SSL_accept(sess->ssl) : SSL_connect(sess->ssl);
 	if (ret != 1)
 	{
@@ -398,7 +437,8 @@ static tcpclv4_tls_session_t *session_alloc(const char *local_node_id)
  *	(policy: configured TLS is required TLS).			*/
 
 static int establish(tcpclv4_tls_session_t *sess,
-		const tcpclv4_tls_config_t *tls_config, int is_server)
+		const tcpclv4_tls_config_t *tls_config, int is_server,
+		const char *expected_host)
 {
 	int	offer_tls = (tls_config != NULL);
 
@@ -419,7 +459,7 @@ static int establish(tcpclv4_tls_session_t *sess,
 		return -1;
 	}
 
-	return setup_tls(sess, tls_config, is_server);
+	return setup_tls(sess, tls_config, is_server, expected_host);
 }
 
 /*	==============================================================
@@ -477,7 +517,7 @@ tcpclv4_tls_session_t* tcpclv4_tls_connect(
 
 	sess->fd = fd;
 
-	if (establish(sess, tls_config, 0) < 0)
+	if (establish(sess, tls_config, 0, host) < 0)
 	{
 		tcpclv4_tls_close(sess);
 		return NULL;
@@ -506,7 +546,7 @@ tcpclv4_tls_session_t* tcpclv4_tls_accept(
 	/* Disable Nagle's algorithm */
 	setsockopt(sess->fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
 
-	if (establish(sess, tls_config, 1) < 0)
+	if (establish(sess, tls_config, 1, NULL) < 0)
 	{
 		tcpclv4_tls_close(sess);
 		return NULL;
@@ -909,6 +949,117 @@ const char* tcpclv4_tls_get_peer_nodeid(tcpclv4_tls_session_t *sess)
 	}
 
 	return sess->peer_nodeid;
+}
+
+/*	Object identifier of the id-on-bundleEID otherName (RFC 9174
+ *	§4.4.3), which carries a Node ID in a certificate's SANs.	*/
+
+#define ID_ON_BUNDLE_EID_OID	"1.3.6.1.5.5.7.8.11"
+
+/*	Return 1 if cert carries an id-on-bundleEID otherName SAN whose
+ *	value equals node_id, else 0.					*/
+
+static int cert_has_bundle_eid(X509 *cert, const char *node_id)
+{
+	GENERAL_NAMES	*sans;
+	ASN1_OBJECT	*eid_oid;
+	size_t		node_id_len;
+	int		i;
+	int		found = 0;
+
+	sans = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+	if (sans == NULL)
+	{
+		return 0;	/* No SANs at all. */
+	}
+
+	eid_oid = OBJ_txt2obj(ID_ON_BUNDLE_EID_OID, 1);
+	node_id_len = strlen(node_id);
+
+	for (i = 0; i < sk_GENERAL_NAME_num(sans) && !found; i++)
+	{
+		GENERAL_NAME	*gn = sk_GENERAL_NAME_value(sans, i);
+		ASN1_TYPE	*val;
+		ASN1_STRING	*str;
+
+		if (gn->type != GEN_OTHERNAME
+		|| OBJ_cmp(gn->d.otherName->type_id, eid_oid) != 0)
+		{
+			continue;
+		}
+
+		/*	RFC 9174 encodes the EID as an IA5String.	*/
+
+		val = gn->d.otherName->value;
+		if (val == NULL || val->type != V_ASN1_IA5STRING)
+		{
+			continue;
+		}
+
+		str = val->value.ia5string;
+		if ((size_t) ASN1_STRING_length(str) == node_id_len
+		&& memcmp(ASN1_STRING_get0_data(str), node_id,
+				node_id_len) == 0)
+		{
+			found = 1;
+		}
+	}
+
+	ASN1_OBJECT_free(eid_oid);
+	GENERAL_NAMES_free(sans);
+	return found;
+}
+
+int tcpclv4_tls_authenticate_nodeid(tcpclv4_tls_session_t *sess,
+		const char *node_id, int required)
+{
+	X509	*cert;
+	int	matched;
+
+	if (sess == NULL || node_id == NULL)
+	{
+		return required ? -1 : 0;
+	}
+
+	if (!sess->tls_enabled)
+	{
+		return 0;	/* Plain TCP: no certificate to check. */
+	}
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	cert = SSL_get1_peer_certificate(sess->ssl);
+#else
+	cert = SSL_get_peer_certificate(sess->ssl);
+#endif
+	if (cert == NULL)
+	{
+		if (required)
+		{
+			set_error(sess, "Peer presented no certificate for "
+					"node ID authentication");
+			return -1;
+		}
+
+		return 0;
+	}
+
+	matched = cert_has_bundle_eid(cert, node_id);
+	X509_free(cert);
+
+	if (matched)
+	{
+		return 0;
+	}
+
+	if (required)
+	{
+		snprintf(sess->error_msg, sizeof(sess->error_msg),
+			"Peer node ID %.128s is not authenticated by its "
+			"certificate", node_id);
+		return -1;
+	}
+
+	return 0;	/* Verification not required: allow. */
 }
 
 int tcpclv4_tls_is_secure(tcpclv4_tls_session_t *sess)

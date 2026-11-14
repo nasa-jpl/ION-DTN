@@ -178,6 +178,29 @@ if ! kill -0 $BRIDGE2_PID 2>/dev/null; then
     FAIL=1
 fi
 
+if [ $FAIL -eq 0 ] && command -v python3 >/dev/null 2>&1; then
+    # Node-ID authentication (RFC 9174 4.4.3).  Before the real peer
+    # connects (so the passive agent is not BUSY and processes our
+    # SESS_INIT), a probe presents node 2's valid certificate but
+    # claims a different Node ID.  Node 3 must refuse it with SESS_TERM
+    # Contact Failure, then be free for the real peer.
+    echo ""
+    echo "Running Node-ID mismatch probe (first connection)..."
+    cd ..
+    python3 tls_probe.py 127.0.0.1 4556 pki mismatch
+    MISMATCH_RC=$?
+    cd 3.ipn.tcp4
+    if [ $MISMATCH_RC -eq 0 ]; then
+        echo "SUCCESS: Node 3 refused the mismatched Node ID."
+    else
+        echo "ERROR: Node 3 did not refuse a mismatched Node ID."
+        echo "--- Agent2 log ---"
+        tail -20 agent.log 2>/dev/null
+        FAIL=1
+    fi
+    sleep 2
+fi
+
 if [ $FAIL -eq 0 ]; then
     # Start Agent1 (active, connects with TLS) from Node 2's directory
     cd ../2.ipn.tcp4
