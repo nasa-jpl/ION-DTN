@@ -25,21 +25,31 @@ int	tcp4_parse_config(const char *ductName, Tcp4Config *cfg)
 	}
 
 	memset(cfg, 0, sizeof(Tcp4Config));
-	snprintf(cfg->duct_name, sizeof(cfg->duct_name), "%s", ductName);
 
-	/*	Derive pool names from duct name.			*/
+	/*	Derive the duct name, the pool names and the control socket
+	 *	paths.  Reject a duct name so long that any of these would be
+	 *	truncated, since two ducts could then collide on the same
+	 *	pool or socket.						*/
 
-	snprintf(cfg->tx_pool_name, sizeof(cfg->tx_pool_name),
-			"/ion_tcp4_tx_%s", ductName);
-	snprintf(cfg->rx_pool_name, sizeof(cfg->rx_pool_name),
-			"/ion_tcp4_rx_%s", ductName);
-
-	/*	Derive control socket paths from duct name.		*/
-
-	snprintf(cfg->tx_ctrl_path, sizeof(cfg->tx_ctrl_path),
-			"%s/tx_%s.sock", TCP4CLA_SOCK_DIR, ductName);
-	snprintf(cfg->rx_ctrl_path, sizeof(cfg->rx_ctrl_path),
-			"%s/rx_%s.sock", TCP4CLA_SOCK_DIR, ductName);
+	if (snprintf(cfg->duct_name, sizeof(cfg->duct_name), "%s", ductName)
+			>= (int) sizeof(cfg->duct_name)
+	|| snprintf(cfg->tx_pool_name, sizeof(cfg->tx_pool_name),
+			"/ion_tcp4_tx_%s", ductName)
+			>= (int) sizeof(cfg->tx_pool_name)
+	|| snprintf(cfg->rx_pool_name, sizeof(cfg->rx_pool_name),
+			"/ion_tcp4_rx_%s", ductName)
+			>= (int) sizeof(cfg->rx_pool_name)
+	|| snprintf(cfg->tx_ctrl_path, sizeof(cfg->tx_ctrl_path),
+			"%s/tx_%s.sock", TCP4CLA_SOCK_DIR, ductName)
+			>= (int) sizeof(cfg->tx_ctrl_path)
+	|| snprintf(cfg->rx_ctrl_path, sizeof(cfg->rx_ctrl_path),
+			"%s/rx_%s.sock", TCP4CLA_SOCK_DIR, ductName)
+			>= (int) sizeof(cfg->rx_ctrl_path))
+	{
+		putErrmsg("tcp4cla: duct name too long for pool and socket "
+				"names.", ductName);
+		return -1;
+	}
 
 	/*	Apply defaults.						*/
 
@@ -176,13 +186,13 @@ void	tcp4_inflight_fail_all(Tcp4InFlight *table, int size)
 
 /*	*	*	Bundle extraction	*	*	*	*/
 
-int	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
+vast	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
 		IonTransferPool *pool, int slot_idx)
 {
 	ZcoReader	reader;
 	char		*dest;
 	IonPoolSlotHdr	*sh;
-	int		bytesToSend;
+	vast		bytesToSend;
 
 	dest = pool_slot_data(pool, slot_idx);
 	sh = pool_slot_hdr(pool, slot_idx);

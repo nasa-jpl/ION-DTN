@@ -50,16 +50,17 @@ static void	handleAgentDisconnect(ReceiverThreadParms *rtp,
 	pool_reset_all_slots(rtp->rx_pool);
 	ctrl_disconnect(rtp->ctrl_ch);
 
-	/*	Wait for agent to reconnect.				*/
+	/*	Wait for the agent to reconnect, but stay interruptible so
+	 *	shutdown is not blocked here if it never comes back.	*/
 
 	writeMemo("[i] tcp4cli: waiting for agent reconnect...");
-	if (ctrl_server_accept(rtp->ctrl_ch) < 0)
+	if (ctrl_server_accept_wait(rtp->ctrl_ch, &rtp->running) == 0)
 	{
-		rtp->running = 0;
+		writeMemo("[i] tcp4cli: agent reconnected.");
 	}
 	else
 	{
-		writeMemo("[i] tcp4cli: agent reconnected.");
+		rtp->running = 0;
 	}
 }
 

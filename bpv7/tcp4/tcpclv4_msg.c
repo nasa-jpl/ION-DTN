@@ -637,6 +637,14 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 	uint64_t	varpart;
 	size_t		offset;
 
+	/*	A frame's length fields are bounded by max_msg_len.  When
+	 *	that is 0 ("unlimited"), clamp to an absolute 1 TiB ceiling
+	 *	so the length arithmetic below cannot overflow on a hostile
+	 *	value.							*/
+
+	uint64_t	limit = max_msg_len ? max_msg_len
+			: ((uint64_t) 1 << 40);
+
 	if (buf == NULL || msg_len == NULL)
 	{
 		return -1;
@@ -688,7 +696,7 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 			}
 
 			varpart = read_u32(buf + offset);
-			if (max_msg_len && varpart > max_msg_len)
+			if (varpart > limit)
 			{
 				return -1;
 			}
@@ -702,7 +710,7 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 		}
 
 		varpart = read_u64(buf + offset);
-		if (max_msg_len && varpart > max_msg_len)
+		if (varpart > limit)
 		{
 			return -1;
 		}
@@ -725,7 +733,7 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 		offset = 21 + (size_t) varpart;
 		if (len < offset + 4)
 		{
-			if (max_msg_len && offset + 4 > max_msg_len)
+			if (offset + 4 > limit)
 			{
 				return -1;
 			}
@@ -734,7 +742,7 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 		}
 
 		varpart = read_u32(buf + offset);	/* ext_len */
-		if (max_msg_len && varpart > max_msg_len)
+		if (varpart > limit)
 		{
 			return -1;
 		}
@@ -746,7 +754,7 @@ int tcpclv4_msg_frame_len(const uint8_t *buf, size_t len,
 		return -1;	/* Unknown message type */
 	}
 
-	if (max_msg_len && total > max_msg_len)
+	if (total > limit)
 	{
 		return -1;
 	}

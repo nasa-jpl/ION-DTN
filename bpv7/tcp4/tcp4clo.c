@@ -40,7 +40,7 @@ static void	shutDownClo(int signum)
 typedef struct
 {
 	int		*running;
-	int		*agent_connected;
+	_Atomic int	*agent_connected;
 	CtrlChannel	*ctrl_ch;
 	IonTransferPool	*tx_pool;
 	Tcp4InFlight	*inflight;
@@ -81,15 +81,16 @@ static void	*handleResponses(void *parm)
 
 				writeMemo("[i] tcp4clo: waiting for agent "
 						"reconnect...");
-				if (ctrl_server_accept(rtp->ctrl_ch) < 0)
-				{
-					*(rtp->running) = 0;
-				}
-				else
+				if (ctrl_server_accept_wait(rtp->ctrl_ch,
+						rtp->running) == 0)
 				{
 					writeMemo("[i] tcp4clo: agent "
 							"reconnected.");
 					*(rtp->agent_connected) = 1;
+				}
+				else
+				{
+					*(rtp->running) = 0;
 				}
 			}
 
@@ -119,14 +120,15 @@ static void	*handleResponses(void *parm)
 
 			writeMemo("[i] tcp4clo: waiting for agent "
 					"reconnect...");
-			if (ctrl_server_accept(rtp->ctrl_ch) < 0)
-			{
-				*(rtp->running) = 0;
-			}
-			else
+			if (ctrl_server_accept_wait(rtp->ctrl_ch,
+					rtp->running) == 0)
 			{
 				writeMemo("[i] tcp4clo: agent reconnected.");
 				*(rtp->agent_connected) = 1;
+			}
+			else
+			{
+				*(rtp->running) = 0;
 			}
 
 			continue;
@@ -247,7 +249,7 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		inflight_mutex;
 	uint64_t		xfer_id_counter = 1;
 	int			running = 1;
-	int			agent_connected = 1;
+	_Atomic int		agent_connected = 1;
 	ResponseThreadParms	rtp;
 	pthread_t		responseThread;
 	SdrObject		bundleZco;
@@ -255,7 +257,7 @@ int	main(int argc, char *argv[])
 	unsigned int		bundleLength;
 	int			slot;
 	int			slot_added;
-	int			bytesExtracted;
+	vast			bytesExtracted;
 	CtrlMsg			ctrlMsg;
 
 	if (ductName == NULL)

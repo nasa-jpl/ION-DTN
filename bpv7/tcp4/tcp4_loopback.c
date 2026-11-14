@@ -82,8 +82,8 @@ int	main(int argc, char *argv[])
 	snprintf(rxCtrlPath, sizeof(rxCtrlPath), "/tmp/ion_tcp4/rx_%s.sock",
 			ductName);
 
-	signal(SIGTERM, handleSignal);
-	signal(SIGINT, handleSignal);
+	isignal(SIGTERM, handleSignal);
+	isignal(SIGINT, handleSignal);
 
 	/*	Wait for the pools to become available, then attach.
 	 *	The CLA daemons create them; we just attach.		*/
@@ -212,7 +212,7 @@ int	main(int argc, char *argv[])
 				ctrl_msg_init(&reply, CTRL_XFER_FAILURE,
 						msg.slot_index, xferId,
 						NULL, 0);
-				ctrl_send(&txCtrl, &reply);
+				oK(ctrl_send(&txCtrl, &reply));
 				continue;
 			}
 
@@ -230,7 +230,7 @@ int	main(int argc, char *argv[])
 				ctrl_msg_init(&reply, CTRL_XFER_FAILURE,
 						msg.slot_index, xferId,
 						NULL, 0);
-				ctrl_send(&txCtrl, &reply);
+				oK(ctrl_send(&txCtrl, &reply));
 				continue;
 			}
 
@@ -257,7 +257,7 @@ int	main(int argc, char *argv[])
 				ctrl_msg_init(&reply, CTRL_XFER_FAILURE,
 						msg.slot_index, xferId,
 						NULL, 0);
-				ctrl_send(&txCtrl, &reply);
+				oK(ctrl_send(&txCtrl, &reply));
 				continue;
 			}
 
@@ -266,7 +266,7 @@ int	main(int argc, char *argv[])
 
 			ctrl_msg_init(&reply, CTRL_XFER_SUCCESS,
 					msg.slot_index, xferId, NULL, 0);
-			ctrl_send(&txCtrl, &reply);
+			oK(ctrl_send(&txCtrl, &reply));
 		}
 		else if (ret > 0 && msg.type == CTRL_KEEPALIVE)
 		{

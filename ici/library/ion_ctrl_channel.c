@@ -89,6 +89,18 @@ int	ctrl_server_create(CtrlChannel *ch, const char *path,
 		return -1;
 	}
 
+	/*	bind() below truncates the path to sun_path, but the stale-
+	 *	socket unlink() uses the full path, so a path that does not
+	 *	fit would clean up one name and bind another.  Reject it.	*/
+
+	if (strlen(path) >= sizeof(addr.sun_path))
+	{
+		fprintf(stderr, "ctrl_server_create: socket path too long "
+				"(%zu >= %zu): %s\n", strlen(path),
+				sizeof(addr.sun_path), path);
+		return -1;
+	}
+
 	memset(ch, 0, sizeof(CtrlChannel));
 	ch->server_fd = -1;
 	ch->conn_fd = -1;
@@ -132,26 +144,70 @@ int	ctrl_server_create(CtrlChannel *ch, const char *path,
 	return 0;
 }
 
+#define CTRL_ACCEPT_POLL_MS	200	/*	Shutdown-check cadence.	*/
+
 int	ctrl_server_accept(CtrlChannel *ch)
 {
-	int	fd;
+	return ctrl_server_accept_wait(ch, NULL);
+}
+
+int	ctrl_server_accept_wait(CtrlChannel *ch, volatile int *running)
+{
+	struct pollfd	pfd;
+	int		ret;
+	int		fd;
 
 	if (ch == NULL || ch->server_fd < 0)
 	{
 		return -1;
 	}
 
-	fd = accept(ch->server_fd, NULL, NULL);
-	if (fd < 0)
+	pfd.fd = ch->server_fd;
+	pfd.events = POLLIN;
+
+	while (running == NULL || *running)
 	{
-		perror("ctrl_server_accept: accept");
-		return -1;
+		ret = poll(&pfd, 1, CTRL_ACCEPT_POLL_MS);
+		if (ret < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;	/*	Retry.		*/
+			}
+
+			perror("ctrl_server_accept: poll");
+			return -1;
+		}
+
+		if (ret == 0)
+		{
+			continue;	/*	Timeout; recheck running.	*/
+		}
+
+		if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
+		{
+			return -1;
+		}
+
+		fd = accept(ch->server_fd, NULL, NULL);
+		if (fd < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;	/*	Retry.		*/
+			}
+
+			perror("ctrl_server_accept: accept");
+			return -1;
+		}
+
+		ch->conn_fd = fd;
+		ch->last_recv_time = time(NULL);
+		ch->last_send_time = time(NULL);
+		return 0;
 	}
 
-	ch->conn_fd = fd;
-	ch->last_recv_time = time(NULL);
-	ch->last_send_time = time(NULL);
-	return 0;
+	return 1;	/*	Shutting down; no client accepted.	*/
 }
 
 int	ctrl_client_connect(CtrlChannel *ch, const char *path,
@@ -162,6 +218,14 @@ int	ctrl_client_connect(CtrlChannel *ch, const char *path,
 
 	if (ch == NULL || path == NULL)
 	{
+		return -1;
+	}
+
+	if (strlen(path) >= sizeof(addr.sun_path))
+	{
+		fprintf(stderr, "ctrl_client_connect: socket path too long "
+				"(%zu >= %zu): %s\n", strlen(path),
+				sizeof(addr.sun_path), path);
 		return -1;
 	}
 

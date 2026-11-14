@@ -18,8 +18,27 @@
 #define ION_TRANSFER_POOL_H
 
 #include <stdint.h>
-#include <stdatomic.h>
 #include <stddef.h>
+
+/*	The pool's slot state is a lock-free single-producer/single-consumer
+ *	field in POSIX shared memory crossing a process boundary (an ION
+ *	convergence-layer daemon and the external TCPCLv4 agent).  Its state
+ *	transitions need a compare-and-swap with acquire/release ordering.
+ *	ION's shared-memory atomic abstraction (ion_ipc_atomic_t in
+ *	ion_atomic.h) does not yet expose a compare-and-swap or ordered
+ *	operations -- only relaxed load, store, add and exchange -- so the
+ *	pool uses C11 <stdatomic.h> directly.  That requires a C11 compiler
+ *	with atomics; fail here, loudly, rather than later with a confusing
+ *	error on one of ION's non-C11 fallback tiers.  Issue 1683 tracks
+ *	extending the abstraction so the pool can drop this dependency.		*/
+
+#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L \
+		|| defined(__STDC_NO_ATOMICS__)
+#error "ion_transfer_pool needs C11 atomics; build the TCPCLv4 external CLA \
+(--enable-tcpclv4-external) with a C11 compiler."
+#endif
+
+#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {

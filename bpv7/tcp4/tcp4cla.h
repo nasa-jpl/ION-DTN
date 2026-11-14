@@ -161,7 +161,7 @@ extern void	tcp4_inflight_fail_all(Tcp4InFlight *table, int size);
  *
  *	Returns bytes written (>= 0) on success, -1 on error.		*/
 
-extern int	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
+extern vast	tcp4_extract_bundle(Sdr sdr, SdrObject bundleZco,
 			IonTransferPool *pool, int slot_idx);
 
 #ifdef __cplusplus

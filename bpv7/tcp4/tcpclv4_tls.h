@@ -195,13 +195,15 @@ int tcpclv4_tls_is_secure(tcpclv4_tls_session_t *sess);
  *	==============================================================
  */
 
-/*	Close TLS session gracefully.
+/*	Close the TLS transport and free the session.
  *
- *	Steps:
- *	  1. Send SESS_TERM if not already sent
- *	  2. SSL_shutdown (if TLS enabled)
- *	  3. close(fd)
- *	  4. Free session memory
+ *	This is the transport-level teardown; it does NOT send a
+ *	SESS_TERM.  SESS_TERM is a session-layer message: the caller
+ *	sends it with tcpclv4_session_terminate() before closing the
+ *	transport.  Steps here:
+ *	  1. SSL_shutdown (if TLS enabled)
+ *	  2. close(fd)
+ *	  3. Free session memory
  *
  *	:param sess: Session handle (may be NULL)
  */

@@ -87,11 +87,23 @@ typedef struct
 extern int	ctrl_server_create(CtrlChannel *ch, const char *path,
 			int keepalive_interval, int keepalive_timeout);
 
-/*	Server-side: accept one client connection (blocking).
+/*	Server-side: accept one client connection.  Blocks until a client
+ *	connects or an error occurs, retrying across interrupting signals.
  *
  *	Returns 0 on success, -1 on error.				*/
 
 extern int	ctrl_server_accept(CtrlChannel *ch);
+
+/*	Server-side: wait for one client connection while remaining
+ *	interruptible.  Polls the listening socket, rechecks *running
+ *	between polls, and retries across interrupting signals, so a
+ *	daemon that clears *running during shutdown is not left blocked
+ *	in accept().  A NULL running pointer waits indefinitely.
+ *
+ *	Returns 0 when a client is accepted, 1 when *running became 0
+ *	before a client connected, -1 on error.				*/
+
+extern int	ctrl_server_accept_wait(CtrlChannel *ch, volatile int *running);
 
 /*	Client-side: connect to a listening Unix domain socket.
  *
