@@ -16,7 +16,7 @@ AM_MAINTAINER_MODE([enable])
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_MACRO_DIRS([m4])
 
 m4_pattern_forbid([^PKG_])
 PKG_PROG_PKG_CONFIG
