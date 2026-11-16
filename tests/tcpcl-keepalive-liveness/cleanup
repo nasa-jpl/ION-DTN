@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stop a leftover TCPCL peer, then reap the node.
+export ION_NODE_LIST_DIR="$PWD"
+if [ -s peer.ready ]; then
+    kill "$(cat peer.ready)" 2>/dev/null
+fi
+killm f
+rm -f ion_nodes peer.ready 1.ipn.tcp/ion.log

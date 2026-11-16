@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Check tcpcli's reception timer against a scripted TCPCLv3 peer that
+# negotiates a 2-second keepalive interval. tcpcl_peer.py listens for
+# node 1's planned session and connects to node 1's induct; it reports
+# PASS or FAIL for each phase:
+#
+#   P1  a silent peer is dropped after more than 4 and less than 7 s;
+#   P2  ACK, LENGTH and REFUSE messages without keepalives keep the
+#       session up;
+#   P3  a data segment trickled over 10 s is neither cut off nor left
+#       unacknowledged;
+#   P4  an accepted session that is closed and reopened about 2 s after
+#       node 1's first keepalive is served, and node 1 still accepts
+#       sessions afterwards.
+#
+# Node 1's tcpcli must still be running at the end, and its log must
+# record the P1 timeout.
+
+root=$PWD
+peer_pid=""
+stopPeer() {
+    if [ -n "$peer_pid" ]; then
+        kill "$peer_pid" 2>/dev/null
+        wait "$peer_pid" 2>/dev/null
+        peer_pid=""
+    fi
+}
+trap 'stopPeer; rm -f "$root/peer.ready"; killm f' EXIT
+trap 'exit 1' INT TERM
+
+echo "########################################"
+echo "NAME: tcpcl-keepalive-liveness"
+echo "PURPOSE: Check that tcpcli times out only a silent TCPCL peer."
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not available; skipping."
+    exit 2
+fi
+
+export ION_NODE_LIST_DIR="$PWD"
+rm -f ion_nodes peer.ready
+log="$root/1.ipn.tcp/ion.log"
+
+echo "Starting the TCPCL peer..."
+python3 -I ./tcpcl_peer.py --ready peer.ready &
+peer_pid=$!
+i=0
+while [ ! -s peer.ready ] && [ "$i" -lt 5 ]; do
+    if ! kill -0 "$peer_pid" 2>/dev/null; then
+        echo "FAIL: the TCPCL peer exited before listening."
+        exit 1
+    fi
+    sleep 1
+    i=$((i + 1))
+done
+if [ ! -s peer.ready ]; then
+    echo "FAIL: the TCPCL peer is not listening after 5 seconds."
+    exit 1
+fi
+
+echo "Starting node 1..."
+cd "$root/1.ipn.tcp" || exit 1
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+status=$?
+cd "$root" || exit 1
+if [ "$status" -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+echo "Waiting up to 170 seconds for the peer to finish..."
+i=0
+while kill -0 "$peer_pid" 2>/dev/null && [ "$i" -lt 170 ]; do
+    sleep 1
+    i=$((i + 1))
+done
+if kill -0 "$peer_pid" 2>/dev/null; then
+    echo "FAIL: the TCPCL peer did not finish within 170 seconds."
+    exit 1
+fi
+wait "$peer_pid"
+peer_status=$?
+peer_pid=""
+
+result=0
+if [ "$peer_status" -ne 0 ]; then
+    echo "FAIL: the TCPCL peer reported failures (exit ${peer_status})."
+    result=1
+fi
+
+tcpcli_pid=$(ps -A -o pid= -o args= | awk '
+    $2 ~ /(^|\/)tcpcli$/ && $3 == "127.0.0.1:4655" { print $1; exit }')
+if [ -z "$tcpcli_pid" ]; then
+    echo "FAIL: node 1 tcpcli is no longer running."
+    result=1
+else
+    echo "Okay: node 1 tcpcli (pid ${tcpcli_pid}) is still running."
+fi
+
+timeouts=$(grep -c "tcpcl session timed out" "$log" 2>/dev/null)
+if [ "${timeouts:-0}" -lt 1 ]; then
+    echo "FAIL: node 1 logged no tcpcl session timeout."
+    result=1
+else
+    echo "Okay: node 1 logged ${timeouts} tcpcl session timeout(s)."
+fi
+
+if [ "$result" -ne 0 ]; then
+    echo "----- node 1 ion.log (tail 40) -----"
+    tail -40 "$log" 2>/dev/null
+    echo "FAIL"
+    exit 1
+fi
+
+echo "SUCCESS"
+exit 0
