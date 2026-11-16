@@ -43,6 +43,10 @@
 #define	MAX_PIPELINE_LENGTH	(100)
 #endif
 
+#ifndef THROTTLE_POLL_USEC
+#define THROTTLE_POLL_USEC (1000000)
+#endif
+
 #ifndef TCPCL_SEGMENT_ACKS
 #define	TCPCL_SEGMENT_ACKS	(1)
 #endif
@@ -885,6 +889,19 @@ static void	shutDownNeighbors(Lyst neighbors)
 
 /*	*	*	Sender thread functions		*	*	*/
 
+/* Hands an unsent bundle back to BP for reforwarding. */
+static int returnBundle(TcpclSession *session, SdrObject bundleZco)
+{
+	if (bpHandleXmitFailure(bundleZco) < 0)
+	{
+		putErrmsg("tcpcli can't return unsent bundle.",
+				session->outductName);
+		return -1;
+	}
+
+	return 0;
+}
+
 static int sendBundleByTcpcl(SenderThreadParms *stp, SdrObject bundleZco)
 {
 	Sdr		sdr = getIonsdr();
@@ -903,17 +920,26 @@ static int sendBundleByTcpcl(SenderThreadParms *stp, SdrObject bundleZco)
 
 	if (session->sock == -1)
 	{
-		return 0;	/*	Session has been lost.	*/
+		return returnBundle(session, bundleZco);
 	}
 
 	if (session->segmentAcks)
 	{
-		if (llcv_wait(session->throttle, pipeline_not_full,
-					LLCV_BLOCKING))
+		/* Wait for room in the pipeline until the session closes. */
+		while (llcv_wait(session->throttle, pipeline_not_full,
+				       THROTTLE_POLL_USEC) < 0)
 		{
-			putErrmsg("Wait on TCPCL pipeline throttle condition \
-failed.", session->outductName);
-			return -1;
+			if (errno != ETIMEDOUT)
+			{
+				putErrmsg("Wait on TCPCL pipeline throttle condition failed.",
+						session->outductName);
+				return -1;
+			}
+
+			if (session->sock == -1)
+			{
+				return returnBundle(session, bundleZco);
+			}
 		}
 
 		pthread_mutex_lock(&(session->plMutex));
@@ -964,7 +990,12 @@ pipeline.", session->outductName);
 			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg header)",
 					neighbor->vplan->neighborEid);
-			return 0;
+			if (session->segmentAcks)
+			{
+				return 0; /* In the pipeline. */
+			}
+
+			return returnBundle(session, bundleZco);
 		}
 
 		if (itcp_send(&(session->sock), stp->buffer, bytesToSend) < 1)
@@ -972,7 +1003,12 @@ pipeline.", session->outductName);
 			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg content)",
 					neighbor->vplan->neighborEid);
-			return 0;
+			if (session->segmentAcks)
+			{
+				return 0; /* In the pipeline. */
+			}
+
+			return returnBundle(session, bundleZco);
 		}
 
 		pthread_mutex_unlock(&(session->socketMutex));
