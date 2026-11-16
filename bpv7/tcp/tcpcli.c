@@ -113,7 +113,7 @@ typedef struct
 	int			reconnectInterval;
 	int			secUntilReconnect;
 	int			secSinceReception;
-	int			timeoutCount;
+	int			acquiring;	/*	Boolean.	*/
 	int			segmentAcks;	/*	Boolean.	*/
 	int			reactiveFrags;	/*	Boolean.	*/
 	int			bundleRefusals;	/*	Boolean.	*/
@@ -690,6 +690,7 @@ static void	closeSession(TcpclSession *session)
 		return;
 	}
 
+	session->keepaliveInterval = 0; /* Disarm the reception timer. */
 	session->secUntilKeepalive = -1;
 	if (session->hasAdmin)
 	{
@@ -1078,6 +1079,7 @@ static void	*sendBundles(void *parm)
 	SenderThreadParms	*stp = (SenderThreadParms *) parm;
 	TcpclSession		*session = stp->session;
 	TcpclNeighbor		*neighbor = session->neighbor;
+	int			 interval;
 
 	session->hasSender = 1;
 	session->newlyAdded = 0;
@@ -1118,10 +1120,10 @@ static void	*sendBundles(void *parm)
 
 			/*	Reset keepalive countdown.		*/
 
-			if (session->keepaliveInterval > 0)
+			interval = session->keepaliveInterval;
+			if (interval > 0)
 			{
-				session->secUntilKeepalive =
-						session->keepaliveInterval;
+				session->secUntilKeepalive = interval;
 			}
 
 			/*	Make sure other tasks get to run.	*/
@@ -1379,6 +1381,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 	memcpy((char *) &keepaliveInterval, (char *) (header + 6), 2);
 	keepaliveInterval = ntohs(keepaliveInterval);
+	session->secSinceReception = 0;
 	if (keepaliveInterval < KEEPALIVE_INTERVAL)
 	{
 		session->keepaliveInterval = keepaliveInterval;
@@ -1653,6 +1656,39 @@ plan for neighbor.", eidbuf);
 	return result;
 }
 
+/* Receives length bytes, restarting the reception timer on each recv. */
+static int receiveExtent(TcpclSession *session, char *into, int length)
+{
+	int received = 0;
+	int bytesRead;
+
+	while (received < length)
+	{
+		if (session->sock == -1)
+		{
+			return 0;
+		}
+
+		bytesRead = irecv(session->sock, into + received,
+				length - received, 0);
+		if (bytesRead < 1)
+		{
+			if (bytesRead < 0 && errno != EINTR)
+			{
+				putSysErrmsg("irecv() error on TCP socket",
+						session->outductName);
+			}
+
+			return 0;
+		}
+
+		session->secSinceReception = 0;
+		received += bytesRead;
+	}
+
+	return received;
+}
+
 static int	handleDataSegment(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
@@ -1673,7 +1709,6 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	if (dataLength == 0)		/*	Nuisance data segment.	*/
 	{
 		session->secSinceReception = 0;
-		session->timeoutCount = 0;
 		return 1;		/*	Ignore.			*/
 	}
 
@@ -1704,8 +1739,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 			bytesToRead = TCPCL_BUFSZ;
 		}
 
-		extentSize = itcp_recv(&session->sock, rtp->buffer,
-				bytesToRead);
+		extentSize = receiveExtent(session, rtp->buffer, bytesToRead);
 		if (extentSize < 1)
 		{
 			writeMemoNote("[?] Lost TCPCL neighbor",
@@ -1713,8 +1747,12 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 			return 0;
 		}
 
-		if (bpContinueAcq(rtp->work, rtp->buffer, extentSize,
-				&(rtp->attendant), 0) < 0)
+		/* Pause the reception timer while waiting for ZCO space. */
+		session->acquiring = 1;
+		result = bpContinueAcq(rtp->work, rtp->buffer, extentSize,
+				&(rtp->attendant), 0);
+		session->acquiring = 0;
+		if (result < 0)
 		{
 			return -1;
 		}
@@ -1754,7 +1792,6 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	}
 
 	session->secSinceReception = 0;
-	session->timeoutCount = 0;
 	return 1;
 }
 
@@ -1916,7 +1953,6 @@ static int	handleKeepalive(ReceiverThreadParms *rtp,
 	(void)msgtypeByte;
 
 	session->secSinceReception = 0;
-	session->timeoutCount = 0;
 	return 1;
 }
 
@@ -2012,6 +2048,7 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 			return 0;
 		}
 
+		session->secSinceReception = 0;
 		msgType = (msgtypeByte >> 4) & 0x0f;
 		switch (msgType)
 		{
@@ -2253,7 +2290,6 @@ static void	*handleContacts(void *parm)
 		}
 
 		session->secSinceReception = 0;
-		session->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
 		{
 			ionKillMainThread(procName());
@@ -2741,6 +2777,11 @@ static int	clearBacklog(ClockThreadParms *ctp)
 
 static void	checkSession(TcpclSession *session)
 {
+	TcpclNeighbor *neighbor = session->neighbor;
+	char	      *eid = NULL;
+	int	       sock;
+	int	       interval;
+
 	/*	Track idleness in bundle traffic.			*/
 
 	if (session->secUntilShutdown > 0)
@@ -2754,20 +2795,25 @@ static void	checkSession(TcpclSession *session)
 		return;
 	}
 
-	/*	Track idleness in all reception.			*/
-
-	if (session->keepaliveInterval != 0)
+	/*
+	 * Track idleness in all reception. After more than two
+	 * keepalive intervals of silence, shut down the socket; the
+	 * receiver thread then closes the session.
+	 */
+	sock = session->sock;
+	if (session->keepaliveInterval != 0 && sock != -1 && !session->acquiring)
 	{
 		session->secSinceReception++;
-		if (session->secSinceReception ==
-				session->keepaliveInterval)
+		if (session->secSinceReception > 2 * session->keepaliveInterval)
 		{
-			session->timeoutCount++;
-			if (session->timeoutCount > 1)
+			session->secSinceReception = 0;
+			shutdown(sock, SD_BOTH);
+			if (neighbor->vplan)
 			{
-				endSession(session, 0);
-				return;
+				eid = neighbor->vplan->neighborEid;
 			}
+
+			writeMemoNote("[?] tcpcl session timed out", eid);
 		}
 	}
 
@@ -2786,8 +2832,8 @@ static void	checkSession(TcpclSession *session)
 		}
 		else
 		{
-			session->secUntilKeepalive
-					= session->keepaliveInterval;
+			interval = session->keepaliveInterval;
+			session->secUntilKeepalive = interval > 0 ? interval : -1;
 		}
 	}
 

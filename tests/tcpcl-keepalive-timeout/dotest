@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# A lost RST, or a peer crash that delivers no segment, leaves the TCP
+# connection established. SIGSTOP on the peer's tcpcli stands in for
+# both: the peer sends no TCPCL bytes and no reset. With the default
+# keepalive interval of 15 seconds, the test checks that:
+#  - a healthy session left idle for 35 seconds does not time out;
+#  - node 1 times out both of its sessions with the frozen peer, one
+#    of them with bundles filling its pipeline, but no sooner than 14
+#    seconds after the freeze, since the peer's last keepalive came at
+#    most 15 seconds before it;
+#  - node 1's tcpcli then still runs and still sends a contact header
+#    on a new connection;
+#  - once the peer is thawed, every bundle is delivered.
+
+. ../test_utils.sh
+
+stopped_pid=""
+thaw() {
+    if [ -n "$stopped_pid" ]; then
+        kill -CONT "$stopped_pid" 2>/dev/null || true
+        stopped_pid=""
+    fi
+}
+trap 'thaw; killm f' EXIT
+
+echo "########################################"
+echo "NAME: tcpcl-keepalive-timeout"
+echo "PURPOSE: Abandon a TCPCL session after a lost RST or a silent peer crash."
+echo "########################################"
+
+export ION_NODE_LIST_DIR="$PWD"
+root=$PWD
+log1="$root/1.ipn.tcp/ion.log"
+log2="$root/2.ipn.tcp/ion.log"
+sink="$root/2.ipn.tcp/sink.out"
+timeout_memo="tcpcl session timed out"
+idle_secs=35
+bulk_bundles=150
+
+# Print the PID of the tcpcli whose induct is $1. Match the induct
+# address on its command line; a name match against this script would
+# also match the shell running it.
+tcpcli_pid() {
+    ps -A -o pid= -o args= | awk '
+        $2 ~ /(^|\/)tcpcli$/ && $3 == "'"$1"'" { print $1; exit }'
+}
+
+delivered() {
+    count=$(grep -c "ION event: Payload delivered." "$sink" 2>/dev/null)
+    echo "${count:-0}"
+}
+
+echo "Starting node 2..."
+cd "$root/2.ipn.tcp" || exit 1
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+status=$?
+if [ "$status" -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+echo "Starting node 1..."
+cd "$root/1.ipn.tcp" || exit 1
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+status=$?
+if [ "$status" -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+cd "$root/2.ipn.tcp" || exit 1
+bpsink ipn:2.1 >"$sink" &
+sleep 1
+
+cd "$root/1.ipn.tcp" || exit 1
+echo "Sending warmup bundle..."
+bpsource ipn:2.1 "silent-peer"
+if ! waitForFileContent "silent-peer" "$sink" 15000 200; then
+    echo "FAIL: warmup bundle was not delivered."
+    exit 1
+fi
+echo "Okay: warmup bundle delivered."
+
+echo "Leaving both nodes idle for ${idle_secs} seconds..."
+sleep "$idle_secs"
+for log in "$log1" "$log2"; do
+    if grep -q "$timeout_memo" "$log"; then
+        echo "FAIL: healthy idle session timed out:"
+        grep "$timeout_memo" "$log"
+        exit 1
+    fi
+done
+echo "Okay: no timeout on the idle session."
+
+bpsource ipn:2.1 "after-idle"
+if ! waitForFileContent "after-idle" "$sink" 15000 200; then
+    echo "FAIL: bundle sent after the idle period was not delivered."
+    exit 1
+fi
+echo "Okay: bundle sent after the idle period delivered."
+
+stopped_pid=$(tcpcli_pid 127.0.0.1:4556)
+if [ -z "$stopped_pid" ]; then
+    echo "FAIL: node 2 tcpcli (127.0.0.1:4556) is not running."
+    exit 1
+fi
+
+if ps -p "$$" -o s= >/dev/null 2>&1; then
+    state_fmt=s
+else
+    state_fmt=state
+fi
+peer_stopped() {
+    state=$(ps -p "$stopped_pid" -o "$state_fmt=" | awk 'NF { print $1 }')
+    case "$state" in
+    T*) return 0 ;;
+    esac
+    return 1
+}
+
+echo "Freezing node 2 tcpcli pid ${stopped_pid}."
+if ! kill -STOP "$stopped_pid"; then
+    echo "FAIL: cannot send SIGSTOP to node 2 tcpcli."
+    exit 1
+fi
+freeze_time=$(date +%s)
+if ! waitForPredicate peer_stopped 2000 100; then
+    echo "FAIL: node 2 tcpcli is not stopped after SIGSTOP."
+    exit 1
+fi
+echo "Okay: node 2 tcpcli is stopped."
+
+# One pilot bundle plus the bulk bundles; the pipeline holds 100.
+echo "Queuing ${bulk_bundles} bundles to the frozen peer..."
+bpdriver "$bulk_bundles" ipn:1.2 ipn:2.1 -100 >bpdriver.out 2>&1 &
+driver_pid=$!
+driver_done() {
+    ! kill -0 "$driver_pid" 2>/dev/null
+}
+if ! waitForPredicate driver_done 20000 200; then
+    echo "FAIL: bpdriver did not finish queuing bundles."
+    exit 1
+fi
+wait "$driver_pid"
+if ! grep -q "Total bundles: ${bulk_bundles}\$" bpdriver.out; then
+    echo "FAIL: bpdriver did not send ${bulk_bundles} bundles:"
+    cat bpdriver.out
+    exit 1
+fi
+echo "Okay: ${bulk_bundles} bundles queued."
+
+# Node 1 has two sessions with node 2, one opened by each node. Only
+# the one node 1 opened carries its bundles, and the two time out at
+# different moments.
+echo "Waiting up to 50 seconds after the freeze for node 1 to time out..."
+timeouts=0
+first_secs=""
+both_timed_out() {
+    timeouts=$(grep -c "$timeout_memo" "$log1")
+    if [ -z "$first_secs" ] && [ "${timeouts:-0}" -ge 1 ]; then
+        first_secs=$(($(date +%s) - freeze_time))
+    fi
+    [ "${timeouts:-0}" -ge 2 ]
+}
+wait_ms=$(((freeze_time + 50 - $(date +%s)) * 1000))
+if ! waitForPredicate both_timed_out "$wait_ms" 200; then
+    echo "FAIL: node 1 timed out ${timeouts:-0} of 2 sessions within" \
+        "50 seconds."
+    exit 1
+fi
+last_secs=$(($(date +%s) - freeze_time))
+if [ "$first_secs" -lt 14 ]; then
+    echo "FAIL: node 1 timed out a session ${first_secs} seconds" \
+        "after the freeze, before two keepalive intervals of silence."
+    exit 1
+fi
+echo "Okay: node 1 timed out its sessions ${first_secs} and ${last_secs}" \
+    "seconds after the freeze."
+
+if [ -z "$(tcpcli_pid 127.0.0.1:4555)" ]; then
+    echo "FAIL: node 1 tcpcli is no longer running."
+    exit 1
+fi
+echo "Okay: node 1 tcpcli is still running."
+
+# tcpcli begins every session, accepted ones included, by sending the
+# contact header magic "dtn!".
+magic=$(
+    exec 2>/dev/null
+    exec 3<>/dev/tcp/127.0.0.1/4555 || exit 1
+    read -r -t 5 -n 4 reply <&3
+    exec 3<&-
+    printf '%s' "$reply"
+)
+if [ "$magic" != "dtn!" ]; then
+    echo "FAIL: node 1 sent no contact header on a new connection" \
+        "within 5 seconds."
+    exit 1
+fi
+echo "Okay: node 1 still answers a new connection."
+
+thaw
+# Warmup, after-idle, bpdriver's pilot and the bulk bundles.
+expected=$((2 + 1 + bulk_bundles))
+echo "Thawed node 2; waiting up to 60 seconds for ${expected} deliveries..."
+all_delivered() {
+    [ "$(delivered)" -ge "$expected" ]
+}
+if ! waitForPredicate all_delivered 60000 1000; then
+    echo "FAIL: node 2 delivered $(delivered) of ${expected} bundles."
+    exit 1
+fi
+echo "Okay: node 2 delivered $(delivered) bundles (${expected} expected," \
+    "duplicates allowed)."
+
+echo "SUCCESS"
+exit 0
