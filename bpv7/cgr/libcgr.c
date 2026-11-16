@@ -1623,6 +1623,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	newRouteAddr;
 	PsmAddress	citation;
 	CgrRoute	*newRoute;
+	time_t		earliestArrival;
 
 	/*	Guard (UAF): lastSelectedRoute is the route we are spurring
 	 *	from; its hops list is walked below -- and again when locating
@@ -1640,6 +1641,39 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 		writeMemo("[?] CGR: skipping spur - lastSelectedRoute hops list \
 is corrupt (abandoning spur computation).");
 		return 0;
+	}
+
+	/*	Reject a spur whose fixed root path cannot be traversed now.
+	 *	This is a read-only feasibility bound: do not seed any CGR
+	 *	work-area arrival time from currentTime.			*/
+
+	if (rootOfSpur != 0)
+	{
+		earliestArrival = currentTime;
+		for (contactElt = sm_list_first(ionwm, lastSelectedRoute->hops);
+				contactElt;
+				contactElt = sm_list_next(ionwm, contactElt))
+		{
+			contactAddr = sm_list_data(ionwm, contactElt);
+			if (contactAddr == 0) return 0;
+			contact = (IonCXref *) psp(ionwm, contactAddr);
+			if (contact->toTime <= earliestArrival) return 0;
+			owlt = 0;
+			if (getApplicableRange(contact, &owlt) >= 0)
+			{
+				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
+			}
+
+			if (contact->fromTime > earliestArrival)
+			{
+				earliestArrival = contact->fromTime;
+			}
+
+			earliestArrival += owlt;
+			if (contactElt == rootOfSpur) break;
+		}
+
+		if (contactElt == 0) return 0;
 	}
 
 //puts("*** Computing a spur route. ***");
