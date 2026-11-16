@@ -295,7 +295,7 @@ noinst_HEADERS = \
 	$(amsnoinst) \
 	$(cfdpnoinst)
 
-if ENABLE_MANPAGES
+if ENABLE_MAN_PAGES
 man_MANS = \
 	$(icimans) \
 	$(ltpmans) \
@@ -308,7 +308,7 @@ man_MANS = \
 	$(cfdpmans) \
 	$(nmmans) \
 	$(restartmans)
-endif # end ENABLE_MANPAGES
+endif # end ENABLE_MAN_PAGES
 
 #################
 #

@@ -34,7 +34,7 @@ Checks performed
 5. cross_references  (pod <-> pod)
    Every `name(section)` man-page reference (e.g. in SEE ALSO) must
    resolve to a pod in the repo at that section, or be a known
-   external/system man page (EXTERNAL_MANPAGES). Catches broken refs
+   external/system man page (EXTERNAL_MAN_PAGES). Catches broken refs
    (no such page) and wrong-section refs (page exists but in a different
    section).
 
@@ -164,7 +164,7 @@ POD1_SYNOPSIS_SKIP = {"bpsh", "bpshd"}
 # (i.e. not expected to have a pod in this repo). "name(section)" form.
 # The cross-reference check flags any name(section) reference that
 # neither resolves to a repo pod nor appears here.
-EXTERNAL_MANPAGES = {
+EXTERNAL_MAN_PAGES = {
     # libc / POSIX
     "creat(2)",
     "open(2)",
@@ -196,7 +196,7 @@ EXTERNAL_MANPAGES = {
 # ION modules that exist in the source tree but ship no POD man page. A
 # cross-reference to one of these is intentional, not broken, so it is
 # not flagged (until/unless a man page is written for it).
-INTERNAL_NO_MANPAGE = {
+INTERNAL_NO_MAN_PAGE = {
     "sptrace(3)",  # ici/library/sptrace.c, ici/include/sptrace.h
 }
 
@@ -635,8 +635,8 @@ def cross_reference_findings(rel, refs, avail_ns, avail_name):
         tag = f"{name}({sec})"
         if (
             (name, sec) in avail_ns
-            or tag in EXTERNAL_MANPAGES
-            or tag in INTERNAL_NO_MANPAGE
+            or tag in EXTERNAL_MAN_PAGES
+            or tag in INTERNAL_NO_MAN_PAGE
         ):
             continue
         if name in avail_name:

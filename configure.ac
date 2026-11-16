@@ -614,17 +614,17 @@ AS_IF([test "x$enable_unibo_cgr" = xyes],
 AM_CONDITIONAL([UNIBO_CGR], [test "x$enable_unibo_cgr" = xyes])
 
 #
-# allow the user running configure to disable manpage creation
+# allow the user running configure to disable man page creation
 #
-AC_ARG_ENABLE([manpages],
-  [AS_HELP_STRING([--disable-manpages],[disable manpage creation])],
+AC_ARG_ENABLE([man-pages],
+  [AS_HELP_STRING([--disable-man-pages],[disable man page creation])],
   [AS_CASE(["$enableval"],
      [yes|no], [],
-     [AC_MSG_ERROR([bad value ${enableval} for --enable-manpages])])],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-man-pages])])],
   [enable_man_pages=yes])
 AS_IF([test "x$enable_man_pages" != xno],
-      [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"])
-AM_CONDITIONAL([ENABLE_MANPAGES], [test "x$enable_man_pages" != xno])
+      [AM_CFLAGS="$AM_CFLAGS -DENABLE_MAN_PAGES"])
+AM_CONDITIONAL([ENABLE_MAN_PAGES], [test "x$enable_man_pages" != xno])
 
 #
 # Allow user to enable crypto

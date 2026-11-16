@@ -417,7 +417,7 @@ What happens to pointer arguments on error?
 !!! note
 
     When an external man page is cross-referenced,
-    you may need to add it to the `EXTERNAL_MANPAGES` set
+    you may need to add it to the `EXTERNAL_MAN_PAGES` set
     in `.github/scripts/check_doc_consistency.py`
     to prevent CI failures.
 
