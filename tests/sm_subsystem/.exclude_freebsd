@@ -1,0 +1,2 @@
+semaphore_churn test is either very slow (>20 mins) or broken on FreeBSD
+regardless of whether POSIX named semaphores or SVR4 semaphores are used
