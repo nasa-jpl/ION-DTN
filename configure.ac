@@ -1426,16 +1426,6 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([ion.pc])
 
 dnl ===============================================================
-dnl  Guard: create empty stubs so depfiles never fail
-dnl ===============================================================
-AC_CONFIG_COMMANDS_PRE([
-  AS_MKDIR_P([tests])
-  : > tests/testrules.mk      dnl portable “touch” 0-byte file
-  : > pstrules.mk
-  : > man-lists.mk
-])
-
-dnl ===============================================================
 dnl  Autogenerate explicit man‑page rules (no GNU % rules)
 dnl ===============================================================
 
@@ -1461,42 +1451,11 @@ ADD_PODMAN(bss)
 ADD_PODMAN(dtpc)
 ADD_PODMAN(restart)
 
-
-
-
-dnl ===============================================================
-dnl  Autogenerate explicit test-<set> rules
-dnl ===============================================================
-AC_CONFIG_COMMANDS([tests/testrules.mk],[
-  AS_MKDIR_P([tests])                       dnl ← create dir
-  $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk
-],[srcdir=$srcdir])
-
-dnl ===============================================================
-dnl  Autogenerate explicit PS conversion rules
-dnl ===============================================================
-AC_CONFIG_COMMANDS([pstrules.mk],[
-  :                                           dnl (in top dir already)
-  $srcdir/generate-ps-rules.sh "$srcdir" > pstrules.mk
-],[srcdir=$srcdir])
-
-dnl ===============================================================
-dnl  Autogenerate static man-page lists
-dnl ===============================================================
-AC_CONFIG_COMMANDS([man-lists.mk],[
-  AS_MKDIR_P([$builddir])                   dnl ← “build” dir for out-of-tree
-  "$srcdir/generate-man-lists.sh" "$srcdir" "$builddir"
-],[srcdir=$srcdir builddir=$PWD])
-
-
 dnl ===============================================================
 dnl  Ensure required included *.mk files exist (POSIX make needs them)
 dnl ===============================================================
 AC_CONFIG_COMMANDS([podman-stubs], [
   for f in \
-    pstrules.mk \
-    man-lists.mk \
-    tests/testrules.mk \
     ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
     nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
     ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \

@@ -176,7 +176,7 @@ cov:
 	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
 endif # end ENABLE_GCOV
 
-# remove podman.mk, etc rules only if distclean is run (implies autoreconf -fi will be run next)
+# remove podman.mk rules only if distclean is run (implies autoreconf -fi will be run next)
 distclean-local:
 	rm -f $(top_builddir)/ici/doc/podman.mk
 	rm -f $(top_builddir)/ltp/doc/podman.mk
@@ -189,10 +189,6 @@ distclean-local:
 	rm -f $(top_builddir)/bss/doc/podman.mk
 	rm -f $(top_builddir)/dtpc/doc/podman.mk
 	rm -f $(top_builddir)/restart/doc/podman.mk
-	rm -f $(top_builddir)/tests/testrules.mk
-	rm -f $(top_builddir)/pstrules.mk
-	rm -f $(top_builddir)/man-lists.mk
-
 
 # clean-local refers to existing documents.
 CLEAN_LOCAL_DEPS = iciclean-local ltpclean-local bpclean-local amsclean-local \
@@ -3016,13 +3012,6 @@ tests_crc_hwaccel_dotest_SOURCES = tests/crc-hwaccel/dotest.c
 tests_crc_hwaccel_dotest_LDADD = libici.la -lm
 tests_crc_hwaccel_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-
-# ---- generated test rules (added by configure) ------------------
-include $(top_builddir)/tests/testrules.mk
-
-# ----  PS conversion & static lists-------------------------------
-include $(top_builddir)/pstrules.mk    # am--include-marker
-include $(top_builddir)/man-lists.mk   # am--include-marker
 
 # ---- generated man‑page rules (added by configure) --------------
 include $(top_builddir)/ici/doc/podman.mk      # am--include-marker

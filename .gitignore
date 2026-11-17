@@ -38,9 +38,6 @@ mod/
 */doc/podman.mk
 
 # Generated at configure time for ps and test rules
-/tests/testrules.mk
-/pstrules.mk
-/man-lists.mk
 /ici/doc/podman.mk
 /ltp/doc/podman.mk
 /dgr/doc/podman.mk
