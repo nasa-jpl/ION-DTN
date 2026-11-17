@@ -228,6 +228,8 @@ CLEANFILES = \
 	.build_finished \
 	retest
 
+man: $(man_MANS)
+
 bin_PROGRAMS = \
 	$(icibin) \
 	$(ltpbin) \
