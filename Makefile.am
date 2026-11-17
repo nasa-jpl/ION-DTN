@@ -5,9 +5,6 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS= .
-DIST_SUBDIRS= .
-
 AM_CFLAGS += \
 	-include config.h \
 	-I$(srcdir)/ici/include \
