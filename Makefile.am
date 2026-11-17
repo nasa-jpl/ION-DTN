@@ -219,7 +219,6 @@ endif
 
 clean-local: $(CLEAN_LOCAL_DEPS)
 	@rm -f .build_finished
-	@rm -f ion.pc
 
 bin_PROGRAMS = \
 	$(icibin) \
