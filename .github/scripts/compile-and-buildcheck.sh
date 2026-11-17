@@ -14,6 +14,13 @@ export LD_LIBRARY_PATH=/usr/local/lib:"$LD_LIBRARY_PATH"
 # Allow overriding the make command (defaults to 'make' for Linux, can be 'gmake' for Solaris)
 MAKE_CMD=${MAKE_CMD:-make}
 
+# config.status bootstraps automake's dependency fragments by invoking
+# ${MAKE-make}.  On Solaris the default make is SysV make, which cannot run
+# the generated am--depfiles rules and aborts with "Something went wrong
+# bootstrapping makefile fragments".  Point MAKE at the same make used for
+# the build so the bootstrap uses gmake there too; on Linux this stays make.
+export MAKE="$MAKE_CMD"
+
 echo "Running autoreconf..."
 autoreconf -fi
 
