@@ -1226,12 +1226,6 @@ if test "$POD_DOCUMENTATION" = 1; then
   exit -1
 fi
 
-
-
-
-# Add user defined CFLAGS
-CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
-
 # Checks for header files.
 AC_HEADER_DIRENT
 
