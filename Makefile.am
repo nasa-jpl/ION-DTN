@@ -296,15 +296,25 @@ if ENABLE_MAN_PAGES
 man_MANS = \
 	$(icimans) \
 	$(ltpmans) \
-	$(dgrmans) \
 	$(bpmans) \
-	$(tcmans) \
 	$(bssmans) \
-	$(dtpcmans) \
 	$(amsmans) \
 	$(cfdpmans) \
 	$(nmmans) \
 	$(restartmans)
+
+if ENABLE_DGR
+man_MANS += $(dgrmans)
+endif
+
+if ENABLE_TC
+man_MANS += $(tcmans)
+endif
+
+if ENABLE_DTPC
+man_MANS += $(dtpcmans)
+endif
+
 endif # end ENABLE_MAN_PAGES
 
 #################
