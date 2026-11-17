@@ -1771,11 +1771,9 @@ static int key_registry_init(BslAgent *agent, const char *pp_cfg_file_path)
 {
 	/*
 	 * TODO (key management): install BSL's reference (mock-BPA) key store
-	 * as the backend for now.  This is the seat of the planned Key-Access
-	 * Seam (resolveKEK / wrap / unwrap).
-	 * Need to replace MockBPA_KeyStore_* with an ION-owned, ionsec-backed
-	 * store (Path A) so production does not depend on the mock BPA.  The
-	 * key store is process-wide, installed once.
+	 * as the backend for now.  Replace MockBPA_KeyStore_* with an
+	 * ION-owned, ionsec-backed store so production does not depend on the
+	 * mock BPA.  The key store is process-wide, installed once.
 	 */
 
 	int	   rc;
@@ -1875,9 +1873,16 @@ static int	initializeAgent(BslAgent *agent)
 	int			i;
 	BSL_PolicyDesc_t	policy_callbacks;
 
-	for (i = 0, ctx = ctxs[0]; i < 4; i++, ctx++)
+	for (i = 0; i < 4; i++)
 	{
+		ctx = ctxs[i];
 		ctx->bsl = BSL_calloc(1, BSL_LibCtx_Sizeof());
+		if (ctx->bsl == NULL)
+		{
+			BSL_LOG_ERR("Failed to allocate BSL lib context");
+			return -1;
+		}
+
 		if (BSL_API_InitLib(ctx->bsl))
 		{
 			BSL_LOG_ERR("Failed BSL_API_InitLib()");
@@ -2153,6 +2158,11 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	BSL_BundleRef_t			bundle_ref;
 
 	malloced_action_set = BSL_calloc(1, BSL_SecurityActionSet_Sizeof());
+	if (malloced_action_set == NULL)
+	{
+		BSL_LOG_CRIT("failed to allocate security action set");
+		return -1;
+	}
 
 	BSL_SecurityActionSet_Init(malloced_action_set);
 	BSL_BundleRef_Init(&bundle_ref);
@@ -2281,6 +2291,15 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 			blkAddr = sdr_list_data(sdr, elt);
 			sdr_stage(sdr, (char *) &blk, blkAddr,
 					sizeof(ExtensionBlock));
+
+			/*	A failed read crashes the transaction.	*/
+
+			if (!sdr_in_xn(sdr))
+			{
+				returncode = -1;
+				break;
+			}
+
 			if (blk.type != BlockIntegrityBlk
 			&& blk.type != BlockConfidentialityBlk)
 			{
@@ -2318,6 +2337,15 @@ serialization.", NULL);
 
 			sdr_read(sdr, rawData, blk.bytes,
 					blk.length);
+
+			/*	A failed read crashes the transaction.	*/
+
+			if (!sdr_in_xn(sdr))
+			{
+				MRELEASE(rawData);
+				returncode = -1;
+				break;
+			}
 
 			/*	Set dataLength to actual BTSD size.
 			 *	serializeExtBlk will replace blk.bytes
