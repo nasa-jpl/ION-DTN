@@ -1436,7 +1436,7 @@ AC_CONFIG_COMMANDS_PRE([
 ])
 
 dnl ===============================================================
-dnl  Autogenerate explicit man‑page rules (ISO‑C, no GNU % rules)
+dnl  Autogenerate explicit man‑page rules (no GNU % rules)
 dnl ===============================================================
 
 dnl ---- helper macro --------------------------------------------
