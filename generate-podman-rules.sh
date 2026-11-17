@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # generate-podman-rules.sh  <srcdir> <submodule>
 # Emits explicit rules such as
 #   ici/doc/ionunlock.1: $(srcdir)/ici/doc/pod1/ionunlock.pod
@@ -31,8 +31,10 @@ for sec in 1 3 5; do
 
         # IMPORTANT:  Generate target path WITHOUT "./"
         target_path="$doc/$base.$sec"
+        # shellcheck disable=2016
         printf '%s: $(srcdir)/%s/pod%s/%s.pod\n' \
             "$target_path" "$doc" "$sec" "$base"
-        printf '\tpod2man -s %s -c "%s %s" \$? $@\n' "$sec" "$modname" "$kind"
+        # shellcheck disable=2016
+        printf '\t$(POD2MAN) -s %s -c "%s %s" $? $@\n' "$sec" "$modname" "$kind"
     done
 done

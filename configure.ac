@@ -1023,6 +1023,11 @@ echo "  Memory/pool:   $tcp4_pool_mb MB"
 echo "  Memory/duct:   $tcp4_duct_mb MB (TX + RX)"
 fi # ENABLE_TCPCLV4_EXTERNAL
 
+# Check for programs to build documentation
+AS_IF([test "x$enable_man_pages" != xno],
+  [AC_CHECK_PROGS([POD2MAN], [pod2man])
+   AS_IF([test "x$POD2MAN" = "x"], [AC_MSG_ERROR([could not find pod2man])])])
+
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"
@@ -1218,13 +1223,6 @@ AC_CHECK_LIB(
   [AC_SUBST([NCURSES_LIBS], ["-lncurses -lform -lmenu -lpanel"])],
   [AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --with-ncurses to turn on this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]))]
 )
-
-# Check for programs to build documentation
-AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
-if test "$POD_DOCUMENTATION" = 1; then
-  echo "ERROR: You need to have pod2man for documentation."
-  exit -1
-fi
 
 # Checks for header files.
 AC_HEADER_DIRENT
