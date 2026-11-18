@@ -5439,7 +5439,6 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	unsigned short		deliveredCRC;
 	unsigned short		computedCRC;
 	CfdpTransactionId	transactionId;
-	CfdpHandler		handler;
 	SdrObject		fduObj;
 	InFdu			fduBuf;
 	OutFdu			outFduBuf;
@@ -5557,8 +5556,21 @@ printf("...PDU known not to be corrupt...\n");
 #if CFDPDEBUG
 printf("...wrong CFDP transmission mode...\n");
 #endif
-		return handleFault(&transactionId,
-				CfdpInvalidTransmissionMode, &handler);
+		/*	This entity does not support acknowledged (Class 2)
+		 *	transmission.  Such a PDU is not a fault of any
+		 *	transaction this node owns, and its transaction ID
+		 *	comes from the (unauthenticated) PDU, so it must not
+		 *	be handed to handleFault(): depending on the
+		 *	configured disposition that could cancel, suspend or
+		 *	abandon a real transaction named by the PDU.  Discard
+		 *	it instead.  (The previous code called handleFault
+		 *	here on an uninitialised transaction ID and outside
+		 *	any SDR transaction, which also aborted the CFDP
+		 *	UT-layer daemon on the ionLocked() assertion.)	*/
+
+		writeMemo("[?] CFDP discarding PDU in unsupported \
+(acknowledged) transmission mode.");
+		return 0;
 	}
 
 	if (cfdpvdb->watching & WATCH_q)
