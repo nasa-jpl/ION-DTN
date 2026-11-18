@@ -29,6 +29,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     libtool \
     psmisc \
     openssl-devel \
+    openssl3-devel \
     nmap-ncat \
     valgrind \
     valgrind-devel \

@@ -33,6 +33,7 @@ RUN microdnf install -y oracle-epel-release-el8 \
     libtool \
     psmisc \
     openssl-devel \
+    openssl3-devel \
     netcat \
     valgrind \
     valgrind-devel \
