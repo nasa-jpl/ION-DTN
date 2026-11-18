@@ -83,6 +83,14 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 sha256sum.txt
 
+# Ubuntu 22.04's apt cmake is 3.22.1, but BSL v2 requires cmake >= 3.23.
+# Pull a newer cmake from Kitware's apt repository before the QCBOR/BSL builds.
+RUN curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/kitware.gpg \
+    && echo "deb https://apt.kitware.com/ubuntu/ jammy main" > /etc/apt/sources.list.d/kitware.list \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends cmake \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN git clone https://github.com/laurencelundblade/QCBOR.git \
     && cd QCBOR \
     && git checkout 930708b \
