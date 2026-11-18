@@ -91,6 +91,20 @@ RUN curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --d
     && apt-get install -y --no-install-recommends cmake \
     && rm -rf /var/lib/apt/lists/*
 
+# Ubuntu 22.04's apt jansson is 2.13.1, but BSL v2 uses the jansson 2.14 API
+# (json_object_iter_key_len), so build jansson 2.14 from source into
+# /usr/local ahead of the BSL build.
+RUN git clone https://github.com/akheron/jansson.git \
+    && cd jansson \
+    && git checkout v2.14 \
+    && autoreconf -fi \
+    && ./configure --prefix=/usr/local \
+    && make \
+    && make install \
+    && ldconfig \
+    && cd .. \
+    && rm -rf jansson
+
 RUN git clone https://github.com/laurencelundblade/QCBOR.git \
     && cd QCBOR \
     && git checkout 930708b \
@@ -113,6 +127,7 @@ RUN git clone https://github.com/P-p-H-d/mlib.git \
 RUN git clone https://github.com/NASA-AMMOS/BSL.git \
     && cd BSL \
     && git checkout 999505cb \
+    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH} \
     && ./build.sh prep -DBUILD_UNITTEST=OFF \
     && ./build.sh \
     && cmake --install build/default --prefix /usr \
