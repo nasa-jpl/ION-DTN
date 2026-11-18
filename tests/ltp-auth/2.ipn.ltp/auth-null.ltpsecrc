@@ -1,0 +1,4 @@
+# Phase A: NULL ciphersuite (255).  Key name is omitted, as ltpsec.c
+# requires one only for ciphersuites other than 255.
+a ltpxmitauthrule 3 255
+a ltprecvauthrule 3 255

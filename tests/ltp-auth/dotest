@@ -1,0 +1,272 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Tests the LTP segment authentication extension (RFC 5327, extension
+# tag 0x00), configured through ltpsecadmin / ltpsecrc.
+#
+# The extension is dispatched from the table in
+# ltp/library/ext/ltpextensions.c, which is guarded by #ifdef LTPAUTH.
+# Nothing in the tree defines LTPAUTH, and the autotools build does not
+# list ltp/library/ext/auth/auth.c in libltp_la_SOURCES at all, so in a
+# stock build the table holds only its null sentinel and every segment
+# is accepted without verification.  ltpsecadmin still accepts and
+# stores auth rules, so the misconfiguration is silent.
+#
+# Three phases, run over one pair of nodes by rewriting the rules at
+# run time.  They are ordered so that a failure identifies which layer
+# is broken rather than just reporting "auth doesn't work":
+#
+#   A  ciphersuite 255 (NULL), matching rules both directions.
+#      Exercises the extension framework end to end -- header field
+#      generation, trailer MAC over the segment, verification on the
+#      far side -- without involving the security database, because
+#      ciphersuite 255 uses a hardcoded key.  Data must arrive.
+#
+#   B  ciphersuite 0 (HMAC-SHA1-80), same key at both ends.
+#      Adds key lookup via sec_get_key().  Data must arrive.
+#      A failure here but not in A points at key retrieval, not at
+#      the extension plumbing.
+#
+#   C  ciphersuite 0, node 3's receive key changed to a different key
+#      while node 2 keeps signing with the original.  Every inbound
+#      segment must now fail verification, so data must NOT arrive.
+#      This is the phase that detects an engine which is not checking
+#      anything: with authentication compiled out, the file arrives.
+#
+# A and B alone would pass against an engine that ignores the extension
+# entirely, and C alone would pass against an engine that rejects
+# everything.  Only all three together distinguish working
+# authentication from both failure modes.
+#
+# Note the class of service: the "unreliable" field must stay 0 so that
+# ltpclo sends all-red.  Red is the path that carries checkpoints,
+# reports and report acks, and it is where authentication actually
+# matters -- a forged report or cancel segment is the attack.  A CoS of
+# 0.1.0.1.0 (as used by the ltp-green test) sets BP_BEST_EFFORT and
+# would quietly exercise green segments only.
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/auth-null.ltpsecrc \
+./2.ipn.ltp/auth-hmac.ltpsecrc \
+"
+
+CONFIGFILES=$CONFIGFILES"
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/auth-null.ltpsecrc \
+./3.ipn.ltp/auth-hmac.ltpsecrc \
+./3.ipn.ltp/auth-mismatch.ltpsecrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the LTP authentication extension (RFC 5327, tag 0x00)."
+echo "    Verifies that authenticated segments are accepted and that"
+echo "    segments failing verification are rejected."
+echo
+echo "    Phase A: ciphersuite 255 (NULL) both directions -- file must arrive."
+echo "    Phase B: ciphersuite 0 (HMAC-SHA1-80), matching keys -- must arrive."
+echo "    Phase C: ciphersuite 0, mismatched receive key -- must NOT arrive."
+echo
+echo "    Phase C fails against an engine that does not verify anything;"
+echo "    phases A and B fail against one that rejects everything."
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp || exit 1
+./ionstart > node2.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+    echo "Node 2 started."
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../3.ipn.ltp || exit 1
+./ionstart > node3.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+    echo "Node 3 started."
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+# Confirm the rules actually landed in the security database.  If they
+# did not, the phases below would be testing nothing at all and would
+# silently "pass" A and B.
+echo ""
+echo "Auth rules installed on node 3:"
+RECVRULES=`ltpsecadmin <<< "l ltprecvauthrule" 2>&1`
+echo "$RECVRULES" | sed 's/^/    /'
+ltpsecadmin <<< "l ltpxmitauthrule" 2>&1 | sed 's/^/    /'
+
+# ltpsec.c refuses auth rules in a build without the authentication
+# extension, so an empty listing here means the feature is absent rather
+# than broken.  That is the expected state without
+# --enable-crypto-mbedtls: report it and skip rather than fail, since
+# there is nothing to exercise.
+if ! echo "$RECVRULES" | grep -q "LTPrecv rule"
+then
+    echo ""
+    echo "SKIPPED: this build has no LTP authentication extension"
+    echo "    (ltpsecadmin refused the rules).  Rebuild with"
+    echo "    --enable-crypto-mbedtls to exercise this test."
+    cd ../2.ipn.ltp || exit 1
+    ./ionstop &
+    cd ../3.ipn.ltp || exit 1
+    ./ionstop &
+    sleep 5
+    killm
+    exit 0
+fi
+
+echo ""
+echo "Starting bprecvfile on node 3..."
+bprecvfile ipn:3.1 &
+sleep 1
+
+RETVAL=0
+
+# ------------------------------------------------------------------
+# Phase A -- ciphersuite 255 (NULL).  Installed by ionstart.
+# ------------------------------------------------------------------
+echo ""
+echo "=== Phase A: ciphersuite 255 (NULL), matching rules ==="
+cd ../2.ipn.ltp || exit 1
+echo "Sending testfile to ipn:3.1, should arrive..."
+bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.0.0
+sleep 10
+
+cd ../3.ipn.ltp || exit 1
+if [ -f testfile1 ] && diff testfile1 ../2.ipn.ltp/testfile > /dev/null 2>&1
+then
+    echo "Okay: file arrived intact under ciphersuite 255."
+else
+    echo "Error: file did not arrive intact under ciphersuite 255."
+    echo "    The extension framework is rejecting segments it generated"
+    echo "    itself, or is not generating a trailer the far side accepts."
+    RETVAL=1
+fi
+
+# ------------------------------------------------------------------
+# Phase B -- ciphersuite 0, matching keys.
+# ------------------------------------------------------------------
+echo ""
+echo "=== Phase B: ciphersuite 0 (HMAC-SHA1-80), matching keys ==="
+echo "Switching node 3 to HMAC-SHA1-80 with myKey..."
+ltpsecadmin auth-hmac.ltpsecrc
+cd ../2.ipn.ltp || exit 1
+echo "Switching node 2 to HMAC-SHA1-80 with myKey..."
+ltpsecadmin auth-hmac.ltpsecrc
+sleep 1
+
+echo "Sending testfile to ipn:3.1, should arrive..."
+bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.0.0
+sleep 10
+
+cd ../3.ipn.ltp || exit 1
+if [ -f testfile2 ] && diff testfile2 ../2.ipn.ltp/testfile > /dev/null 2>&1
+then
+    echo "Okay: file arrived intact under HMAC-SHA1-80."
+else
+    echo "Error: file did not arrive intact under HMAC-SHA1-80."
+    echo "    Phase A passed, so the extension framework works; this is"
+    echo "    key retrieval.  Check getSymmetricKeyForRule() in"
+    echo "    ltp/library/ext/auth/auth.c against sec_get_key()'s"
+    echo "    CHKERR(*keyBufferLength > 0) precondition."
+    RETVAL=1
+fi
+
+# ------------------------------------------------------------------
+# Phase C -- key mismatch.  Node 2 still signs with myKey.
+# ------------------------------------------------------------------
+echo ""
+echo "=== Phase C: ciphersuite 0, mismatched receive key ==="
+echo "Changing node 3's receive key for engine 2 to myKey2..."
+ltpsecadmin auth-mismatch.ltpsecrc
+sleep 1
+echo "Auth rules now on node 3:"
+ltpsecadmin <<< "l ltprecvauthrule" 2>&1 | sed 's/^/    /'
+
+cd ../2.ipn.ltp || exit 1
+echo "Sending testfile to ipn:3.1, should NOT arrive..."
+bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.0.0
+
+# Node 2 will retransmit its checkpoints until maxRetries is exhausted
+# and then cancel the session.  Wait past that before concluding the
+# data really is not going to be delivered.
+echo "Waiting out the sender's retransmissions..."
+sleep 25
+
+cd ../3.ipn.ltp || exit 1
+if [ -f testfile3 ]
+then
+    echo "Error: file arrived despite a receive key that cannot verify it."
+    echo "    LTP is not authenticating inbound segments.  In a stock"
+    echo "    build this is expected: LTPAUTH is defined nowhere, and"
+    echo "    ltp/library/ext/auth/auth.c is not in libltp_la_SOURCES,"
+    echo "    so the extension table in ltpextensions.c holds only its"
+    echo "    null sentinel and verifyAuthExtensionField is never called."
+    RETVAL=1
+else
+    echo "Okay: file was rejected, as it must be."
+fi
+
+echo ""
+echo "Segment tallies on node 3 (IN_SEG_MALFORMED counts rejections):"
+ltpadmin <<< "i span 2" 2>&1 | sed 's/^/    /'
+
+# Shut down ION processes.
+sleep 1
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.ltp || exit 1
+./ionstop &
+cd ../3.ipn.ltp || exit 1
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP authentication test completed."
+exit $RETVAL
