@@ -19,6 +19,27 @@ typedef struct
 	BpSAP		rxSap;
 } RxThreadParms;
 
+/*	Bundle priority, then ordinal within expedited priority.	*/
+
+static int	rankFdu(unsigned char *utParms, int utParmsLength)
+{
+	BpUtParms	parms;
+
+	if (utParmsLength != sizeof(BpUtParms))
+	{
+		return BP_STD_PRIORITY << 8;
+	}
+
+	memcpy((char *) &parms, (char *) utParms, sizeof(BpUtParms));
+	if (parms.classOfService == BP_EXPEDITED_PRIORITY)
+	{
+		return (BP_EXPEDITED_PRIORITY << 8)
+				+ parms.ancillaryData.ordinal;
+	}
+
+	return parms.classOfService << 8;
+}
+
 /*	*	*	Receiver thread functions	*	*	*/
 
 static void	*receivePdus(void *parm)
@@ -224,7 +245,7 @@ int	main(void)
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
 		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
-				&direction) < 0 || pduZco == 0)
+				&direction, rankFdu) < 0 || pduZco == 0)
 		{
 			writeMemo("[?] bputa can't dequeue outbound CFDP PDU; \
 terminating.");
