@@ -106,7 +106,7 @@ RUN git clone https://github.com/NASA-AMMOS/BSL.git \
     && sed -i 's/openssl >=/openssl3 >=/g' /usr/local/lib64/pkgconfig/bsl.pc \
     && cd .. \
     && rm -rf BSL \
-    && microdnf remove -y gcc-toolset-11-gcc gcc-toolset-11-gcc-c++
+    && dnf remove -y gcc-toolset-11-gcc gcc-toolset-11-gcc-c++
 
 # Setup runner user and docker group
 RUN groupadd docker --gid "${DOCKER_GROUP_GID}" \
