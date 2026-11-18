@@ -20,7 +20,8 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test that CFDP correctly handles the inactivity deadline"
-echo "           configuration option."
+echo "           configuration option, and that the canceled transaction's"
+echo "           file is not left open."
 echo
 echo "CONFIG: 1 node custom configuration:"
 echo
@@ -84,6 +85,14 @@ pkill -15 stcpcli >/dev/null 2>&1
 echo "Waiting 5 seconds for inactivity deadline trigger..."
 sleep 5
 
+# The canceled transaction's file must not stay open in the UT layer daemon.
+LEAKED=""
+if [ -d /proc/self/fd ]; then
+    for P in `pgrep -x bputa`; do
+        LEAKED="$LEAKED`ls -l /proc/$P/fd 2>/dev/null | grep -E '/(test|cfdp\.[0-9.]+)( \(deleted\))?$'`"
+    done
+fi
+
 #Killing bpcpd
 echo "Killing bpcpd..."
 kill -2 $CT_PID >/dev/null 2>&1
@@ -96,7 +105,11 @@ kill -9 $CT_PID >/dev/null 2>&1
 # produces a fault indication event (type 10) instead.
 test=`grep -E "type 3, 'transaction finished'|type 10, 'fault'" output`
 echo $test
-if  [ -e ./output ] && [ -n "$test" ]; then
+if [ -n "$LEAKED" ]; then
+    echo "$LEAKED"
+    echo "ERROR: bputa still holds the canceled transaction's file open. FAILED!!"
+    RETVAL=1
+elif  [ -e ./output ] && [ -n "$test" ]; then
     echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
     cd ..
     #./cleanup
