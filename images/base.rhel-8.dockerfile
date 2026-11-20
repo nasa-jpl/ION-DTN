@@ -28,7 +28,6 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     autoconf \
     libtool \
     psmisc \
-    openssl-devel \
     openssl3-devel \
     nmap-ncat \
     valgrind \
@@ -49,7 +48,6 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     readline-devel \
     sqlite \
     sqlite-devel \
-    openssl-devel \
     tk-devel \
     libffi-devel \
     xz-devel \

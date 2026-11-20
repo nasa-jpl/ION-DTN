@@ -32,7 +32,6 @@ RUN microdnf install -y oracle-epel-release-el8 \
     autoconf \
     libtool \
     psmisc \
-    openssl-devel \
     openssl3-devel \
     netcat \
     valgrind \
@@ -54,7 +53,6 @@ RUN microdnf install -y oracle-epel-release-el8 \
     readline-devel \
     sqlite \
     sqlite-devel \
-    openssl-devel \
     tk-devel \
     libffi-devel \
     xz-devel \

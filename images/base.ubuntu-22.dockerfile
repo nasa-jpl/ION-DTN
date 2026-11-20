@@ -31,9 +31,7 @@ RUN apt-get update -y --no-install-recommends \
     netcat \
     valgrind \
     libtool-bin \
-    cmake \
     ninja-build \
-    libjansson-dev \
     build-essential \
     rsync \
     tcpdump \
@@ -55,15 +53,20 @@ RUN apt-get update -y --no-install-recommends \
     libyaml-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Ubuntu 22 official suport only goes up to clang 15, need to setup apt and then install clang directly from llvm
+# Ubuntu 22 official suport only goes up to clang 15, so install clang from the LLVM apt repo.
+# apt cmake is 3.22.1 but BSL v2 requires cmake >= 3.23, so add Kitware's apt repo in the
+# same step and install a newer cmake alongside clang.
 RUN curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/apt.llvm.org.gpg \
     && echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" > /etc/apt/sources.list.d/llvm-21.list \
+    && curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/kitware.gpg \
+    && echo "deb https://apt.kitware.com/ubuntu/ jammy main" > /etc/apt/sources.list.d/kitware.list \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
     clang-21 \
     lld-21 \
     libclang-21-dev \
     clang-tools-21 \
+    cmake \
     && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100 \
     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100 \
     && rm -rf /var/lib/apt/lists/*
@@ -83,20 +86,15 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 sha256sum.txt
 
-# Ubuntu 22.04's apt cmake is 3.22.1, but BSL v2 requires cmake >= 3.23.
-# Pull a newer cmake from Kitware's apt repository before the QCBOR/BSL builds.
-RUN curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/kitware.gpg \
-    && echo "deb https://apt.kitware.com/ubuntu/ jammy main" > /etc/apt/sources.list.d/kitware.list \
-    && apt-get update -y \
-    && apt-get install -y --no-install-recommends cmake \
-    && rm -rf /var/lib/apt/lists/*
+# The BSL build and its dependencies install into /usr/local; make them discoverable at
+# build time before the jansson/QCBOR/BSL steps below.
+ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
-# Ubuntu 22.04's apt jansson is 2.13.1, but BSL v2 uses the jansson 2.14 API
-# (json_object_iter_key_len), so build jansson 2.14 from source into
-# /usr/local ahead of the BSL build.
+# Ubuntu 22.04's apt jansson is 2.13.1, but BSL v2 requires the jansson 2.14+ API, so build it from source.
 RUN git clone https://github.com/akheron/jansson.git \
     && cd jansson \
-    && git checkout v2.14 \
+    && git checkout v2.15.1 \
     && autoreconf -fi \
     && ./configure --prefix=/usr/local \
     && make \
@@ -127,7 +125,6 @@ RUN git clone https://github.com/P-p-H-d/mlib.git \
 RUN git clone https://github.com/NASA-AMMOS/BSL.git \
     && cd BSL \
     && git checkout 999505cb \
-    && export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH} \
     && ./build.sh prep -DBUILD_UNITTEST=OFF \
     && ./build.sh \
     && cmake --install build/default --prefix /usr \
@@ -150,6 +147,4 @@ LABEL org.opencontainers.image.title="ubuntu-22" \
     jpl.nasa.gov.image.created="${BUILD_DATE}" \
     jpl.nasa.gov.image.revision="${REV}"
 
-ENV ImageOS=ubuntu-22 \
-    LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-    PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+ENV ImageOS=ubuntu-22
