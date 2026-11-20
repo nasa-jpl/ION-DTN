@@ -52,7 +52,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROCESS_FILE="${SCRIPT_DIR}/ionprocesses.txt"
 
 if [ -f "$PROCESS_FILE" ]; then
-    IONPROCESSLIST=$(grep -v '^#' "$PROCESS_FILE" | grep -v '^[[:space:]]*$' | tr '\n' ' ')
+    IONPROCESSLIST=$(awk '!/^#/ && NF > 0 { print $1 }' "$PROCESS_FILE" \
+        | tr '\n' ' ')
 else
     echo "Error: ionprocesses.txt not found at $PROCESS_FILE" >&2
     exit 1
@@ -71,7 +72,8 @@ case "$(uname -s)" in
     *)     IS_SOLARIS=0 ;;
 esac
 
-PGREP_NAMES=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
+PGREP_NAMES=$(echo "$IONPROCESSLIST" | tr -s ' ' '|' \
+    | sed 's/^|//;s/|$//')
 PGREP_PATTERN="^([^ ]*/)?(${PGREP_NAMES})( |\$)"
 
 # The platforms we care about support sleep(1) with milliseconds.
@@ -203,7 +205,7 @@ _check_surviving_processes_solaris() {
     local surviving
     surviving=$(printf '%s\n' "$ps_out" | awk -v procs="$IONPROCESSLIST" '
         BEGIN {
-            n = split(procs, arr, /[[:space:]]+/)
+            n = split(procs, arr, " ")
             for (i = 1; i <= n; i++) if (arr[i] != "") want[arr[i]] = 1
         }
         /defunct/ { next }
