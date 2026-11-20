@@ -1752,6 +1752,18 @@ void destroyOutFdu(OutFdu *fdu, SdrObject fduObj, SdrObject fduElt)
 	{
 		zco_destroy_file_ref(sdr, fdu->fileRef);
 	}
+	else if (fdu->sourceFileName[0] != '\0')
+	{
+		/*
+		 * No ZCO fileRef was created (e.g., 0-byte listing or FDU
+		 * canceled prior to data PDU issuance), so safe to unlink
+		 * sandbox artifact immediately.
+		 */
+		if (strstr(fdu->sourceFileName, "/.proxy_artifacts/") != NULL)
+		{
+			unlink(fdu->sourceFileName);
+		}
+	}
 
 	sdr_free(sdr, fduObj);
 	sdr_list_delete(sdr, fduElt, NULL, NULL);
@@ -3321,8 +3333,22 @@ static int selectFduPdu(OutFdu *fdu, SdrObject *pdu, int *pduIsFileData,
 	{
 		if (fdu->fileRef == 0)
 		{
+			char	*cleanup = NULL;
+
+			/*
+			 * Pass "" cleanup for .proxy_artifacts so ZCO unlinks
+			 * the file only after all outbound bundle/LTP ZCO
+			 * extents release fileRef.
+			 */
+			if (strstr(fdu->sourceFileName,
+					"/.proxy_artifacts/") != NULL)
+			{
+				cleanup = "";
+			}
+
 			fdu->fileRef = zco_create_file_ref(sdr,
-					fdu->sourceFileName, NULL, ZcoOutbound);
+					fdu->sourceFileName, cleanup,
+					ZcoOutbound);
 			if (fdu->fileRef == 0)
 			{
 				putErrmsg("No space for file ZCO ref.", NULL);

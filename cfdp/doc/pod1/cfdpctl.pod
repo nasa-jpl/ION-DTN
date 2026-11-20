@@ -1,0 +1,321 @@
+=head1 NAME
+
+cfdpctl - Command-line interface and asynchronous event-watcher daemon for ION CFDP
+
+=head1 SYNOPSIS
+
+B<cfdpctl> B<--watch> [B<-b>|B<--daemon>] [B<-q>|B<--quiet>] [B<--debug>]
+[B<-p>|B<--sock> I<endpoint>]
+
+B<cfdpctl> {B<--get>|B<--ls>|B<--mv>|B<--put>|B<--rm>} B<-n>|B<--node> I<id>
+[B<-s>|B<--src> I<path>] [B<-d>|B<--dest> I<path>] [B<-m>|B<--msg> I<text>]
+[B<-R>|B<--rn-src> I<path> B<-D>|B<--rn-dest> I<path>]
+[B<-c>|B<--closure> I<seconds>] [B<-P>|B<--priority> 0|1|2]
+[B<-T>|B<--ttl> I<seconds>] [B<--custody>] [B<--critical>] [B<-q>|B<--quiet>]
+
+B<cfdpctl> {B<--cancel>|B<--report>|B<--resume>|B<--suspend>}
+B<-t>|B<--txid> I<txid> [B<-q>|B<--quiet>]
+
+=head1 DESCRIPTION
+
+B<cfdpctl> serves as an operational command and control interface for
+the CCSDS File Delivery Protocol (CFDP) implementation within ION.  It
+supersedes legacy test harnesses by utilizing a dual-mode architecture designed
+to support interactive command-line usage, headless automated shell scripting,
+and real-time Graphical User Interface (GUI) integration via a continuous JSON
+telemetry stream.
+
+=head2 Action Mode (Foreground CLI)
+
+When invoked with an operational directive (e.g., B<--put>, B<--get>,
+B<--cancel>), B<cfdpctl> executes a single CFDP transaction request against
+the ION SDR and exits immediately.  This mode is designed for discrete
+protocol execution, automated regression matrices, and manual operator
+overrides.
+
+=head2 Watch Mode (Background Daemon)
+
+When invoked with B<--watch>, B<cfdpctl> establishes a persistent,
+multi-threaded event loop that blocks efficiently on the ION SDR event
+queue.  In this mode, it autonomously services remote protocol requests
+(such as Proxy Gets and Directory Listings) and broadcasts a real-time JSON
+telemetry stream of protocol state changes over a non-blocking TCP or UNIX
+Domain Socket.  This decouples the core protocol state machine from external
+telemetry consumers, ensuring GUI disconnects do not interrupt in-flight CFDP
+payload processing.  On platforms supporting C<fork()>, Watch Mode also
+creates an exclusive lockfile under I</tmp/cfdpctl_*.pid> for process hygiene.
+
+=head2 Telemetry Stream Frames
+
+Clients connecting to the Watch Mode socket receive newline-delimited JSON
+objects:
+
+=over 4
+
+=item B<eventType 0> (Handshake)
+
+Emitted immediately upon client connection with the local node's
+B<ownEntityId> (FQNN) and short B<host> name so multi-node GUIs can
+self-identify.
+
+=item B<eventType 1..11> (CFDP Protocol Events)
+
+Serialized B<CfdpEventType> indications containing transaction IDs, file
+paths, byte progress, condition/delivery codes, user messages, and filestore
+responses.  Routine file-data segment events (Event 5) are still streamed to
+connected JSON clients while omitted from terminal and I<ion.log> text logs
+to prevent log saturation.
+
+=item B<eventType -1> (Disconnect Notice)
+
+Sent to an existing client immediately before closing its socket when a newer
+client connection preempts it.
+
+=back
+
+=head1 MODES AND DIRECTIVES
+
+Exactly one operational mode must be specified per invocation.
+
+=over 4
+
+=item B<--cancel>
+
+Cancels an active file transmission.  Works for both outbound and inbound
+transactions.  Requires B<--txid>.
+
+=item B<--get>
+
+Initiates a Proxy Get request, instructing B<--node> to autonomously initiate
+a reverse file transfer from remote B<--src> to local B<--dest>.
+
+=item B<--ls>
+
+Requests a Directory Listing from B<--node> for remote directory B<--src>.
+The remote node indexes the directory and initiates a reverse Put transaction
+saving the resulting manifest (status/type-prefixed records when CFDP v2
+extended listings are enabled, or NUL-delimited names otherwise) to local
+B<--dest>.
+
+=item B<--mv>
+
+Dispatches a standalone Filestore Request to rename remote file B<--src> to
+remote path B<--dest> on B<--node>.
+
+=item B<--put>
+
+Initiates an outbound file transfer (B<--src> and B<--dest>), metadata-only
+message (B<--msg>), and/or attached filestore rename (B<--rn-src> and
+B<--rn-dest>) to B<--node>.
+
+=item B<--report>
+
+Requests a status report for a specific file transmission.  Requires
+B<--txid>.
+
+=item B<--resume>
+
+Resumes a previously suspended file transmission.  Requires B<--txid>.
+
+=item B<--rm>
+
+Dispatches a standalone Filestore Request to delete remote file B<--dest> on
+B<--node>.
+
+=item B<--suspend>
+
+Suspends an active, locally initiated (outbound) file transmission.
+Requires B<--txid>.
+
+=item B<--watch>
+
+Initiates Watch Mode.  B<cfdpctl> attaches to the local CFDP service and
+monitors the event queue until interrupted by SIGINT or SIGTERM.
+
+=back
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-c>, B<--closure> I<seconds>
+
+Sets the transaction closure latency in seconds.  0 selects Unacknowledged
+mode (completes immediately after EOF is sent).  Values greater than 0 request
+transaction closure (Finished PDU acknowledgment) within the specified latency
+bound (for B<--get>, any non-zero value enables closure on the reverse Put).
+Default is 0.
+
+=item B<--critical>
+
+Flags the underlying bundles for minimum-latency routing.
+
+=item B<--custody>
+
+Requests Bundle Protocol custody transfer for bundles carrying the CFDP PDUs.
+
+=item B<-b>, B<--daemon>
+
+Valid only with B<--watch>.  Executes a POSIX double-fork to detach from the
+controlling terminal and redirects standard descriptors to I</dev/null>.
+
+=item B<--debug>
+
+In Watch Mode, appends raw sanitized Proxy RPC control payloads to terminal
+and I<ion.log> event summaries.
+
+=item B<-d>, B<--dest> I<path>
+
+Specifies the destination path.  For B<--put>, the target file path on the
+remote node.  For B<--get> and B<--ls>, the local file path where the incoming
+file or manifest will be written.  For B<--rm>, the remote file to delete.
+For B<--mv>, the new remote file path.
+
+=item B<-m>, B<--msg> I<text>
+
+Appends a Message-to-User string (up to 255 bytes) to the metadata of an
+outbound B<--put> transaction.
+
+=item B<-n>, B<--node> I<id>
+
+Specifies the destination CFDP entity ID.  CFDP entity numbers in ION
+typically match Bundle Protocol node numbers (FQNN).
+
+=item B<-P>, B<--priority> 0|1|2
+
+Sets the Bundle Protocol Class of Service: 0=Bulk, 1=Standard, 2=Expedited.
+Default is 1.
+
+=item B<-q>, B<--quiet>
+
+Suppresses standard output.  In Watch Mode, also suppresses per-event summary
+lines written to standard output and I<ion.log> while continuing to stream
+JSON telemetry to connected socket clients.
+
+=item B<-R>, B<--rn-src> I<path> and B<-D>, B<--rn-dest> I<path>
+
+Must be specified together.  Appends a Filestore Rename request to an outbound
+B<--put> transaction, renaming I<rn-src> to I<rn-dest> on the remote node
+upon transaction completion.
+
+=item B<-p>, B<--sock> I<endpoint>
+
+Specifies the telemetry listener endpoint for Watch Mode.  Accepts a TCP port
+number bound to IPv4 loopback I<127.0.0.1> (e.g., "5555"), an explicit
+I<ipv4:port> pair (e.g., "127.0.0.1:5555"), or any path containing a slash
+('/') to create a mode-0600 UNIX Domain Socket (e.g.,
+"/tmp/cfdp_telemetry.sock").  Default is TCP port 5555 on loopback.
+
+=item B<-s>, B<--src> I<path>
+
+Specifies the source path.  For B<--put>, the local file to transmit.  For
+B<--get>, the remote file to retrieve.  For B<--ls>, the remote directory to
+list.  For B<--mv>, the existing remote file to rename.
+
+=item B<-T>, B<--ttl> I<seconds>
+
+Sets the bundle time-to-live (lifespan) in seconds (must be greater than 0).
+Default is 300 (5 minutes).
+
+=item B<-t>, B<--txid> I<txid>
+
+Specifies the Transaction ID for state-manipulation directives, formatted as
+I<sourceEntity.transactionNbr> (e.g., 1.45) or allocator-qualified
+I<allocator.node.transactionNbr> (e.g., 2.74.45).
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item Starting the telemetry daemon in the background (TCP loopback socket)
+
+  cfdpctl --watch --daemon --quiet --sock 5555
+
+=item Starting the telemetry daemon utilizing a UNIX Domain Socket
+
+  cfdpctl --watch --daemon --quiet --sock /tmp/cfdp_telemetry.sock
+
+=item Sending a file with expedited priority
+
+  cfdpctl --put --src /tmp/data.txt --dest /home/user/data.txt --node 2 \
+  --priority 2
+
+=item Sending a critical file with closure latency (Acknowledged mode)
+
+  cfdpctl --put --src /local/alert.txt --dest /remote/alert.txt --node 2 \
+  --critical --closure 60 --priority 2
+
+=item Sending a metadata-only message (no payload)
+
+  cfdpctl --put --msg "Initiate sequence" --node 2
+
+=item Sending a file and renaming it on the remote node upon delivery
+
+  cfdpctl --put --src /local/update.bin --dest /remote/update.tmp \
+  --rn-src /remote/update.tmp --rn-dest /remote/update.bin --node 2
+
+=item Requesting a file from a remote node (Proxy Get)
+
+  cfdpctl --get --src /remote/telemetry.log --dest /local/telemetry.log \
+  --node 2
+
+=item Requesting a remote directory listing
+
+  cfdpctl --ls --src /remote/data/ --dest /local/manifest.bin --node 2
+
+=item Deleting a file on a remote node
+
+  cfdpctl --rm --dest /remote/old_data.log --node 2
+
+=item Renaming a file on a remote node
+
+  cfdpctl --mv --src /remote/temp.dat --dest /remote/final.dat --node 2
+
+=item Suspending an active transaction
+
+  cfdpctl --suspend --txid 1.104
+
+=item Resuming a suspended transaction
+
+  cfdpctl --resume --txid 1.104
+
+=item Canceling a transaction
+
+  cfdpctl --cancel --txid 1.104
+
+=item Generating a transaction status report
+
+  cfdpctl --report --txid 1.104
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<cfdpctl> terminated successfully.
+
+=item "1"
+
+B<cfdpctl> terminated abnormally due to invalid arguments, a rejected request,
+or inability to attach to the local CFDP service.
+
+=back
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages and event summaries produced by B<cfdpctl> are written
+to standard output and to the ION log file I<ion.log> unless suppressed via
+B<--quiet>.
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>.
+
+=head1 SEE ALSO
+
+bputa(1), cfdpadmin(1), cfdp(3)

@@ -2421,13 +2421,14 @@ cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
 cfdpcflags = -I$(srcdir)/cfdp/library -I$(srcdir)/cfdp/include
 
 cfdpbin = \
+	bpcp \
+	bpcpd \
 	bputa \
 	cfdpadmin \
 	cfdpclock \
+	cfdpctl \
 	cfdptest \
-	tcputa \
-	bpcp \
-	bpcpd
+	tcputa
 
 cfdplib = \
 	libcfdp.la
@@ -2448,6 +2449,7 @@ cfdpextra = \
 	cfdp/doc/pod1/bputa.pod \
 	cfdp/doc/pod1/cfdpadmin.pod \
 	cfdp/doc/pod1/cfdpclock.pod \
+	cfdp/doc/pod1/cfdpctl.pod \
 	cfdp/doc/pod1/cfdptest.pod \
 	cfdp/doc/pod3/cfdp.pod \
 	cfdp/doc/pod5/cfdprc.pod
@@ -2458,6 +2460,7 @@ cfdpmans = \
 	cfdp/doc/bputa.1 \
 	cfdp/doc/cfdpadmin.1 \
 	cfdp/doc/cfdpclock.1 \
+	cfdp/doc/cfdpctl.1 \
 	cfdp/doc/cfdptest.1 \
 	cfdp/doc/cfdp.3 \
 	cfdp/doc/cfdprc.5
@@ -2490,6 +2493,14 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 cfdpadmin_SOURCES = cfdp/utils/cfdpadmin.c
 cfdpadmin_LDADD = libcfdp.la libici.la -lm $(bplib) $(LINENOISE_LDADD)
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
+
+cfdpctl_SOURCES = cfdp/utils/cfdpctl.c
+cfdpctl_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/bpv7/include \
+	-I$(srcdir)/cfdp/include
+cfdpctl_LDADD = libcfdp.la libbp.la libici.la $(PTHREAD_LIBS)
 
 # --- BP Programs --- #
 

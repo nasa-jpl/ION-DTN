@@ -101,6 +101,8 @@ brsccla
 brsscla
 cfdpadmin
 cfdpclock
+cfdpctl
+!cfdpctl/
 cfdptest
 dgr2file
 dgrcla

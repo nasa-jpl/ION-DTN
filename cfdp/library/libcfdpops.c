@@ -1443,6 +1443,7 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 {
 	DIR		*dir;
 	char		listingFileName[256];
+	char		sandboxPath[256];
 	int		listing;
 	struct dirent	*entry;
 	int		nameLen;
@@ -1466,9 +1467,32 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 		return sendDirectoryListingResponse(opsData, -1, NULL, 0);
 	}
 
-	isprintf(listingFileName, sizeof listingFileName, "dirlist_%lu",
-			(unsigned long) time(NULL));
-	listing = ifopen(listingFileName, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+	/*
+	 * Route sandbox artifacts (ex: dirlist) to a deterministic location
+	 */
+	isprintf(sandboxPath, sizeof sandboxPath, "%s%c.proxy_artifacts",
+			getIonWorkingDirectory(), ION_PATH_DELIMITER);
+
+#if (defined(VXWORKS))
+	if (mkdir(sandboxPath) < 0)
+#else
+	if (mkdir(sandboxPath, 0700) < 0)
+#endif
+	{
+		if (errno != EEXIST)
+		{
+			putSysErrmsg("Can't create proxy artifacts sandbox",
+					sandboxPath);
+			closedir(dir);
+			return -1;
+		}
+	}
+
+	isprintf(listingFileName, sizeof listingFileName,
+		"%s%cdirlist_%lu_%u", sandboxPath, ION_PATH_DELIMITER,
+		(unsigned long) time(NULL), (unsigned int) getReqNbr());
+
+	listing = ifopen(listingFileName, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 	if (listing < 0)
 	{
 		putSysErrmsg("Can't create directory listing file",
