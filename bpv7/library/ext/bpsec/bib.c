@@ -240,6 +240,7 @@ int bpsec_verify(AcqWorkArea *work)
 	BpsecInboundTargetResult *target;
 	sc_Def def;
 	int primeBibcheck = 0;  // Flag to set if a BIB targets the primary block
+	int bibUnparsed = 0;    // Flag to set if a BIB is not yet deserialized
 	int secBlkMisconf = 0;
 	int result = 0;
 	char *fromEid = NULL;
@@ -266,7 +267,13 @@ int bpsec_verify(AcqWorkArea *work)
 		{
 			if((asb = (BpsecInboundASB*) (block->object)) == NULL)
 			{
-				continue; // Weird...
+				/*	Not deserialized yet: on the
+				 *	check before extension blocks
+				 *	are parsed, its targets are
+				 *	not known.			*/
+
+				bibUnparsed = 1;
+				continue;
 			}
 
 			readEid(&(asb->scSource), &fromEid);
@@ -287,6 +294,17 @@ int bpsec_verify(AcqWorkArea *work)
 					{
 						/*	Missing rule is not a problem
 						 *	at a waypoint node.		*/
+
+						/*	But note that the primary
+						 *	block has a BIB, so that the
+						 *	check for a primary block with
+						 *	neither CRC nor BIB (below)
+						 *	does not discard the bundle.	*/
+
+						if (target->scTargetId == PrimaryBlk)
+						{
+							primeBibcheck = 1;
+						}
 
 						continue;
 					}
@@ -419,7 +437,11 @@ int bpsec_verify(AcqWorkArea *work)
 	existing processing.
 
 	        NR 10/13/2025       */
-	if ((primeBibcheck == 0) && (bundle->primaryBlkCrcType == NoCRC))
+	/* Only when every BIB has been deserialized: until then, a BIB over the
+	primary block cannot be seen, and a bundle that has one would be
+	discarded (issue #139). */
+	if ((primeBibcheck == 0) && (bibUnparsed == 0)
+			&& (bundle->primaryBlkCrcType == NoCRC))
 	{
 		writeMemo("[!] No primary block BIB or primary block CRC.");
 		work->authentic = 0;
