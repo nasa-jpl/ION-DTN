@@ -1,0 +1,564 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026, California Institute of Technology. ALL RIGHTS RESERVED. U.S. Government sponsorship acknowledged.
+# ============================================================================
+# Author: Sky DeBaun, Jet Propulsion Laboratory
+# Date:   June 2026
+# ============================================================================
+# CFDP AUTOMATED INTEGRATION & REGRESSION SUITE
+# ============================================================================
+# Description:
+#   End-to-end regression suite for cfdpctl and ION-DTN CFDP over a two-node
+#   local topology (ipn:1.0 and ipn:2.0).
+#
+# Execution Phases:
+#   1. Initialization: Spools up ION nodes and UDS cfdpctl watchers.
+#   2. Baseline Transfers: Validates 0-byte, 1-byte, and 100-byte payloads.
+#   3. Feature Stack: Validates metadata messages, remote rename, Proxy Get.
+#   4. State Manipulation: Live throttle + mid-flight Suspend/Report/Resume
+#      and Cancel validation.
+#   5. Quality of Service (QoS): Priority 0 bulk vs. Priority 2 expedited.
+#   6. Verification: Remote directory listing (--ls) manifest verification.
+# ============================================================================
+
+# Prefer POSIX utilities on Solaris (SPARC/x86) over legacy /usr/bin tools
+if [ -d "/usr/xpg4/bin" ]; then
+    PATH="/usr/xpg4/bin:$PATH"
+    export PATH
+fi
+
+ROOT_DIR="$PWD"
+NODE1_DIR="$ROOT_DIR/1.ipn.ltp"
+NODE2_DIR="$ROOT_DIR/2.ipn.ltp"
+NODE2_TEST_DIR="$NODE2_DIR/cfdp_test_dir"
+
+TEST_PID=$$
+SOCK1="/tmp/cfdp_reg_${TEST_PID}_n1.sock"
+SOCK2="/tmp/cfdp_reg_${TEST_PID}_n2.sock"
+WATCH1_PID=""
+WATCH2_PID=""
+CLEANUP_DONE=0
+RETVAL=0
+CURRENT_TXID=""
+
+# Sub-second polling when supported; 1-second fallback otherwise
+if sleep 0.2 2>/dev/null; then
+    TICKS_PER_SEC=5
+    poll_sleep() { sleep 0.2; }
+else
+    TICKS_PER_SEC=1
+    poll_sleep() { sleep 1; }
+fi
+
+# Portable byte-size lookup (avoids GNU/BSD/Solaris stat differences)
+file_size() {
+    if [ -f "$1" ]; then
+        wc -c < "$1" | tr -d ' \t\r\n'
+    else
+        echo "-1"
+    fi
+}
+
+# Polls until log file ($2) contains pattern ($1), up to ($3) seconds
+wait_for_log() {
+    _wfl_pat="$1"
+    _wfl_file="$2"
+    _wfl_max=$(($3 * TICKS_PER_SEC))
+    _wfl_i=0
+
+    while [ "$_wfl_i" -lt "$_wfl_max" ]; do
+        if [ -f "$_wfl_file" ] \
+            && grep "$_wfl_pat" "$_wfl_file" >/dev/null 2>&1
+        then
+            return 0
+        fi
+        poll_sleep
+        _wfl_i=$((_wfl_i + 1))
+    done
+
+    echo "    [!] ERROR: Timed out waiting for pattern in $_wfl_file"
+    return 1
+}
+
+# Polls until file ($1) exists with exact byte size ($2), up to ($3) seconds
+wait_for_file_size() {
+    _wfs_file="$1"
+    _wfs_want="$2"
+    _wfs_max=$(($3 * TICKS_PER_SEC))
+    _wfs_i=0
+
+    while [ "$_wfs_i" -lt "$_wfs_max" ]; do
+        _wfs_cur=$(file_size "$_wfs_file")
+        if [ "$_wfs_cur" = "$_wfs_want" ]; then
+            return 0
+        fi
+        poll_sleep
+        _wfs_i=$((_wfs_i + 1))
+    done
+
+    _wfs_cur=$(file_size "$_wfs_file")
+    echo "    [!] ERROR: Timeout waiting for $_wfs_file"
+    echo "        Got: $_wfs_cur B | Expected: $_wfs_want B"
+    return 1
+}
+
+# Executes cfdpctl from Node 1, checks exit status, and captures TXID
+dispatch_and_capture() {
+    CURRENT_TXID=""
+    _dac_output=$(
+        cd "$NODE1_DIR" && cfdpctl "$@" 2>&1
+    )
+    _dac_rc=$?
+
+    echo "      >>> $_dac_output"
+    if [ "$_dac_rc" -ne 0 ]; then
+        echo "      [!] ERROR: cfdpctl exited with status $_dac_rc"
+        RETVAL=1
+        return 1
+    fi
+
+    case "$_dac_output" in
+        *"TXID:"*)
+            CURRENT_TXID=$(printf '%s\n' "$_dac_output" \
+                | awk -F 'TXID: ' 'NF > 1 { print $2 }' \
+                | awk '{ print $1; exit }')
+            ;;
+    esac
+    return 0
+}
+
+stop_watcher() {
+    _sw_pid="$1"
+    _sw_sock="$2"
+    if [ -n "$_sw_pid" ] && kill -0 "$_sw_pid" 2>/dev/null; then
+        kill -TERM "$_sw_pid" 2>/dev/null
+        _sw_max=$((5 * TICKS_PER_SEC))
+        _sw_i=0
+        while [ "$_sw_i" -lt "$_sw_max" ]; do
+            if ! kill -0 "$_sw_pid" 2>/dev/null; then
+                break
+            fi
+            poll_sleep
+            _sw_i=$((_sw_i + 1))
+        done
+        if kill -0 "$_sw_pid" 2>/dev/null; then
+            kill -KILL "$_sw_pid" 2>/dev/null
+        fi
+        wait "$_sw_pid" 2>/dev/null
+    fi
+    rm -f "$_sw_sock"
+}
+
+dump_diagnostics() {
+    echo ""
+    echo "============================================================"
+    echo " DIAGNOSTICS: Log excerpts prior to teardown"
+    echo "============================================================"
+    for _n in "$NODE1_DIR" "$NODE2_DIR"; do
+        echo " --- $_n/watch.log ---"
+        if [ -f "$_n/watch.log" ]; then
+            tail -20 "$_n/watch.log"
+        fi
+        echo " --- $_n/ion.log (warnings/errors) ---"
+        if [ -f "$_n/ion.log" ]; then
+            awk '/\[!\]/ || /\[\?\]/ || /at line/ || /Assertion/ || /abort/' \
+                "$_n/ion.log" 2>/dev/null | tail -25
+        fi
+    done
+}
+
+cleanup_test() {
+    if [ "$CLEANUP_DONE" -eq 1 ]; then
+        return
+    fi
+    CLEANUP_DONE=1
+
+    if [ "$RETVAL" -ne 0 ]; then
+        dump_diagnostics
+    fi
+
+    echo ""
+    echo "============================================================"
+    echo " TEARDOWN: Cleaning up test environment"
+    echo "============================================================"
+
+    echo " [*] Terminating background watcher daemons..."
+    stop_watcher "$WATCH1_PID" "$SOCK1"
+    stop_watcher "$WATCH2_PID" "$SOCK2"
+    rm -f /tmp/cfdpctl_tmp_cfdp_reg_${TEST_PID}_*.pid
+
+    echo " [*] Shutting down ION nodes cleanly before IPC scrub..."
+    _stop_pids=""
+    for _ndir in "$NODE1_DIR" "$NODE2_DIR"; do
+        if [ -d "$_ndir" ] && [ -x "$_ndir/ionstop" ]; then
+            (
+                cd "$_ndir" && ./ionstop >/dev/null 2>&1
+            ) &
+            _stop_pids="$_stop_pids $!"
+        fi
+    done
+
+    if [ -n "$_stop_pids" ]; then
+        _stop_max=$((25 * TICKS_PER_SEC))
+        _stop_i=0
+        while [ "$_stop_i" -lt "$_stop_max" ]; do
+            _any_alive=0
+            for _sp in $_stop_pids; do
+                if kill -0 "$_sp" 2>/dev/null; then
+                    _any_alive=1
+                    break
+                fi
+            done
+            if [ "$_any_alive" -eq 0 ]; then
+                break
+            fi
+            poll_sleep
+            _stop_i=$((_stop_i + 1))
+        done
+    fi
+
+    killm f >/dev/null 2>&1
+
+    echo " [*] Scrubbing generated test payloads and manifests..."
+    rm -f "$NODE1_DIR"/send_*
+    rm -f "$NODE1_DIR"/pulled_from_node2.bin
+    rm -f "$NODE1_DIR"/remote_manifest.txt
+    rm -f "$NODE1_DIR"/parsed_manifest.txt
+    rm -f "$NODE1_DIR"/watch.log
+    rm -f "$NODE2_DIR"/watch.log
+    rm -rf "$NODE2_TEST_DIR"
+    rm -rf "$NODE1_DIR/.proxy_artifacts"
+    rm -rf "$NODE2_DIR/.proxy_artifacts"
+    rm -f "$NODE2_DIR"/dirlist_[0-9]*
+}
+
+trap cleanup_test EXIT INT TERM
+
+# ----------------------------------------------------------------------------
+# PRE-FLIGHT HYGIENE & INITIALIZATION
+# ----------------------------------------------------------------------------
+ION_NODE_LIST_DIR="$ROOT_DIR"
+export ION_NODE_LIST_DIR
+if [ -x "./cleanup" ]; then
+    ./cleanup
+else
+    killm f >/dev/null 2>&1
+fi
+
+rm -f "$NODE1_DIR/ion.log"
+rm -f "$NODE2_DIR/ion.log"
+rm -f "$NODE1_DIR/watch.log"
+rm -f "$NODE2_DIR/watch.log"
+rm -f "$NODE1_DIR"/send_*
+rm -f "$NODE1_DIR"/pulled_from_node2.bin
+rm -f "$NODE1_DIR"/remote_manifest.txt
+rm -f "$NODE1_DIR"/parsed_manifest.txt
+rm -rf "$NODE2_TEST_DIR"
+rm -f "$SOCK1"
+rm -f "$SOCK2"
+
+echo "============================================================"
+echo " PHASE 1: Initialization & Payload Generation"
+echo "============================================================"
+
+echo " [*] Generating local test payloads..."
+: > "$NODE1_DIR/send_zero.txt"
+printf 'A' > "$NODE1_DIR/send_one.txt"
+echo "This is a small ASCII test file." > "$NODE1_DIR/send_small.txt"
+dd if=/dev/urandom of="$NODE1_DIR/send_100b.bin" bs=100 count=1 2>/dev/null
+dd if=/dev/urandom of="$NODE1_DIR/send_50k.bin" bs=1024 count=50 2>/dev/null
+
+echo " [*] Spooling up Node 1 (ipn:1.0)..."
+(
+    cd "$NODE1_DIR" && ./ionstart
+)
+if ! wait_for_log "bputa is running" "$NODE1_DIR/ion.log" 30; then
+    RETVAL=1
+    exit 1
+fi
+echo "    [+] Node 1 bputa initialized."
+(
+    cd "$NODE1_DIR" && exec cfdpctl --watch --sock "$SOCK1"
+) >"$NODE1_DIR/watch.log" 2>&1 &
+WATCH1_PID=$!
+if ! wait_for_log "Watcher daemon listening" "$NODE1_DIR/watch.log" 15; then
+    RETVAL=1
+    exit 1
+fi
+echo "    [+] Node 1 watcher listening on $SOCK1."
+
+echo " [*] Spooling up Node 2 (ipn:2.0)..."
+mkdir -p "$NODE2_TEST_DIR"
+(
+    cd "$NODE2_DIR" && ./ionstart
+)
+if ! wait_for_log "bputa is running" "$NODE2_DIR/ion.log" 30; then
+    RETVAL=1
+    exit 1
+fi
+echo "    [+] Node 2 bputa initialized."
+(
+    cd "$NODE2_DIR" && exec cfdpctl --watch --sock "$SOCK2"
+) >"$NODE2_DIR/watch.log" 2>&1 &
+WATCH2_PID=$!
+if ! wait_for_log "Watcher daemon listening" "$NODE2_DIR/watch.log" 15; then
+    RETVAL=1
+    exit 1
+fi
+echo "    [+] Node 2 watcher listening on $SOCK2."
+
+echo ""
+echo "============================================================"
+echo " PHASE 2: Baseline Transfer Validation"
+echo "============================================================"
+
+echo " [*] Dispatching 0-Byte File..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_zero.txt" \
+    --dest "$NODE2_TEST_DIR/recv_zero.txt" \
+    --node 2 \
+    --priority 1
+wait_for_file_size "$NODE2_TEST_DIR/recv_zero.txt" 0 30 || RETVAL=1
+
+echo " [*] Dispatching 1-Byte File..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_one.txt" \
+    --dest "$NODE2_TEST_DIR/recv_one.txt" \
+    --node 2 \
+    --priority 1
+wait_for_file_size "$NODE2_TEST_DIR/recv_one.txt" 1 30 || RETVAL=1
+
+echo " [*] Dispatching 100-Byte Binary File..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_100b.bin" \
+    --dest "$NODE2_TEST_DIR/recv_100b.bin" \
+    --node 2 \
+    --priority 1
+wait_for_file_size "$NODE2_TEST_DIR/recv_100b.bin" 100 30 || RETVAL=1
+
+echo ""
+echo "============================================================"
+echo " PHASE 3: Feature-Stacked Topologies"
+echo "============================================================"
+
+echo " [*] Dispatching Feature-Stack Put (Payload + Msg + Rename + Ack)..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_50k.bin" \
+    --dest "$NODE2_TEST_DIR/recv_50k_feature.bin" \
+    --node 2 \
+    --msg "Automated Test Message" \
+    --rn-src "$NODE2_TEST_DIR/recv_zero.txt" \
+    --rn-dest "$NODE2_TEST_DIR/renamed_zero.txt" \
+    --closure 1 \
+    --priority 0
+wait_for_file_size "$NODE2_TEST_DIR/recv_50k_feature.bin" 51200 45 || RETVAL=1
+wait_for_file_size "$NODE2_TEST_DIR/renamed_zero.txt" 0 30 || RETVAL=1
+
+echo " [*] Staging 50k file on Node 2 for retrieval..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_50k.bin" \
+    --dest "$NODE2_TEST_DIR/staged_for_get.bin" \
+    --node 2 \
+    --priority 1
+wait_for_file_size "$NODE2_TEST_DIR/staged_for_get.bin" 51200 45 || RETVAL=1
+
+echo " [*] Issuing Proxy Get Request to retrieve staged file..."
+dispatch_and_capture --get \
+    --src "$NODE2_TEST_DIR/staged_for_get.bin" \
+    --dest "$NODE1_DIR/pulled_from_node2.bin" \
+    --node 2 \
+    --priority 2
+wait_for_file_size "$NODE1_DIR/pulled_from_node2.bin" 51200 45 || RETVAL=1
+
+echo ""
+echo "============================================================"
+echo " PHASE 4: State Manipulation Validation"
+echo "============================================================"
+
+echo " [*] Applying live throttle (5000 bps) & segsize (1024 B)..."
+(
+    cd "$NODE1_DIR" || exit 1
+    {
+        echo "m throttle 5000"
+        echo "m segsize 1024"
+    } | cfdpadmin >/dev/null 2>&1
+)
+wait_for_log "CFDP throttle set to 5000" "$NODE1_DIR/ion.log" 10 || RETVAL=1
+
+echo " [*] Validating Suspend, Report, & Resume..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_50k.bin" \
+    --dest "$NODE2_TEST_DIR/recv_suspend_test.bin" \
+    --node 2 \
+    --priority 0
+TXID_SUSPEND="$CURRENT_TXID"
+sleep 1
+
+if [ -n "$TXID_SUSPEND" ]; then
+    echo "    -> Suspending Transaction $TXID_SUSPEND..."
+    dispatch_and_capture --suspend --txid "$TXID_SUSPEND"
+
+    echo "    -> Requesting Status Report..."
+    dispatch_and_capture --report --txid "$TXID_SUSPEND"
+
+    echo "    -> Resuming Transaction $TXID_SUSPEND..."
+    dispatch_and_capture --resume --txid "$TXID_SUSPEND"
+else
+    echo "    [!] ERROR: Missing TXID for Suspend/Resume test."
+    RETVAL=1
+fi
+
+echo " [*] Validating Mid-Flight Cancellation..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_50k.bin" \
+    --dest "$NODE2_TEST_DIR/recv_cancel_test.bin" \
+    --node 2 \
+    --priority 0
+TXID_CANCEL="$CURRENT_TXID"
+sleep 1
+
+if [ -n "$TXID_CANCEL" ]; then
+    echo "    -> Canceling Transaction $TXID_CANCEL..."
+    dispatch_and_capture --cancel --txid "$TXID_CANCEL"
+else
+    echo "    [!] ERROR: Missing TXID for Cancel test."
+    RETVAL=1
+fi
+
+echo ""
+echo "============================================================"
+echo " PHASE 5: Quality of Service (QoS) Prioritization"
+echo "============================================================"
+
+echo " [*] Dispatching Bulk Transfer (Priority 0)..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_50k.bin" \
+    --dest "$NODE2_TEST_DIR/recv_qos_bulk.bin" \
+    --node 2 \
+    --priority 0
+
+echo " [*] Dispatching Expedited Transfer (Priority 2)..."
+dispatch_and_capture --put \
+    --src "$NODE1_DIR/send_100b.bin" \
+    --dest "$NODE2_TEST_DIR/recv_qos_expedited.bin" \
+    --node 2 \
+    --priority 2
+
+echo " [*] Restoring full bandwidth and awaiting queue flush..."
+(
+    cd "$NODE1_DIR" || exit 1
+    {
+        echo "m throttle 0"
+        echo "m segsize 65000"
+    } | cfdpadmin >/dev/null 2>&1
+)
+wait_for_log "CFDP throttle disabled" "$NODE1_DIR/ion.log" 10 || RETVAL=1
+
+wait_for_file_size "$NODE2_TEST_DIR/recv_suspend_test.bin" 51200 60 \
+    || RETVAL=1
+wait_for_file_size "$NODE2_TEST_DIR/recv_qos_bulk.bin" 51200 60 || RETVAL=1
+wait_for_file_size "$NODE2_TEST_DIR/recv_qos_expedited.bin" 100 60 || RETVAL=1
+
+echo ""
+echo "============================================================"
+echo " PHASE 6: File Verification & Remote Manifest Evaluation"
+echo "============================================================"
+
+MANIFEST_FILE="$NODE1_DIR/remote_manifest.txt"
+PARSED_MANIFEST="$NODE1_DIR/parsed_manifest.txt"
+
+echo " [*] Requesting Remote Directory Listing from Node 2..."
+dispatch_and_capture --ls \
+    --src "$NODE2_TEST_DIR" \
+    --dest "$MANIFEST_FILE" \
+    --node 2
+
+echo " [*] Awaiting manifest Transaction Finished (Event 3)..."
+MANIFEST_READY=0
+_m_max=$((45 * TICKS_PER_SEC))
+_m_i=0
+while [ "$_m_i" -lt "$_m_max" ]; do
+    if [ -s "$MANIFEST_FILE" ]; then
+        _mtx=$(awk '/Event 4 / && /remote_manifest\.txt/ { tx = $5 }
+            END { if (tx != "") print tx }' "$NODE1_DIR/watch.log" \
+            2>/dev/null)
+        if [ -n "$_mtx" ] && grep "Event 3 for TX $_mtx " \
+            "$NODE1_DIR/watch.log" >/dev/null 2>&1; then
+            MANIFEST_READY=1
+            break
+        fi
+    fi
+    poll_sleep
+    _m_i=$((_m_i + 1))
+done
+
+if [ "$MANIFEST_READY" -eq 1 ]; then
+    echo "    [+] Manifest transfer completed. Evaluating..."
+
+    if command -v strings >/dev/null 2>&1; then
+        strings "$MANIFEST_FILE" > "$PARSED_MANIFEST"
+    elif command -v perl >/dev/null 2>&1; then
+        perl -pe 's/[^ -~]+/\n/g' "$MANIFEST_FILE" > "$PARSED_MANIFEST"
+    else
+        tr '\000' '\012' < "$MANIFEST_FILE" > "$PARSED_MANIFEST"
+    fi
+
+    EXPECTED_FILES="recv_one.txt recv_100b.bin recv_50k_feature.bin \
+        renamed_zero.txt staged_for_get.bin recv_suspend_test.bin \
+        recv_qos_bulk.bin recv_qos_expedited.bin"
+
+    for f in $EXPECTED_FILES; do
+        if grep "$f" "$PARSED_MANIFEST" >/dev/null 2>&1; then
+            echo "      [PASS] Located: $f"
+        else
+            echo "      [FAIL] Missing: $f"
+            RETVAL=1
+        fi
+    done
+
+    if grep "recv_zero.txt" "$PARSED_MANIFEST" >/dev/null 2>&1; then
+        echo "      [FAIL] recv_zero.txt still present after rename."
+        RETVAL=1
+    else
+        echo "      [PASS] Confirmed recv_zero.txt renamed cleanly."
+    fi
+
+    CANCEL_FILE="$NODE2_TEST_DIR/recv_cancel_test.bin"
+    if [ -f "$CANCEL_FILE" ]; then
+        CANCEL_SIZE=$(file_size "$CANCEL_FILE")
+        if [ "$CANCEL_SIZE" -lt 51200 ] && [ "$CANCEL_SIZE" -gt 0 ]; then
+            echo "      [PASS] Cancellation validated (partial:" \
+                "$CANCEL_SIZE bytes)."
+        elif [ "$CANCEL_SIZE" -eq 51200 ]; then
+            echo "      [FAIL] Cancellation failed (reached 51200 bytes)."
+            RETVAL=1
+        else
+            echo "      [PASS] Cancellation validated (0 bytes on disk)."
+        fi
+    else
+        echo "      [PASS] Cancellation validated (scrubbed from disk)."
+    fi
+
+    CMP_ORIG="$NODE1_DIR/send_50k.bin"
+    CMP_PULLED="$NODE1_DIR/pulled_from_node2.bin"
+    if cmp -s "$CMP_ORIG" "$CMP_PULLED"; then
+        echo "      [PASS] Proxy Get payload verified byte-for-byte."
+    else
+        echo "      [FAIL] Proxy Get file missing or corrupted."
+        RETVAL=1
+    fi
+else
+    echo "    [!] ERROR: Remote manifest failed to complete."
+    RETVAL=1
+fi
+
+echo ""
+echo "============================================================"
+if [ "$RETVAL" -eq 0 ]; then
+    echo " [SUCCESS] All Integration Validations Passed."
+else
+    echo " [FAILURE] One or more integration checks failed."
+fi
+echo "============================================================"
+
+exit "$RETVAL"
