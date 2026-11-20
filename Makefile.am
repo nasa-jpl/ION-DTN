@@ -97,6 +97,7 @@ EXTRA_DIST =	\
 
 # This hook now explicitly depends on the completion of all programs and
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
+all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
 if ENABLE_INSTALL_MESSAGES
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
