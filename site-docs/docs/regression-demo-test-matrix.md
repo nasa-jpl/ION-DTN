@@ -14,13 +14,13 @@ This matrix maps every regression test (`tests/`) and demonstration (`demos/`) i
 | Custody Transfer & Status Signaling | 26 |
 | Routing — Contact Graph Routing / SABR | 19 |
 | Licklider Transmission Protocol (LTP) | 18 |
-| Convergence-Layer Adapters (CLAs) | 18 |
+| Convergence-Layer Adapters (CLAs) | 19 |
 | Security — BPSec & Key Management | 9 |
 | CCSDS File Delivery Protocol (CFDP) | 8 |
 | Application Services & Utilities | 17 |
 | Core Infrastructure & Platform | 24 |
 | Performance Benchmarks | 12 |
-| **Total** | **174** |
+| **Total** | **175** |
 
 ## System / data-flow demonstrations
 
@@ -134,7 +134,7 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/ltp-config-split` | span-configuration | Asymmetric split-mode LTP xmit/recv configuration | Integration | RFC 5326 | Different xmit/recv retries and loss per direction |
 | `tests/ltp-config-unified` | span-configuration | Unified-mode LTP maxretries/maxseglossrate config | Integration | RFC 5326 | 'm maxretries'/'m maxseglossrate' with 10% loss via owltsim |
 
-### Convergence-Layer Adapters (CLAs)  <span style="font-weight:normal">(CLA, 18 tests)</span>
+### Convergence-Layer Adapters (CLAs)  <span style="font-weight:normal">(CLA, 19 tests)</span>
 
 | Test | Subcategory | DTN function / behavior | Type | Spec § | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -150,6 +150,7 @@ These tests demonstrate an end-to-end data flow across a topology rather than ch
 | `tests/bug-0015-tcpclo-bpcp-sig-handling` | tcpcl | Signal-interrupted semaphore ops in tcpclo/bpcp handlers | Regression | — (implementation) | EINTR semaphore handling in tcpclo/bpcp/bpcpd |
 | `tests/issue-253-tcpcl-keepalive` | tcpcl | TCPCL keepalive backoff timer triggers keepalive | Regression | RFC 9174 | TCPCLv4 keepalive timer; every 30s |
 | `tests/issue-253-tcpcl-keepalive-v6` | tcpcl | TCPCL keepalive backoff timer triggers keepalive (IPv6) | Regression | RFC 9174 | TCPCLv4 keepalive timer; IPv6; every 30s |
+| `tests/tcpcl-keepalive-timeout` | tcpcl | tcpcli abandons a session after a lost RST or a silent peer crash | Regression | RFC 7242 §5.6 | TCPCLv3; SIGSTOP stands in for a reset that never arrives |
 | `tests/issue-347-tcpcl-reconnection` | tcpcl | tcpcli recovers from neighbor shutdown cascade | Regression | RFC 9174 | Pins #347; tcpcli reconnection after shutdown message; also exercises the ionrestart utility (node 1 restarted mid-test) |
 | `tests/tcpcl-ack-resilience` | tcpcl | TCPCL recovers and completes file transfer after mid-stream block | Regression | RFC 9174 | TCPCLv4 resilience to interrupted connection; RFC 7242 also relevant |
 | `tests/tcpcl-dos` | tcpcl | tcpcli hardened against denial-of-service bug | Regression | RFC 9174 | Security/robustness of TCPCL input daemon |
