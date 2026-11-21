@@ -1,0 +1,10 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.1 x
+a protocol tcp 1400 100
+a protocol stcp 1400 100
+a protocol brss 1400 100
+a induct tcp 127.0.0.1:5811 tcpcli
+a induct stcp 127.0.0.1:5812 stcpcli
+a induct brss 127.0.0.1:5813 brsscla
+s

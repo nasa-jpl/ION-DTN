@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+ionadmin ipn.ionrc
+sleep 1
+bpadmin ipn.bprc
