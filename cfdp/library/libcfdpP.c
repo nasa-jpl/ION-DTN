@@ -1488,8 +1488,13 @@ SdrObject findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
 	{
 		fduObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) fduBuf, fduObj, sizeof(OutFdu));
-		if (memcmp(fduBuf->transactionId.transactionNbr.buffer,
-				transactionId->transactionNbr.buffer, 8) == 0)
+		if (memcmp(fduBuf->transactionId.sourceEntityNbr.buffer,
+				transactionId->sourceEntityNbr.buffer, 8)
+				== 0 &&
+				memcmp(fduBuf->transactionId.transactionNbr
+						.buffer,
+				transactionId->transactionNbr.buffer, 8)
+				== 0)
 		{
 			*fduElt = elt;
 			return fduObj;
