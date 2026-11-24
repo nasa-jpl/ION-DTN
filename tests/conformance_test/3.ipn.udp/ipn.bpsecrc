@@ -32,12 +32,12 @@ a {
 
 a {
     "policyrule": {
-        "desc": "Integrity acceptor rule",
+        "desc": "Integrity acceptor probe path",
         "filter": {
             "rule_id": 310,
             "role": "a",
             "src": "ipn:2.*",
-            "dest": "ipn:3.*",
+            "dest": "ipn:3.2",
             "tgt": 0
         },
         "spec": {

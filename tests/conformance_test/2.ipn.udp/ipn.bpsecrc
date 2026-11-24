@@ -46,12 +46,12 @@ a {
 
 a {
     "policyrule": {
-        "desc": "Integrity source rule",
+        "desc": "Integrity source probe path",
         "filter": {
             "rule_id": 190,
             "role": "s",
             "src": "ipn:2.*",
-            "dest": "ipn:3.*",
+            "dest": "ipn:3.2",
             "tgt": 0
         },
         "spec": {

@@ -98,6 +98,9 @@ sleep 30
 
 bpsink ipn:3.1 >/dev/null &
 BPSINKPID=$!
+# The bptrace probe targets ipn:3.2 (the BIB-protected path); drain it too.
+bpsink ipn:3.2 >/dev/null &
+BPSINKPID2=$!
 cd ../
 
 # pause for bpsink
@@ -109,9 +112,9 @@ STATCHECK=$?
 
 # bpsink does not self-terminate, so send it SIGINT
 echo "Stopping bpsink..."
-kill -2 $BPSINKPID >/dev/null 2>&1
+kill -2 $BPSINKPID $BPSINKPID2 >/dev/null 2>&1
 sleep 1
-kill -9 $BPSINKPID >/dev/null 2>&1
+kill -9 $BPSINKPID $BPSINKPID2 >/dev/null 2>&1
 
 if [ $STATCHECK -eq 0 ]; then
     echo "SUCCESS: Conformance test passed!"

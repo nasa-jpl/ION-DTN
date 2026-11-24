@@ -31,7 +31,11 @@ VERIFY_TIMEOUT = 20
 
 def bptrace() -> None:
     """Run bptrace as if it were in node 2 directory."""
-    trace_cmd = "bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 'Hello!'"
+    # The probe targets ipn:3.2, the only destination the integrity source and
+    # acceptor rules cover.  The injected conformance bundles target ipn:3.1 so
+    # they are not subject to the required BIB, which a security acceptor now
+    # enforces: a bundle missing a required security block is not delivered.
+    trace_cmd = "bptrace ipn:2.1 ipn:3.2 dtn:none 300 0.1 'Hello!'"
     subprocess.run(shlex.split(trace_cmd), cwd=NODE2DIR, check=True)
 
 
