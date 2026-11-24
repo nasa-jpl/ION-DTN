@@ -353,6 +353,12 @@ jobs:
           restore-keys: |
             ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ (inputs.with_bsl == true || inputs.with_bsl == 'true') && 'bsl' || 'native' }}-
 
+      - name: Fail if build cache could not be restored
+        if: ${{ steps.cache-restore-1.outputs.cache-matched-key == '' && steps.cache-restore-2.outputs.cache-matched-key == '' }}
+        run: |
+          echo "::error::Could not restore the build cache for ${{ matrix.runner }} (batch ${{ matrix.test_batch.batch }}); refusing to report success without running tests."
+          exit 1
+
       # Re-checkout the correct ref with clean:false: this resets all tracked
       # files (tests/, demos/, killm, ...) to this job's ref regardless of the
       # state the restored build cache left the working tree in, while
