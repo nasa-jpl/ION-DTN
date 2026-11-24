@@ -1417,6 +1417,75 @@ BpSecPolRule* bslpol_get_receiver_rule(AcqWorkArea *work, unsigned char tgtNum, 
 	return polRule;
 }
 
+/******************************************************************************
+ * @brief Finds a receive-side rule requiring a security service over a block.
+ *
+ * Finds the best security verifier or acceptor rule that requires the given
+ * security service (bib-integrity or bcb-confidentiality) over the block
+ * identified by tgtNum, without constraining the match to any security context
+ * ID.  Used to detect a required security operation that is absent from the
+ * bundle, where no security block (and hence no sc_id) is available.
+ *
+ * @param[in]     work    The incoming acquisition work area.
+ * @param[in]     tgtNum  Block number of the target of the policy rule.
+ * @param[in]     svc     Security service (SC_SVC_BIBINT or SC_SVC_BCBCONF).
+ *
+ * @retval !NULL - The rule requiring the service over the target block.
+ * @retval NULL  - No verifier or acceptor rule requires it.
+ *****************************************************************************/
+BpSecPolRule* bslpol_get_required_receiver_rule(AcqWorkArea *work,
+		unsigned char tgtNum, int svc)
+{
+	PsmPartition wm = getIonwm();
+	BpSecPolRuleSearchTag tag;
+	memset(&tag,0,sizeof(tag));
+
+	/* Step 1: Populate the policy rule search tag.  The security context ID is
+	 * left unconstrained, since an absent security operation carries none. */
+	tag.role = BPRF_VER_ROLE | BPRF_ACC_ROLE;
+	tag.scid = BPSEC_UNSUPPORTED_SC;
+	tag.svc = svc;
+
+	readEid(&(work->bundle.id.source), &(tag.bsrc));
+	tag.bsrc_len = strlen(tag.bsrc);
+
+	readEid(&(work->bundle.destination), &(tag.bdest));
+	tag.bdest_len = strlen(tag.bdest);
+
+	if (tgtNum == 0)
+	{
+		tag.type = PrimaryBlk;
+	}
+	else if (tgtNum == 1)
+	{
+		tag.type = PayloadBlk;
+	}
+	else
+	{
+		LystElt	elt = getAcqExtensionBlock(work, tgtNum);
+
+		if(elt != NULL)
+		{
+			AcqExtBlock	*blk = lyst_data(elt);
+			tag.type = blk->type;
+		}
+		else
+		{
+			MRELEASE(tag.bsrc);
+			MRELEASE(tag.bdest);
+			return NULL;
+		}
+	}
+
+	/* Step 2: Retrieve the best matching verifier or acceptor rule. */
+	BpSecPolRule *polRule = bslpol_rule_get_best_match(wm, tag);
+
+	MRELEASE(tag.bsrc);
+	MRELEASE(tag.bdest);
+
+	return polRule;
+}
+
 #if 0
 
 		/*	Currently not used.	*/

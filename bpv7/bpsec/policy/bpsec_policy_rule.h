@@ -302,6 +302,7 @@ BpSecPolRule* bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 BpSecPolRule* bslpol_rule_get_ptr(PsmPartition partition, int user_id);
 BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType sopType, BpBlockType tgtType);
 BpSecPolRule* bslpol_get_receiver_rule(AcqWorkArea *work, unsigned char tgtNum, int scid);
+BpSecPolRule* bslpol_get_required_receiver_rule(AcqWorkArea *work, unsigned char tgtNum, int svc);
 
 int           bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember);
 int           bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolRuleSearchTag *tag);

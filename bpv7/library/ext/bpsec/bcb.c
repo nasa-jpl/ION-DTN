@@ -227,6 +227,103 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 	}
 }
 
+/*    Records, in a 256-entry presence map indexed by target block number,
+ *    every block that an inbound BCB protects.  Collected before the present-
+ *    BCB loop runs, since that loop removes accepted target results.    */
+static void bcb_collect_inbound_targets(AcqWorkArea *work, char *seen)
+{
+	LystElt			blkElt;
+	LystElt			tgtElt;
+	AcqExtBlock		*block;
+	BpsecInboundASB		*asb;
+	BpsecInboundTargetResult *target;
+
+	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+	{
+		block = (AcqExtBlock *) lyst_data(blkElt);
+		if (block == NULL || block->type != BlockConfidentialityBlk)
+		{
+			continue;
+		}
+
+		asb = (BpsecInboundASB *) (block->object);
+		if (asb == NULL)
+		{
+			continue;
+		}
+
+		for (tgtElt = lyst_first(asb->scResults); tgtElt; tgtElt = lyst_next(tgtElt))
+		{
+			target = (BpsecInboundTargetResult *) lyst_data(tgtElt);
+			if (target != NULL)
+			{
+				seen[target->scTargetId] = 1;
+			}
+		}
+	}
+}
+
+/*    If a verifier or acceptor rule requires a BCB over target block tgtNum
+ *    and no inbound BCB protects it, raises the missing-SOP event and marks
+ *    the bundle so acquisition does not deliver it as confidential.    */
+static void bcb_check_required_target(AcqWorkArea *work, unsigned char tgtNum,
+		char *seen)
+{
+	Bundle		*bundle = &(work->bundle);
+	BpSecPolRule	*rule;
+
+	if (seen[tgtNum])
+	{
+		return;
+	}
+
+	rule = bslpol_get_required_receiver_rule(work, tgtNum, SC_SVC_BCBCONF);
+	if (rule == NULL)
+	{
+		return;
+	}
+
+	if (rule->filter.flags & BPRF_ACC_ROLE)
+	{
+		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_missing_at_acceptor, NULL, NULL, tgtNum);
+		BCB_TEST_POINT("sop_missing_at_acceptor", bundle, tgtNum);
+	}
+	else
+	{
+		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE, sop_missing_at_verifier, NULL, NULL, tgtNum);
+		BCB_TEST_POINT("sop_missing_at_verifier", bundle, tgtNum);
+	}
+
+	bundle->altered = 1;
+}
+
+/*    Enforces every required-but-absent BCB: the payload block and each
+ *    non-security extension block.  A BCB cannot target the primary block.  */
+static void bcb_enforce_required(AcqWorkArea *work, char *seen)
+{
+	LystElt		blkElt;
+	AcqExtBlock	*block;
+
+	bcb_check_required_target(work, PayloadBlk, seen);
+
+	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+	{
+		block = (AcqExtBlock *) lyst_data(blkElt);
+		if (block == NULL)
+		{
+			continue;
+		}
+
+		if (block->type == BlockIntegrityBlk
+				|| block->type == BlockConfidentialityBlk)
+		{
+			continue;
+		}
+
+		bcb_check_required_target(work, block->number, seen);
+	}
+}
+
 // TODO document function
 // TODO we must become default security acceptor if we are bundle destination.
 int    bpsec_decrypt(AcqWorkArea *work)
@@ -246,12 +343,18 @@ int    bpsec_decrypt(AcqWorkArea *work)
 	int			secBlkMisconf = 0;
 	char			fromEid[MAX_EID_LEN];
 	AcqExtBlock		*tgtBlk = NULL;
+	char			bcbSeen[256];
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) work);
 
 	/**** Apply all applicable security policy rules ****/
 
 	BpSecPolRule *polRule = NULL;
+
+	/* Record which blocks an inbound BCB protects, before the loop below
+	 * removes accepted target results. */
+	memset(bcbSeen, 0, sizeof(bcbSeen));
+	bcb_collect_inbound_targets(work, bcbSeen);
 
 	/* For each BCB in the bundle */
 	for (bcbBlkElt = lyst_first(work->extBlocks); bcbBlkElt; bcbBlkElt = nextBcbBlkElt)
@@ -401,5 +504,9 @@ int    bpsec_decrypt(AcqWorkArea *work)
 			}
 		}
 	}
+
+	/* Then check for BCBs that are required but not present. */
+	bcb_enforce_required(work, bcbSeen);
+
 	return 0;
 }

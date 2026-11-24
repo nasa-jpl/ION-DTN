@@ -35,6 +35,7 @@
 #include "bpsec_policy.h"
 #include "bpsec_policy_rule.h"
 #include "bpsec_policy_eventset.h"
+#include "../../utils/bpsecadmin_config.h"
 
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
@@ -1209,6 +1210,10 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
+
+	/* A missing security operation provides no security block, so no security
+	 * context ID; leave the ID unconstrained unless a block supplies one. */
+	tag.scid = BPSEC_UNSUPPORTED_SC;
 
 	/* Step 1: Populate the policy rule search tag */
 	if (tgtNum == 0)

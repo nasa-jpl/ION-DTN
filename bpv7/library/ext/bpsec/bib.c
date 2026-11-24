@@ -227,6 +227,133 @@ void bib_handle_rx_error(AcqWorkArea *work, Bundle *bundle, BpSecPolRule *polRul
 	}
 }
 
+/*    An inbound BIB's ASB is deserialized by the parse callback, which runs
+ *    after the first of acquisition's two bpsec_verify passes.  Returns 0 while
+ *    any BIB block is still unparsed, so a present-but-unparsed BIB is not
+ *    mistaken for an absent one.    */
+static int bib_inbound_asbs_parsed(AcqWorkArea *work)
+{
+	LystElt		blkElt;
+	AcqExtBlock	*block;
+
+	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+	{
+		block = (AcqExtBlock *) lyst_data(blkElt);
+		if (block != NULL && block->type == BlockIntegrityBlk
+				&& block->object == NULL)
+		{
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+/*    Records, in a 256-entry presence map indexed by target block number,
+ *    every block that an inbound BIB protects.  Collected before the present-
+ *    BIB loop runs, since that loop removes accepted target results.    */
+static void bib_collect_inbound_targets(AcqWorkArea *work, char *seen)
+{
+	LystElt			blkElt;
+	LystElt			tgtElt;
+	AcqExtBlock		*block;
+	BpsecInboundASB		*asb;
+	BpsecInboundTargetResult *target;
+
+	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+	{
+		block = (AcqExtBlock *) lyst_data(blkElt);
+		if (block == NULL || block->type != BlockIntegrityBlk)
+		{
+			continue;
+		}
+
+		asb = (BpsecInboundASB *) (block->object);
+		if (asb == NULL)
+		{
+			continue;
+		}
+
+		for (tgtElt = lyst_first(asb->scResults); tgtElt; tgtElt = lyst_next(tgtElt))
+		{
+			target = (BpsecInboundTargetResult *) lyst_data(tgtElt);
+			if (target != NULL)
+			{
+				seen[target->scTargetId] = 1;
+			}
+		}
+	}
+}
+
+/*    If a verifier or acceptor rule requires a BIB over target block tgtNum
+ *    and no inbound BIB protects it, raises the missing-SOP event and marks
+ *    the bundle so acquisition does not deliver it as authenticated.    */
+static void bib_check_required_target(AcqWorkArea *work, unsigned char tgtNum,
+		char *seen)
+{
+	Bundle		*bundle = &(work->bundle);
+	BpSecPolRule	*rule;
+
+	if (seen[tgtNum])
+	{
+		return;
+	}
+
+	rule = bslpol_get_required_receiver_rule(work, tgtNum, SC_SVC_BIBINT);
+	if (rule == NULL)
+	{
+		return;
+	}
+
+	if (rule->filter.flags & BPRF_ACC_ROLE)
+	{
+		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_missing_at_acceptor, NULL, NULL, tgtNum);
+		BIB_TEST_POINT("sop_missing_at_acceptor", bundle, tgtNum);
+	}
+	else
+	{
+		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE, sop_missing_at_verifier, NULL, NULL, tgtNum);
+		BIB_TEST_POINT("sop_missing_at_verifier", bundle, tgtNum);
+	}
+
+	if (tgtNum == PrimaryBlk)
+	{
+		work->authentic = 0;
+	}
+	else
+	{
+		bundle->altered = 1;
+	}
+}
+
+/*    Enforces every required-but-absent BIB: the primary block, the payload
+ *    block, and each non-security extension block.    */
+static void bib_enforce_required(AcqWorkArea *work, char *seen)
+{
+	LystElt		blkElt;
+	AcqExtBlock	*block;
+
+	bib_check_required_target(work, PrimaryBlk, seen);
+	bib_check_required_target(work, PayloadBlk, seen);
+
+	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+	{
+		block = (AcqExtBlock *) lyst_data(blkElt);
+		if (block == NULL)
+		{
+			continue;
+		}
+
+		if (block->type == BlockIntegrityBlk
+				|| block->type == BlockConfidentialityBlk)
+		{
+			continue;
+		}
+
+		bib_check_required_target(work, block->number, seen);
+	}
+}
+
 // TODO document function
 int bpsec_verify(AcqWorkArea *work)
 {
@@ -245,6 +372,9 @@ int bpsec_verify(AcqWorkArea *work)
 	char *fromEid = NULL;
 	size_t length = 0;
 
+	char bibSeen[256];
+	int  bibParsed;
+
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) work);
 
 	CHKERR(bundle);
@@ -252,6 +382,16 @@ int bpsec_verify(AcqWorkArea *work)
 	/****    Apply all applicable security policy rules         ****/
 
 	BpSecPolRule *polRule = NULL;
+
+	/*    Record which blocks an inbound BIB protects, before the loop below
+	 *    removes accepted target results.  The required-but-absent check is
+	 *    meaningful only once the BIB ASBs have been parsed.    */
+	memset(bibSeen, 0, sizeof(bibSeen));
+	bibParsed = bib_inbound_asbs_parsed(work);
+	if (bibParsed)
+	{
+		bib_collect_inbound_targets(work, bibSeen);
+	}
 
 	/*    First check all BIBS that are present in the bundle.    */
 	for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = nextBlkElt)
@@ -407,9 +547,10 @@ int bpsec_verify(AcqWorkArea *work)
 	}
 
 	/*    Then check for BIBs that are required but not present.    */
-	// TODO - This needs to be implemented.
-	// TODO - This probably also means being able to query by wildcard SCID.
-	// TODO - Maybe we keep a list of processed rule IDs
+	if (bibParsed)
+	{
+		bib_enforce_required(work, bibSeen);
+	}
 
 	/* This attempts to handle the case where the BIB for a primary block
 	exists, but there is no CRC. ION does not have a good way to lookup if
