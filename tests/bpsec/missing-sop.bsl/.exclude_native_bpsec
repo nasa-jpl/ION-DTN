@@ -1,0 +1,2 @@
+BSL test (m bsl policy); excluded from native BPSec builds.  The native twin
+lives in tests/issue-1551-bpsec-missing-sop.

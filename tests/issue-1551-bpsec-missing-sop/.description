@@ -1,0 +1,1 @@
+Native BPSec: a security acceptor that requires integrity (BIB) or confidentiality (BCB) over a block rejects a bundle that arrives with the required security block absent, not only one that is present but invalid.

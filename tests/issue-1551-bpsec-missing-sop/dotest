@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# issue-1551: required-but-absent security block enforcement at the acceptor.
+#
+# A BPSec security acceptor that requires integrity (BIB) or confidentiality
+# (BCB) over a block must reject a bundle that arrives with the required
+# security block ABSENT, not only one whose block is present but invalid.
+# Acceptor processing used to be purely block-driven: ION walked the security
+# blocks present in a bundle, so a required block that was simply missing was
+# never noticed and the bundle was delivered as if no policy existed.
+#
+#   node 2 (security source)  --udp-->  node 3 (security acceptor, ipn:3.1 sink)
+#
+# For each service (BIB, then BCB) the test runs two cases against node 3's
+# acceptor rule over the payload block:
+#
+#   control  node 2 holds the matching source rule, so the bundle carries the
+#            required block.  It must be delivered -- this proves the key, the
+#            rule and the topology are sound, so a rejected "missing" bundle is
+#            the defect under test and not a broken setup.
+#   missing  node 2's source rule is removed, so the bundle is unprotected.
+#            The acceptor must reject it (bundle discarded, not delivered) and
+#            raise sop_missing_at_acceptor.
+#
+# On the unfixed code the missing case is DELIVERED, so node 3's delivered
+# tally rises and no discard memo appears: the test fails there and passes once
+# the acceptor enforces its required security operations.
+#
+set -u
+cd "$(dirname "$0")"
+. ../test_utils.sh
+
+SYSUP=../../../system_up
+RETVAL=0
+
+echo "########################################"
+echo "NAME: issue-1551-bpsec-missing-sop"
+echo "PURPOSE: A security acceptor rejects a bundle whose required BIB/BCB is"
+echo "         absent, and delivers one that carries it."
+echo "########################################"
+
+./cleanup
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+
+pass() { echo "  PASS: $1"; }
+fail() { echo "  FAIL: $1"; RETVAL=1; }
+
+# Node 3's delivered-bundle tally, sampled from a fresh bpstats snapshot.
+dlv_count() {
+    ( cd 3.ipn.udp && bpstats ) >/dev/null 2>&1
+    sleep 1
+    lastBpTally dlv 3.ipn.udp/ion.log
+}
+
+# Count of acceptor security-rejection memos in node 3's log.
+reject_count() {
+    _rc=$(grep -c "security verification failed for target block" \
+        3.ipn.udp/ion.log 2>/dev/null)
+    echo "${_rc:-0}"
+}
+
+send() {  # one bundle ipn:2.1 -> ipn:3.1 carrying the given message
+    ( cd 2.ipn.udp && bptrace ipn:2.1 ipn:3.1 ipn:2.0 60 0.1 "$1" ) >/dev/null 2>&1
+}
+
+add_source_rule() {  # $1 svc  $2 sc_id  $3 key  $4 extra-parms
+    ( cd 2.ipn.udp && bpsecadmin ) <<EOF >/dev/null 2>&1
+a {"policyrule":{"desc":"src $1","filter":{"rule_id":10,"role":"s","src":"ipn:2.*","dest":"ipn:3.*","tgt":1},"spec":{"svc":"$1","sc_id":$2,"sc_parms":[{"key_name":"$3"}$4]},"es_ref":"e"}}
+EOF
+}
+del_source_rule() {
+    ( cd 2.ipn.udp && bpsecadmin ) <<EOF >/dev/null 2>&1
+d {"policyrule":{"rule_id":10}}
+EOF
+}
+add_acceptor_rule() {  # $1 svc  $2 sc_id  $3 key  $4 extra-parms  $5 es_ref
+    ( cd 3.ipn.udp && bpsecadmin ) <<EOF >/dev/null 2>&1
+a {"policyrule":{"desc":"acc $1","filter":{"rule_id":20,"role":"a","src":"ipn:2.*","dest":"ipn:3.*","tgt":1},"spec":{"svc":"$1","sc_id":$2,"sc_parms":[{"key_name":"$3"}$4]},"es_ref":"$5"}}
+EOF
+}
+del_acceptor_rule() {
+    ( cd 3.ipn.udp && bpsecadmin ) <<EOF >/dev/null 2>&1
+d {"policyrule":{"rule_id":20}}
+EOF
+}
+
+# Source needs an event set for its source rule to reference.
+init_source_eventset() {
+    ( cd 2.ipn.udp && bpsecadmin ) <<EOF >/dev/null 2>&1
+a {"event_set":{"name":"e","desc":"source event set"}}
+a {"event":{"es_ref":"e","event_id":"sop_misconfigured_at_source","actions":[{"id":"do_not_forward"}]}}
+EOF
+}
+
+# run_service NAME SVC SCID KEY EXTRA ESREF
+run_service() {
+    LABEL="$1"; SVC="$2"; SCID="$3"; KEY="$4"; EXTRA="$5"; ESREF="$6"
+
+    echo ""
+    echo "*** $LABEL control: required $SVC present -> delivered ***"
+    add_source_rule   "$SVC" "$SCID" "$KEY" "$EXTRA"
+    add_acceptor_rule "$SVC" "$SCID" "$KEY" "$EXTRA" "$ESREF"
+    sleep 2
+
+    BEFORE_DLV=$(dlv_count)
+    send "1551-$LABEL-control"
+    dlv_grew() { [ "$(dlv_count)" -gt "$BEFORE_DLV" ]; }
+    if waitForPredicate dlv_grew 40000; then
+        pass "$LABEL control bundle delivered (required $SVC accepted)"
+    else
+        fail "$LABEL control bundle not delivered; cannot isolate the missing case"
+        return
+    fi
+
+    echo ""
+    echo "*** $LABEL missing: required $SVC absent -> rejected ***"
+    del_source_rule         # node 2 now emits an unprotected bundle
+    sleep 2
+
+    BEFORE_DLV=$(dlv_count)
+    BEFORE_REJ=$(reject_count)
+    send "1551-$LABEL-missing"
+    rejected() { [ "$(reject_count)" -gt "$BEFORE_REJ" ]; }
+    if waitForPredicate rejected 40000; then
+        pass "$LABEL missing bundle rejected by the acceptor"
+    else
+        fail "$LABEL missing bundle not rejected (required $SVC not enforced)"
+    fi
+
+    AFTER_DLV=$(dlv_count)
+    if [ "$AFTER_DLV" -eq "$BEFORE_DLV" ]; then
+        pass "$LABEL missing bundle was not delivered"
+    else
+        fail "$LABEL missing bundle was delivered ($BEFORE_DLV -> $AFTER_DLV)"
+    fi
+
+    if grep -q "\[te\] sop_missing_at_acceptor" 3.ipn.udp/ion.log 2>/dev/null; then
+        echo "  note: sop_missing_at_acceptor test point observed"
+    fi
+
+    del_acceptor_rule
+    sleep 1
+}
+
+echo ""
+echo "Starting nodes ..."
+for n in 3 2; do
+    ( cd "$n.ipn.udp" && ./ionstart ) > "$n.ipn.udp/start.log" 2>&1
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 45" -b "p 45" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        cat "$n.ipn.udp/start.log"
+        exit 1
+    fi
+    echo "  node $n up."
+done
+
+init_source_eventset
+
+# Sink on the destination so delivered bundles are consumed.
+( cd 3.ipn.udp && bpsink ipn:3.1 > sink.txt 2>&1 ) &
+SINKPID=$!
+sleep 3
+
+run_service BIB bib-integrity      1 bibkey ''                                    d_integrity
+run_service BCB bcb-confidentiality 2 bcbkey ',{"aad_scope":"4"},{"aes_variant":"3"}' d_bcb_conf
+
+kill "$SINKPID" 2>/dev/null
+
+echo ""
+if [ "$RETVAL" -eq 0 ]; then
+    echo "TEST PASSED"
+else
+    echo "TEST FAILED"
+    echo "----- node 3 ion.log (tail 80) -----"
+    tail -80 3.ipn.udp/ion.log 2>/dev/null
+fi
+exit $RETVAL

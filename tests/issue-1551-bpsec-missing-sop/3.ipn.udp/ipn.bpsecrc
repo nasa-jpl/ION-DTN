@@ -1,0 +1,9 @@
+1
+
+a {"event_set":{"name":"d_integrity","desc":"integrity acceptor"}}
+a {"event":{"es_ref":"d_integrity","event_id":"sop_missing_at_acceptor","actions":[{"id":"remove_sop_target"}]}}
+a {"event":{"es_ref":"d_integrity","event_id":"sop_corrupted_at_acceptor","actions":[{"id":"remove_sop_target"}]}}
+
+a {"event_set":{"name":"d_bcb_conf","desc":"confidentiality acceptor"}}
+a {"event":{"es_ref":"d_bcb_conf","event_id":"sop_missing_at_acceptor","actions":[{"id":"remove_sop_target"}]}}
+a {"event":{"es_ref":"d_bcb_conf","event_id":"sop_corrupted_at_acceptor","actions":[{"id":"remove_sop_target"}]}}

@@ -1,0 +1,2 @@
+Native BPSec test (bpsecadmin acceptor rules); excluded from BSL builds.  The
+BSL twin lives in bpsec/missing-sop.bsl.

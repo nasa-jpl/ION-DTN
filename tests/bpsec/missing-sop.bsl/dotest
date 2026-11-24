@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# missing-sop.bsl: required-but-absent security block enforcement at the
+# acceptor, under BSL (the twin of tests/issue-1551-bpsec-missing-sop).
+#
+# A BSL security acceptor that requires integrity (BIB) or confidentiality
+# (BCB) over a block must delete a bundle that arrives with the required
+# security block absent, not only one whose block is present but invalid.
+#
+#   node 2 (security source)  --LTP-->  node 3 (security acceptor)
+#
+# Node 3 holds an acceptor rule (policy_action_on_fail delete_bundle) over the
+# payload block for four destinations; node 2 sources the required block only
+# for the two "control" destinations:
+#
+#   ipn:3.1  BIB required, node 2 signs it   -> delivered   (BIB control)
+#   ipn:3.2  BIB required, node 2 omits it   -> deleted     (BIB missing)
+#   ipn:3.3  BCB required, node 2 encrypts   -> delivered   (BCB control)
+#   ipn:3.4  BCB required, node 2 omits it   -> deleted     (BCB missing)
+#
+# The control deliveries prove the keys, rules and topology are sound, so a
+# deleted "missing" bundle is the enforcement under test and not a broken
+# setup.  BSL enforces this through the acceptor rule itself: a required
+# security operation with no matching security block fails validation and the
+# rule's delete_bundle action drops the bundle.
+#
+set -u
+cd "$(dirname "$0")"
+. ../../test_utils.sh
+
+RETVAL=0
+pass() { echo "  PASS: $1"; }
+fail() { echo "  FAIL: $1"; RETVAL=1; }
+
+echo "########################################"
+echo "NAME: missing-sop.bsl"
+echo "PURPOSE: A BSL acceptor deletes a bundle whose required BIB/BCB is absent,"
+echo "         and delivers one that carries it."
+echo "########################################"
+
+killm f
+sleep 1
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 3.ipn.ltp/*_results.txt
+
+for n in 2 3; do (cd "$n.ipn.ltp" && ionadmin  amroc.ionrc); done
+for n in 2 3; do (cd "$n.ipn.ltp" && ionadmin  ../global.ionrc); done
+for n in 2 3; do (cd "$n.ipn.ltp" && ionsecadmin amroc.ionsecrc); done
+for n in 2 3; do (cd "$n.ipn.ltp" && ltpadmin   amroc.ltprc); done
+for n in 2 3; do (cd "$n.ipn.ltp" && bpadmin    amroc.bprc); done
+
+waitForLog "ltpcli is running" 3.ipn.ltp/ion.log 20000 \
+    || waitForLog "bpclock is running" 3.ipn.ltp/ion.log 20000
+sleep 2
+
+# One sink per destination service, each to its own result file.
+for s in 1 2 3 4; do
+    ( cd 3.ipn.ltp && bpsink "ipn:3.$s" > "3_results_$s.txt" 2>&1 ) &
+done
+sleep 3
+
+# delivered SERVICE MSG  -> 0 if MSG reached node 3's ipn:3.SERVICE sink
+delivered() { grep -q "$2" "3.ipn.ltp/3_results_$1.txt" 2>/dev/null; }
+
+send() {  # $1 dest service  $2 message
+    ( cd 2.ipn.ltp && bptrace ipn:2.1 "ipn:3.$1" ipn:2.0 30 0.1 "$2" ) >/dev/null 2>&1
+}
+
+CTL_BIB=missing-sop-bib-control
+MIS_BIB=missing-sop-bib-missing
+CTL_BCB=missing-sop-bcb-control
+MIS_BCB=missing-sop-bcb-missing
+
+echo ""
+echo "Sending four bundles (two protected controls, two unprotected)..."
+send 1 "$CTL_BIB"
+send 2 "$MIS_BIB"
+send 3 "$CTL_BCB"
+send 4 "$MIS_BCB"
+
+# Positive, deterministic gate: wait until BOTH control bundles are delivered.
+# By then the two unprotected bundles have had equal opportunity, so their
+# absence from the sinks is meaningful rather than a race.
+both_controls() { delivered 1 "$CTL_BIB" && delivered 3 "$CTL_BCB"; }
+if ! waitForPredicate both_controls 45000; then
+    echo "  (control bundles did not both arrive)"
+fi
+sleep 3   # let any (erroneous) delivery of the unprotected bundles surface
+
+# BIB
+if delivered 1 "$CTL_BIB"; then
+    pass "BIB control bundle delivered (required BIB accepted)"
+else
+    fail "BIB control bundle not delivered; cannot isolate the missing case"
+fi
+if delivered 2 "$MIS_BIB"; then
+    fail "BIB missing bundle was delivered (required BIB not enforced)"
+else
+    pass "BIB missing bundle was not delivered (acceptor enforced required BIB)"
+fi
+
+# BCB
+if delivered 3 "$CTL_BCB"; then
+    pass "BCB control bundle delivered (required BCB accepted)"
+else
+    fail "BCB control bundle not delivered; cannot isolate the missing case"
+fi
+if delivered 4 "$MIS_BCB"; then
+    fail "BCB missing bundle was delivered (required BCB not enforced)"
+else
+    pass "BCB missing bundle was not delivered (acceptor enforced required BCB)"
+fi
+
+# Tie the two non-deliveries to BSL security enforcement, so a bundle lost for
+# any other reason cannot pass as an enforced drop.
+DROPS=$(grep -c "Delete bundle due to failed security operation" \
+    3.ipn.ltp/ion.log 2>/dev/null)
+DROPS=${DROPS:-0}
+if [ "$DROPS" -ge 2 ]; then
+    pass "acceptor deleted both unprotected bundles for security failure ($DROPS)"
+else
+    fail "expected at least 2 BSL security-failure deletions, saw $DROPS"
+fi
+
+echo ""
+echo "Stopping ION..."
+(cd 2.ipn.ltp && ./ionstop) & (cd 3.ipn.ltp && ./ionstop) &
+sleep 7
+killm f
+
+echo ""
+if [ "$RETVAL" -eq 0 ]; then
+    echo "TEST PASSED"
+else
+    echo "TEST FAILED"
+    echo "----- node 3 ion.log (tail 60) -----"
+    tail -60 3.ipn.ltp/ion.log 2>/dev/null
+fi
+exit $RETVAL

@@ -1,0 +1,1 @@
+BSL: a security acceptor that requires integrity (BIB) or confidentiality (BCB) over a block deletes a bundle that arrives with the required security block absent, and delivers one that carries it.
