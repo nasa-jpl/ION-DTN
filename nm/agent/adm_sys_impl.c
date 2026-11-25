@@ -8,10 +8,10 @@
  **              reporting through the NM agent.
  **
  ** Notes: The statistics are inherently host specific.  This implementation
- **        targets Linux using sysinfo(2), statvfs(3), getloadavg(3) and the
- **        /proc filesystem.  On other platforms the collect functions return
- **        no value (the statistic is reported as unavailable) rather than
- **        failing to build.
+ **        targets Linux using /proc (memory and swap from /proc/meminfo),
+ **        sysinfo(2), statvfs(3) and getloadavg(3).  On other platforms
+ **        the collect functions return no value (the statistic is reported
+ **        as unavailable) rather than failing to build.
  **
  ** Assumptions: None.
  **
@@ -61,17 +61,25 @@ static uvast adm_sys_mem_bytes(unsigned long val, unsigned int unit)
 }
 
 /*
- * Memory available for new allocations, in bytes.  sysinfo(2)'s freeram counts
- * only wholly-unused pages, ignoring the page cache and other reclaimable
- * memory, and so badly underestimates the RAM an application can actually
- * obtain.  Prefer the kernel's own MemAvailable estimate from /proc/meminfo
- * (reported in KiB, converted to bytes here); the caller falls back to freeram
- * only when this fails (kernels older than 3.14 do not publish MemAvailable).
+ * The /proc/meminfo line "<key>: <n> kB", in bytes.  The memory and swap
+ * collectors prefer it to sysinfo(2), whose quantities are unsigned longs: 32
+ * bits on a 32-bit platform.  A kernel then raises mem_unit until they fit,
+ * but qemu-user copies the host's 64-bit values into the guest's 32-bit fields
+ * and drops their upper bits, so on a host with more than 4 GiB a 32-bit guest
+ * would see its memory total modulo 4 GiB.  /proc/meminfo is text and has no
+ * such limit.  The collectors fall back to sysinfo(2) only when a line is
+ * missing.
+ *
+ * For free memory the key is MemAvailable: sysinfo(2)'s freeram counts only
+ * wholly-unused pages, ignoring the page cache and other reclaimable memory,
+ * and so badly underestimates the RAM an application can actually obtain.
+ * Kernels older than 3.14 do not publish MemAvailable.
  */
-static int adm_sys_mem_avail_bytes(uvast *bytes)
+static int adm_sys_meminfo_bytes(const char *key, uvast *bytes)
 {
 	FILE  *fp;
 	char   line[128];
+	char   name[32];
 	uvast  value;
 
 	if ((fp = fopen("/proc/meminfo", "r")) == NULL)
@@ -81,8 +89,8 @@ static int adm_sys_mem_avail_bytes(uvast *bytes)
 
 	while (fgets(line, sizeof(line), fp) != NULL)
 	{
-		if (sscanf(line, "MemAvailable: " UVAST_FIELDSPEC " kB",
-				&value) == 1)
+		if (sscanf(line, "%31[^:]: " UVAST_FIELDSPEC " kB", name,
+				&value) == 2 && strcmp(name, key) == 0)
 		{
 			fclose(fp);
 			*bytes = value * 1024;
@@ -471,8 +479,13 @@ tnv_t *dtn_sys_get_mem_total_bytes(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast total;
 
-	if (sysinfo(&si) == 0)
+	if (adm_sys_meminfo_bytes("MemTotal", &total))
+	{
+		result = tnv_from_uvast(total);
+	}
+	else if (sysinfo(&si) == 0)
 	{
 		result = tnv_from_uvast(adm_sys_mem_bytes(si.totalram, si.mem_unit));
 	}
@@ -503,7 +516,7 @@ tnv_t *dtn_sys_get_mem_free_bytes(tnvc_t *parms)
 	struct sysinfo si;
 	uvast avail;
 
-	if (adm_sys_mem_avail_bytes(&avail))
+	if (adm_sys_meminfo_bytes("MemAvailable", &avail))
 	{
 		result = tnv_from_uvast(avail);
 	}
@@ -536,21 +549,18 @@ tnv_t *dtn_sys_get_mem_used_bytes(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast total;
 	uvast avail;
 
-	if (sysinfo(&si) == 0)
+	if (adm_sys_meminfo_bytes("MemTotal", &total)
+	&& adm_sys_meminfo_bytes("MemAvailable", &avail) && avail <= total)
 	{
-		uvast total = adm_sys_mem_bytes(si.totalram, si.mem_unit);
-
-		if (adm_sys_mem_avail_bytes(&avail) && avail <= total)
-		{
-			result = tnv_from_uvast(total - avail);
-		}
-		else
-		{
-			result = tnv_from_uvast(adm_sys_mem_bytes(
-					si.totalram - si.freeram, si.mem_unit));
-		}
+		result = tnv_from_uvast(total - avail);
+	}
+	else if (sysinfo(&si) == 0)
+	{
+		result = tnv_from_uvast(adm_sys_mem_bytes(
+				si.totalram - si.freeram, si.mem_unit));
 	}
 #endif
 	/*
@@ -577,8 +587,13 @@ tnv_t *dtn_sys_get_swap_total_bytes(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast total;
 
-	if (sysinfo(&si) == 0)
+	if (adm_sys_meminfo_bytes("SwapTotal", &total))
+	{
+		result = tnv_from_uvast(total);
+	}
+	else if (sysinfo(&si) == 0)
 	{
 		result = tnv_from_uvast(adm_sys_mem_bytes(si.totalswap, si.mem_unit));
 	}
@@ -607,8 +622,13 @@ tnv_t *dtn_sys_get_swap_free_bytes(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast avail;
 
-	if (sysinfo(&si) == 0)
+	if (adm_sys_meminfo_bytes("SwapFree", &avail))
+	{
+		result = tnv_from_uvast(avail);
+	}
+	else if (sysinfo(&si) == 0)
 	{
 		result = tnv_from_uvast(adm_sys_mem_bytes(si.freeswap, si.mem_unit));
 	}
