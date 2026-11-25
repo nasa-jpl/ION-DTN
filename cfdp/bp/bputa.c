@@ -21,7 +21,7 @@ typedef struct
 
 /*	Bundle priority, then ordinal within expedited priority.	*/
 
-static int	rankFdu(unsigned char *utParms, int utParmsLength)
+static int	rankFdu(const unsigned char *utParms, int utParmsLength)
 {
 	BpUtParms	parms;
 
@@ -30,7 +30,7 @@ static int	rankFdu(unsigned char *utParms, int utParmsLength)
 		return BP_STD_PRIORITY << 8;
 	}
 
-	memcpy((char *) &parms, (char *) utParms, sizeof(BpUtParms));
+	memcpy((char *) &parms, (const char *) utParms, sizeof(BpUtParms));
 	if (parms.classOfService == BP_EXPEDITED_PRIORITY)
 	{
 		return (BP_EXPEDITED_PRIORITY << 8)
