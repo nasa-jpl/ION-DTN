@@ -328,14 +328,14 @@ int sys_adm_tests(void)
 	check(check_sys_edd("load_5min", dtn_sys_get_load_5min, AMP_TYPE_REAL64));
 	check(check_sys_edd("load_15min", dtn_sys_get_load_15min, AMP_TYPE_REAL64));
 	check(check_sys_edd("cpu_util_pct", dtn_sys_get_cpu_util_pct, AMP_TYPE_REAL64));
-	check(check_sys_edd("mem_total_kb", dtn_sys_get_mem_total_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("mem_free_kb", dtn_sys_get_mem_free_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("mem_used_kb", dtn_sys_get_mem_used_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("swap_total_kb", dtn_sys_get_swap_total_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("swap_free_kb", dtn_sys_get_swap_free_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("disk_total_kb", dtn_sys_get_disk_total_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("disk_free_kb", dtn_sys_get_disk_free_kb, AMP_TYPE_UVAST));
-	check(check_sys_edd("disk_used_kb", dtn_sys_get_disk_used_kb, AMP_TYPE_UVAST));
+	check(check_sys_edd("mem_total_bytes", dtn_sys_get_mem_total_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("mem_free_bytes", dtn_sys_get_mem_free_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("mem_used_bytes", dtn_sys_get_mem_used_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("swap_total_bytes", dtn_sys_get_swap_total_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("swap_free_bytes", dtn_sys_get_swap_free_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_total_bytes", dtn_sys_get_disk_total_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_free_bytes", dtn_sys_get_disk_free_bytes, AMP_TYPE_UVAST));
+	check(check_sys_edd("disk_used_bytes", dtn_sys_get_disk_used_bytes, AMP_TYPE_UVAST));
 	check(check_sys_edd("open_files", dtn_sys_get_open_files, AMP_TYPE_UVAST));
 	check(check_sys_edd("max_files", dtn_sys_get_max_files, AMP_TYPE_UVAST));
 	check(check_sys_edd("num_procs", dtn_sys_get_num_procs, AMP_TYPE_UINT));
@@ -346,7 +346,7 @@ int sys_adm_tests(void)
 	check(v != NULL && v->value.as_uint >= 1);
 	tnv_release(v, 1);
 
-	v = dtn_sys_get_mem_total_kb(NULL);
+	v = dtn_sys_get_mem_total_bytes(NULL);
 	check(v != NULL && v->value.as_uvast > 0);
 	tnv_release(v, 1);
 
@@ -354,15 +354,15 @@ int sys_adm_tests(void)
 	check(v != NULL && v->value.as_uvast > 0);
 	tnv_release(v, 1);
 
-	v = dtn_sys_get_disk_total_kb(NULL);
+	v = dtn_sys_get_disk_total_bytes(NULL);
 	check(v != NULL && v->value.as_uvast > 0);
 	tnv_release(v, 1);
 
 	/* Used + free must never exceed total physical memory. */
 	{
-		tnv_t *total = dtn_sys_get_mem_total_kb(NULL);
-		tnv_t *used = dtn_sys_get_mem_used_kb(NULL);
-		tnv_t *avail = dtn_sys_get_mem_free_kb(NULL);
+		tnv_t *total = dtn_sys_get_mem_total_bytes(NULL);
+		tnv_t *used = dtn_sys_get_mem_used_bytes(NULL);
+		tnv_t *avail = dtn_sys_get_mem_free_bytes(NULL);
 
 		check(total != NULL && used != NULL && avail != NULL);
 		check(used->value.as_uvast <= total->value.as_uvast);
