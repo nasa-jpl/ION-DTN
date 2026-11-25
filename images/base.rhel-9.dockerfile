@@ -91,7 +91,7 @@ RUN git clone https://github.com/P-p-H-d/mlib.git \
 
 RUN git clone https://github.com/NASA-AMMOS/BSL.git \
     && cd BSL \
-    && git checkout 999505cb \
+    && git checkout v2.0.1 \
     && ./build.sh prep -DBUILD_UNITTEST=OFF \
     && ./build.sh \
     && cmake --install build/default --prefix /usr \

@@ -98,7 +98,7 @@ RUN git clone https://github.com/P-p-H-d/mlib.git \
 
 RUN git clone https://github.com/NASA-AMMOS/BSL.git \
     && cd BSL \
-    && git checkout 999505cb \
+    && git checkout v2.0.1 \
     && source /opt/rh/gcc-toolset-11/enable \
     && gcc --version \
     && export CFLAGS="-I/usr/include/openssl3" \

@@ -1034,7 +1034,7 @@ CFLAGS="$AM_CFLAGS $CFLAGS"
 
 using_bsl=no
 AS_IF([test "x$with_bsl" = "xyes"],
-  [PKG_CHECK_MODULES([BSL], [bsl >= 2 bsl < 3 bsl-sample-pp bsl-default-sc])
+  [PKG_CHECK_MODULES([BSL], [bsl >= 2.0.1 bsl < 3 bsl-sample-pp bsl-default-sc])
    PKG_CHECK_VAR([bsl_libdir], [bsl], [libdir], [],
      [AC_MSG_ERROR([bsl.pc is missing libdir variable])])
    saved_LDFLAGS="$LDFLAGS"
