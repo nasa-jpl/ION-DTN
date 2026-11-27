@@ -30,6 +30,7 @@ typedef struct tcprcvr
 	struct tcprcvr	*prev;		/*	In receivers pool.	*/
 	struct tcprcvr	*next;		/*	In receivers pool.	*/
 	struct tcptssap	*sap;		/*	Back pointer.		*/
+	int		joining;	/*	Boolean.		*/
 } TcpRcvr;
 
 typedef struct tcptssap
@@ -50,7 +51,7 @@ typedef struct tcptssap
 	int			stopped;
 } TcptsSap;
 
-static void	removeReceiver(TcpRcvr *rcvr)
+static void	removeReceiver(TcpRcvr *rcvr, int self)
 {
 	TcptsSap	*sap = rcvr->sap;
 
@@ -79,6 +80,15 @@ static void	removeReceiver(TcpRcvr *rcvr)
 	}
 
 	sap->nbrInRcvrPool--;
+
+	/*	No other thread will join a receiver that ends on
+	 *	its own, so release its resources at exit.		*/
+
+	if (self && !rcvr->joining)
+	{
+		pthread_detach(pthread_self());
+	}
+
 	pthread_mutex_unlock(&sap->rcvrPoolMutex);
 	MRELEASE(rcvr);
 }
@@ -328,7 +338,7 @@ static void	*tcpAmsReceiver(void *parm)
 
 		case 0:	/*	Connection simply closed by sender.	*/
 			MRELEASE(buffer);
-			removeReceiver(me);
+			removeReceiver(me, 1);
 			return NULL;
 
 		default:
@@ -380,6 +390,7 @@ static void	*tcpAmsAccess(void *parm)
 	struct sockaddr		clientSockname;
 	socklen_t		len;
 	TcpRcvr			*rcvr;
+	pthread_t		thread;
 
 	CHKNULL(tsif);
 	sap = (TcptsSap *) (tsif->sap);
@@ -429,8 +440,10 @@ static void	*tcpAmsAccess(void *parm)
 		{
 			closesocket(sap->lastInRcvrPool->fd);
 			sap->lastInRcvrPool->fd = -1;
+			sap->lastInRcvrPool->joining = 1;
+			thread = sap->lastInRcvrPool->thread;
 			pthread_mutex_unlock(&sap->rcvrPoolMutex);
-			pthread_join(sap->lastInRcvrPool->thread, NULL);
+			pthread_join(thread, NULL);
 		}
 
 		pthread_mutex_lock(&sap->rcvrPoolMutex);
@@ -455,7 +468,7 @@ static void	*tcpAmsAccess(void *parm)
 		{
 			putSysErrmsg("tcpts can't start Mams receiver thread",
 					NULL);
-			removeReceiver(rcvr);
+			removeReceiver(rcvr, 0);
 			break;
 		}
 	}
@@ -472,8 +485,10 @@ static void	*tcpAmsAccess(void *parm)
 	{
 		closesocket(sap->firstInRcvrPool->fd);
 		sap->firstInRcvrPool->fd = -1;
+		sap->firstInRcvrPool->joining = 1;
+		thread = sap->firstInRcvrPool->thread;
 		pthread_mutex_unlock(&sap->rcvrPoolMutex);
-		pthread_join(sap->firstInRcvrPool->thread, NULL);
+		pthread_join(thread, NULL);
 		pthread_mutex_lock(&sap->rcvrPoolMutex);
 	}
 

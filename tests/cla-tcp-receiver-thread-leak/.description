@@ -1,0 +1,1 @@
+TCP-based CLA daemons must release each receiver thread when its connection ends.
