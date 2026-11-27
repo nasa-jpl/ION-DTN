@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# A CRC-checksummed CFDP file must verify when its file data PDUs arrive
+# out of order.
+#
+# The receiver accumulated the CRC over file data in arrival order.  A CRC,
+# unlike the modular checksum, depends on byte order, so any reordering
+# (e.g. after an LTP session is canceled and BP re-forwards a bundle) made a
+# correctly reassembled file fail verification with ChecksumFailure.
+#
+#   node 2 (CRC32C sender)  --udp-->  relay.py  --udp-->  node 3 (bputa)
+#
+# Node 2 sends a 1300-byte file in two file data PDUs (1000 + 300 bytes).
+# The relay delivers the first one last, after the EOF PDU.
+set -u
+cd "$(dirname "$0")" || exit 1
+
+RELAY_PID=""
+trap '[ -n "$RELAY_PID" ] && kill $RELAY_PID 2>/dev/null; killm f' EXIT
+
+SYSUP=../../../system_up
+
+echo "########################################"
+echo "NAME: cfdp-out-of-order-crc"
+echo "PURPOSE: Verify a CRC32C-checksummed CFDP file whose first file data"
+echo "         PDU arrives last is verified and delivered intact."
+echo "########################################"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "SKIP: python3 is required for the reordering relay."
+    exit 2
+fi
+
+./cleanup >/dev/null 2>&1
+export ION_NODE_LIST_DIR=$PWD
+
+dd if=/dev/urandom of=srcfile bs=1300 count=1 2>/dev/null
+
+python3 relay.py 5723 5713 5722 5712 >relay.log 2>&1 &
+RELAY_PID=$!
+
+echo "Starting node 3 (receiver) and node 2 (sender) ..."
+(cd 3.ipn.udp && ./ionstart) >3.ipn.udp/start.log 2>&1
+(cd 2.ipn.udp && ./ionstart) >2.ipn.udp/start.log 2>&1
+for n in 3 2; do
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 30" -b "p 30" -c "p 30" ) >/dev/null 2>&1
+    if [ $? -ne 3 ]; then
+        echo "FAIL: node $n did not come up"
+        cat "$n.ipn.udp/start.log"
+        exit 1
+    fi
+done
+
+(cd 3.ipn.udp && printf 'z 25\nq\n' | cfdptest >recv.log 2>&1) &
+sleep 1
+(cd 2.ipn.udp && printf 'd 3\nf ../srcfile\nt rcvfile\n&\nz 3\nq\n' | \
+    cfdptest >send.log 2>&1)
+
+FINISHED=0
+for _ in $(seq 1 20); do
+    grep -q "transaction finished" 3.ipn.udp/recv.log 2>/dev/null && \
+        FINISHED=1 && break
+    sleep 1
+done
+
+echo
+echo "=== evidence ==="
+cat relay.log
+grep -E "^(Event|Condition|Delivery|File Status)" 3.ipn.udp/recv.log
+
+ok=1
+grep -q "^RELEASE" relay.log || { echo "FAIL: relay did not reorder."; ok=0; }
+[ "$FINISHED" -eq 1 ] || { echo "FAIL: no transaction finished."; ok=0; }
+if grep -q "ChecksumFailure" 3.ipn.udp/recv.log; then
+    echo "FAIL: reordered file failed checksum verification."
+    ok=0
+fi
+cmp -s srcfile 3.ipn.udp/rcvfile || { echo "FAIL: received file differs."; ok=0; }
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: reordered file verified and delivered intact."
+    exit 0
+fi
+exit 1
