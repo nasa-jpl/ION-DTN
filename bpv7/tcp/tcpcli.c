@@ -114,6 +114,7 @@ typedef struct
 	int			secUntilReconnect;
 	int			firstConnect;	/*	Boolean.	*/
 	int			ending;		/*	Boolean.	*/
+	int			connecting;	/*	Boolean.	*/
 	int			secSinceReception;
 	int			acquiring;	/*	Boolean.	*/
 	int			segmentAcks;	/*	Boolean.	*/
@@ -164,7 +165,8 @@ typedef struct tcpcl_neighbor
 /*	A receiver thread connects outside any transaction, so its
  *	session may be ended while it connects.  This mutex makes the
  *	hand-over of a new connection to the session and the ending
- *	of the session mutually exclusive.				*/
+ *	of the session mutually exclusive, and lets endSession() see
+ *	whether the receiver thread is in the middle of a connect.	*/
 
 static pthread_mutex_t	connectMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -531,6 +533,7 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 static int	reopenSession(TcpclSession *session, char *socketSpec)
 {
 	int	sock;
+	int	result;
 	int	maxInterval = MAX_RECONNECT_INTERVAL;
 
 	if (session->ending || session->secUntilReconnect != 0)
@@ -542,8 +545,34 @@ static int	reopenSession(TcpclSession *session, char *socketSpec)
 	 *	the session's only once connected, so that nothing
 	 *	tries to send on it before then.			*/
 
-	switch (itcp_connect_dualstack(socketSpec, BpTcpDefaultPortNbr,
-			&sock, NULL))
+	pthread_mutex_lock(&connectMutex);
+	if (session->ending)
+	{
+		pthread_mutex_unlock(&connectMutex);
+		return 0;
+	}
+
+	session->connecting = 1;
+	pthread_mutex_unlock(&connectMutex);
+	result = itcp_connect_dualstack(socketSpec, BpTcpDefaultPortNbr,
+			&sock, NULL);
+	pthread_mutex_lock(&connectMutex);
+	session->connecting = 0;
+	pthread_mutex_unlock(&connectMutex);
+	if (session->ending)
+	{
+		/*	endSession() may have interrupted the
+		 *	connect, so its outcome tells nothing.		*/
+
+		if (result == 1)
+		{
+			closesocket(sock);
+		}
+
+		return 0;
+	}
+
+	switch (result)
 	{
 	case -1:		/*	System failure.			*/
 		putErrmsg("tcpcli failed on TCP reconnect.", socketSpec);
@@ -841,10 +870,20 @@ static void	endSession(TcpclSession *session, signed char reason)
 	TcpclNeighbor	*neighbor = session->neighbor;
 
 	/*	A receiver thread that is connecting will not hand its
-	 *	connection to this session after this.			*/
+	 *	connection to this session after this.  Interrupt the
+	 *	connect (SIGINT's handler does nothing), or the join
+	 *	below would wait until the kernel gives up on it.	*/
 
 	pthread_mutex_lock(&connectMutex);
 	session->ending = 1;
+	while (session->connecting)
+	{
+		oK(pthread_kill(session->receiver, SIGINT));
+		pthread_mutex_unlock(&connectMutex);
+		microsnooze(100000);
+		pthread_mutex_lock(&connectMutex);
+	}
+
 	pthread_mutex_unlock(&connectMutex);
 	oK(sendShutdown(session, reason, 0));
 	closeSession(session);
@@ -2479,6 +2518,7 @@ typedef struct
 	Lyst		backlog;	/*	Pending sessions.	*/
 	pthread_mutex_t	*backlogMutex;
 	Lyst		neighbors;
+	int		stopping;	/*	Boolean.	*/
 } ClockThreadParms;
 
 static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
@@ -2941,8 +2981,11 @@ static void	*handleEvents(void *parm)
 			lastPlanChange = planChangeTime;
 		}
 
+		/*	Once tcpcli is stopping, a rescan would only
+		 *	begin the sessions it has just ended again.	*/
+
 		secUntilRescan--;
-		if (secUntilRescan == 0)
+		if (secUntilRescan == 0 && !ctp->stopping)
 		{
 			if (rescan(ctp) < 0)
 			{
@@ -3186,6 +3229,7 @@ int	main(int argc, char *argv[])
 
 	ctp.induct = vduct;
 	ctp.running = 1;
+	ctp.stopping = 0;
 	ctp.neighbors = neighbors;
 	ctp.backlog = backlog;
 	ctp.backlogMutex = &backlogMutex;
@@ -3206,6 +3250,7 @@ int	main(int argc, char *argv[])
 	stp.backlogMutex = &backlogMutex;
 	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
 	{
+		ctp.stopping = 1;
 		shutDownNeighbors(neighbors);
 		snooze(2);	/*	Let clock thread clean up.	*/
 		ctp.running = 0;
@@ -3247,6 +3292,7 @@ int	main(int argc, char *argv[])
 		pthread_join(serverThread, NULL);
 	}
 
+	ctp.stopping = 1;
 	shutDownNeighbors(neighbors);
 	snooze(2);		/*	Let clock thread clean up.	*/
 	ctp.running = 0;
