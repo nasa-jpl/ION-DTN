@@ -112,6 +112,8 @@ typedef struct
 	int			secUntilKeepalive;
 	int			reconnectInterval;
 	int			secUntilReconnect;
+	int			firstConnect;	/*	Boolean.	*/
+	int			ending;		/*	Boolean.	*/
 	int			secSinceReception;
 	int			acquiring;	/*	Boolean.	*/
 	int			segmentAcks;	/*	Boolean.	*/
@@ -158,6 +160,13 @@ typedef struct tcpcl_neighbor
 	TcpclSession		sessions[2];
 	size_t			receptionRate;	/*	Bytes/sec.	*/
 } TcpclNeighbor;
+
+/*	A receiver thread connects outside any transaction, so its
+ *	session may be ended while it connects.  This mutex makes the
+ *	hand-over of a new connection to the session and the ending
+ *	of the session mutually exclusive.				*/
+
+static pthread_mutex_t	connectMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void	*handleContacts(void *parm);
 
@@ -247,6 +256,7 @@ typedef struct
 {
 	Lyst		neighbors;
 	TcpclSession	*session;
+	char		socketSpec[DUCT_BUFLEN];
 	char		*buffer;
 	AcqWorkArea	*work;
 	ReqAttendant	attendant;
@@ -366,7 +376,11 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		session->reconnectInterval = 1;
 	}
 
-	session->secUntilReconnect = -1;
+	/*	A planned session begun without a connection makes its
+	 *	first connection in its receiver thread, right away.	*/
+
+	session->firstConnect = (newSocket == -1);
+	session->secUntilReconnect = session->firstConnect ? 0 : -1;
 	session->newlyAdded = 1;
 
 	/*	Clean up any resources from a previously closed session.
@@ -473,6 +487,12 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 
 	rtp->neighbors = lyst_lyst(neighborElt);
 	rtp->session = session;
+
+	/*	The receiver thread connects to its own copy of the
+	 *	outduct name: endSession() may release the session's.	*/
+
+	istrcpy(rtp->socketSpec, session->outductName ? session->outductName
+			: "", sizeof rtp->socketSpec);
 	pthread_mutex_init(&(session->socketMutex), NULL);
 	session->hasSocketMutex = 1;
 	pthread_mutex_init(&(session->plMutex), NULL);
@@ -508,32 +528,51 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	return 0;
 }
 
-static int	reopenSession(TcpclSession *session)
+static int	reopenSession(TcpclSession *session, char *socketSpec)
 {
-	TcpclNeighbor	*neighbor = session->neighbor;
+	int	sock;
+	int	maxInterval = MAX_RECONNECT_INTERVAL;
 
-	if (session->secUntilReconnect != 0)
+	if (session->ending || session->secUntilReconnect != 0)
 	{
 		return 0;	/*	Must not reconnect yet.		*/
 	}
 
-	/*	Okay to make next session attempt.			*/
+	/*	Okay to make next session attempt.  The socket becomes
+	 *	the session's only once connected, so that nothing
+	 *	tries to send on it before then.			*/
 
-	switch (itcp_connect_dualstack(session->outductName, BpTcpDefaultPortNbr,
-			&(session->sock), NULL))
+	switch (itcp_connect_dualstack(socketSpec, BpTcpDefaultPortNbr,
+			&sock, NULL))
 	{
 	case -1:		/*	System failure.			*/
-		putErrmsg("tcpcli failed on TCP reconnect.",
-				neighbor->vplan->neighborEid);
+		putErrmsg("tcpcli failed on TCP reconnect.", socketSpec);
 		return -1;
 
 	case 0:			/*	Neighbor still refuses.		*/
-		writeMemoNote("[i] tcpcli unable to reconnect",
-				neighbor->vplan->neighborEid);
-		session->reconnectInterval <<= 1;
-		if (session->reconnectInterval > MAX_RECONNECT_INTERVAL)
+		if (session->firstConnect)
 		{
-			session->reconnectInterval = MAX_RECONNECT_INTERVAL;
+			/*	Say so once, and keep trying at
+			 *	least as often as plans are rescanned.	*/
+
+			if (session->reconnectInterval == 1)
+			{
+				writeMemoNote("[i] tcpcli unable to connect",
+						socketSpec);
+			}
+
+			maxInterval = MAX_RESCAN_INTERVAL;
+		}
+		else
+		{
+			writeMemoNote("[i] tcpcli unable to reconnect",
+					socketSpec);
+		}
+
+		session->reconnectInterval <<= 1;
+		if (session->reconnectInterval > maxInterval)
+		{
+			session->reconnectInterval = maxInterval;
 		}
 
 		session->secUntilReconnect = session->reconnectInterval;
@@ -542,13 +581,27 @@ static int	reopenSession(TcpclSession *session)
 
 	/*	Reconnection succeeded.					*/
 
-	if (watchSocket(session->sock) < 0)
+	if (watchSocket(sock) < 0)
 	{
-		closesocket(session->sock);
-		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		closesocket(sock);
+		putErrmsg("tcpcli can't watch socket.", socketSpec);
 		return -1;
 	}
 
+	/*	The session is open now, unless it was ended while
+	 *	this thread connected.					*/
+
+	pthread_mutex_lock(&connectMutex);
+	if (session->ending)
+	{
+		pthread_mutex_unlock(&connectMutex);
+		closesocket(sock);
+		return 0;
+	}
+
+	session->sock = sock;
+	session->isOpen = 1;
+	pthread_mutex_unlock(&connectMutex);
 	session->lengthSent = 0;
 	session->lengthAcked = 0;
 	return 1;		/*	Reconnected.			*/
@@ -787,6 +840,12 @@ static void	endSession(TcpclSession *session, signed char reason)
 {
 	TcpclNeighbor	*neighbor = session->neighbor;
 
+	/*	A receiver thread that is connecting will not hand its
+	 *	connection to this session after this.			*/
+
+	pthread_mutex_lock(&connectMutex);
+	session->ending = 1;
+	pthread_mutex_unlock(&connectMutex);
 	oK(sendShutdown(session, reason, 0));
 	closeSession(session);
 	if (session->outductName)
@@ -2196,7 +2255,7 @@ static void	*handleContacts(void *parm)
 	{
 		if (session->sock == -1)	/*	Closed.		*/
 		{
-			if (session->outductName == NULL)
+			if (session->outductName == NULL || session->ending)
 			{
 				running = 0;
 				continue;
@@ -2213,10 +2272,15 @@ static void	*handleContacts(void *parm)
 				continue;
 			}
 
-			/*	Check if outduct has been stopped.	*/
+			/*	Check if outduct has been stopped.  A
+			 *	session is attached to its outduct
+			 *	only once it has exchanged contact
+			 *	headers, so a planned session making
+			 *	its first connection has none yet.	*/
 
-			if (session->vduct == NULL
-			|| sm_SemEnded(session->vduct->semaphore))
+			if (!session->firstConnect
+			&& (session->vduct == NULL
+			|| sm_SemEnded(session->vduct->semaphore)))
 			{
 				running = 0;
 				continue;
@@ -2224,7 +2288,7 @@ static void	*handleContacts(void *parm)
 
 			/*	Session can be re-established.		*/
 
-			switch (reopenSession(session))
+			switch (reopenSession(session, rtp->socketSpec))
 			{
 			case -1:
 				ionKillMainThread(procName());
@@ -2236,6 +2300,7 @@ static void	*handleContacts(void *parm)
 				continue;
 
 			default:		/*	Reconnected.	*/
+				session->firstConnect = 0;
 				session->reconnectInterval = 1;
 				session->secUntilReconnect = -1;
 			}
@@ -2501,29 +2566,14 @@ session with this neighbor", eid);
 		oK(istrcpy(session->outductName, outductName, len));
 	}
 
-	switch (itcp_connect_dualstack(session->outductName, BpTcpDefaultPortNbr,
-				&sock, NULL))
-	{
-	case -1:	/*	System failure.				*/
-		putErrmsg("tcpcli can't connect to remote node.",
-				session->outductName);
-		return -1;
+	/*	Begin the session without a TCP connection: its
+	 *	receiver thread makes one, outside the transaction
+	 *	in which plans are rescanned.  A neighbor that does
+	 *	not answer would otherwise keep every ION program
+	 *	waiting for the transaction until the kernel gives
+	 *	up on the connection.					*/
 
-	case 0:		/*	Protocol failure.			*/
-		return 0;
-	}
-
-	if (watchSocket(sock) < 0)
-	{
-		closesocket(sock);
-		putErrmsg("tcpcli can't watch socket.", session->outductName);
-		return -1;
-	}
-
-	/*	TCP connection succeeded, so establish the TCPCL
-	 *	session.						*/
-
-	return beginSession(neighborElt, sock, TCPCL_PLANNED);
+	return beginSession(neighborElt, -1, TCPCL_PLANNED);
 }
 
 static int	rescanPlans(ClockThreadParms *ctp)
@@ -2680,9 +2730,12 @@ static int	rescan(ClockThreadParms *ctp)
 		for (i = 0; i < 2; i++)
 		{
 			session = &(neighbor->sessions[i]);
-			if (session->newlyAdded)
+			if (session->newlyAdded && !session->firstConnect)
 			{
-				/*	Too soon to clean up.		*/
+				/*	Too soon to clean up.  (A
+				 *	planned session still making its
+				 *	first connection is not: its
+				 *	outduct is cited by a plan.)	*/
 
 				continue;
 			}
