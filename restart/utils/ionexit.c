@@ -33,6 +33,8 @@ extern void	_dtpcStop(void);
 
 #include "rfx.h"
 
+#include <stdio.h>
+#include <string.h>
 
 
 static void	printText(char *text)
@@ -53,6 +55,9 @@ int	main(int argc, char **argv)
 {
 #endif
 	int loopcount, errcount= 0, deletesdr = -1, stopipc = -1;
+#if !defined (ION_LWT)
+	int requireWorkingDirectory = 0;
+#endif
 #ifdef ENABLE_TC
 	char msgbuf[80];
 	int groupNbr;
@@ -63,6 +68,8 @@ int	main(int argc, char **argv)
 	 *	  n  - node-only: skip sm_ipc_stop(), safe for
 	 *	       multi-ION-per-host when other instances
 	 *	       are still running
+	 *	  w  - require the current working directory and skip global IPC
+	 *	       shutdown (standalone executable)
 	 *	Flags can be combined: "ionexit k n"		*/
 
 #if defined (ION_LWT)
@@ -89,6 +96,11 @@ int	main(int argc, char **argv)
 			{
 				stopipc = 0;
 			}
+			else if (strcmp(argv[argn], "w") == 0)
+			{
+				requireWorkingDirectory = 1;
+				stopipc = 0;
+			}
 		}
 	}
 #endif
@@ -99,6 +111,21 @@ int	main(int argc, char **argv)
 
 	if (ionAttach() == 0)
 	{
+#if !defined (ION_LWT)
+		if (requireWorkingDirectory)
+		{
+			char workingDirectory[256];
+
+			if (igetcwd(workingDirectory, sizeof workingDirectory) == NULL
+				|| strcmp(workingDirectory, getIonWorkingDirectory()) != 0)
+			{
+				fprintf(stderr,
+					"ION belongs to a different working directory.\n");
+				ionDetach();
+				return 1;
+			}
+		}
+#endif
 #ifdef ENABLE_DTPC
 		if (dtpcAttach() == 0)
 		{
@@ -258,7 +285,11 @@ int	main(int argc, char **argv)
 			if( deletesdr )
 			{
 				printText("Deleting SDR");
+#if !defined (ION_LWT)
+				ionTerminate(!requireWorkingDirectory);
+#else
 				ionTerminate(1);
+#endif
 			}
 
 			if( stopipc )

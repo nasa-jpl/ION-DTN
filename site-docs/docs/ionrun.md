@@ -20,7 +20,7 @@ ionrun [options] <working_directory>
 
 Options:
   -h, --help            Show help message
-  -s, --stop            Stop ION in the working directory (runs ionstop)
+  -s, --stop            Stop ION in the working directory
   -n, --node <name>     Start a specific node (skip interactive selection)
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
@@ -483,9 +483,42 @@ This approach ensures all nodes share an identical contact plan and consistent r
 
 For same-host topologies (`2-node (same host)` and `3-node (same host)`), `ionrun` creates per-node subdirectories, each containing a standalone `ionrun.rc` and `ionrun.ionconfig` with unique shared memory keys and ports. The workflow is:
 
-1. **Generate once**: Run `ionrun -g <workdir>` to create subdirectories and configs for all nodes.
-2. **Start each node**: In separate terminals, run `ionrun -n <nodename> <workdir>` for each node.
-3. **Stop all nodes**: Run `ionrun -s <workdir>` to stop all ION instances and clean up shared memory.
+One command can generate the configuration and start every node.
+
+```sh
+ionrun --topology=3node-local --cl=ltp --start-all ./relay-test
+ionrun --test ./relay-test
+ionrun --stop ./relay-test
+```
+
+Use `--generate-only` to write configs without starting ION.
+To start a single node later, run `ionrun -n <nodename> <workdir>`.
+
+For a repeatable setup, save one of these examples as an answer file
+and run `ionrun --batch <file> --start-all <workdir>`.
+
+```ini
+# Single-node UDP loopback
+topology=loopback
+cl=udp
+```
+
+```ini
+# Two TCP nodes on the same host
+topology=2node-local
+cl=tcp
+node1_name=sender
+node2_name=receiver
+```
+
+```ini
+# Three LTP nodes on the same host
+topology=3node-local
+cl=ltp
+node1_name=sender
+node2_name=relay
+node3_name=receiver
+```
 
 Each node runs from its own subdirectory. The `ION_NODE_LIST_DIR` environment variable is set to the parent working directory so ION can track all instances via the `ion_nodes` file. The `ION_NODE_WDNAME` variable is set to the node's subdirectory so ION commands can be run from any directory.
 
@@ -536,7 +569,9 @@ Use `-n` to skip the prompt: `ionrun -n node1 my-test`.
 
 Detection priority: `ionrun.meta` (ionrun-generated config) > top-level `ionrun.rc` (bare combined file) > subdirectories with `start_<name>.sh` (pre-existing config) > wizard (new directory).
 
-When stopping (`ionrun -s`) a directory with no `ionrun.meta`, ionrun uses `killm` to terminate all ION processes.
+`ionrun --stop` and `ionrun --clean` use directory-scoped shutdown.
+Use the `ionexit` binary built with this version of `ionrun`.
+For explicit host-wide recovery, run `killm f`.
 
 ## How It Works
 

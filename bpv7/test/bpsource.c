@@ -135,6 +135,12 @@ int	main(int argc, char **argv)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
+		if (text)
+		{
+			fprintf(stderr, "bpsource: can't attach to BP.\n");
+			return 1;
+		}
+
 		return 0;
 	}
 

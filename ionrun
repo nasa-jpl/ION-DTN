@@ -74,7 +74,7 @@ Start ION in a working directory with auto-generated configuration.
 
 Options:
   -h, --help            Show this help message
-  -s, --stop            Stop ION in the working directory (runs ionstop)
+  -s, --stop            Stop ION in the working directory
   -n, --node <name>     Start a specific node (skip interactive selection)
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
@@ -87,7 +87,7 @@ Options:
   --configs             With --clean: also remove generated config files
   --errors              With --log: show only ERROR/WARNING lines
   --tail <lines>        With --log: show last N lines (default: all)
-  --timeout <sec>       Timeout for --check/--test (default 30)
+  --timeout <sec>       Timeout for --check/--test/--stop (default 30)
   -b, --batch <file>    Non-interactive mode: read wizard answers from file
   --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
   --cl <proto>          Batch inline: ltp, tcp, or udp (all links)
@@ -125,6 +125,7 @@ Examples:
   ionrun -l --errors ~/my-ion-test     # Show only error/warning lines
   ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
   ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
+  ionrun --topology=3node-local --cl=ltp -a ~/test # Generate and start all
 EOF
     exit 0
 }
@@ -303,6 +304,11 @@ parse_args() {
         esac
     done
 
+    if [[ ! "$OPT_TIMEOUT" =~ ^[1-9][0-9]{0,8}$ ]]; then
+        echo "Error: --timeout requires a positive number of seconds." >&2
+        exit 1
+    fi
+
     if [[ -z "$WORKDIR" ]]; then
         echo "Error: No working directory specified." >&2
         echo "Run 'ionrun -h' for usage." >&2
@@ -317,39 +323,54 @@ stop_ion() {
         exit 1
     fi
 
-    local meta="$WORKDIR/ionrun.meta"
-    local topology=""
+    require_commands ionexit
+    local root meta topology="" name dir i count overall=0
+    root=$(cd "$WORKDIR" && pwd -P)
+    meta="$root/ionrun.meta"
+    local dirs=("$root")
     if [[ -f "$meta" ]]; then
-        topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+        topology=$(sed -n 's/^topology=//p' "$meta")
     fi
 
     if [[ "$topology" == *-local ]]; then
-        # Same-host multi-node: stop each node from its subdirectory
-        local abs_workdir
-        abs_workdir="$(cd "$WORKDIR" && pwd)"
-        export ION_NODE_LIST_DIR="$abs_workdir"
-        local node_count
-        node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
-        echo "Stopping ION ($topology) in $WORKDIR ..."
-        for i in $(seq 1 "$node_count"); do
-            local name
-            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
-            local node_dir="$abs_workdir/$name"
-            if [[ -d "$node_dir" ]]; then
-                echo "  Stopping node '$name' ..."
-                (cd "$node_dir" && ionstop) || true
-            fi
+        dirs=()
+        count=$(sed -n 's/^node_count=//p' "$meta")
+        for i in $(seq 1 "$count"); do
+            name=$(sed -n "s/^node${i}_name=//p" "$meta")
+            [[ -d "$root/$name" && ! -L "$root/$name" && "$name" != */* &&
+               "$name" != "." && "$name" != ".." && -n "$name" ]] || continue
+            dirs+=("$root/$name")
         done
-        sleep 1
-        killm
-    elif [[ -n "$topology" ]]; then
-        echo "Stopping ION in $WORKDIR ..."
-        (cd "$WORKDIR" && ionstop)
-    else
-        # No meta — external config or bare rc; use killm
-        echo "Stopping ION (killm) ..."
-        killm
+    elif [[ ! -f "$meta" && ! -f "$root/ionrun.rc" ]] && detect_external_nodes; then
+        dirs=()
+        for name in "${EXT_NODES[@]}"; do
+            [[ ! -L "$root/$name" ]] && dirs+=("$root/$name")
+        done
     fi
+
+    local stop_command=(ionexit n w)
+    if command -v timeout >/dev/null 2>&1; then
+        stop_command=(timeout -k 5 "$OPT_TIMEOUT" "${stop_command[@]}")
+    elif command -v gtimeout >/dev/null 2>&1; then
+        stop_command=(gtimeout -k 5 "$OPT_TIMEOUT" "${stop_command[@]}")
+    fi
+    for dir in "${dirs[@]+"${dirs[@]}"}"; do
+        echo "Stopping ION in $dir ..."
+        if ! (
+            cd "$dir" || exit 1
+            export ION_NODE_WDNAME="$dir"
+            if [[ -s "$root/ion_nodes" ]]; then
+                export ION_NODE_LIST_DIR="$root"
+            else
+                unset ION_NODE_LIST_DIR
+            fi
+            "${stop_command[@]}"
+        ); then
+            echo "Error: ION shutdown did not complete in $dir." >&2
+            overall=1
+        fi
+    done
+    return "$overall"
 }
 
 # --- Clean ION runtime artifacts ---
@@ -361,12 +382,10 @@ clean_ion() {
 
     # Stop ION first
     echo "Stopping ION ..."
-    stop_ion 2>/dev/null || true
-    sleep 1
-    killm 2>/dev/null || true
+    stop_ion
 
     local abs_workdir
-    abs_workdir="$(cd "$WORKDIR" && pwd)"
+    abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
     local meta="$abs_workdir/ionrun.meta"
     local removed=0
@@ -374,7 +393,7 @@ clean_ion() {
     # Remove runtime artifacts from all node directories
     remove_runtime_files() {
         local dir="$1"
-        local files=("ion.log" "ion_nodes" "ionconfig" ".induct" ".outduct")
+        local files=("ion.log" "ion_nodes" ".induct" ".outduct")
         for f in "${files[@]}"; do
             if [[ -f "$dir/$f" ]]; then
                 rm -f "$dir/$f"
@@ -383,7 +402,7 @@ clean_ion() {
         done
         # Remove acquisition files (bpacq*, ltpacq*)
         local acq
-        for acq in "$dir"/*acq* "$dir"/*.tmp; do
+        for acq in "$dir"/bpacq.* "$dir"/ltpacq.* "$dir"/ionrun-sink.* "$dir"/ionrun-source.*; do
             if [[ -f "$acq" ]]; then
                 rm -f "$acq"
                 ((removed++)) || true
@@ -401,17 +420,20 @@ clean_ion() {
         for i in $(seq 1 "$node_count"); do
             local name
             name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
-            if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+            if [[ -n "$name" && "$name" != */* && "$name" != "." &&
+                  "$name" != ".." && -d "$abs_workdir/$name" &&
+                  ! -L "$abs_workdir/$name" ]]; then
                 remove_runtime_files "$abs_workdir/$name"
             fi
         done
     else
-        # No meta — clean any subdirectories that have ion.log
-        local dir
-        for dir in "$abs_workdir"/*/; do
-            [[ -d "$dir" ]] || continue
-            remove_runtime_files "$dir"
-        done
+        if [[ ! -f "$abs_workdir/ionrun.rc" ]] && detect_external_nodes; then
+            local name
+            for name in "${EXT_NODES[@]}"; do
+                [[ ! -L "$abs_workdir/$name" ]] &&
+                    remove_runtime_files "$abs_workdir/$name"
+            done
+        fi
     fi
 
     echo "Removed $removed runtime file(s)."
@@ -427,18 +449,104 @@ clean_ion() {
             for i in $(seq 1 "$nc"); do
                 local name
                 name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2 || true)
-                if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+                if [[ -n "$name" && "$name" != */* && "$name" != "." &&
+                  "$name" != ".." && -d "$abs_workdir/$name" &&
+                  ! -L "$abs_workdir/$name" ]]; then
                     cfg_dirs+=("$abs_workdir/$name")
                 fi
             done
         fi
         rm -f "$abs_workdir/ionrun.rc" "$abs_workdir/ionrun.meta"
         for d in "${cfg_dirs[@]+"${cfg_dirs[@]}"}"; do
-            rm -rf "$d"
+            rm -f "$d"/ionrun.{rc,ionconfig,ionrc,ionsecrc,ltprc,bprc,ipnrc,cfdprc}
+            local start_script="$d/start_${d##*/}.sh"
+            if [[ -f "$start_script" ]] &&
+                grep -q '^# Start ION node .* - generated by ionrun$' "$start_script"; then
+                rm -f "$start_script"
+            fi
+            rmdir "$d" 2>/dev/null || true
         done
         echo "Configuration files removed."
     fi
 }
+
+require_commands() {
+    local command missing=0
+    for command in "$@"; do
+        if ! command -v "$command" >/dev/null 2>&1; then
+            echo "Error: Required command '$command' is missing from PATH." >&2
+            missing=1
+        fi
+    done
+    return "$missing"
+}
+
+preflight_node() {
+    local config="$1" tag="${2:-}" commands protocol port sockets
+    if [[ ! -r "$config" ]]; then
+        echo "Error: Cannot read $config." >&2
+        return 1
+    fi
+    commands=$(awk -v tag="$tag" '
+        /^## begin / { selected = ($4 == tag); admin = $3; if (selected) print admin }
+        /^## end / { selected = 0 }
+        selected && /^s( |$)/ {
+            if (admin == "ionadmin") print "rfxclock"
+            if (admin == "ltpadmin") print "ltpclock"
+            if (admin == "bpadmin") print "bpclock\nbptransit"
+            if (admin == "cfdpadmin") print "cfdpclock"
+        }
+        selected && /^a scheme ipn / { print "ipnfw\nipnadminep" }
+        selected && /^s .*bputa/ { print "bputa" }
+        selected && /^r .*ipnadmin / { print "ipnadmin" }
+        selected && /^a (induct|outduct) (tcp|udp|ltp) / { print $5 }
+        selected && /^a seat .*udplsi / { print "udplsi" }
+        selected && /^a span .*udplso / { print "udplso" }
+    ' "$config" | sort -u)
+    local admins=()
+    if [[ -n "$commands" ]]; then
+        mapfile -t admins <<< "$commands"
+    fi
+    require_commands ionstart "${admins[@]+"${admins[@]}"}" || return 1
+
+    if ! command -v ss >/dev/null 2>&1 ||
+        ! sockets=$(ss -H -lntu 2>/dev/null); then
+        return 0
+    fi
+    while read -r protocol port; do
+        if awk -v proto="$protocol" -v port="$port" '
+            $1 == proto && $5 ~ (":" port "$") { found = 1 }
+            END { exit !found }
+        ' <<< "$sockets"; then
+            echo "Error: $config needs local $protocol port $port, which is in use." >&2
+            return 1
+        fi
+    done < <(awk -v tag="$tag" '
+        /^## begin / { selected = ($4 == tag) }
+        selected && /^a induct (tcp|udp) 0\.0\.0\.0:[0-9]+ / {
+            split($4, address, ":"); print $3, address[2]
+        }
+        selected && /^a seat .*udplsi 0\.0\.0\.0:[0-9]+/ {
+            port = $4; sub(/^.*:/, "", port); sub(/[^0-9].*$/, "", port)
+            print "udp", port
+        }
+    ' "$config")
+}
+
+launch_node() (
+    local dir="$1" name="$2" output
+    shift 2
+    output=$(mktemp) || exit 1
+    trap 'rm -f "$output"' EXIT
+    if (cd "$dir" && ionstart -I ionrun.rc "$@") >"$output" 2>&1 &&
+        ! grep -Eq 'exited in error|startup will not be attempted|Could not create temporary file' "$output"; then
+        printf '  %s ... started\n' "$name"
+    else
+        printf '  %s ... FAILED (%s)\n' "$name" "$dir" >&2
+        cat "$output" >&2
+        return 1
+    fi
+)
 
 # --- Start all nodes (same-host) ---
 start_all() {
@@ -449,7 +557,7 @@ start_all() {
     fi
 
     local abs_workdir
-    abs_workdir="$(cd "$WORKDIR" && pwd)"
+    abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
     local topology node_count
     topology=$(grep '^topology=' "$meta" | cut -d= -f2)
@@ -459,9 +567,10 @@ start_all() {
         # Loopback: just start the single node
         echo "Starting ION (loopback) in $WORKDIR ..."
         export ION_NODE_WDNAME="$abs_workdir"
-        (cd "$WORKDIR" && ionstart -I ionrun.rc)
-        echo "  node1 ... started"
-        return 0
+        unset ION_NODE_LIST_DIR
+        preflight_node "$abs_workdir/ionrun.rc"
+        launch_node "$abs_workdir" "$(sed -n 's/^node1_name=//p' "$meta")"
+        return
     fi
 
     if [[ "$topology" != *-local ]]; then
@@ -472,25 +581,17 @@ start_all() {
 
     export ION_NODE_LIST_DIR="$abs_workdir"
 
-    local overall=0
+    local names=() i name node_dir overall=0
     for i in $(seq 1 "$node_count"); do
-        local name
-        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
-        local node_dir="$abs_workdir/$name"
-        if [[ ! -d "$node_dir" ]]; then
-            echo "  $name ... MISSING (no directory)"
-            overall=1
-            continue
-        fi
-        echo -n "  Starting $name ..."
+        name=$(sed -n "s/^node${i}_name=//p" "$meta")
+        preflight_node "$abs_workdir/$name/ionrun.rc" || return 1
+        names+=("$name")
+    done
+
+    for name in "${names[@]}"; do
+        node_dir="$abs_workdir/$name"
         export ION_NODE_WDNAME="$node_dir"
-        (cd "$node_dir" && ionstart -I ionrun.rc) >/dev/null 2>&1
-        if [[ $? -eq 0 ]]; then
-            echo " started"
-        else
-            echo " FAILED"
-            overall=1
-        fi
+        launch_node "$node_dir" "$name" || overall=1
     done
 
     if [[ $overall -eq 0 ]]; then
@@ -515,7 +616,7 @@ check_ion() {
     fi
 
     local abs_workdir
-    abs_workdir="$(cd "$WORKDIR" && pwd)"
+    abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
     local topology node_count
     topology=$(grep '^topology=' "$meta" | cut -d= -f2)
@@ -538,6 +639,8 @@ check_ion() {
         if [[ "$topology" == *-local ]]; then
             node_wdname="$abs_workdir/$name"
             export ION_NODE_LIST_DIR="$abs_workdir"
+        else
+            unset ION_NODE_LIST_DIR
         fi
         export ION_NODE_WDNAME="$node_wdname"
 
@@ -595,7 +698,7 @@ check_ion() {
 }
 
 # --- Smoke test: send a bundle and verify delivery ---
-smoke_test() {
+smoke_test() (
     local meta="$WORKDIR/ionrun.meta"
     if [[ ! -f "$meta" ]]; then
         echo "Error: ionrun.meta not found in $WORKDIR. Cannot determine topology." >&2
@@ -603,12 +706,18 @@ smoke_test() {
     fi
 
     local abs_workdir
-    abs_workdir="$(cd "$WORKDIR" && pwd)"
+    abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
     local topology node_count
     topology=$(grep '^topology=' "$meta" | cut -d= -f2)
     node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
     local timeout="$OPT_TIMEOUT"
+
+    if [[ "$topology" != "loopback" && "$topology" != *-local ]]; then
+        echo "Error: --test requires a loopback or same-host topology." >&2
+        return 1
+    fi
+    require_commands bpsink bpsource
 
     # Determine source and destination nodes
     local src_idx=1 dst_idx="$node_count"
@@ -624,53 +733,76 @@ smoke_test() {
         src_wdname="$abs_workdir/$src_name"
         dst_wdname="$abs_workdir/$dst_name"
         export ION_NODE_LIST_DIR="$abs_workdir"
+    else
+        unset ION_NODE_LIST_DIR
     fi
 
     local dst_eid="ipn:${dst_id}.1"
-    local payload="ionrun-smoke-test-$$"
-    local sink_out
-    sink_out=$(mktemp "${abs_workdir}/ionrun-sink.XXXXXX")
-
-    echo "Sending test bundle: $src_name (ipn:${src_id}.1) -> $dst_name ($dst_eid)"
-
-    # Start bpsink on destination node
-    (cd "$dst_wdname" && ION_NODE_WDNAME="$dst_wdname" bpsink "$dst_eid" > "$sink_out" 2>&1) &
-    local sink_pid=$!
-    sleep 1
-
-    # Send test bundle from source node
-    local start_time
-    start_time=$(date +%s)
-    (cd "$src_wdname" && printf '%s\n!\n' "$payload" | ION_NODE_WDNAME="$src_wdname" bpsource "$dst_eid") >/dev/null 2>&1
-
-    # Wait for delivery
-    local elapsed=0
-    local delivered=false
-    while [[ $elapsed -lt $timeout ]]; do
-        if grep -q "ION event: Payload delivered." "$sink_out" 2>/dev/null; then
-            delivered=true
-            break
+    local sink_out source_out="" sink_pid="" source_pid=""
+    sink_out=$(mktemp "$abs_workdir/ionrun-sink.XXXXXX")
+    cleanup_smoke_test() {
+        if [[ -n "$source_pid" ]]; then
+            kill "$source_pid" 2>/dev/null || true
+            wait "$source_pid" 2>/dev/null || true
         fi
-        sleep 1
-        elapsed=$(( $(date +%s) - start_time ))
+        if [[ -n "$sink_pid" ]]; then
+            kill "$sink_pid" 2>/dev/null || true
+            wait "$sink_pid" 2>/dev/null || true
+        fi
+        rm -f "$sink_out" "${source_out:-$sink_out}"
+    }
+    trap cleanup_smoke_test EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    source_out=$(mktemp "$abs_workdir/ionrun-source.XXXXXX")
+    local payload="ionrun-smoke-test-$$-${sink_out##*.}"
+
+    echo "Sending test bundle: $src_name -> $dst_name ($dst_eid)"
+    (
+        cd "$dst_wdname" || exit 1
+        export ION_NODE_WDNAME="$dst_wdname"
+        exec bpsink "$dst_eid"
+    ) >"$sink_out" 2>&1 &
+    sink_pid=$!
+
+    (
+        cd "$src_wdname" || exit 1
+        export ION_NODE_WDNAME="$src_wdname"
+        exec bpsource "$dst_eid" "$payload" "-t$timeout"
+    ) >"$source_out" 2>&1 &
+    source_pid=$!
+
+    local start=$SECONDS
+    while :; do
+        if [[ -n "$source_pid" ]] && ! kill -0 "$source_pid" 2>/dev/null; then
+            if ! wait "$source_pid"; then
+                echo "Error: bpsource failed on $src_name." >&2
+                cat "$source_out" >&2
+                return 1
+            fi
+            source_pid=""
+        fi
+        if grep -Fxq "$(printf "\t'%s'" "$payload")" "$sink_out"; then
+            echo "Delivered in $((SECONDS - start))s    [PASS]"
+            return 0
+        fi
+        if ! kill -0 "$sink_pid" 2>/dev/null; then
+            wait "$sink_pid" || true
+            sink_pid=""
+            echo "Error: bpsink exited on $dst_name before receiving the payload." >&2
+            cat "$sink_out" >&2
+            echo "See $dst_wdname/ion.log for receiver diagnostics." >&2
+            return 1
+        fi
+        if (( SECONDS - start >= timeout )); then
+            echo "No matching payload after ${timeout}s    [FAIL]" >&2
+            cat "$source_out" "$sink_out" >&2
+            echo "See $src_wdname/ion.log for sender diagnostics." >&2
+            return 1
+        fi
+        sleep 0.2
     done
-
-    # Clean up sink
-    kill "$sink_pid" 2>/dev/null || true
-    wait "$sink_pid" 2>/dev/null || true
-
-    if [[ "$delivered" == true ]]; then
-        echo "Delivered in ${elapsed}s    [PASS]"
-        rm -f "$sink_out"
-        return 0
-    else
-        echo "No delivery after ${timeout}s    [FAIL]"
-        echo "Sink output:"
-        cat "$sink_out" 2>/dev/null
-        rm -f "$sink_out"
-        return 1
-    fi
-}
+)
 
 # --- Show ion.log files ---
 show_logs() {
@@ -759,6 +891,11 @@ show_one_log() {
 
 # --- Run ION with existing config ---
 run_ion() {
+    if [[ "$OPT_START_ALL" == true && "$OPT_GENERATE_ONLY" != true ]]; then
+        start_all
+        return
+    fi
+
     local meta="$WORKDIR/ionrun.meta"
     local rc="$WORKDIR/ionrun.rc"
 
@@ -779,15 +916,21 @@ run_ion() {
         fi
         echo "Starting ION (loopback) in $WORKDIR ..."
         local abs_workdir
-        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        abs_workdir="$(cd "$WORKDIR" && pwd -P)"
         export ION_NODE_WDNAME="$abs_workdir"
-        (cd "$WORKDIR" && ionstart -I ionrun.rc)
+        unset ION_NODE_LIST_DIR
+        preflight_node "$rc"
+        launch_node "$abs_workdir" "$(sed -n 's/^node1_name=//p' "$meta")"
         echo ""
         echo "To operate on this ION instance from any directory, run:"
         echo "  export ION_NODE_WDNAME=$abs_workdir"
     else
         # Multi-node: determine which node to start
         local node_name="$OPT_NODE"
+        if [[ "$OPT_GENERATE_ONLY" == true && -z "$node_name" ]]; then
+            echo "Configuration exists in $WORKDIR. Skipping start (--generate-only)."
+            return
+        fi
         if [[ -z "$node_name" ]]; then
             echo "Available nodes:"
             for i in $(seq 1 "$node_count"); do
@@ -825,7 +968,7 @@ run_ion() {
         fi
 
         local abs_workdir
-        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
         if [[ "$topology" == *-local ]]; then
             # Same-host multi-node: each node runs from its own subdirectory
@@ -837,7 +980,8 @@ run_ion() {
             echo "Starting ION node '$node_name' (same-host) in $node_dir ..."
             export ION_NODE_LIST_DIR="$abs_workdir"
             export ION_NODE_WDNAME="$node_dir"
-            (cd "$node_dir" && ionstart -I ionrun.rc)
+            preflight_node "$node_dir/ionrun.rc"
+            launch_node "$node_dir" "$node_name"
             echo ""
             echo "To operate on this node from any directory, run:"
             echo "  export ION_NODE_LIST_DIR=$abs_workdir"
@@ -846,7 +990,9 @@ run_ion() {
             # Remote multi-node: single config with tags
             echo "Starting ION node '$node_name' in $WORKDIR ..."
             export ION_NODE_WDNAME="$abs_workdir"
-            (cd "$WORKDIR" && ionstart -I ionrun.rc -t "$node_name")
+            unset ION_NODE_LIST_DIR
+            preflight_node "$rc" "$node_name"
+            launch_node "$abs_workdir" "$node_name" -t "$node_name"
             echo ""
             echo "To operate on this ION instance from any directory, run:"
             echo "  export ION_NODE_WDNAME=$abs_workdir"
@@ -1509,9 +1655,15 @@ generate_local_ionconfig() {
     local dir="$1" idx="$2"
     local n=$((idx + 1))
     local wmkey=$((10000 + n))
-    local sdr_wmkey=$((65280 + n))
+    local sdr_wmkey=$((20000 + n))
+    local config="$dir/ionrun.ionconfig"
+    if [[ -f "$config" ]]; then
+        local previous_key
+        previous_key=$(awk '$1 == "sdrWmKey" { print $2; exit }' "$config")
+        sdr_wmkey="${previous_key:-$sdr_wmkey}"
+    fi
     local sdr_name="ion${NODE_IDS[$idx]}"
-    cat > "$dir/ionrun.ionconfig" <<EOF
+    cat > "$config" <<EOF
 wmKey $wmkey
 sdrWmKey $sdr_wmkey
 sdrName $sdr_name
@@ -1737,7 +1889,7 @@ detect_external_nodes() {
 # --- Run a pre-existing external config ---
 run_external_config() {
     local abs_workdir
-    abs_workdir="$(cd "$WORKDIR" && pwd)"
+    abs_workdir="$(cd "$WORKDIR" && pwd -P)"
 
     if [[ "$OPT_GENERATE_ONLY" == true ]]; then
         echo "Detected pre-existing node configurations:"
@@ -1796,10 +1948,14 @@ load_meta() {
     fi
 
     # Helper to read a key from the meta file
-    meta_val() { grep "^${1}=" "$meta" | cut -d= -f2; }
+    meta_val() { sed -n "s/^${1}=//p" "$meta"; }
 
     TOPOLOGY=$(meta_val topology)
     NODE_COUNT=$(meta_val node_count)
+    if [[ -z "$TOPOLOGY" || ! "$NODE_COUNT" =~ ^[1-3]$ ]]; then
+        echo "Error: Invalid topology or node count in $meta." >&2
+        exit 1
+    fi
 
     NODE_NAMES=()
     NODE_IDS=()
@@ -1832,11 +1988,16 @@ load_meta() {
 
     # Tunable parameters (fall back to defaults if not in meta)
     local v
-    v=$(meta_val rate);             [[ -n "$v" ]] && CFG_RATE="$v"
-    v=$(meta_val wmsize);           [[ -n "$v" ]] && CFG_WMSIZE="$v"
-    v=$(meta_val heap);             [[ -n "$v" ]] && CFG_HEAP="$v"
-    v=$(meta_val segment_size);     [[ -n "$v" ]] && CFG_SEGMENT_SIZE="$v"
-    v=$(meta_val contact_duration); [[ -n "$v" ]] && CFG_CONTACT_DURATION="$v"
+    v=$(meta_val rate)
+    CFG_RATE="${v:-$CFG_RATE}"
+    v=$(meta_val wmsize)
+    CFG_WMSIZE="${v:-$CFG_WMSIZE}"
+    v=$(meta_val heap)
+    CFG_HEAP="${v:-$CFG_HEAP}"
+    v=$(meta_val segment_size)
+    CFG_SEGMENT_SIZE="${v:-$CFG_SEGMENT_SIZE}"
+    v=$(meta_val contact_duration)
+    CFG_CONTACT_DURATION="${v:-$CFG_CONTACT_DURATION}"
 }
 
 # --- Load batch answer file ---
@@ -1902,10 +2063,24 @@ apply_batch() {
     NODE_NAMES=()
     NODE_IDS=()
     NODE_IPS=()
+    local i name id
+    local -A seen_names=() seen_ids=()
     for i in $(seq 0 $((NODE_COUNT - 1))); do
         local n=$((i + 1))
-        NODE_NAMES[$i]="${BATCH_NODE_NAMES[$n]:-node${n}}"
-        NODE_IDS[$i]="${BATCH_NODE_IDS[$n]:-$n}"
+        name="${BATCH_NODE_NAMES[$n]:-node${n}}"
+        id="${BATCH_NODE_IDS[$n]:-$n}"
+        if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ || -n "${seen_names[$name]:-}" ]]; then
+            echo "Error: Node name '$name' must be valid and unique." >&2
+            exit 1
+        fi
+        if [[ ! "$id" =~ ^[0-9]+(\.[0-9]+)?$ || -n "${seen_ids[$id]:-}" ]]; then
+            echo "Error: IPN node ID '$id' must be valid and unique." >&2
+            exit 1
+        fi
+        NODE_NAMES[$i]="$name"
+        NODE_IDS[$i]="$id"
+        seen_names[$name]=1
+        seen_ids[$id]=1
         if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
             NODE_IPS[$i]="127.0.0.1"
         else
@@ -2054,12 +2229,6 @@ main() {
         exit 0
     fi
 
-    # Handle --start-all
-    if [[ "$OPT_START_ALL" == true ]]; then
-        start_all
-        exit $?
-    fi
-
     # Handle --check
     if [[ "$OPT_CHECK" == true ]]; then
         check_ion
@@ -2123,6 +2292,8 @@ main() {
     elif [[ -f "$meta" && "$OPT_FORCE" != true ]]; then
         # Existing ionrun-generated config: run or report
         run_ion
+    elif [[ "$OPT_START_ALL" == true && "$OPT_FORCE" != true ]]; then
+        start_all
     elif [[ "$OPT_FORCE" != true && -f "$WORKDIR/ionrun.rc" ]]; then
         # Bare ionrun.rc without meta — run it directly
         echo "Found ionrun.rc in $WORKDIR (no ionrun.meta)."
@@ -2130,10 +2301,12 @@ main() {
             echo "Config exists at $WORKDIR/ionrun.rc. Skipping start (--generate-only)."
         else
             local abs_workdir
-            abs_workdir="$(cd "$WORKDIR" && pwd)"
+            abs_workdir="$(cd "$WORKDIR" && pwd -P)"
+            unset ION_NODE_LIST_DIR
             export ION_NODE_WDNAME="$abs_workdir"
             echo "Starting ION with ionstart -I ionrun.rc ..."
-            (cd "$WORKDIR" && ionstart -I ionrun.rc)
+            preflight_node "$abs_workdir/ionrun.rc"
+            launch_node "$abs_workdir" "${abs_workdir##*/}"
             echo ""
             echo "To operate on this ION instance from any directory, run:"
             echo "  export ION_NODE_WDNAME=$abs_workdir"
