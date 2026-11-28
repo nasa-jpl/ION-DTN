@@ -19,7 +19,8 @@ typedef struct
 	BpSAP		rxSap;
 } RxThreadParms;
 
-/*	Bundle priority, then ordinal within expedited priority.	*/
+/*	Bundle priority, then ordinal within expedited priority.
+ *	Missing UT parms or an invalid class rank as standard.		*/
 
 static int	rankFdu(const unsigned char *utParms, int utParmsLength)
 {
@@ -31,13 +32,19 @@ static int	rankFdu(const unsigned char *utParms, int utParmsLength)
 	}
 
 	memcpy((char *) &parms, (const char *) utParms, sizeof(BpUtParms));
-	if (parms.classOfService == BP_EXPEDITED_PRIORITY)
+	switch (parms.classOfService)
 	{
+	case BP_BULK_PRIORITY:
+		return BP_BULK_PRIORITY << 8;
+
+	case BP_EXPEDITED_PRIORITY:
 		return (BP_EXPEDITED_PRIORITY << 8)
 				+ parms.ancillaryData.ordinal;
-	}
 
-	return parms.classOfService << 8;
+	case BP_STD_PRIORITY:
+	default:
+		return BP_STD_PRIORITY << 8;
+	}
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
